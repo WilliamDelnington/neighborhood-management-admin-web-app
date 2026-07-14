@@ -20,8 +20,8 @@ const AdminLayout: React.FC = () => {
     const user = useAuthStore(state => state.user);
     const storeLogout = useAuthStore(state => state.logout);
 
-    const visibleModules = MODULES.filter(
-        m => user && m.roles.some(r => user.roles.includes(r)),
+    const visibleModules = MODULES.filter(m =>
+        user?.permissions?.includes(m.permission),
     );
 
     const handleLogout = async () => {

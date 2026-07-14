@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2, X } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -37,7 +38,7 @@ const EMPTY_QUESTION: DraftQuestion = {
 const OPTIONS_TYPES: LoaiCauHoiKhaoSat[] = ["chon_mot", "chon_nhieu"];
 
 const SurveyFormPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary"]}>
+    <AdminGuard permissions={["surveys.create", "surveys.update"]}>
         <SurveyFormContent />
     </AdminGuard>
 );
@@ -46,6 +47,7 @@ const SurveyFormContent: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
+    const canSave = usePermission(isEdit ? "surveys.update" : "surveys.create");
 
     const [loading, setLoading] = useState(isEdit);
     const [loadError, setLoadError] = useState(false);
@@ -406,11 +408,13 @@ const SurveyFormContent: React.FC = () => {
                             </Button>
                         </div>
 
-                        <div className="mt-2">
-                            <Button loading={saving} onClick={handleSubmit}>
-                                {isEdit ? "Lưu thay đổi" : "Tạo khảo sát"}
-                            </Button>
-                        </div>
+                        {canSave && (
+                            <div className="mt-2">
+                                <Button loading={saving} onClick={handleSubmit}>
+                                    {isEdit ? "Lưu thay đổi" : "Tạo khảo sát"}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

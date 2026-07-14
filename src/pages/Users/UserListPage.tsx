@@ -27,7 +27,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { AppError, Role, User, UserStatus } from "@dts";
+import { AppError, Role, RoleRecord, User, UserStatus } from "@dts";
 import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -37,9 +37,10 @@ import {
     revokeUserSession,
     updateUser,
 } from "@service/userApi";
+import { fetchRoles } from "@service/roleApi";
 
 const UserListPage: React.FC = () => (
-    <AdminGuard roles={["admin"]}>
+    <AdminGuard permissions={["users.read"]}>
         <UserListContent />
     </AdminGuard>
 );
@@ -48,6 +49,12 @@ const UserListContent: React.FC = () => {
     const [search, setSearch] = useState("");
     const [role, setRole] = useState<Role | "">("");
     const [items, setItems] = useState<User[]>([]);
+    const [roles, setRoles] = useState<RoleRecord[]>([]);
+    const roleNameByKey = React.useMemo(
+        () => Object.fromEntries(roles.map(r => [r.key, r.name])),
+        [roles],
+    );
+    const roleLabel = (key: Role) => roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
@@ -104,6 +111,12 @@ const UserListContent: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, role]);
 
+    useEffect(() => {
+        fetchRoles({ active: true })
+            .then(setRoles)
+            .catch(() => setRoles([]));
+    }, []);
+
     const openManageSheet = (user: User) => {
         setSelectedUser(user);
         setDisplayName(user.displayName || "");
@@ -146,7 +159,7 @@ const UserListContent: React.FC = () => {
         try {
             setAssigningRole(true);
             await assignUserRole(selectedUser.id, roleToAssign);
-            toast.success(`Đã gán vai trò ${ROLE_LABEL[roleToAssign]}`);
+            toast.success(`Đã gán vai trò ${roleLabel(roleToAssign)}`);
             refreshSelected({
                 ...selectedUser,
                 roles: selectedUser.roles.includes(roleToAssign)
@@ -168,7 +181,7 @@ const UserListContent: React.FC = () => {
                 primaryRole: r,
             });
             refreshSelected(updated);
-            toast.success(`Đã đặt ${ROLE_LABEL[r]} làm vai trò chính`);
+            toast.success(`Đã đặt ${roleLabel(r)} làm vai trò chính`);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -182,7 +195,7 @@ const UserListContent: React.FC = () => {
             setRevokingRole(r);
             const updated = await revokeUserRole(selectedUser.id, r);
             refreshSelected(updated);
-            toast.success(`Đã thu hồi vai trò ${ROLE_LABEL[r]}`);
+            toast.success(`Đã thu hồi vai trò ${roleLabel(r)}`);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -224,15 +237,14 @@ const UserListContent: React.FC = () => {
                 >
                     Tất cả
                 </Button>
-                {(Object.entries(ROLE_LABEL) as [Role, string][]).map(
-                    ([key, label]) => (
+                {roles.map(r => (
                         <Button
-                            key={key}
+                            key={r.key}
                             size="sm"
-                            variant={role === key ? "default" : "outline"}
-                            onClick={() => setRole(key)}
+                            variant={role === r.key ? "default" : "outline"}
+                            onClick={() => setRole(r.key)}
                         >
-                            {label}
+                            {r.name}
                         </Button>
                     ),
                 )}
@@ -273,9 +285,7 @@ const UserListContent: React.FC = () => {
                                         {u.phone ? ` · ${u.phone}` : ""}
                                     </TableCell>
                                     <TableCell>
-                                        {u.roles
-                                            .map(r => ROLE_LABEL[r])
-                                            .join(", ")}
+                                        {u.roles.map(roleLabel).join(", ")}
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={USER_STATUS_TONE[u.status]}>
@@ -386,7 +396,7 @@ const UserListContent: React.FC = () => {
                                         className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
                                     >
                                         <div className="text-sm">
-                                            {ROLE_LABEL[r]}
+                                            {roleLabel(r)}
                                             {r === selectedUser.primaryRole && (
                                                 <span className="text-xs text-primary">
                                                     {" "}
@@ -436,16 +446,12 @@ const UserListContent: React.FC = () => {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {(
-                                                    Object.entries(
-                                                        ROLE_LABEL,
-                                                    ) as [Role, string][]
-                                                ).map(([key, label]) => (
+                                                {roles.map(r => (
                                                     <SelectItem
-                                                        key={key}
-                                                        value={key}
+                                                        key={r.key}
+                                                        value={r.key}
                                                     >
-                                                        {label}
+                                                        {r.name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

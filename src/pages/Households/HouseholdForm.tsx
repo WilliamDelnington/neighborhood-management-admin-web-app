@@ -1,12 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import { LOAI_SO_HUU_LABEL } from "@constants/domain";
 import { LoaiSoHuu } from "@dts";
 import { HouseholdInput } from "@service/householdApi";
+import { useAuthStore } from "@store/authStore";
 
 export interface HouseholdFormValues {
     cluster: string;
@@ -62,20 +70,50 @@ interface HouseholdFormProps {
  * Bo truong dung chung cho tao moi/chinh sua ho dan.
  */
 const HouseholdForm: React.FC<HouseholdFormProps> = ({ values, onChange }) => {
+    // Nguoi dung duoc phan cong cum (vd to truong) chi duoc chon trong cac cum
+    // cua minh, tranh tao/sua ho dan sang cum ma ho khong con thay duoc sau do
+    // (backend cung chan tuong tu, day la lop UX tren truoc).
+    const assignedClusters = useAuthStore(state => state.user?.assignedClusters) || [];
+
     const set = <K extends keyof HouseholdFormValues>(
         key: K,
         value: HouseholdFormValues[K],
     ) => onChange({ ...values, [key]: value });
 
+    useEffect(() => {
+        if (!values.cluster && assignedClusters.length === 1) {
+            set("cluster", assignedClusters[0]);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignedClusters.length]);
+
     return (
         <div className="flex flex-col gap-4">
             <div className="space-y-1.5">
                 <Label>Cụm dân cư</Label>
-                <Input
-                    placeholder="VD: Cụm 3"
-                    value={values.cluster}
-                    onChange={e => set("cluster", e.target.value)}
-                />
+                {assignedClusters.length > 0 ? (
+                    <Select
+                        value={values.cluster}
+                        onValueChange={v => set("cluster", v)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Chọn cụm dân cư" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {assignedClusters.map(c => (
+                                <SelectItem key={c} value={c}>
+                                    {c}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <Input
+                        placeholder="VD: Cụm 3"
+                        value={values.cluster}
+                        onChange={e => set("cluster", e.target.value)}
+                    />
+                )}
             </div>
             <div className="space-y-1.5">
                 <Label>Địa chỉ</Label>

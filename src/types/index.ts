@@ -21,13 +21,9 @@ export type AppError = {
 // ---------------------------------------------------------------------------
 // Nguoi dung / vai tro
 // ---------------------------------------------------------------------------
-export type Role =
-    | "resident"
-    | "neighborhood_leader"
-    | "secretary"
-    | "regional_police"
-    | "people_committee_official"
-    | "admin";
+// Vai tro gio la du lieu dong (xem RoleRecord) - Role chi con la alias string,
+// khong con la union tinh liet ke het cac vai tro hop le.
+export type Role = string;
 
 export type UserStatus = "active" | "pending" | "locked";
 
@@ -41,6 +37,8 @@ export type User = {
     address?: string;
     roles: Role[];
     primaryRole: Role;
+    permissions: string[];
+    roleLabels: Record<string, string>;
     status: UserStatus;
     householdId?: string;
     citizenId?: string;
@@ -52,6 +50,34 @@ export type User = {
 export type AssignableStaff = {
     id: string;
     displayName: string;
+};
+
+// ---------------------------------------------------------------------------
+// Vai tro & phan quyen (dong, quan ly qua man hinh /roles)
+// ---------------------------------------------------------------------------
+export type PermissionDef = {
+    key: string;
+    label: string;
+};
+
+export type ModulePermissionGroup = {
+    key: string;
+    label: string;
+    permissions: PermissionDef[];
+};
+
+export type RoleRecord = {
+    _id: string;
+    key: string;
+    name: string;
+    description?: string;
+    permissions: string[];
+    system: boolean;
+    active: boolean;
+    sortOrder: number;
+    assignedUserCount: number;
+    createdAt: string;
+    updatedAt: string;
 };
 
 // ---------------------------------------------------------------------------

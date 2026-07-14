@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -27,7 +28,7 @@ import {
 } from "@service/announcementApi";
 
 const AnnouncementFormPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary", "neighborhood_leader"]}>
+    <AdminGuard permissions={["announcements.read"]}>
         <AnnouncementFormContent />
     </AdminGuard>
 );
@@ -36,6 +37,10 @@ const AnnouncementFormContent: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
+    const canManage = usePermission(
+        isEdit ? "announcements.update" : "announcements.create",
+    );
+    const canPublish = usePermission("announcements.publish");
 
     const [loading, setLoading] = useState(isEdit);
     const [loadError, setLoadError] = useState(false);
@@ -224,20 +229,22 @@ const AnnouncementFormContent: React.FC = () => {
                             </label>
                         </div>
 
-                        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                            <Button loading={saving} onClick={handleSubmit}>
-                                {isEdit ? "Lưu thay đổi" : "Lưu bản nháp"}
-                            </Button>
-                            {isEdit && status === "nhap" && (
-                                <Button
-                                    variant="outline"
-                                    loading={publishing}
-                                    onClick={handlePublish}
-                                >
-                                    Đăng thông báo
+                        {canManage && (
+                            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                                <Button loading={saving} onClick={handleSubmit}>
+                                    {isEdit ? "Lưu thay đổi" : "Lưu bản nháp"}
                                 </Button>
-                            )}
-                        </div>
+                                {isEdit && status === "nhap" && canPublish && (
+                                    <Button
+                                        variant="outline"
+                                        loading={publishing}
+                                        onClick={handlePublish}
+                                    >
+                                        Đăng thông báo
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

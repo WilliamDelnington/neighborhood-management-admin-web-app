@@ -16,7 +16,7 @@ import {
     EmptyState,
     ErrorState,
 } from "@components/admin/DataStates";
-import { useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 import { AppError, Citizen, Household } from "@dts";
 import { LOAI_SO_HUU_LABEL } from "@constants/domain";
 import {
@@ -31,14 +31,6 @@ import HouseholdForm, {
     toHouseholdInput,
 } from "./HouseholdForm";
 
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
-
 const toFormValues = (h: Household): HouseholdFormValues => ({
     cluster: h.cluster,
     address: h.address,
@@ -51,7 +43,7 @@ const toFormValues = (h: Household): HouseholdFormValues => ({
 });
 
 const HouseholdDetailPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["households.read"]}>
         <HouseholdDetailContent />
     </AdminGuard>
 );
@@ -59,11 +51,8 @@ const HouseholdDetailPage: React.FC = () => (
 const HouseholdDetailContent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const user = useAuthStore(state => state.user);
-    const canManage =
-        !!user &&
-        (user.roles.includes("admin") ||
-            user.roles.includes("neighborhood_leader"));
+    const canUpdate = usePermission("households.update");
+    const canDelete = usePermission("households.delete");
 
     const [household, setHousehold] = useState<Household | null>(null);
     const [loading, setLoading] = useState(true);
@@ -209,14 +198,16 @@ const HouseholdDetailContent: React.FC = () => {
                                     value={household.note || "Không có"}
                                 />
 
-                                {canManage && (
-                                    <div className="mt-4 flex gap-2">
+                                <div className="mt-4 flex gap-2">
+                                    {canUpdate && (
                                         <Button
                                             variant="outline"
                                             onClick={() => setEditing(true)}
                                         >
                                             Chỉnh sửa
                                         </Button>
+                                    )}
+                                    {canDelete && (
                                         <Button
                                             variant="destructive"
                                             onClick={() =>
@@ -225,8 +216,8 @@ const HouseholdDetailContent: React.FC = () => {
                                         >
                                             Xóa
                                         </Button>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </>
                         )}
                     </div>

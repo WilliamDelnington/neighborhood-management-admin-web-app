@@ -36,7 +36,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import StatCard from "@components/admin/StatCard";
-import { useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 import { AppError, MucNguyCoPccc, PcccCheck } from "@dts";
 import {
     MUC_NGUY_CO_PCCC_LABEL,
@@ -55,13 +55,6 @@ import PcccForm, {
     isPcccFormValid,
     toPcccInput,
 } from "./PcccForm";
-
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "regional_police",
-    "people_committee_official",
-] as const;
 
 const ALL_RISK_LEVELS = "all";
 
@@ -89,18 +82,14 @@ const checkToForm = (c: PcccCheck): PcccFormValues => ({
 });
 
 const PcccListPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["pccc.read"]}>
         <PcccListContent />
     </AdminGuard>
 );
 
 const PcccListContent: React.FC = () => {
-    const user = useAuthStore(state => state.user);
-    const canManage =
-        !!user &&
-        (user.roles.includes("admin") ||
-            user.roles.includes("neighborhood_leader") ||
-            user.roles.includes("regional_police"));
+    const canCreate = usePermission("pccc.create");
+    const canManage = usePermission("pccc.update");
 
     const [searchParams, setSearchParams] = useSearchParams();
     const [riskLevel, setRiskLevel] = useState<MucNguyCoPccc | "">(
@@ -234,7 +223,7 @@ const PcccListContent: React.FC = () => {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Phòng cháy chữa cháy</h1>
-                {canManage && (
+                {canCreate && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" />
                         Thêm đợt kiểm tra

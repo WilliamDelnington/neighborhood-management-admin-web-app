@@ -22,7 +22,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 import { Household, AppError } from "@dts";
 import { createHousehold, fetchHouseholds } from "@service/householdApi";
 import HouseholdForm, {
@@ -32,27 +32,15 @@ import HouseholdForm, {
     toHouseholdInput,
 } from "./HouseholdForm";
 
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
-
 const HouseholdListPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["households.read"]}>
         <HouseholdListContent />
     </AdminGuard>
 );
 
 const HouseholdListContent: React.FC = () => {
     const navigate = useNavigate();
-    const user = useAuthStore(state => state.user);
-    const canManage =
-        !!user &&
-        (user.roles.includes("admin") ||
-            user.roles.includes("neighborhood_leader"));
+    const canCreate = usePermission("households.create");
 
     const [search, setSearch] = useState("");
     const [items, setItems] = useState<Household[]>([]);
@@ -121,7 +109,7 @@ const HouseholdListContent: React.FC = () => {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Quản lý hộ dân</h1>
-                {canManage && (
+                {canCreate && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" />
                         Thêm hộ dân
@@ -151,7 +139,7 @@ const HouseholdListContent: React.FC = () => {
                                 <TableHead>Mã hộ</TableHead>
                                 <TableHead>Chủ hộ</TableHead>
                                 <TableHead>Địa chỉ</TableHead>
-                                <TableHead>Cụm</TableHead>
+                                <TableHead>Tổ dân phố</TableHead>
                                 <TableHead>Nhân khẩu</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>

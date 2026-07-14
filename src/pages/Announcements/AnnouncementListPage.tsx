@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Badge, BadgeTone } from "@components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs";
@@ -40,13 +41,15 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
 ];
 
 const AnnouncementListPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary", "neighborhood_leader"]}>
+    <AdminGuard permissions={["announcements.read"]}>
         <AnnouncementListContent />
     </AdminGuard>
 );
 
 const AnnouncementListContent: React.FC = () => {
     const navigate = useNavigate();
+    const canCreate = usePermission("announcements.create");
+    const canPublish = usePermission("announcements.publish");
 
     const [status, setStatus] = useState<StatusFilter>("all");
     const [items, setItems] = useState<Announcement[]>([]);
@@ -106,10 +109,12 @@ const AnnouncementListContent: React.FC = () => {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Quản lý thông báo</h1>
-                <Button onClick={() => navigate("/announcements/create")}>
-                    <Plus className="mr-1 h-4 w-4" />
-                    Thêm thông báo
-                </Button>
+                {canCreate && (
+                    <Button onClick={() => navigate("/announcements/create")}>
+                        <Plus className="mr-1 h-4 w-4" />
+                        Thêm thông báo
+                    </Button>
+                )}
             </div>
 
             <Tabs
@@ -176,7 +181,7 @@ const AnnouncementListContent: React.FC = () => {
                                     <TableCell
                                         onClick={e => e.stopPropagation()}
                                     >
-                                        {a.status === "nhap" && (
+                                        {canPublish && a.status === "nhap" && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"

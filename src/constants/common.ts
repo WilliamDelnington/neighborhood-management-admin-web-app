@@ -9,6 +9,9 @@ export const API = {
     USERS: "/api/users",
     USERS_ASSIGNABLE_STAFF: "/api/users/assignable-staff",
     ROLES: "/api/roles",
+    ROLES_PERMISSIONS: "/api/roles/permissions",
+    ROLES_ASSIGN: "/api/roles/assign",
+    ROLES_REVOKE: "/api/roles/revoke",
 
     HOUSEHOLDS: "/api/households",
     CITIZENS: "/api/citizens",

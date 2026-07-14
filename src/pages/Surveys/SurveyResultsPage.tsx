@@ -29,7 +29,7 @@ const BarRow: React.FC<{ label: string; count: number; max: number }> = ({
 );
 
 const SurveyResultsPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary", "neighborhood_leader"]}>
+    <AdminGuard permissions={["surveys.read"]}>
         <SurveyResultsContent />
     </AdminGuard>
 );

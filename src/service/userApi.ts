@@ -49,7 +49,7 @@ export const assignUserRole = (
     scopeType: "all" | "cluster" | "household" | "complaint" | "module" = "all",
     scopeValues: string[] = [],
 ): Promise<unknown> =>
-    request("POST", API.ROLES, { userId, role, scopeType, scopeValues });
+    request("POST", API.ROLES_ASSIGN, { userId, role, scopeType, scopeValues });
 
 export const revokeUserRole = (userId: string, role: Role): Promise<User> =>
-    request<User>("DELETE", `${API.ROLES}?userId=${userId}&role=${role}`);
+    request<User>("POST", API.ROLES_REVOKE, { userId, role });

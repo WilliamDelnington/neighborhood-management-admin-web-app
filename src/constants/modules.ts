@@ -12,24 +12,16 @@ import {
     BarChart3,
     UserCog,
     Settings,
+    KeyRound,
 } from "lucide-react";
-import { Role } from "@dts";
 
 export type ModuleItem = {
     key: string;
     label: string;
     path: string;
     icon: typeof Home;
-    roles: Role[];
+    permission: string;
 };
-
-const STAFF_5 = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
 
 export const MODULES: ModuleItem[] = [
     {
@@ -37,107 +29,97 @@ export const MODULES: ModuleItem[] = [
         label: "Bảng điều khiển",
         path: "/",
         icon: LayoutDashboard,
-        roles: [...STAFF_5],
+        permission: "dashboard.read",
     },
     {
         key: "households",
         label: "Hộ dân",
         path: "/households",
         icon: Home,
-        roles: [...STAFF_5],
+        permission: "households.read",
     },
     {
         key: "citizens",
         label: "Nhân khẩu",
         path: "/citizens",
         icon: Users,
-        roles: [...STAFF_5],
+        permission: "citizens.read",
     },
     {
         key: "complaints",
         label: "Phản ánh",
         path: "/complaints",
         icon: MessageSquare,
-        roles: [
-            "admin",
-            "neighborhood_leader",
-            "regional_police",
-            "people_committee_official",
-        ],
+        permission: "complaints.read",
     },
     {
         key: "pccc",
         label: "PCCC",
         path: "/pccc",
         icon: Flame,
-        roles: [
-            "admin",
-            "neighborhood_leader",
-            "regional_police",
-            "people_committee_official",
-        ],
+        permission: "pccc.read",
     },
     {
         key: "security",
         label: "An ninh, tạm trú",
         path: "/security",
         icon: Shield,
-        roles: [
-            "admin",
-            "neighborhood_leader",
-            "regional_police",
-            "people_committee_official",
-        ],
+        permission: "security.read",
     },
     {
         key: "meetings",
         label: "Cuộc họp",
         path: "/meetings",
         icon: CalendarDays,
-        roles: ["admin", "secretary", "neighborhood_leader"],
+        permission: "meetings.read",
     },
     {
         key: "announcements",
         label: "Thông báo",
         path: "/announcements",
         icon: Megaphone,
-        roles: ["admin", "secretary", "neighborhood_leader"],
+        permission: "announcements.read",
     },
     {
         key: "surveys",
         label: "Khảo sát",
         path: "/surveys",
         icon: ClipboardList,
-        roles: ["admin", "secretary", "neighborhood_leader"],
+        permission: "surveys.read",
     },
     {
         key: "finance",
         label: "Tài chính",
         path: "/finance",
         icon: Wallet,
-        roles: ["admin"],
+        permission: "finance.read",
     },
     {
         key: "reports",
         label: "Báo cáo",
         path: "/reports",
         icon: BarChart3,
-        roles: ["admin", "neighborhood_leader", "regional_police"],
+        permission: "reports.read",
     },
     {
         key: "users",
         label: "Người dùng & vai trò",
         path: "/users",
         icon: UserCog,
-        roles: ["admin"],
+        permission: "users.read",
+    },
+    {
+        key: "roles",
+        label: "Vai trò & phân quyền",
+        path: "/roles",
+        icon: KeyRound,
+        permission: "roles.read",
     },
     {
         key: "settings",
         label: "Cài đặt",
         path: "/settings",
         icon: Settings,
-        roles: ["admin"],
+        permission: "settings.read",
     },
 ];
-
-export const STAFF_ROLES: Role[] = [...STAFF_5];

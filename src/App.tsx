@@ -57,14 +57,7 @@ const FinanceListPage = React.lazy(
 const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
-
-const STAFF_5 = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
+const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
 
 const PageFallback = () => (
     <div className="flex h-64 items-center justify-center">
@@ -98,7 +91,7 @@ const App: React.FC = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route
                         element={
-                            <AdminGuard roles={[...STAFF_5]}>
+                            <AdminGuard permissions={["dashboard.read"]}>
                                 <AdminLayout />
                             </AdminGuard>
                         }
@@ -164,6 +157,7 @@ const App: React.FC = () => {
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/users" element={<UserListPage />} />
+                        <Route path="/roles" element={<RoleListPage />} />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>

@@ -10,14 +10,6 @@ import { cn } from "@lib/utils";
 import { DashboardSummary } from "@dts";
 import { fetchDashboardSummary } from "@service/dashboardApi";
 
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
-
 const formatDateTime = (iso?: string) => {
     if (!iso) return "";
     const d = new Date(iso);
@@ -29,7 +21,7 @@ const formatDateTime = (iso?: string) => {
 };
 
 const DashboardPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["dashboard.read"]}>
         <DashboardContent />
     </AdminGuard>
 );
@@ -53,8 +45,8 @@ const DashboardContent: React.FC = () => {
 
     useEffect(load, []);
 
-    const visibleModules = MODULES.filter(
-        m => user && m.roles.some(r => user.roles.includes(r)),
+    const visibleModules = MODULES.filter(m =>
+        user?.permissions?.includes(m.permission),
     );
 
     return (

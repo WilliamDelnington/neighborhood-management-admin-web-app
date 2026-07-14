@@ -28,7 +28,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 import { AppError, Citizen, Household } from "@dts";
 import {
     createCitizen,
@@ -42,14 +42,6 @@ import CitizenForm, {
     isCitizenFormValid,
     toCitizenInput,
 } from "./CitizenForm";
-
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
 
 const householdLabelOf = (h: string | Household): string =>
     typeof h === "string" ? "" : `${h.code} — ${h.address}`;
@@ -88,17 +80,15 @@ const badgeFor = (c: Citizen) => {
 };
 
 const CitizenListPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["citizens.read"]}>
         <CitizenListContent />
     </AdminGuard>
 );
 
 const CitizenListContent: React.FC = () => {
-    const user = useAuthStore(state => state.user);
-    const canManage =
-        !!user &&
-        (user.roles.includes("admin") ||
-            user.roles.includes("neighborhood_leader"));
+    const canCreate = usePermission("citizens.create");
+    const canUpdate = usePermission("citizens.update");
+    const canDelete = usePermission("citizens.delete");
 
     const [search, setSearch] = useState("");
     const [items, setItems] = useState<Citizen[]>([]);
@@ -152,7 +142,7 @@ const CitizenListContent: React.FC = () => {
     };
 
     const openEdit = (c: Citizen) => {
-        if (!canManage) return;
+        if (!canUpdate) return;
         setEditingId(c._id);
         setForm(citizenToForm(c));
         setFormVisible(true);
@@ -201,7 +191,7 @@ const CitizenListContent: React.FC = () => {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Quản lý nhân khẩu</h1>
-                {canManage && (
+                {canCreate && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" />
                         Thêm nhân khẩu
@@ -239,10 +229,10 @@ const CitizenListContent: React.FC = () => {
                                 <TableRow
                                     key={c._id}
                                     className={
-                                        canManage ? "cursor-pointer" : undefined
+                                        canUpdate ? "cursor-pointer" : undefined
                                     }
                                     onClick={
-                                        canManage
+                                        canUpdate
                                             ? () => openEdit(c)
                                             : undefined
                                     }
@@ -287,7 +277,7 @@ const CitizenListContent: React.FC = () => {
                         <CitizenForm values={form} onChange={setForm} />
                     </div>
                     <SheetFooter>
-                        {canManage && editingId && (
+                        {canDelete && editingId && (
                             <Button
                                 variant="destructive"
                                 className="w-full"

@@ -35,7 +35,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 import { AppError, MucDoAnNinh, SecurityRecord } from "@dts";
 import { LOAI_SO_HUU_LABEL, MUC_DO_AN_NINH_LABEL, MUC_DO_AN_NINH_TONE } from "@constants/domain";
 import {
@@ -50,13 +50,6 @@ import SecurityForm, {
     isSecurityFormValid,
     toSecurityInput,
 } from "./SecurityForm";
-
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "regional_police",
-    "people_committee_official",
-] as const;
 
 const LEVEL_ALL = "all";
 
@@ -81,19 +74,15 @@ const recordToForm = (r: SecurityRecord): SecurityFormValues => ({
 });
 
 const SecurityListPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["security.read"]}>
         <SecurityListContent />
     </AdminGuard>
 );
 
 const SecurityListContent: React.FC = () => {
     const [searchParams] = useSearchParams();
-    const user = useAuthStore(state => state.user);
-    const canManage =
-        !!user &&
-        (user.roles.includes("admin") ||
-            user.roles.includes("neighborhood_leader") ||
-            user.roles.includes("regional_police"));
+    const canCreate = usePermission("security.create");
+    const canManage = usePermission("security.update");
 
     const [level, setLevel] = useState<MucDoAnNinh | "">(
         (searchParams.get("level") as MucDoAnNinh | null) || "",
@@ -197,7 +186,7 @@ const SecurityListContent: React.FC = () => {
                 <h1 className="text-lg font-semibold">
                     An ninh, tạm trú, nhà cho thuê
                 </h1>
-                {canManage && (
+                {canCreate && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" />
                         Thêm hồ sơ
@@ -296,7 +285,7 @@ const SecurityListContent: React.FC = () => {
                         <SecurityForm values={form} onChange={setForm} />
                     </div>
                     <SheetFooter>
-                        {editingId && (
+                        {canManage && editingId && (
                             <Button
                                 variant="destructive"
                                 className="w-full"

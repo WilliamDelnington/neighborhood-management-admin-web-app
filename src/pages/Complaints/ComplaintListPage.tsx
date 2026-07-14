@@ -28,18 +28,11 @@ import {
 } from "@constants/domain";
 import { fetchComplaints } from "@service/complaintApi";
 
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "regional_police",
-    "people_committee_official",
-] as const;
-
 const ALL_STATUS = "all";
 const ALL_CATEGORY = "all";
 
 const ComplaintListPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["complaints.read"]}>
         <ComplaintListContent />
     </AdminGuard>
 );

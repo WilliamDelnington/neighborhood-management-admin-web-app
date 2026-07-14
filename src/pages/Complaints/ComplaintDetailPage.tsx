@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Input } from "@components/ui/input";
@@ -40,26 +41,21 @@ import {
 } from "@service/complaintApi";
 import { fetchAssignableStaff } from "@service/userApi";
 
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "regional_police",
-    "people_committee_official",
-] as const;
-
 const formatDateTime = (value?: string) =>
     value ? new Date(value).toLocaleString("vi-VN") : "";
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
 
 const ComplaintDetailPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["complaints.read"]}>
         <ComplaintDetailContent />
     </AdminGuard>
 );
 
 const ComplaintDetailContent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const canAssign = usePermission("complaints.assign");
+    const canUpdateStatus = usePermission("complaints.update_status");
 
     const [complaint, setComplaint] = useState<Complaint | null>(null);
     const [timeline, setTimeline] = useState<ComplaintTimelineEntry[]>([]);
@@ -241,90 +237,94 @@ const ComplaintDetailContent: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                        <h2 className="mb-3 text-base font-semibold">
-                            Phân công xử lý
-                        </h2>
-                        <label
-                            htmlFor="expectedCompletionDate"
-                            className="mb-1 block text-sm text-text_2"
-                        >
-                            Dự kiến hoàn thành (tùy chọn)
-                        </label>
-                        <Input
-                            id="expectedCompletionDate"
-                            type="date"
-                            value={expectedCompletionDate}
-                            onChange={e =>
-                                setExpectedCompletionDate(e.target.value)
-                            }
-                        />
-                        <div className="mt-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setAssigneeDialogOpen(true)}
+                    {canAssign && (
+                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                            <h2 className="mb-3 text-base font-semibold">
+                                Phân công xử lý
+                            </h2>
+                            <label
+                                htmlFor="expectedCompletionDate"
+                                className="mb-1 block text-sm text-text_2"
                             >
-                                {assigneeName
-                                    ? `Đang giao: ${assigneeName} — Đổi người`
-                                    : "Chọn người phụ trách"}
-                            </Button>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                        <h2 className="mb-3 text-base font-semibold">
-                            Cập nhật trạng thái
-                        </h2>
-                        <Select
-                            value={newStatus}
-                            onValueChange={v =>
-                                setNewStatus(v as TrangThaiPhanAnh)
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Trạng thái mới" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(
-                                    Object.entries(
-                                        TRANG_THAI_PHAN_ANH_LABEL,
-                                    ) as [TrangThaiPhanAnh, string][]
-                                ).map(([key, label]) => (
-                                    <SelectItem key={key} value={key}>
-                                        {label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Textarea
-                            className="mt-3"
-                            placeholder="Nội dung cập nhật, phản hồi cho người dân..."
-                            value={note}
-                            onChange={e => setNote(e.target.value)}
-                        />
-                        <label
-                            htmlFor="isPublic"
-                            className="mt-3 flex items-center gap-2 text-sm"
-                        >
-                            <Checkbox
-                                id="isPublic"
-                                checked={isPublic}
-                                onCheckedChange={checked =>
-                                    setIsPublic(checked === true)
+                                Dự kiến hoàn thành (tùy chọn)
+                            </label>
+                            <Input
+                                id="expectedCompletionDate"
+                                type="date"
+                                value={expectedCompletionDate}
+                                onChange={e =>
+                                    setExpectedCompletionDate(e.target.value)
                                 }
                             />
-                            Công khai cho người dân
-                        </label>
-                        <div className="mt-3">
-                            <Button
-                                loading={updating}
-                                disabled={!newStatus}
-                                onClick={handleUpdateStatus}
-                            >
-                                Cập nhật trạng thái
-                            </Button>
+                            <div className="mt-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setAssigneeDialogOpen(true)}
+                                >
+                                    {assigneeName
+                                        ? `Đang giao: ${assigneeName} — Đổi người`
+                                        : "Chọn người phụ trách"}
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {canUpdateStatus && (
+                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                            <h2 className="mb-3 text-base font-semibold">
+                                Cập nhật trạng thái
+                            </h2>
+                            <Select
+                                value={newStatus}
+                                onValueChange={v =>
+                                    setNewStatus(v as TrangThaiPhanAnh)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Trạng thái mới" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(
+                                        Object.entries(
+                                            TRANG_THAI_PHAN_ANH_LABEL,
+                                        ) as [TrangThaiPhanAnh, string][]
+                                    ).map(([key, label]) => (
+                                        <SelectItem key={key} value={key}>
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Textarea
+                                className="mt-3"
+                                placeholder="Nội dung cập nhật, phản hồi cho người dân..."
+                                value={note}
+                                onChange={e => setNote(e.target.value)}
+                            />
+                            <label
+                                htmlFor="isPublic"
+                                className="mt-3 flex items-center gap-2 text-sm"
+                            >
+                                <Checkbox
+                                    id="isPublic"
+                                    checked={isPublic}
+                                    onCheckedChange={checked =>
+                                        setIsPublic(checked === true)
+                                    }
+                                />
+                                Công khai cho người dân
+                            </label>
+                            <div className="mt-3">
+                                <Button
+                                    loading={updating}
+                                    disabled={!newStatus}
+                                    onClick={handleUpdateStatus}
+                                >
+                                    Cập nhật trạng thái
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                         <h2 className="mb-3 text-base font-semibold">

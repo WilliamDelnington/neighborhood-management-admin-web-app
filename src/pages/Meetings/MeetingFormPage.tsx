@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -37,7 +38,7 @@ const registrantName = (r: MeetingRegistration) => {
 };
 
 const MeetingFormPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary", "neighborhood_leader"]}>
+    <AdminGuard permissions={["meetings.read"]}>
         <MeetingFormContent />
     </AdminGuard>
 );
@@ -46,6 +47,7 @@ const MeetingFormContent: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
+    const canManage = usePermission(isEdit ? "meetings.update" : "meetings.create");
 
     const [loading, setLoading] = useState(isEdit);
     const [loadError, setLoadError] = useState(false);
@@ -216,11 +218,13 @@ const MeetingFormContent: React.FC = () => {
                             Đăng công khai lên web app cho người dân
                         </label>
 
-                        <div className="mt-2">
-                            <Button loading={saving} onClick={handleSubmit}>
-                                {isEdit ? "Lưu thay đổi" : "Tạo cuộc họp"}
-                            </Button>
-                        </div>
+                        {canManage && (
+                            <div className="mt-2">
+                                <Button loading={saving} onClick={handleSubmit}>
+                                    {isEdit ? "Lưu thay đổi" : "Tạo cuộc họp"}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
