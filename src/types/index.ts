@@ -45,6 +45,7 @@ export type User = {
     assignedClusters: string[];
     notificationPermission: boolean;
     createdAt?: string;
+    allowedComplaintCategories: NhomPhanAnh[] | null;
 };
 
 export type AssignableStaff = {
@@ -72,6 +73,7 @@ export type RoleRecord = {
     name: string;
     description?: string;
     permissions: string[];
+    allowedComplaintCategories?: NhomPhanAnh[];
     system: boolean;
     active: boolean;
     sortOrder: number;

@@ -35,6 +35,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
 import StatCard from "@components/admin/StatCard";
 import { usePermission } from "@store/authStore";
 import { AppError, MucNguyCoPccc, PcccCheck } from "@dts";
@@ -101,7 +102,6 @@ const PcccListContent: React.FC = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const [formVisible, setFormVisible] = useState(false);
@@ -118,25 +118,16 @@ const PcccListContent: React.FC = () => {
     };
 
     const load = (targetPage = 1) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+        setLoading(true);
         setError(false);
         fetchPcccChecks({ page: targetPage, riskLevel: riskLevel || undefined })
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -305,16 +296,13 @@ const PcccListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
+            {!loading && !error && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={p => load(p)}
+                    disabled={loading}
+                />
             )}
 
             <Sheet open={formVisible} onOpenChange={setFormVisible}>

@@ -30,7 +30,9 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { AppError, ModulePermissionGroup, RoleRecord } from "@dts";
+import Pagination from "@components/admin/Pagination";
+import { AppError, ModulePermissionGroup, NhomPhanAnh, RoleRecord } from "@dts";
+import { NHOM_PHAN_ANH_LABEL } from "@constants/domain";
 import {
     createRole,
     deleteRole,
@@ -52,6 +54,8 @@ type FormState = {
     active: boolean;
     sortOrder: number;
     permissions: string[];
+    // null = khong gioi han (xem tat ca nhom phan anh) - mac dinh cho den khi admin chot.
+    allowedComplaintCategories: NhomPhanAnh[] | null;
 };
 
 const EMPTY_FORM: FormState = {
@@ -61,11 +65,18 @@ const EMPTY_FORM: FormState = {
     active: true,
     sortOrder: 0,
     permissions: [],
+    allowedComplaintCategories: null,
 };
+
+const ALL_NHOM_PHAN_ANH = Object.keys(
+    NHOM_PHAN_ANH_LABEL,
+) as NhomPhanAnh[];
 
 const RoleListContent: React.FC = () => {
     const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -77,12 +88,17 @@ const RoleListContent: React.FC = () => {
     const [roleToDelete, setRoleToDelete] = useState<RoleRecord | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const load = () => {
+    const load = (targetPage = 1) => {
         setLoading(true);
         setError(false);
-        Promise.all([fetchRoles(), fetchRolePermissionRegistry()])
+        Promise.all([
+            fetchRoles({ page: targetPage }),
+            fetchRolePermissionRegistry(),
+        ])
             .then(([roleList, permissionRegistry]) => {
-                setRoles(roleList);
+                setRoles(roleList.items);
+                setPage(roleList.page);
+                setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
             })
             .catch(() => setError(true))
@@ -90,7 +106,7 @@ const RoleListContent: React.FC = () => {
     };
 
     useEffect(() => {
-        load();
+        load(1);
     }, []);
 
     const openCreateSheet = () => {
@@ -108,8 +124,28 @@ const RoleListContent: React.FC = () => {
             active: role.active,
             sortOrder: role.sortOrder,
             permissions: role.permissions,
+            allowedComplaintCategories: role.allowedComplaintCategories ?? null,
         });
         setSheetOpen(true);
+    };
+
+    const toggleComplaintCategoryRestriction = (restricted: boolean) => {
+        setForm(prev => ({
+            ...prev,
+            allowedComplaintCategories: restricted ? [] : null,
+        }));
+    };
+
+    const toggleComplaintCategory = (category: NhomPhanAnh) => {
+        setForm(prev => {
+            const current = prev.allowedComplaintCategories || [];
+            return {
+                ...prev,
+                allowedComplaintCategories: current.includes(category)
+                    ? current.filter(c => c !== category)
+                    : [...current, category],
+            };
+        });
     };
 
     const togglePermission = (key: string) => {
@@ -136,27 +172,28 @@ const RoleListContent: React.FC = () => {
         try {
             setSaving(true);
             if (editingRole) {
-                const updated = await updateRole(editingRole._id, {
+                await updateRole(editingRole._id, {
                     name: form.name.trim(),
                     description: form.description.trim() || undefined,
                     active: form.active,
                     sortOrder: form.sortOrder,
                     permissions: form.permissions,
+                    allowedComplaintCategories: form.allowedComplaintCategories,
                 });
-                setRoles(prev =>
-                    prev.map(r => (r._id === updated._id ? updated : r)),
-                );
+                load(page);
                 toast.success("Đã cập nhật vai trò");
             } else {
-                const created = await createRole({
+                await createRole({
                     key: form.key.trim(),
                     name: form.name.trim(),
                     description: form.description.trim() || undefined,
                     active: form.active,
                     sortOrder: form.sortOrder,
                     permissions: form.permissions,
+                    allowedComplaintCategories:
+                        form.allowedComplaintCategories ?? undefined,
                 });
-                setRoles(prev => [...prev, created]);
+                load(1);
                 toast.success("Đã tạo vai trò mới");
             }
             setSheetOpen(false);
@@ -172,9 +209,9 @@ const RoleListContent: React.FC = () => {
         try {
             setDeleting(true);
             await deleteRole(roleToDelete._id);
-            setRoles(prev => prev.filter(r => r._id !== roleToDelete._id));
             toast.success("Đã xóa vai trò");
             setRoleToDelete(null);
+            load(roles.length === 1 && page > 1 ? page - 1 : page);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -191,7 +228,7 @@ const RoleListContent: React.FC = () => {
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
-                {!loading && error && <ErrorState onRetry={load} />}
+                {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && roles.length === 0 && (
                     <EmptyState label="Chưa có vai trò nào" />
                 )}
@@ -253,6 +290,15 @@ const RoleListContent: React.FC = () => {
                     </Table>
                 )}
             </div>
+
+            {!loading && !error && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={load}
+                    disabled={loading}
+                />
+            )}
 
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetContent className="flex flex-col sm:max-w-lg">
@@ -371,6 +417,52 @@ const RoleListContent: React.FC = () => {
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        <div className="mt-5 border-t border-divider_01 pt-4">
+                            <h3 className="mb-3 text-sm font-semibold">
+                                Phạm vi xem phản ánh / kiến nghị
+                            </h3>
+                            <div className="mb-2 flex items-center gap-2">
+                                <Checkbox
+                                    checked={
+                                        form.allowedComplaintCategories === null
+                                    }
+                                    onCheckedChange={checked =>
+                                        toggleComplaintCategoryRestriction(
+                                            !checked,
+                                        )
+                                    }
+                                />
+                                <Label>
+                                    Không giới hạn (xem tất cả các nhóm phản
+                                    ánh)
+                                </Label>
+                            </div>
+                            {form.allowedComplaintCategories !== null && (
+                                <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2">
+                                    {ALL_NHOM_PHAN_ANH.map(category => (
+                                        <div
+                                            key={category}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Checkbox
+                                                checked={form.allowedComplaintCategories!.includes(
+                                                    category,
+                                                )}
+                                                onCheckedChange={() =>
+                                                    toggleComplaintCategory(
+                                                        category,
+                                                    )
+                                                }
+                                            />
+                                            <Label className="text-sm font-normal">
+                                                {NHOM_PHAN_ANH_LABEL[category]}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <Button

@@ -20,6 +20,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
 import { Complaint, NhomPhanAnh, TrangThaiPhanAnh } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
@@ -27,9 +28,11 @@ import {
     TRANG_THAI_PHAN_ANH_TONE,
 } from "@constants/domain";
 import { fetchComplaints } from "@service/complaintApi";
+import { useAuthStore } from "@store/authStore";
 
 const ALL_STATUS = "all";
 const ALL_CATEGORY = "all";
+const ALL_NHOM_PHAN_ANH = Object.keys(NHOM_PHAN_ANH_LABEL) as NhomPhanAnh[];
 
 const ComplaintListPage: React.FC = () => (
     <AdminGuard permissions={["complaints.read"]}>
@@ -40,6 +43,10 @@ const ComplaintListPage: React.FC = () => (
 const ComplaintListContent: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const allowedCategories = useAuthStore(
+        state => state.user?.allowedComplaintCategories,
+    );
+    const visibleCategories = allowedCategories ?? ALL_NHOM_PHAN_ANH;
 
     const [status, setStatus] = useState<TrangThaiPhanAnh | "">(
         (searchParams.get("status") as TrangThaiPhanAnh | null) || "",
@@ -53,15 +60,10 @@ const ComplaintListContent: React.FC = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const load = (targetPage = 1) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+        setLoading(true);
         setError(false);
         fetchComplaints({
             page: targetPage,
@@ -70,17 +72,12 @@ const ComplaintListContent: React.FC = () => {
             search: search || undefined,
         })
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -170,14 +167,9 @@ const ComplaintListContent: React.FC = () => {
                         <SelectItem value={ALL_CATEGORY}>
                             Tất cả nhóm
                         </SelectItem>
-                        {(
-                            Object.entries(NHOM_PHAN_ANH_LABEL) as [
-                                NhomPhanAnh,
-                                string,
-                            ][]
-                        ).map(([key, label]) => (
+                        {visibleCategories.map(key => (
                             <SelectItem key={key} value={key}>
-                                {label}
+                                {NHOM_PHAN_ANH_LABEL[key]}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -236,16 +228,13 @@ const ComplaintListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
+            {!loading && !error && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={p => load(p)}
+                    disabled={loading}
+                />
             )}
         </div>
     );

@@ -28,7 +28,61 @@ type ReportTab = {
     excelFileName: string;
 };
 
+// Nhan tieng Viet cho tung truong trong du lieu bao cao (xem cac kieu
+// PopulationReport/ComplaintReport/PcccReport/SecurityReport/FinanceReport
+// trong reportService.ts) - de man hinh bao cao khong hien lai ten truong
+// tieng Anh/camelCase tho nhu "Total Households Checked".
+const KEY_LABEL: Record<string, string> = {
+    totalHouseholds: "Tổng số hộ",
+    totalCitizens: "Tổng số nhân khẩu",
+    byCluster: "Theo cụm dân cư",
+    householdCount: "Số hộ",
+    citizenCount: "Số nhân khẩu",
+    byResidenceType: "Theo loại cư trú",
+    residenceType: "Loại cư trú",
+    elderlyCount: "Số người cao tuổi",
+    childCount: "Số trẻ em",
+    disabledOrSupportNeededCount: "Số người khuyết tật/cần hỗ trợ",
+    partyMemberCount: "Số đảng viên",
+    unionMemberCount: "Số đoàn viên/hội viên",
+    byCategory: "Theo nhóm",
+    category: "Nhóm",
+    byStatus: "Theo trạng thái",
+    status: "Trạng thái",
+    averageResolutionDays: "Thời gian xử lý trung bình (ngày)",
+    resolvedWithDurationCount: "Số phản ánh đã tính thời gian xử lý",
+    escalatedToCommitteeCount: "Số phản ánh đã chuyển UBND phường",
+    totalHouseholdsChecked: "Tổng số hộ đã kiểm tra",
+    byRiskLevel: "Theo mức nguy cơ",
+    riskLevel: "Mức nguy cơ",
+    householdsNeedingRemediation: "Hộ cần khắc phục",
+    code: "Mã hộ",
+    cluster: "Cụm dân cư",
+    address: "Địa chỉ",
+    headOfHousehold: "Chủ hộ",
+    remediationNeeded: "Việc cần khắc phục",
+    byLevel: "Theo mức độ",
+    level: "Mức độ",
+    rentalHouseholdsCount: "Tổng số hộ cho thuê",
+    rentalMissingDeclarationCount: "Số hộ cho thuê chưa khai báo tạm trú",
+    reportedToPoliceCount: "Số vụ đã báo công an khu vực",
+    totalIncome: "Tổng thu",
+    totalExpense: "Tổng chi",
+    net: "Chênh lệch thu chi",
+    byMonth: "Theo tháng",
+    year: "Năm",
+    month: "Tháng",
+    income: "Thu",
+    expense: "Chi",
+    count: "Số lượng",
+};
+
+// Truong ID ky thuat khong can hien thi cho nguoi dung (da co "code" lam ma
+// hien thi thay the).
+const HIDDEN_KEYS = new Set(["householdId"]);
+
 const humanizeKey = (key: string) =>
+    KEY_LABEL[key] ??
     key
         .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
         .replace(/_/g, " ")
@@ -58,10 +112,28 @@ const renderValue = (value: unknown): React.ReactNode => {
     }
 
     if (typeof value === "object") {
+        const obj = value as Record<string, unknown>;
+
+        // Cac muc phan loai (theo nhom/trang thai/muc nguy co...) deu co dang
+        // { <ma>, label, count } - "label" da la ban dich tieng Viet cua ma
+        // phan loai, nen chi can hien mot dong gon "Nhan — So luong" thay vi
+        // liet ke tung truong (ma tho, label, count) rieng le.
+        if ("label" in obj && "count" in obj) {
+            return (
+                <div className="flex items-center justify-between border-b border-divider_01 py-1 last:border-0">
+                    <span className="text-sm">{String(obj.label)}</span>
+                    <span className="text-sm font-medium">
+                        {String(obj.count)}
+                    </span>
+                </div>
+            );
+        }
+
         return (
             <div className="w-full">
-                {Object.entries(value as Record<string, unknown>).map(
-                    ([k, v]) => (
+                {Object.entries(obj).map(([k, v]) => {
+                    if (HIDDEN_KEYS.has(k)) return null;
+                    return (
                         <div
                             key={k}
                             className="flex items-start justify-between gap-2 border-b border-divider_01 py-1 last:border-0"
@@ -77,8 +149,8 @@ const renderValue = (value: unknown): React.ReactNode => {
                                 )}
                             </div>
                         </div>
-                    ),
-                )}
+                    );
+                })}
             </div>
         );
     }

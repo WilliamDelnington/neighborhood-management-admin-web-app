@@ -1,11 +1,14 @@
 import { API } from "@constants/common";
-import { ModulePermissionGroup, RoleRecord } from "@dts";
+import { ModulePermissionGroup, NhomPhanAnh, PaginatedData, RoleRecord } from "@dts";
 import { request } from "./request";
 
 export const fetchRoles = (params?: {
     search?: string;
     active?: boolean;
-}): Promise<RoleRecord[]> => request<RoleRecord[]>("GET", API.ROLES, params);
+    page?: number;
+    limit?: number;
+}): Promise<PaginatedData<RoleRecord>> =>
+    request<PaginatedData<RoleRecord>>("GET", API.ROLES, params);
 
 export const fetchRolePermissionRegistry = (): Promise<
     ModulePermissionGroup[]
@@ -19,6 +22,7 @@ export interface CreateRoleParams {
     name: string;
     description?: string;
     permissions: string[];
+    allowedComplaintCategories?: NhomPhanAnh[];
     active?: boolean;
     sortOrder?: number;
 }
@@ -30,6 +34,7 @@ export interface UpdateRoleParams {
     name?: string;
     description?: string;
     permissions?: string[];
+    allowedComplaintCategories?: NhomPhanAnh[] | null;
     active?: boolean;
     sortOrder?: number;
 }

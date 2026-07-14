@@ -27,6 +27,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
 import { AppError, Role, RoleRecord, User, UserStatus } from "@dts";
 import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
@@ -59,7 +60,6 @@ const UserListContent: React.FC = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const [sheetOpen, setSheetOpen] = useState(false);
@@ -78,11 +78,7 @@ const UserListContent: React.FC = () => {
     const [revokingSession, setRevokingSession] = useState(false);
 
     const load = (targetPage = 1, keyword = search) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+        setLoading(true);
         setError(false);
         fetchUsers(
             targetPage,
@@ -91,18 +87,13 @@ const UserListContent: React.FC = () => {
             role || undefined,
         )
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
                 setTotal(res.total);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -112,8 +103,8 @@ const UserListContent: React.FC = () => {
     }, [search, role]);
 
     useEffect(() => {
-        fetchRoles({ active: true })
-            .then(setRoles)
+        fetchRoles({ active: true, limit: 100 })
+            .then(res => setRoles(res.items))
             .catch(() => setRoles([]));
     }, []);
 
@@ -299,16 +290,13 @@ const UserListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1, search)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
+            {!loading && !error && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={p => load(p, search)}
+                    disabled={loading}
+                />
             )}
 
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

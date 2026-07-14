@@ -22,6 +22,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
 import { usePermission } from "@store/authStore";
 import { Household, AppError } from "@dts";
 import { createHousehold, fetchHouseholds } from "@service/householdApi";
@@ -47,7 +48,6 @@ const HouseholdListContent: React.FC = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const [createVisible, setCreateVisible] = useState(false);
@@ -55,25 +55,16 @@ const HouseholdListContent: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
 
     const load = (targetPage = 1, keyword = search) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+        setLoading(true);
         setError(false);
         fetchHouseholds({ page: targetPage, search: keyword })
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -174,16 +165,13 @@ const HouseholdListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1, search)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
+            {!loading && !error && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={p => load(p, search)}
+                    disabled={loading}
+                />
             )}
 
             <Sheet open={createVisible} onOpenChange={setCreateVisible}>
