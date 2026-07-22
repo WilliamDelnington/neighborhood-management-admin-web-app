@@ -8,43 +8,39 @@ import {
 } from "@components/ui/dialog";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
-import { fetchHouseholds } from "@service/householdApi";
-import { Household } from "@dts";
+import { fetchHouses } from "@service/houseApi";
+import { House } from "@dts";
+import { HOUSE_STATUS_LABEL } from "@constants/domain";
 import { LoadingState, EmptyState } from "./DataStates";
 
-export interface HouseholdPickerProps {
+export interface HousePickerProps {
     label?: string;
     value?: string;
     valueLabel?: string;
-    onChange: (householdId: string, household: Household) => void;
+    onChange: (houseId: string, house: House) => void;
     disabled?: boolean;
-    // Chi cho chon cac ho dan chua gan nha so - dung cho luong "gan ho dan co
-    // san" trong man chi tiet nha so, sau khi bo man danh sach ho dan phang.
-    unassignedOnly?: boolean;
 }
 
-const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
-    label = "Hộ dân",
+const HousePicker: React.FC<HousePickerProps> = ({
+    label = "Nhà",
     value,
     valueLabel,
     onChange,
     disabled,
-    unassignedOnly,
 }) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
-    const [items, setItems] = useState<Household[]>([]);
+    const [items, setItems] = useState<House[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (!open) return;
         setLoading(true);
         const timer = setTimeout(() => {
-            fetchHouseholds({
+            fetchHouses({
                 page: 1,
                 limit: 20,
                 search: search || undefined,
-                unassigned: unassignedOnly || undefined,
             })
                 .then(res => setItems(res.items))
                 .catch(() => setItems([]))
@@ -52,7 +48,7 @@ const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
         }, 250);
         // eslint-disable-next-line consistent-return
         return () => clearTimeout(timer);
-    }, [open, search, unassignedOnly]);
+    }, [open, search]);
 
     return (
         <div>
@@ -65,19 +61,19 @@ const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
                 } ${value ? "" : "text-muted-foreground"}`}
                 onClick={() => setOpen(true)}
             >
-                {value ? valueLabel || value : "Chọn hộ dân..."}
+                {value ? valueLabel || value : "Chọn nhà..."}
             </button>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Chọn hộ dân</DialogTitle>
+                        <DialogTitle>Chọn nhà</DialogTitle>
                     </DialogHeader>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_3" />
                         <Input
                             className="pl-9"
-                            placeholder="Tìm theo mã hộ, địa chỉ, chủ hộ..."
+                            placeholder="Tìm theo mã nhà, địa chỉ..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
@@ -85,7 +81,7 @@ const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
                     <div className="max-h-80 overflow-y-auto">
                         {loading && <LoadingState />}
                         {!loading && items.length === 0 && (
-                            <EmptyState label="Không tìm thấy hộ dân phù hợp" />
+                            <EmptyState label="Không tìm thấy nhà phù hợp" />
                         )}
                         {!loading &&
                             items.map(h => (
@@ -102,7 +98,7 @@ const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
                                         {h.code} — {h.address}
                                     </div>
                                     <div className="text-xs text-text_2">
-                                        Chủ hộ: {h.headOfHousehold} · Cụm {h.cluster}
+                                        Cụm {h.cluster} · {HOUSE_STATUS_LABEL[h.status]}
                                     </div>
                                 </button>
                             ))}
@@ -113,4 +109,4 @@ const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
     );
 };
 
-export default HouseholdPicker;
+export default HousePicker;

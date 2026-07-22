@@ -4,14 +4,14 @@ import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
-import HouseholdPicker from "@components/admin/HouseholdPicker";
+import HousePicker from "@components/admin/HousePicker";
 import { MUC_NGUY_CO_PCCC_LABEL } from "@constants/domain";
-import { Household, MucNguyCoPccc } from "@dts";
+import { House, MucNguyCoPccc } from "@dts";
 import { PcccCheckInput } from "@service/pcccApi";
 
 export interface PcccFormValues {
-    householdId: string;
-    householdLabel: string;
+    houseId: string;
+    houseLabel: string;
     hasFireExtinguisher: boolean;
     hasEmergencyExit: boolean;
     hasIndoorEvCharging: boolean;
@@ -24,8 +24,8 @@ export interface PcccFormValues {
 }
 
 export const EMPTY_PCCC_FORM: PcccFormValues = {
-    householdId: "",
-    householdLabel: "",
+    houseId: "",
+    houseLabel: "",
     hasFireExtinguisher: false,
     hasEmergencyExit: false,
     hasIndoorEvCharging: false,
@@ -39,7 +39,7 @@ export const EMPTY_PCCC_FORM: PcccFormValues = {
 
 export function toPcccInput(values: PcccFormValues): PcccCheckInput {
     return {
-        householdId: values.householdId,
+        houseId: values.houseId,
         hasFireExtinguisher: values.hasFireExtinguisher,
         hasEmergencyExit: values.hasEmergencyExit,
         hasIndoorEvCharging: values.hasIndoorEvCharging,
@@ -55,7 +55,7 @@ export function toPcccInput(values: PcccFormValues): PcccCheckInput {
 }
 
 export function isPcccFormValid(values: PcccFormValues): boolean {
-    return !!(values.householdId && values.inspectionDate);
+    return !!(values.houseId && values.inspectionDate);
 }
 
 interface PcccFormProps {
@@ -74,14 +74,14 @@ const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
 
     return (
         <div className="flex flex-col gap-4">
-            <HouseholdPicker
-                value={values.householdId}
-                valueLabel={values.householdLabel}
-                onChange={(householdId, household: Household) =>
+            <HousePicker
+                value={values.houseId}
+                valueLabel={values.houseLabel}
+                onChange={(houseId, house: House) =>
                     onChange({
                         ...values,
-                        householdId,
-                        householdLabel: `${household.code} — ${household.address}`,
+                        houseId,
+                        houseLabel: `${house.code} — ${house.address}`,
                     })
                 }
             />

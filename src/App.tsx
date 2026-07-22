@@ -11,14 +11,14 @@ import LoginPage from "@pages/Login/LoginPage";
 const DashboardPage = React.lazy(
     () => import("@pages/Dashboard/DashboardPage"),
 );
-const HouseholdListPage = React.lazy(
-    () => import("@pages/Households/HouseholdListPage"),
+const HouseListPage = React.lazy(
+    () => import("@pages/Houses/HouseListPage"),
+);
+const HouseDetailPage = React.lazy(
+    () => import("@pages/Houses/HouseDetailPage"),
 );
 const HouseholdDetailPage = React.lazy(
     () => import("@pages/Households/HouseholdDetailPage"),
-);
-const CitizenListPage = React.lazy(
-    () => import("@pages/Citizens/CitizenListPage"),
 );
 const ComplaintListPage = React.lazy(
     () => import("@pages/Complaints/ComplaintListPage"),
@@ -58,6 +58,10 @@ const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
 const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
+const BusinessTypeListPage = React.lazy(
+    () => import("@pages/BusinessTypes/BusinessTypeListPage"),
+);
+const FileListPage = React.lazy(() => import("@pages/Files/FileListPage"));
 
 const PageFallback = () => (
     <div className="flex h-64 items-center justify-center">
@@ -97,15 +101,15 @@ const App: React.FC = () => {
                         }
                     >
                         <Route path="/" element={<DashboardPage />} />
+                        <Route path="/houses" element={<HouseListPage />} />
                         <Route
-                            path="/households"
-                            element={<HouseholdListPage />}
+                            path="/houses/:houseId"
+                            element={<HouseDetailPage />}
                         />
                         <Route
-                            path="/households/:id"
+                            path="/houses/:houseId/households/:id"
                             element={<HouseholdDetailPage />}
                         />
-                        <Route path="/citizens" element={<CitizenListPage />} />
                         <Route
                             path="/complaints"
                             element={<ComplaintListPage />}
@@ -153,11 +157,16 @@ const App: React.FC = () => {
                             path="/surveys/:id/results"
                             element={<SurveyResultsPage />}
                         />
+                        <Route path="/files" element={<FileListPage />} />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/users" element={<UserListPage />} />
                         <Route path="/roles" element={<RoleListPage />} />
+                        <Route
+                            path="/business-types"
+                            element={<BusinessTypeListPage />}
+                        />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>

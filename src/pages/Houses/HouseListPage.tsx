@@ -24,40 +24,41 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { usePermission } from "@store/authStore";
-import { Household, AppError } from "@dts";
-import { createHousehold, fetchHouseholds } from "@service/householdApi";
-import HouseholdForm, {
-    EMPTY_HOUSEHOLD_FORM,
-    HouseholdFormValues,
-    isHouseholdFormValid,
-    toHouseholdInput,
-} from "./HouseholdForm";
+import { HOUSE_STATUS_LABEL, HOUSE_STATUS_TONE } from "@constants/domain";
+import { House, AppError } from "@dts";
+import { createHouse, fetchHouses } from "@service/houseApi";
+import HouseForm, {
+    EMPTY_HOUSE_FORM,
+    HouseFormValues,
+    isHouseFormValid,
+    toHouseInput,
+} from "./HouseForm";
 
-const HouseholdListPage: React.FC = () => (
-    <AdminGuard permissions={["households.read"]}>
-        <HouseholdListContent />
+const HouseListPage: React.FC = () => (
+    <AdminGuard permissions={["houses.read"]}>
+        <HouseListContent />
     </AdminGuard>
 );
 
-const HouseholdListContent: React.FC = () => {
+const HouseListContent: React.FC = () => {
     const navigate = useNavigate();
-    const canCreate = usePermission("households.create");
+    const canCreate = usePermission("houses.create");
 
     const [search, setSearch] = useState("");
-    const [items, setItems] = useState<Household[]>([]);
+    const [items, setItems] = useState<House[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
     const [createVisible, setCreateVisible] = useState(false);
-    const [form, setForm] = useState<HouseholdFormValues>(EMPTY_HOUSEHOLD_FORM);
+    const [form, setForm] = useState<HouseFormValues>(EMPTY_HOUSE_FORM);
     const [submitting, setSubmitting] = useState(false);
 
     const load = (targetPage = 1, keyword = search) => {
         setLoading(true);
         setError(false);
-        fetchHouseholds({ page: targetPage, search: keyword })
+        fetchHouses({ page: targetPage, search: keyword })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -74,19 +75,19 @@ const HouseholdListContent: React.FC = () => {
     }, [search]);
 
     const openCreate = () => {
-        setForm(EMPTY_HOUSEHOLD_FORM);
+        setForm(EMPTY_HOUSE_FORM);
         setCreateVisible(true);
     };
 
     const handleCreate = async () => {
-        if (!isHouseholdFormValid(form)) {
-            toast.error("Vui lòng nhập đầy đủ cụm dân cư, địa chỉ, chủ hộ");
+        if (!isHouseFormValid(form)) {
+            toast.error("Vui lòng nhập đầy đủ cụm dân cư, địa chỉ");
             return;
         }
         try {
             setSubmitting(true);
-            await createHousehold(toHouseholdInput(form));
-            toast.success("Đã thêm hộ dân mới");
+            await createHouse(toHouseInput(form));
+            toast.success("Đã thêm nhà số mới");
             setCreateVisible(false);
             load(1, search);
         } catch (err) {
@@ -99,18 +100,18 @@ const HouseholdListContent: React.FC = () => {
     return (
         <div>
             <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý hộ dân</h1>
+                <h1 className="text-lg font-semibold">Quản lý nhà số</h1>
                 {canCreate && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" />
-                        Thêm hộ dân
+                        Thêm nhà số
                     </Button>
                 )}
             </div>
 
             <Input
                 className="mb-4 max-w-sm"
-                placeholder="Tìm theo mã hộ, chủ hộ, địa chỉ..."
+                placeholder="Tìm theo mã nhà, địa chỉ..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
             />
@@ -121,17 +122,15 @@ const HouseholdListContent: React.FC = () => {
                     <ErrorState onRetry={() => load(1, search)} />
                 )}
                 {!loading && !error && items.length === 0 && (
-                    <EmptyState label="Chưa có hộ dân nào" />
+                    <EmptyState label="Chưa có nhà số nào" />
                 )}
                 {!loading && !error && items.length > 0 && (
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Mã hộ</TableHead>
-                                <TableHead>Chủ hộ</TableHead>
+                                <TableHead>Mã nhà</TableHead>
                                 <TableHead>Địa chỉ</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
-                                <TableHead>Nhân khẩu</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -140,23 +139,17 @@ const HouseholdListContent: React.FC = () => {
                                 <TableRow
                                     key={h._id}
                                     className="cursor-pointer"
-                                    onClick={() =>
-                                        navigate(`/households/${h._id}`)
-                                    }
+                                    onClick={() => navigate(`/houses/${h._id}`)}
                                 >
                                     <TableCell className="font-medium">
                                         {h.code}
                                     </TableCell>
-                                    <TableCell>{h.headOfHousehold}</TableCell>
                                     <TableCell>{h.address}</TableCell>
                                     <TableCell>{h.cluster}</TableCell>
-                                    <TableCell>{h.memberCount}</TableCell>
                                     <TableCell>
-                                        {h.needsSupport && (
-                                            <Badge tone="yellow">
-                                                Cần hỗ trợ
-                                            </Badge>
-                                        )}
+                                        <Badge tone={HOUSE_STATUS_TONE[h.status]}>
+                                            {HOUSE_STATUS_LABEL[h.status]}
+                                        </Badge>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -177,10 +170,10 @@ const HouseholdListContent: React.FC = () => {
             <Sheet open={createVisible} onOpenChange={setCreateVisible}>
                 <SheetContent>
                     <SheetHeader>
-                        <SheetTitle>Thêm hộ dân</SheetTitle>
+                        <SheetTitle>Thêm nhà số</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
-                        <HouseholdForm values={form} onChange={setForm} />
+                        <HouseForm values={form} onChange={setForm} />
                     </div>
                     <SheetFooter>
                         <Button
@@ -188,7 +181,7 @@ const HouseholdListContent: React.FC = () => {
                             loading={submitting}
                             onClick={handleCreate}
                         >
-                            Lưu hộ dân
+                            Lưu nhà số
                         </Button>
                     </SheetFooter>
                 </SheetContent>
@@ -197,4 +190,4 @@ const HouseholdListContent: React.FC = () => {
     );
 };
 
-export default HouseholdListPage;
+export default HouseListPage;

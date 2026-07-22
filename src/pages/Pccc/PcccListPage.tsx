@@ -59,18 +59,21 @@ import PcccForm, {
 
 const ALL_RISK_LEVELS = "all";
 
-const householdText = (h: PcccCheck["householdId"]) =>
-    typeof h === "string" ? h : `${h.code} — ${h.address}`;
+const houseText = (h: PcccCheck["houseId"]) => {
+    if (typeof h === "string") return h;
+    if (h) return `${h.code} — ${h.address}`;
+    return "Nhà đã bị xóa";
+};
 
-const householdIdOf = (h: PcccCheck["householdId"]) =>
-    typeof h === "string" ? h : h._id;
+const houseIdOf = (h: PcccCheck["houseId"]) =>
+    typeof h === "string" ? h : h?._id || "";
 
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
 
 const checkToForm = (c: PcccCheck): PcccFormValues => ({
-    householdId: householdIdOf(c.householdId),
-    householdLabel: householdText(c.householdId),
+    houseId: houseIdOf(c.houseId),
+    houseLabel: houseText(c.houseId),
     hasFireExtinguisher: c.hasFireExtinguisher,
     hasEmergencyExit: c.hasEmergencyExit,
     hasIndoorEvCharging: c.hasIndoorEvCharging,
@@ -262,7 +265,7 @@ const PcccListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Hộ dân</TableHead>
+                                <TableHead>Nhà</TableHead>
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Mức nguy cơ</TableHead>
                             </TableRow>
@@ -277,7 +280,7 @@ const PcccListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="font-medium">
-                                        {householdText(c.householdId)}
+                                        {houseText(c.houseId)}
                                     </TableCell>
                                     <TableCell>
                                         {formatDate(c.inspectionDate)}

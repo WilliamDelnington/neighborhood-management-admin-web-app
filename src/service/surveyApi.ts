@@ -5,7 +5,7 @@ import { request } from "./request";
 export interface SurveyInput {
     title: string;
     description?: string;
-    questions: Omit<SurveyQuestion, "_id">[];
+    questions: SurveyQuestion[];
 }
 
 export const fetchSurveys = (

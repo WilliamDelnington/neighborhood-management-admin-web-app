@@ -1,7 +1,6 @@
 import {
     LayoutDashboard,
     Home,
-    Users,
     MessageSquare,
     Flame,
     Shield,
@@ -13,6 +12,8 @@ import {
     UserCog,
     Settings,
     KeyRound,
+    Briefcase,
+    FileText,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -32,18 +33,18 @@ export const MODULES: ModuleItem[] = [
         permission: "dashboard.read",
     },
     {
-        key: "households",
-        label: "Hộ dân",
-        path: "/households",
+        key: "houses",
+        label: "Nhà số",
+        path: "/houses",
         icon: Home,
-        permission: "households.read",
+        permission: "houses.read",
     },
     {
-        key: "citizens",
-        label: "Nhân khẩu",
-        path: "/citizens",
-        icon: Users,
-        permission: "citizens.read",
+        key: "business_types",
+        label: "Loại hình kinh doanh",
+        path: "/business-types",
+        icon: Briefcase,
+        permission: "business_types.read",
     },
     {
         key: "complaints",
@@ -86,6 +87,13 @@ export const MODULES: ModuleItem[] = [
         path: "/surveys",
         icon: ClipboardList,
         permission: "surveys.read",
+    },
+    {
+        key: "files",
+        label: "Biểu mẫu & tệp tin",
+        path: "/files",
+        icon: FileText,
+        permission: "files.read",
     },
     {
         key: "finance",

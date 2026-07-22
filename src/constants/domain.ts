@@ -1,6 +1,8 @@
 import type {
     DangKyHop,
+    FileAssetCategory,
     GioiTinh,
+    HouseStatus,
     LoaiCauHoiKhaoSat,
     LoaiCuTru,
     LoaiGiaoDichTaiChinh,
@@ -62,6 +64,22 @@ export const LOAI_SO_HUU_LABEL: Record<LoaiSoHuu, string> = {
     cho_thue: "Cho thuê",
 };
 
+export const HOUSE_STATUS_LABEL: Record<HouseStatus, string> = {
+    unverified: "Chưa xác thực",
+    pending: "Chờ duyệt",
+    verified: "Đã duyệt",
+    denied: "Bị từ chối",
+    locked: "Bị khóa",
+};
+
+export const HOUSE_STATUS_TONE: Record<HouseStatus, BadgeTone> = {
+    unverified: "gray",
+    pending: "yellow",
+    verified: "green",
+    denied: "red",
+    locked: "red",
+};
+
 export const GIOI_TINH_LABEL: Record<GioiTinh, string> = {
     nam: "Nam",
     nu: "Nữ",
@@ -83,6 +101,20 @@ export const MUC_NGUY_CO_PCCC_TONE: Record<MucNguyCoPccc, BadgeTone> = {
     xanh: "green",
     vang: "yellow",
     do: "red",
+};
+
+export const FILE_ASSET_CATEGORY_LABEL: Record<FileAssetCategory, string> = {
+    form: "Biểu mẫu",
+    attachment: "Tệp đính kèm",
+    minutes: "Biên bản",
+    other: "Khác",
+};
+
+export const FILE_ASSET_CATEGORY_TONE: Record<FileAssetCategory, BadgeTone> = {
+    form: "blue",
+    attachment: "gray",
+    minutes: "yellow",
+    other: "gray",
 };
 
 export const MUC_DO_AN_NINH_LABEL: Record<MucDoAnNinh, string> = {

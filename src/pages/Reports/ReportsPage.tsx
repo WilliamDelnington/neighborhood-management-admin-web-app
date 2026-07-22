@@ -52,14 +52,13 @@ const KEY_LABEL: Record<string, string> = {
     averageResolutionDays: "Thời gian xử lý trung bình (ngày)",
     resolvedWithDurationCount: "Số phản ánh đã tính thời gian xử lý",
     escalatedToCommitteeCount: "Số phản ánh đã chuyển UBND phường",
-    totalHouseholdsChecked: "Tổng số hộ đã kiểm tra",
+    totalHousesChecked: "Tổng số nhà đã kiểm tra",
     byRiskLevel: "Theo mức nguy cơ",
     riskLevel: "Mức nguy cơ",
-    householdsNeedingRemediation: "Hộ cần khắc phục",
-    code: "Mã hộ",
+    housesNeedingRemediation: "Nhà cần khắc phục",
+    code: "Mã nhà",
     cluster: "Cụm dân cư",
     address: "Địa chỉ",
-    headOfHousehold: "Chủ hộ",
     remediationNeeded: "Việc cần khắc phục",
     byLevel: "Theo mức độ",
     level: "Mức độ",
@@ -79,7 +78,7 @@ const KEY_LABEL: Record<string, string> = {
 
 // Truong ID ky thuat khong can hien thi cho nguoi dung (da co "code" lam ma
 // hien thi thay the).
-const HIDDEN_KEYS = new Set(["householdId"]);
+const HIDDEN_KEYS = new Set(["houseId"]);
 
 const humanizeKey = (key: string) =>
     KEY_LABEL[key] ??

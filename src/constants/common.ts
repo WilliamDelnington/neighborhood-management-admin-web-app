@@ -13,8 +13,11 @@ export const API = {
     ROLES_ASSIGN: "/api/roles/assign",
     ROLES_REVOKE: "/api/roles/revoke",
 
+    HOUSES: "/api/houses",
     HOUSEHOLDS: "/api/households",
     CITIZENS: "/api/citizens",
+    BUSINESS_TYPES: "/api/business-types",
+    BUSINESSES: "/api/businesses",
 
     COMPLAINTS: "/api/complaints",
 

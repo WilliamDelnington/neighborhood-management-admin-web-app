@@ -89,6 +89,30 @@ export type LoaiSoHuu = "chinh_chu" | "cho_thue";
 export type GioiTinh = "nam" | "nu" | "khac";
 export type LoaiCuTru = "thuong_tru" | "tam_tru";
 
+export type BusinessType = {
+    _id: string;
+    name: string;
+    description?: string;
+    active: boolean;
+    sortOrder: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type HouseStatus = "unverified" | "pending" | "verified" | "denied" | "locked";
+
+export type House = {
+    _id: string;
+    code: string;
+    cluster: string;
+    address: string;
+    status: HouseStatus;
+    ownerId?: string | { _id: string; displayName: string } | null;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type Household = {
     _id: string;
     code: string;
@@ -99,6 +123,21 @@ export type Household = {
     memberCount: number;
     ownershipType: LoaiSoHuu;
     needsSupport: boolean;
+    houseId?: string | House;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type Business = {
+    _id: string;
+    name: string;
+    houseId: string | House;
+    cluster: string;
+    businessType?: { _id: string; name: string } | null;
+    ownerName?: string;
+    phone?: string;
+    active: boolean;
     note?: string;
     createdAt: string;
     updatedAt: string;
@@ -263,9 +302,10 @@ export type Survey = {
 };
 
 export type SurveyResults = {
-    survey: Survey;
+    surveyId: string;
+    title: string;
     totalResponses: number;
-    questionResults: {
+    results: {
         questionId: string;
         question: string;
         type: LoaiCauHoiKhaoSat;
@@ -281,11 +321,12 @@ export type MucNguyCoPccc = "xanh" | "vang" | "do";
 export type MucDoAnNinh = "binh_thuong" | "can_theo_doi" | "khan_cap";
 
 type PopulatedHousehold = { _id: string; code: string; address: string; cluster: string };
+type PopulatedHouse = { _id: string; code: string; address: string; cluster: string };
 type PopulatedInspector = { _id: string; displayName: string };
 
 export type PcccCheck = {
     _id: string;
-    householdId: string | PopulatedHousehold;
+    houseId: string | PopulatedHouse | null;
     hasFireExtinguisher: boolean;
     hasEmergencyExit: boolean;
     hasIndoorEvCharging: boolean;
@@ -344,14 +385,24 @@ export type FinanceSummary = {
 // ---------------------------------------------------------------------------
 // Bieu mau / tep tin
 // ---------------------------------------------------------------------------
+export type FileAssetCategory = "form" | "attachment" | "minutes" | "other";
+
 export type FileAsset = {
     _id: string;
     name: string;
     description?: string;
     url: string;
-    category: "form" | "attachment" | "minutes" | "other";
+    mimeType?: string;
+    sizeBytes?: number;
+    category: FileAssetCategory;
+    relatedModel?: string;
+    relatedId?: string;
     isPublic: boolean;
+    targetRoles: Role[];
+    audienceAll: boolean;
+    uploadedBy: string | { _id: string; displayName: string };
     createdAt: string;
+    updatedAt: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -375,6 +426,7 @@ export type DashboardSummary = {
     totalCitizens: number;
     rentalHouseholds: number;
     householdsNeedingSupport: number;
+    scopedToCluster: boolean;
     newComplaints: number;
     inProgressComplaints: number;
     highRiskPcccCount: number;

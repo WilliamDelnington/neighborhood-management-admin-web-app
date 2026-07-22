@@ -26,6 +26,9 @@ export const fetchComplaints = (params?: {
 export const fetchComplaintDetail = (id: string): Promise<ComplaintDetail> =>
     request<ComplaintDetail>("GET", `${API.COMPLAINTS}/${id}`);
 
+export const deleteComplaint = (id: string): Promise<null> =>
+    request<null>("DELETE", `${API.COMPLAINTS}/${id}`);
+
 export interface UpdateComplaintStatusInput {
     status: TrangThaiPhanAnh;
     note?: string;

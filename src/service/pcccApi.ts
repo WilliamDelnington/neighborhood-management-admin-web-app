@@ -3,7 +3,7 @@ import { MucNguyCoPccc, PaginatedData, PcccCheck } from "@dts";
 import { request } from "./request";
 
 export interface PcccCheckInput {
-    householdId: string;
+    houseId: string;
     hasFireExtinguisher?: boolean;
     hasEmergencyExit?: boolean;
     hasIndoorEvCharging?: boolean;
@@ -20,13 +20,13 @@ export const fetchPcccChecks = (params?: {
     page?: number;
     limit?: number;
     riskLevel?: MucNguyCoPccc;
-    householdId?: string;
+    houseId?: string;
 }): Promise<PaginatedData<PcccCheck>> =>
     request<PaginatedData<PcccCheck>>("GET", API.PCCC, {
         page: params?.page || 1,
         limit: params?.limit || DEFAULT_PAGE_SIZE,
         riskLevel: params?.riskLevel,
-        householdId: params?.householdId,
+        houseId: params?.houseId,
     });
 
 export const fetchPcccCheckById = (id: string): Promise<PcccCheck> =>

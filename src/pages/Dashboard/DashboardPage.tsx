@@ -63,11 +63,19 @@ const DashboardContent: React.FC = () => {
                 <>
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
                         <StatCard
-                            label="Tổng hộ dân"
+                            label={
+                                summary.scopedToCluster
+                                    ? "Hộ dân trong khu vực"
+                                    : "Tổng hộ dân"
+                            }
                             value={summary.totalHouseholds}
                         />
                         <StatCard
-                            label="Tổng nhân khẩu"
+                            label={
+                                summary.scopedToCluster
+                                    ? "Nhân khẩu trong khu vực"
+                                    : "Tổng nhân khẩu"
+                            }
                             value={summary.totalCitizens}
                         />
                         <StatCard

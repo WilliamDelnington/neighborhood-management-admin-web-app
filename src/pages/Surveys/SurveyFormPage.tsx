@@ -26,7 +26,7 @@ import {
     updateSurvey,
 } from "@service/surveyApi";
 
-type DraftQuestion = Omit<SurveyQuestion, "_id">;
+type DraftQuestion = SurveyQuestion;
 
 const EMPTY_QUESTION: DraftQuestion = {
     question: "",
@@ -70,6 +70,7 @@ const SurveyFormContent: React.FC = () => {
                 setQuestions(
                     s.questions.length > 0
                         ? s.questions.map(q => ({
+                              _id: q._id,
                               question: q.question,
                               type: q.type,
                               options: q.options?.length ? q.options : ["", ""],
@@ -157,6 +158,7 @@ const SurveyFormContent: React.FC = () => {
         }
 
         const preparedQuestions: DraftQuestion[] = questions.map(q => ({
+            _id: q._id,
             question: q.question.trim(),
             type: q.type,
             required: q.required,

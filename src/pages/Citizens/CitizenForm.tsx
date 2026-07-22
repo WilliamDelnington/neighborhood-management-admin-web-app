@@ -69,12 +69,19 @@ export function isCitizenFormValid(values: CitizenFormValues): boolean {
 interface CitizenFormProps {
     values: CitizenFormValues;
     onChange: (values: CitizenFormValues) => void;
+    // An bo chon ho dan khi nhan khau da duoc gan co dinh vao mot ho dan tu
+    // ngu canh benh ngoai (vd tao/sua tu man chi tiet ho dan).
+    hideHouseholdPicker?: boolean;
 }
 
 /**
  * Bo truong dung chung cho tao moi/chinh sua nhan khau.
  */
-const CitizenForm: React.FC<CitizenFormProps> = ({ values, onChange }) => {
+const CitizenForm: React.FC<CitizenFormProps> = ({
+    values,
+    onChange,
+    hideHouseholdPicker,
+}) => {
     const set = <K extends keyof CitizenFormValues>(
         key: K,
         value: CitizenFormValues[K],
@@ -82,17 +89,19 @@ const CitizenForm: React.FC<CitizenFormProps> = ({ values, onChange }) => {
 
     return (
         <div className="flex flex-col gap-4">
-            <HouseholdPicker
-                value={values.householdId}
-                valueLabel={values.householdLabel}
-                onChange={(householdId, household: Household) =>
-                    onChange({
-                        ...values,
-                        householdId,
-                        householdLabel: `${household.code} — ${household.address}`,
-                    })
-                }
-            />
+            {!hideHouseholdPicker && (
+                <HouseholdPicker
+                    value={values.householdId}
+                    valueLabel={values.householdLabel}
+                    onChange={(householdId, household: Household) =>
+                        onChange({
+                            ...values,
+                            householdId,
+                            householdLabel: `${household.code} — ${household.address}`,
+                        })
+                    }
+                />
+            )}
             <div className="space-y-1.5">
                 <Label>Họ tên</Label>
                 <Input

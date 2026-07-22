@@ -81,20 +81,20 @@ const SurveyResultsContent: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     <div className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
                         <h2 className="text-base font-semibold">
-                            {results.survey.title}
+                            {results.title}
                         </h2>
                         <p className="mt-1 text-xs text-text_2">
                             Tổng số lượt trả lời: {results.totalResponses}
                         </p>
                     </div>
 
-                    {results.questionResults.length === 0 && (
+                    {results.results.length === 0 && (
                         <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                             <EmptyState label="Chưa có câu hỏi nào" />
                         </div>
                     )}
 
-                    {results.questionResults.map(r => (
+                    {results.results.map(r => (
                         <div
                             key={r.questionId}
                             className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm"
