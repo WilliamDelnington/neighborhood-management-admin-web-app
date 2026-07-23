@@ -1,9 +1,9 @@
 import { API } from "@constants/common";
-import { MucDoAnNinh, PaginatedData, SecurityRecord } from "@dts";
+import { MucDoAnNinh, PaginatedData, SecurityRecord, TinhTrangXuLyAnNinh } from "@dts";
 import { request } from "./request";
 
 export interface SecurityRecordInput {
-    householdId: string;
+    houseId: string;
     ownershipType?: "chinh_chu" | "cho_thue";
     renterCount?: number;
     temporaryResidenceDeclared?: boolean;
@@ -11,7 +11,7 @@ export interface SecurityRecordInput {
     hasSecurityComplaint?: boolean;
     level?: MucDoAnNinh;
     reportedToPolice?: boolean;
-    handlingStatus?: string;
+    handlingStatus?: TinhTrangXuLyAnNinh;
     note?: string;
 }
 
@@ -19,7 +19,7 @@ export const fetchSecurityRecords = (params?: {
     page?: number;
     limit?: number;
     level?: MucDoAnNinh;
-    householdId?: string;
+    houseId?: string;
 }): Promise<PaginatedData<SecurityRecord>> =>
     request<PaginatedData<SecurityRecord>>("GET", API.SECURITY, params);
 

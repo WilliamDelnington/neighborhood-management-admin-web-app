@@ -62,6 +62,7 @@ const KEY_LABEL: Record<string, string> = {
     remediationNeeded: "Việc cần khắc phục",
     byLevel: "Theo mức độ",
     level: "Mức độ",
+    byHandlingStatus: "Theo tình trạng xử lý",
     rentalHouseholdsCount: "Tổng số hộ cho thuê",
     rentalMissingDeclarationCount: "Số hộ cho thuê chưa khai báo tạm trú",
     reportedToPoliceCount: "Số vụ đã báo công an khu vực",

@@ -11,14 +11,18 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import HouseholdPicker from "@components/admin/HouseholdPicker";
-import { LOAI_SO_HUU_LABEL, MUC_DO_AN_NINH_LABEL } from "@constants/domain";
-import { Household, LoaiSoHuu, MucDoAnNinh } from "@dts";
+import HousePicker from "@components/admin/HousePicker";
+import {
+    LOAI_SO_HUU_LABEL,
+    MUC_DO_AN_NINH_LABEL,
+    TINH_TRANG_XU_LY_AN_NINH_LABEL,
+} from "@constants/domain";
+import { House, LoaiSoHuu, MucDoAnNinh, TinhTrangXuLyAnNinh } from "@dts";
 import { SecurityRecordInput } from "@service/securityApi";
 
 export interface SecurityFormValues {
-    householdId: string;
-    householdLabel: string;
+    houseId: string;
+    houseLabel: string;
     ownershipType: LoaiSoHuu;
     renterCount: string;
     temporaryResidenceDeclared: boolean;
@@ -26,13 +30,13 @@ export interface SecurityFormValues {
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
     reportedToPolice: boolean;
-    handlingStatus: string;
+    handlingStatus: TinhTrangXuLyAnNinh;
     note: string;
 }
 
 export const EMPTY_SECURITY_FORM: SecurityFormValues = {
-    householdId: "",
-    householdLabel: "",
+    houseId: "",
+    houseLabel: "",
     ownershipType: "chinh_chu",
     renterCount: "",
     temporaryResidenceDeclared: false,
@@ -40,7 +44,7 @@ export const EMPTY_SECURITY_FORM: SecurityFormValues = {
     hasSecurityComplaint: false,
     level: "binh_thuong",
     reportedToPolice: false,
-    handlingStatus: "",
+    handlingStatus: "chua_xu_ly",
     note: "",
 };
 
@@ -48,7 +52,7 @@ export function toSecurityInput(
     values: SecurityFormValues,
 ): SecurityRecordInput {
     return {
-        householdId: values.householdId,
+        houseId: values.houseId,
         ownershipType: values.ownershipType,
         renterCount: values.renterCount
             ? Number(values.renterCount)
@@ -58,13 +62,13 @@ export function toSecurityInput(
         hasSecurityComplaint: values.hasSecurityComplaint,
         level: values.level,
         reportedToPolice: values.reportedToPolice,
-        handlingStatus: values.handlingStatus.trim() || undefined,
+        handlingStatus: values.handlingStatus,
         note: values.note.trim() || undefined,
     };
 }
 
 export function isSecurityFormValid(values: SecurityFormValues): boolean {
-    return !!values.householdId;
+    return !!values.houseId;
 }
 
 interface SecurityFormProps {
@@ -83,14 +87,14 @@ const SecurityForm: React.FC<SecurityFormProps> = ({ values, onChange }) => {
 
     return (
         <div className="flex flex-col gap-4">
-            <HouseholdPicker
-                value={values.householdId}
-                valueLabel={values.householdLabel}
-                onChange={(householdId, household: Household) =>
+            <HousePicker
+                value={values.houseId}
+                valueLabel={values.houseLabel}
+                onChange={(houseId, house: House) =>
                     onChange({
                         ...values,
-                        householdId,
-                        householdLabel: `${household.code} — ${household.address}`,
+                        houseId,
+                        houseLabel: `${house.code} — ${house.address}`,
                     })
                 }
             />
@@ -211,11 +215,28 @@ const SecurityForm: React.FC<SecurityFormProps> = ({ values, onChange }) => {
             </div>
             <div className="space-y-1.5">
                 <Label>Tình trạng xử lý</Label>
-                <Input
-                    placeholder="VD: Đã xử lý, đang theo dõi..."
+                <Select
                     value={values.handlingStatus}
-                    onChange={e => set("handlingStatus", e.target.value)}
-                />
+                    onValueChange={v =>
+                        set("handlingStatus", v as TinhTrangXuLyAnNinh)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {(
+                            Object.entries(TINH_TRANG_XU_LY_AN_NINH_LABEL) as [
+                                TinhTrangXuLyAnNinh,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-1.5">
                 <Label>Ghi chú</Label>

@@ -319,8 +319,8 @@ export type SurveyResults = {
 // ---------------------------------------------------------------------------
 export type MucNguyCoPccc = "xanh" | "vang" | "do";
 export type MucDoAnNinh = "binh_thuong" | "can_theo_doi" | "khan_cap";
+export type TinhTrangXuLyAnNinh = "chua_xu_ly" | "dang_xu_ly" | "da_xu_ly";
 
-type PopulatedHousehold = { _id: string; code: string; address: string; cluster: string };
 type PopulatedHouse = { _id: string; code: string; address: string; cluster: string };
 type PopulatedInspector = { _id: string; displayName: string };
 
@@ -343,7 +343,7 @@ export type PcccCheck = {
 
 export type SecurityRecord = {
     _id: string;
-    householdId: string | PopulatedHousehold;
+    houseId: string | PopulatedHouse | null;
     ownershipType: LoaiSoHuu;
     renterCount?: number;
     temporaryResidenceDeclared: boolean;
@@ -351,7 +351,7 @@ export type SecurityRecord = {
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
     reportedToPolice: boolean;
-    handlingStatus?: string;
+    handlingStatus: TinhTrangXuLyAnNinh;
     note?: string;
     updatedBy?: string | PopulatedInspector;
     createdAt: string;

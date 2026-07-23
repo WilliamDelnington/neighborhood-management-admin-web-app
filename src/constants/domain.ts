@@ -12,6 +12,7 @@ import type {
     MucNguyCoPccc,
     NhomPhanAnh,
     Role,
+    TinhTrangXuLyAnNinh,
     TrangThaiGiaoDich,
     TrangThaiKhaoSat,
     TrangThaiPhanAnh,
@@ -127,6 +128,18 @@ export const MUC_DO_AN_NINH_TONE: Record<MucDoAnNinh, BadgeTone> = {
     binh_thuong: "green",
     can_theo_doi: "yellow",
     khan_cap: "red",
+};
+
+export const TINH_TRANG_XU_LY_AN_NINH_LABEL: Record<TinhTrangXuLyAnNinh, string> = {
+    chua_xu_ly: "Chưa xử lý",
+    dang_xu_ly: "Đang xử lý",
+    da_xu_ly: "Đã xử lý",
+};
+
+export const TINH_TRANG_XU_LY_AN_NINH_TONE: Record<TinhTrangXuLyAnNinh, BadgeTone> = {
+    chua_xu_ly: "gray",
+    dang_xu_ly: "yellow",
+    da_xu_ly: "green",
 };
 
 export const LOAI_THONG_BAO_LABEL: Record<LoaiThongBao, string> = {

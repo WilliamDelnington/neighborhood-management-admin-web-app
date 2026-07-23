@@ -37,7 +37,13 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import { usePermission } from "@store/authStore";
 import { AppError, MucDoAnNinh, SecurityRecord } from "@dts";
-import { LOAI_SO_HUU_LABEL, MUC_DO_AN_NINH_LABEL, MUC_DO_AN_NINH_TONE } from "@constants/domain";
+import {
+    LOAI_SO_HUU_LABEL,
+    MUC_DO_AN_NINH_LABEL,
+    MUC_DO_AN_NINH_TONE,
+    TINH_TRANG_XU_LY_AN_NINH_LABEL,
+    TINH_TRANG_XU_LY_AN_NINH_TONE,
+} from "@constants/domain";
 import {
     createSecurityRecord,
     deleteSecurityRecord,
@@ -53,15 +59,18 @@ import SecurityForm, {
 
 const LEVEL_ALL = "all";
 
-const householdText = (h: SecurityRecord["householdId"]) =>
-    typeof h === "string" ? h : `${h.code} — ${h.address}`;
+const houseText = (h: SecurityRecord["houseId"]) => {
+    if (typeof h === "string") return h;
+    if (h) return `${h.code} — ${h.address}`;
+    return "Nhà đã bị xóa";
+};
 
-const householdIdOf = (h: SecurityRecord["householdId"]) =>
-    typeof h === "string" ? h : h._id;
+const houseIdOf = (h: SecurityRecord["houseId"]) =>
+    typeof h === "string" ? h : h?._id || "";
 
 const recordToForm = (r: SecurityRecord): SecurityFormValues => ({
-    householdId: householdIdOf(r.householdId),
-    householdLabel: householdText(r.householdId),
+    houseId: houseIdOf(r.houseId),
+    houseLabel: houseText(r.houseId),
     ownershipType: r.ownershipType,
     renterCount: r.renterCount ? String(r.renterCount) : "",
     temporaryResidenceDeclared: r.temporaryResidenceDeclared,
@@ -69,7 +78,7 @@ const recordToForm = (r: SecurityRecord): SecurityFormValues => ({
     hasSecurityComplaint: r.hasSecurityComplaint,
     level: r.level,
     reportedToPolice: r.reportedToPolice,
-    handlingStatus: r.handlingStatus || "",
+    handlingStatus: r.handlingStatus,
     note: r.note || "",
 });
 
@@ -143,7 +152,7 @@ const SecurityListContent: React.FC = () => {
 
     const handleSubmit = async () => {
         if (!isSecurityFormValid(form)) {
-            toast.error("Vui lòng chọn hộ dân");
+            toast.error("Vui lòng chọn nhà");
             return;
         }
         try {
@@ -230,10 +239,11 @@ const SecurityListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Hộ dân</TableHead>
+                                <TableHead>Nhà</TableHead>
                                 <TableHead>Số người thuê</TableHead>
                                 <TableHead>Hình thức sở hữu</TableHead>
                                 <TableHead>Mức độ</TableHead>
+                                <TableHead>Tình trạng xử lý</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -244,7 +254,7 @@ const SecurityListContent: React.FC = () => {
                                     onClick={() => openEdit(r)}
                                 >
                                     <TableCell className="font-medium">
-                                        {householdText(r.householdId)}
+                                        {houseText(r.houseId)}
                                     </TableCell>
                                     <TableCell>{r.renterCount || 0}</TableCell>
                                     <TableCell>
@@ -253,6 +263,21 @@ const SecurityListContent: React.FC = () => {
                                     <TableCell>
                                         <Badge tone={MUC_DO_AN_NINH_TONE[r.level]}>
                                             {MUC_DO_AN_NINH_LABEL[r.level]}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            tone={
+                                                TINH_TRANG_XU_LY_AN_NINH_TONE[
+                                                    r.handlingStatus
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                TINH_TRANG_XU_LY_AN_NINH_LABEL[
+                                                    r.handlingStatus
+                                                ]
+                                            }
                                         </Badge>
                                     </TableCell>
                                 </TableRow>
