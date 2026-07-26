@@ -60,13 +60,13 @@ Mỗi module danh sách đều hỗ trợ tìm kiếm, phân trang, và (tuỳ m
 
 - Node.js 18+ (khuyến nghị 20+)
 - npm
-- Một instance của [Hòa Bình Backend App](../quan-ly-to-dan-pho-hoa-binh-backend-app) đang chạy (mặc định tại `http://localhost:4000`) để cung cấp dữ liệu
+- Một instance của [Hòa Bình Backend App](../neighborhood-management-admin-web-app) đang chạy (mặc định tại `http://localhost:4000`) để cung cấp dữ liệu
 
 ## Cài đặt
 
 ```bash
 git clone <repo-url>
-cd quan-ly-to-dan-pho-hoa-binh-admin
+cd neighborhood-management-admin-web-app
 npm install
 ```
 

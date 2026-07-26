@@ -109,6 +109,7 @@ export type House = {
     status: HouseStatus;
     ownerId?: string | { _id: string; displayName: string } | null;
     note?: string;
+    residenceDeclarationNumber?: string;
     createdAt: string;
     updatedAt: string;
 };
@@ -221,6 +222,32 @@ export type ComplaintDetail = {
 };
 
 // ---------------------------------------------------------------------------
+// Ho tro (Mini App - Ho so ca nhan)
+// ---------------------------------------------------------------------------
+export type LoaiYeuCauHoTro = "bao_loi" | "gop_y";
+
+export type TrangThaiYeuCauHoTro = "moi" | "dang_xu_ly" | "da_xu_ly" | "dong";
+
+export type SupportTicket = {
+    _id: string;
+    code: string;
+    type: LoaiYeuCauHoTro;
+    title: string;
+    content: string;
+    images: string[];
+    deviceInfo?: string;
+    status: TrangThaiYeuCauHoTro;
+    createdByUserId:
+        | string
+        | { _id: string; displayName: string; phone?: string };
+    adminResponse?: string;
+    respondedByUserId?: string | { _id: string; displayName: string };
+    resolvedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
 // Thong bao / cuoc hop / khao sat
 // ---------------------------------------------------------------------------
 export type LoaiThongBao =
@@ -319,9 +346,23 @@ export type SurveyResults = {
 // ---------------------------------------------------------------------------
 export type MucNguyCoPccc = "xanh" | "vang" | "do";
 export type MucDoAnNinh = "binh_thuong" | "can_theo_doi" | "khan_cap";
-export type TinhTrangXuLyAnNinh = "chua_xu_ly" | "dang_xu_ly" | "da_xu_ly";
+export type TinhTrangTheoDoiAnNinh =
+    | "binh_thuong"
+    | "dang_theo_doi"
+    | "da_bao_cong_an"
+    | "da_ket_thuc";
+export type TinhTrangTheoDoiPccc =
+    | "chua_khac_phuc"
+    | "dang_khac_phuc"
+    | "da_khac_phuc";
 
-type PopulatedHouse = { _id: string; code: string; address: string; cluster: string };
+type PopulatedHouse = {
+    _id: string;
+    code: string;
+    address: string;
+    cluster: string;
+    residenceDeclarationNumber?: string;
+};
 type PopulatedInspector = { _id: string; displayName: string };
 
 export type PcccCheck = {
@@ -336,9 +377,21 @@ export type PcccCheck = {
     remediationNeeded?: string;
     inspectionDate: string;
     inspectorId?: string | PopulatedInspector;
-    followUpStatus?: string;
+    followUpStatus?: TinhTrangTheoDoiPccc;
+    deadline?: string;
+    assigneeId?: string | PopulatedInspector | null;
     createdAt: string;
     updatedAt: string;
+};
+
+export type PcccAttachment = {
+    _id: string;
+    name: string;
+    url: string;
+    mimeType?: string;
+    sizeBytes?: number;
+    uploadedBy?: string | { _id: string; displayName: string };
+    createdAt: string;
 };
 
 export type SecurityRecord = {
@@ -346,13 +399,15 @@ export type SecurityRecord = {
     houseId: string | PopulatedHouse | null;
     ownershipType: LoaiSoHuu;
     renterCount?: number;
-    temporaryResidenceDeclared: boolean;
     hasCamera: boolean;
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
     reportedToPolice: boolean;
-    handlingStatus: TinhTrangXuLyAnNinh;
+    monitoringStatus: TinhTrangTheoDoiAnNinh;
     note?: string;
+    inspectionDate?: string;
+    createdBy?: string | PopulatedInspector;
+    assigneeId?: string | PopulatedInspector | null;
     updatedBy?: string | PopulatedInspector;
     createdAt: string;
     updatedAt: string;
@@ -447,6 +502,40 @@ export type DashboardSummary = {
         totalResponses: number;
     };
     taskList: DashboardTask[];
+};
+
+// ---------------------------------------------------------------------------
+// Nhat ky he thong (audit log)
+// ---------------------------------------------------------------------------
+export type AuditLogRecord = {
+    _id: string;
+    actorId?: string | { _id: string; displayName: string; phone?: string; email?: string } | null;
+    action: string;
+    targetModel?: string;
+    targetId?: string;
+    metadata?: Record<string, unknown>;
+    ipAddress?: string;
+    createdAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Thong bao (chuong thong bao tren admin)
+// ---------------------------------------------------------------------------
+export type NotificationItem = {
+    _id: string;
+    title: string;
+    body: string;
+    type: string;
+    relatedModel?: string;
+    relatedId?: string;
+    createdAt: string;
+};
+
+export type NotificationDeliveryItem = {
+    deliveryId: string;
+    notification: NotificationItem | null;
+    readAt?: string | null;
+    sentAt?: string;
 };
 
 // ---------------------------------------------------------------------------

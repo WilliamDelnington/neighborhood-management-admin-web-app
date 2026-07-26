@@ -11,11 +11,13 @@ import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import StatCard from "@components/admin/StatCard";
-import { DANG_KY_HOP_LABEL } from "@constants/domain";
+import RecordHistorySection from "@components/admin/RecordHistorySection";
+import { DANG_KY_HOP_LABEL, MEETING_AUDIT_ACTION_LABEL } from "@constants/domain";
 import { AppError, DangKyHop, MeetingRegistration } from "@dts";
 import {
     MeetingInput,
     createMeeting,
+    fetchMeetingAuditLogs,
     fetchMeetingDetail,
     fetchMeetingRegistrations,
     updateMeeting,
@@ -276,6 +278,15 @@ const MeetingFormContent: React.FC = () => {
                         </>
                     )}
                 </div>
+            )}
+
+            {isEdit && id && (
+                <RecordHistorySection
+                    className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                    fetchHistory={params => fetchMeetingAuditLogs(id, params)}
+                    actionLabels={MEETING_AUDIT_ACTION_LABEL}
+                    historyHref={`/meetings/${id}/history`}
+                />
             )}
         </div>
     );

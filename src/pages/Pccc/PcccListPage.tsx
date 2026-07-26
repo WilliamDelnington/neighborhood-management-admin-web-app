@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Paperclip, Plus, Trash2, Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
+import { Input } from "@components/ui/input";
+import { Label } from "@components/ui/label";
+import AssigneePicker from "@components/admin/AssigneePicker";
+import RecordHistorySection from "@components/admin/RecordHistorySection";
 import {
     Select,
     SelectContent,
@@ -38,17 +42,23 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import StatCard from "@components/admin/StatCard";
 import { usePermission } from "@store/authStore";
-import { AppError, MucNguyCoPccc, PcccCheck } from "@dts";
+import { AppError, AssignableStaff, MucNguyCoPccc, PcccAttachment, PcccCheck } from "@dts";
 import {
     MUC_NGUY_CO_PCCC_LABEL,
     MUC_NGUY_CO_PCCC_TONE,
+    PCCC_AUDIT_ACTION_LABEL,
 } from "@constants/domain";
 import {
+    assignPcccCheck,
     createPcccCheck,
+    deletePcccAttachment,
     deletePcccCheck,
+    fetchPcccAttachments,
+    fetchPcccAuditLogs,
     fetchPcccChecks,
     fetchPcccRiskSummary,
     updatePcccCheck,
+    uploadPcccAttachment,
 } from "@service/pcccApi";
 import PcccForm, {
     EMPTY_PCCC_FORM,
@@ -71,6 +81,17 @@ const houseIdOf = (h: PcccCheck["houseId"]) =>
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
 
+const assigneeText = (a: PcccCheck["assigneeId"]) => {
+    if (!a) return "";
+    if (typeof a === "string") return a;
+    return a.displayName;
+};
+
+const isOverdue = (c: PcccCheck) =>
+    !!c.deadline &&
+    new Date(c.deadline) < new Date() &&
+    c.followUpStatus !== "da_khac_phuc";
+
 const checkToForm = (c: PcccCheck): PcccFormValues => ({
     houseId: houseIdOf(c.houseId),
     houseLabel: houseText(c.houseId),
@@ -82,7 +103,7 @@ const checkToForm = (c: PcccCheck): PcccFormValues => ({
     riskLevel: c.riskLevel,
     remediationNeeded: c.remediationNeeded || "",
     inspectionDate: c.inspectionDate ? c.inspectionDate.slice(0, 10) : "",
-    followUpStatus: c.followUpStatus || "",
+    followUpStatus: c.followUpStatus || "chua_khac_phuc",
 });
 
 const PcccListPage: React.FC = () => (
@@ -109,10 +130,24 @@ const PcccListContent: React.FC = () => {
 
     const [formVisible, setFormVisible] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingCheck, setEditingCheck] = useState<PcccCheck | null>(null);
     const [form, setForm] = useState<PcccFormValues>(EMPTY_PCCC_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
+
+    const canAssign = usePermission("pccc.assign");
+    const [deadlineInput, setDeadlineInput] = useState("");
+    const [assigneeDialogOpen, setAssigneeDialogOpen] = useState(false);
+    const [assigning, setAssigning] = useState(false);
+
+    const [attachments, setAttachments] = useState<PcccAttachment[]>([]);
+    const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [deletingAttachmentId, setDeletingAttachmentId] = useState<
+        string | null
+    >(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const loadSummary = () => {
         fetchPcccRiskSummary()
@@ -161,15 +196,80 @@ const PcccListContent: React.FC = () => {
 
     const openCreate = () => {
         setEditingId(null);
+        setEditingCheck(null);
         setForm(EMPTY_PCCC_FORM);
+        setAttachments([]);
         setFormVisible(true);
     };
 
     const openEdit = (c: PcccCheck) => {
         if (!canManage) return;
         setEditingId(c._id);
+        setEditingCheck(c);
         setForm(checkToForm(c));
+        setDeadlineInput(c.deadline ? c.deadline.slice(0, 10) : "");
         setFormVisible(true);
+
+        setAttachmentsLoading(true);
+        fetchPcccAttachments(c._id)
+            .then(setAttachments)
+            .catch(() => setAttachments([]))
+            .finally(() => setAttachmentsLoading(false));
+    };
+
+    const handleAssign = async (staff: AssignableStaff) => {
+        if (!editingId) return;
+        try {
+            setAssigning(true);
+            const updated = await assignPcccCheck(editingId, {
+                assigneeId: staff.id,
+                deadline: deadlineInput
+                    ? new Date(deadlineInput).toISOString()
+                    : undefined,
+            });
+            setEditingCheck(updated);
+            setAssigneeDialogOpen(false);
+            toast.success(`Đã giao cho ${staff.displayName} phụ trách`);
+            load(page);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setAssigning(false);
+        }
+    };
+
+    const handleUploadClick = () => fileInputRef.current?.click();
+
+    const handleFileSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file || !editingId) return;
+        try {
+            setUploading(true);
+            const asset = await uploadPcccAttachment(editingId, file);
+            setAttachments(prev => [asset, ...prev]);
+            toast.success("Đã tải lên file đính kèm");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDeleteAttachment = async (fileId: string) => {
+        if (!editingId) return;
+        try {
+            setDeletingAttachmentId(fileId);
+            await deletePcccAttachment(editingId, fileId);
+            setAttachments(prev => prev.filter(a => a._id !== fileId));
+            toast.success("Đã xóa file đính kèm");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingAttachmentId(null);
+        }
     };
 
     const handleSubmit = async () => {
@@ -268,6 +368,8 @@ const PcccListContent: React.FC = () => {
                                 <TableHead>Nhà</TableHead>
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Mức nguy cơ</TableHead>
+                                <TableHead>Người phụ trách</TableHead>
+                                <TableHead>Hạn xử lý</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -291,6 +393,25 @@ const PcccListContent: React.FC = () => {
                                         >
                                             {MUC_NGUY_CO_PCCC_LABEL[c.riskLevel]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {assigneeText(c.assigneeId) || (
+                                            <span className="text-text_2">
+                                                Chưa giao
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {c.deadline && (
+                                            <div className="flex items-center gap-2">
+                                                {formatDate(c.deadline)}
+                                                {isOverdue(c) && (
+                                                    <Badge tone="red">
+                                                        Quá hạn
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -318,7 +439,147 @@ const PcccListContent: React.FC = () => {
                         </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
-                        <PcccForm values={form} onChange={setForm} />
+                        <PcccForm
+                            values={form}
+                            onChange={setForm}
+                            afterInspectionDate={
+                                editingId && (
+                                    <div className="rounded-lg border border-divider_01 p-3">
+                                        <h3 className="mb-3 text-sm font-semibold">
+                                            Phân công xử lý
+                                        </h3>
+                                        <p className="mb-1 text-sm text-text_2">
+                                            Người phụ trách:{" "}
+                                            <span className="font-medium text-text_1">
+                                                {assigneeText(
+                                                    editingCheck?.assigneeId,
+                                                ) || "Chưa giao"}
+                                            </span>
+                                        </p>
+                                        <p className="mb-3 text-sm text-text_2">
+                                            Hạn xử lý:{" "}
+                                            <span className="font-medium text-text_1">
+                                                {formatDate(
+                                                    editingCheck?.deadline,
+                                                ) || "Chưa đặt"}
+                                            </span>
+                                        </p>
+                                        {canAssign && (
+                                            <>
+                                                <div className="space-y-1.5">
+                                                    <Label>
+                                                        Hạn xử lý (tùy chọn)
+                                                    </Label>
+                                                    <Input
+                                                        type="date"
+                                                        value={deadlineInput}
+                                                        onChange={e =>
+                                                            setDeadlineInput(
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                                <Button
+                                                    className="mt-3"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setAssigneeDialogOpen(
+                                                            true,
+                                                        )
+                                                    }
+                                                >
+                                                    {assigneeText(
+                                                        editingCheck?.assigneeId,
+                                                    )
+                                                        ? "Đổi người phụ trách"
+                                                        : "Chọn người phụ trách"}
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                )
+                            }
+                        />
+
+                        {editingId && (
+                            <div className="mt-5 border-t border-divider_01 pt-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold">
+                                        Tệp đính kèm
+                                    </h3>
+                                    {canManage && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            loading={uploading}
+                                            onClick={handleUploadClick}
+                                        >
+                                            <Upload className="mr-1 h-3.5 w-3.5" />
+                                            Tải lên
+                                        </Button>
+                                    )}
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                        onChange={handleFileSelected}
+                                    />
+                                </div>
+                                {attachmentsLoading && <LoadingState />}
+                                {!attachmentsLoading &&
+                                    attachments.length === 0 && (
+                                        <EmptyState label="Chưa có file đính kèm" />
+                                    )}
+                                {!attachmentsLoading &&
+                                    attachments.map(a => (
+                                        <div
+                                            key={a._id}
+                                            className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
+                                        >
+                                            <a
+                                                href={a.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex items-center gap-2 text-primary hover:underline"
+                                            >
+                                                <Paperclip className="h-3.5 w-3.5" />
+                                                {a.name}
+                                            </a>
+                                            {canManage && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="!text-red-500"
+                                                    loading={
+                                                        deletingAttachmentId ===
+                                                        a._id
+                                                    }
+                                                    onClick={() =>
+                                                        handleDeleteAttachment(
+                                                            a._id,
+                                                        )
+                                                    }
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
+
+                        {editingId && (
+                            <RecordHistorySection
+                                className="mt-5 border-t border-divider_01 pt-4"
+                                fetchHistory={params =>
+                                    fetchPcccAuditLogs(editingId, params)
+                                }
+                                actionLabels={PCCC_AUDIT_ACTION_LABEL}
+                                historyHref={`/pccc/${editingId}/history`}
+                            />
+                        )}
                     </div>
                     <SheetFooter>
                         <Button
@@ -370,6 +631,14 @@ const PcccListContent: React.FC = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AssigneePicker
+                open={assigneeDialogOpen}
+                onOpenChange={setAssigneeDialogOpen}
+                permission="pccc.assign"
+                onSelect={handleAssign}
+                selecting={assigning}
+            />
         </div>
     );
 };

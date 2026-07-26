@@ -25,11 +25,17 @@ import {
     ErrorState,
 } from "@components/admin/DataStates";
 import HouseholdPicker from "@components/admin/HouseholdPicker";
+import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { useAuthStore, usePermission } from "@store/authStore";
-import { HOUSE_STATUS_LABEL, HOUSE_STATUS_TONE } from "@constants/domain";
+import {
+    HOUSE_AUDIT_ACTION_LABEL,
+    HOUSE_STATUS_LABEL,
+    HOUSE_STATUS_TONE,
+} from "@constants/domain";
 import { AppError, Business, House, HouseStatus, Household } from "@dts";
 import {
     deleteHouse,
+    fetchHouseAuditLogs,
     fetchHouseBusinesses,
     fetchHouseById,
     fetchHouseHouseholds,
@@ -64,6 +70,7 @@ const toFormValues = (h: House): HouseFormValues => ({
     cluster: h.cluster,
     address: h.address,
     note: h.note || "",
+    residenceDeclarationNumber: h.residenceDeclarationNumber || "",
 });
 
 const businessToForm = (b: Business): BusinessFormValues => ({
@@ -557,6 +564,16 @@ const HouseDetailContent: React.FC = () => {
                                 </button>
                             ))}
                     </div>
+
+                    {houseId && (
+                        <RecordHistorySection
+                            fetchHistory={params =>
+                                fetchHouseAuditLogs(houseId, params)
+                            }
+                            actionLabels={HOUSE_AUDIT_ACTION_LABEL}
+                            historyHref={`/houses/${houseId}/history`}
+                        />
+                    )}
                 </>
             )}
 

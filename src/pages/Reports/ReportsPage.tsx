@@ -62,7 +62,7 @@ const KEY_LABEL: Record<string, string> = {
     remediationNeeded: "Việc cần khắc phục",
     byLevel: "Theo mức độ",
     level: "Mức độ",
-    byHandlingStatus: "Theo tình trạng xử lý",
+    byMonitoringStatus: "Theo tình trạng theo dõi",
     rentalHouseholdsCount: "Tổng số hộ cho thuê",
     rentalMissingDeclarationCount: "Số hộ cho thuê chưa khai báo tạm trú",
     reportedToPoliceCount: "Số vụ đã báo công an khu vực",
@@ -198,7 +198,7 @@ const ReportsContent: React.FC = () => {
                   },
                   {
                       key: "security" as ReportTabKey,
-                      label: "An ninh",
+                      label: "An ninh & Cư trú",
                       fetch: fetchSecurityReport,
                       excelFileName: "bao-cao-an-ninh.xlsx",
                   },

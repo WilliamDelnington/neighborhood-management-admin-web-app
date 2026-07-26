@@ -1,11 +1,12 @@
 import { API } from "@constants/common";
-import { House, HouseStatus, PaginatedData } from "@dts";
+import { AuditLogRecord, House, HouseStatus, PaginatedData } from "@dts";
 import { request } from "./request";
 
 export interface HouseInput {
     cluster: string;
     address: string;
     note?: string;
+    residenceDeclarationNumber?: string;
 }
 
 export const fetchHouses = (params?: {
@@ -45,3 +46,13 @@ export const updateHouseStatus = (
     status: HouseStatus,
 ): Promise<House> =>
     request<House>("PATCH", `${API.HOUSES}/${id}/status`, { status });
+
+export const fetchHouseAuditLogs = (
+    id: string,
+    params?: { page?: number; limit?: number },
+): Promise<PaginatedData<AuditLogRecord>> =>
+    request<PaginatedData<AuditLogRecord>>(
+        "GET",
+        `${API.HOUSES}/${id}/audit-logs`,
+        params,
+    );

@@ -49,6 +49,11 @@ export async function request<T>(
                 },
             );
         }
+    } else if (data instanceof FormData) {
+        // Khong tu dat Content-Type: trinh duyet can tu sinh boundary cho
+        // multipart/form-data, dat thu cong se lam mat boundary va server
+        // khong parse duoc formData().
+        requestOptions.body = data;
     } else {
         headers.append("Content-Type", "application/json");
         requestOptions.body = JSON.stringify(data ?? {});

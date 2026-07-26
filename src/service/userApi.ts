@@ -3,11 +3,17 @@ import { AssignableStaff, PaginatedData, Role, User } from "@dts";
 import { request } from "./request";
 
 /**
- * Danh sach rut gon nhan vien co the duoc gan phu trach phan anh - mo cho ca 4 vai
- * tro duoc phep gan (khong chi admin), tra ve toi thieu du lieu (id, displayName).
+ * Danh sach rut gon nhan vien co the duoc gan phu trach mot loai viec - mo cho
+ * bat ky vai tro nao dang giu permission truyen vao (khong chi admin), tra ve
+ * toi thieu du lieu (id, displayName). Mac dinh "complaints.assign" de tuong
+ * thich cac noi da goi ham nay truoc khi co tham so nay.
  */
-export const fetchAssignableStaff = (): Promise<AssignableStaff[]> =>
-    request<AssignableStaff[]>("GET", API.USERS_ASSIGNABLE_STAFF);
+export const fetchAssignableStaff = (
+    permission = "complaints.assign",
+): Promise<AssignableStaff[]> =>
+    request<AssignableStaff[]>("GET", API.USERS_ASSIGNABLE_STAFF, {
+        permission,
+    });
 
 export const fetchUsers = (
     page = 1,

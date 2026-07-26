@@ -6,6 +6,7 @@ import { ROLE_LABEL } from "@constants/domain";
 import { MODULES } from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
+import NotificationBell from "./NotificationBell";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -63,7 +64,8 @@ const AdminLayout: React.FC = () => {
             </aside>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-14 flex-shrink-0 items-center justify-end border-b border-divider_01 bg-white px-4">
+                <header className="flex h-14 flex-shrink-0 items-center justify-end gap-2 border-b border-divider_01 bg-white px-4">
+                    <NotificationBell />
                     <DropdownMenu>
                         <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-ng_10">
                             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue_10 text-xs font-semibold text-main">

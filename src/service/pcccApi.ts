@@ -1,5 +1,12 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { MucNguyCoPccc, PaginatedData, PcccCheck } from "@dts";
+import {
+    AuditLogRecord,
+    MucNguyCoPccc,
+    PaginatedData,
+    PcccAttachment,
+    PcccCheck,
+    TinhTrangTheoDoiPccc,
+} from "@dts";
 import { request } from "./request";
 
 export interface PcccCheckInput {
@@ -13,7 +20,7 @@ export interface PcccCheckInput {
     remediationNeeded?: string;
     inspectionDate: string;
     inspectorId?: string;
-    followUpStatus?: string;
+    followUpStatus?: TinhTrangTheoDoiPccc;
 }
 
 export const fetchPcccChecks = (params?: {
@@ -46,3 +53,41 @@ export const deletePcccCheck = (id: string): Promise<null> =>
 
 export const fetchPcccRiskSummary = (): Promise<Record<string, number>> =>
     request<Record<string, number>>("GET", `${API.PCCC}/summary`);
+
+export const assignPcccCheck = (
+    id: string,
+    input: { assigneeId: string; deadline?: string },
+): Promise<PcccCheck> =>
+    request<PcccCheck>("PATCH", `${API.PCCC}/${id}/assign`, input);
+
+export const fetchPcccAttachments = (id: string): Promise<PcccAttachment[]> =>
+    request<PcccAttachment[]>("GET", `${API.PCCC}/${id}/attachments`);
+
+export const uploadPcccAttachment = (
+    id: string,
+    file: File,
+): Promise<PcccAttachment> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<PcccAttachment>(
+        "POST",
+        `${API.PCCC}/${id}/attachments`,
+        formData,
+    );
+};
+
+export const deletePcccAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>("DELETE", `${API.PCCC}/${id}/attachments/${fileId}`);
+
+export const fetchPcccAuditLogs = (
+    id: string,
+    params?: { page?: number; limit?: number },
+): Promise<PaginatedData<AuditLogRecord>> =>
+    request<PaginatedData<AuditLogRecord>>(
+        "GET",
+        `${API.PCCC}/${id}/audit-logs`,
+        params,
+    );

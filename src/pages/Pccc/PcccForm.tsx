@@ -4,9 +4,19 @@ import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import HousePicker from "@components/admin/HousePicker";
-import { MUC_NGUY_CO_PCCC_LABEL } from "@constants/domain";
-import { House, MucNguyCoPccc } from "@dts";
+import {
+    MUC_NGUY_CO_PCCC_LABEL,
+    TINH_TRANG_THEO_DOI_PCCC_LABEL,
+} from "@constants/domain";
+import { House, MucNguyCoPccc, TinhTrangTheoDoiPccc } from "@dts";
 import { PcccCheckInput } from "@service/pcccApi";
 
 export interface PcccFormValues {
@@ -20,7 +30,7 @@ export interface PcccFormValues {
     riskLevel: MucNguyCoPccc;
     remediationNeeded: string;
     inspectionDate: string;
-    followUpStatus: string;
+    followUpStatus: TinhTrangTheoDoiPccc;
 }
 
 export const EMPTY_PCCC_FORM: PcccFormValues = {
@@ -34,7 +44,7 @@ export const EMPTY_PCCC_FORM: PcccFormValues = {
     riskLevel: "xanh",
     remediationNeeded: "",
     inspectionDate: "",
-    followUpStatus: "",
+    followUpStatus: "chua_khac_phuc",
 };
 
 export function toPcccInput(values: PcccFormValues): PcccCheckInput {
@@ -50,7 +60,7 @@ export function toPcccInput(values: PcccFormValues): PcccCheckInput {
         inspectionDate: values.inspectionDate
             ? new Date(values.inspectionDate).toISOString()
             : "",
-        followUpStatus: values.followUpStatus.trim() || undefined,
+        followUpStatus: values.followUpStatus,
     };
 }
 
@@ -61,12 +71,18 @@ export function isPcccFormValid(values: PcccFormValues): boolean {
 interface PcccFormProps {
     values: PcccFormValues;
     onChange: (values: PcccFormValues) => void;
+    /** Noi dung chen ngay sau truong "Ngay kiem tra" (vd. khu vuc phan cong xu ly). */
+    afterInspectionDate?: React.ReactNode;
 }
 
 /**
  * Bo truong dung chung cho tao moi/chinh sua dot kiem tra PCCC.
  */
-const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
+const PcccForm: React.FC<PcccFormProps> = ({
+    values,
+    onChange,
+    afterInspectionDate,
+}) => {
     const set = <K extends keyof PcccFormValues>(
         key: K,
         value: PcccFormValues[K],
@@ -93,6 +109,7 @@ const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
                     onChange={e => set("inspectionDate", e.target.value)}
                 />
             </div>
+            {afterInspectionDate}
             <div className="flex flex-col gap-2">
                 <label
                     htmlFor="hasFireExtinguisher"
@@ -197,11 +214,28 @@ const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
             </div>
             <div className="space-y-1.5">
                 <Label>Tình trạng theo dõi</Label>
-                <Input
-                    placeholder="VD: Đã nhắc nhở, đang chờ khắc phục..."
+                <Select
                     value={values.followUpStatus}
-                    onChange={e => set("followUpStatus", e.target.value)}
-                />
+                    onValueChange={v =>
+                        set("followUpStatus", v as TinhTrangTheoDoiPccc)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {(
+                            Object.entries(TINH_TRANG_THEO_DOI_PCCC_LABEL) as [
+                                TinhTrangTheoDoiPccc,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
         </div>
     );

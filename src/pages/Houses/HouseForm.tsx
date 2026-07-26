@@ -16,12 +16,14 @@ export interface HouseFormValues {
     cluster: string;
     address: string;
     note: string;
+    residenceDeclarationNumber: string;
 }
 
 export const EMPTY_HOUSE_FORM: HouseFormValues = {
     cluster: "",
     address: "",
     note: "",
+    residenceDeclarationNumber: "",
 };
 
 export function toHouseInput(values: HouseFormValues): HouseInput {
@@ -29,6 +31,8 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
         cluster: values.cluster.trim(),
         address: values.address.trim(),
         note: values.note.trim() || undefined,
+        residenceDeclarationNumber:
+            values.residenceDeclarationNumber.trim() || undefined,
     };
 }
 
@@ -95,6 +99,16 @@ const HouseForm: React.FC<HouseFormProps> = ({ values, onChange }) => {
                     placeholder="Số nhà, ngõ, đường..."
                     value={values.address}
                     onChange={e => set("address", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Số khai báo cư trú</Label>
+                <Input
+                    placeholder="Số khai báo tạm trú/thường trú do công an cấp (nếu có)"
+                    value={values.residenceDeclarationNumber}
+                    onChange={e =>
+                        set("residenceDeclarationNumber", e.target.value)
+                    }
                 />
             </div>
             <div className="space-y-1.5">

@@ -14,6 +14,8 @@ import {
     KeyRound,
     Briefcase,
     FileText,
+    History,
+    LifeBuoy,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -54,6 +56,13 @@ export const MODULES: ModuleItem[] = [
         permission: "complaints.read",
     },
     {
+        key: "support_tickets",
+        label: "Yêu cầu hỗ trợ",
+        path: "/support-tickets",
+        icon: LifeBuoy,
+        permission: "support_tickets.read",
+    },
+    {
         key: "pccc",
         label: "PCCC",
         path: "/pccc",
@@ -62,7 +71,7 @@ export const MODULES: ModuleItem[] = [
     },
     {
         key: "security",
-        label: "An ninh, tạm trú",
+        label: "An ninh & Quản lý cư trú",
         path: "/security",
         icon: Shield,
         permission: "security.read",
@@ -129,5 +138,12 @@ export const MODULES: ModuleItem[] = [
         path: "/settings",
         icon: Settings,
         permission: "settings.read",
+    },
+    {
+        key: "audit_logs",
+        label: "Nhật ký hệ thống",
+        path: "/audit-logs",
+        icon: History,
+        permission: "audit.read",
     },
 ];

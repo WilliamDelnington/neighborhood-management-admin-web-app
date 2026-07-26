@@ -17,10 +17,12 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
-import { LOAI_CAU_HOI_KHAO_SAT_LABEL } from "@constants/domain";
+import RecordHistorySection from "@components/admin/RecordHistorySection";
+import { LOAI_CAU_HOI_KHAO_SAT_LABEL, SURVEY_AUDIT_ACTION_LABEL } from "@constants/domain";
 import { AppError, LoaiCauHoiKhaoSat, SurveyQuestion } from "@dts";
 import {
     createSurvey,
+    fetchSurveyAuditLogs,
     fetchSurveyDetail,
     SurveyInput,
     updateSurvey,
@@ -420,6 +422,15 @@ const SurveyFormContent: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {isEdit && id && (
+                <RecordHistorySection
+                    className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                    fetchHistory={params => fetchSurveyAuditLogs(id, params)}
+                    actionLabels={SURVEY_AUDIT_ACTION_LABEL}
+                    historyHref={`/surveys/${id}/history`}
+                />
+            )}
         </div>
     );
 };

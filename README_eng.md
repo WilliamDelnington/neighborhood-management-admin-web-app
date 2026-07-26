@@ -1,6 +1,6 @@
-# Hòa Bình Admin — Hòa Bình Residential Group Admin Dashboard
+# Residential Group Admin Dashboard
 
-A web admin single-page application (SPA) for the staff of the "Hòa Bình" residential group (Tổ dân phố), used to manage households, residents, resident complaints, fire-safety (PCCC) checks, security records, neighborhood meetings, announcements, surveys, finance, and consolidated reports. Built with **React + TypeScript + Vite**, it talks to the [Hòa Bình Backend App](../quan-ly-to-dan-pho-hoa-binh-backend-app) over REST, authenticates via JWT, and enforces fine-grained per-module role-based access control (RBAC).
+A web admin single-page application (SPA) for the staff of the residential group (Tổ dân phố), used to manage households, residents, resident complaints, fire-safety (PCCC) checks, security records, neighborhood meetings, announcements, surveys, finance, and consolidated reports. Built with **React + TypeScript + Vite**, it talks to the [Hòa Bình Backend App](../neighborhood-management-admin-web-app) over REST, authenticates via JWT, and enforces fine-grained per-module role-based access control (RBAC).
 
 ## Table of contents
 
@@ -60,13 +60,13 @@ Each list module supports search and pagination, and — depending on the module
 
 - Node.js 18+ (20+ recommended)
 - npm
-- A running instance of the [Hòa Bình Backend App](../quan-ly-to-dan-pho-hoa-binh-backend-app) (defaults to `http://localhost:4000`) to provide data
+- A running instance of the [Hòa Bình Backend App](../neighborhood-management-admin-web-app) (defaults to `http://localhost:4000`) to provide data
 
 ## Installation
 
 ```bash
 git clone <repo-url>
-cd quan-ly-to-dan-pho-hoa-binh-admin
+cd neighborhood-management-admin-web-app
 npm install
 ```
 

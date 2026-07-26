@@ -20,6 +20,7 @@ export const API = {
     BUSINESSES: "/api/businesses",
 
     COMPLAINTS: "/api/complaints",
+    SUPPORT_TICKETS: "/api/support-tickets",
 
     ANNOUNCEMENTS: "/api/announcements",
     MEETINGS: "/api/meetings",
@@ -35,6 +36,12 @@ export const API = {
     REPORTS: "/api/reports",
     IMPORT: "/api/import",
     EXPORT: "/api/export",
+
+    AUDIT_LOGS: "/api/audit-logs",
+
+    NOTIFICATIONS: "/api/notifications",
+    NOTIFICATIONS_UNREAD_COUNT: "/api/notifications/unread-count",
+    NOTIFICATIONS_READ_ALL: "/api/notifications/read-all",
 };
 
 export const DEFAULT_PAGE_SIZE = 20;

@@ -1,5 +1,11 @@
 import { API } from "@constants/common";
-import { PaginatedData, Survey, SurveyQuestion, SurveyResults } from "@dts";
+import {
+    AuditLogRecord,
+    PaginatedData,
+    Survey,
+    SurveyQuestion,
+    SurveyResults,
+} from "@dts";
 import { request } from "./request";
 
 export interface SurveyInput {
@@ -39,3 +45,13 @@ export const closeSurvey = (id: string): Promise<Survey> =>
 
 export const fetchSurveyResults = (id: string): Promise<SurveyResults> =>
     request<SurveyResults>("GET", `${API.SURVEYS}/${id}/results`);
+
+export const fetchSurveyAuditLogs = (
+    id: string,
+    params?: { page?: number; limit?: number },
+): Promise<PaginatedData<AuditLogRecord>> =>
+    request<PaginatedData<AuditLogRecord>>(
+        "GET",
+        `${API.SURVEYS}/${id}/audit-logs`,
+        params,
+    );

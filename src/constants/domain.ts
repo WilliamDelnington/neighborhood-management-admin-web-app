@@ -8,15 +8,18 @@ import type {
     LoaiGiaoDichTaiChinh,
     LoaiSoHuu,
     LoaiThongBao,
+    LoaiYeuCauHoTro,
     MucDoAnNinh,
     MucNguyCoPccc,
     NhomPhanAnh,
     Role,
-    TinhTrangXuLyAnNinh,
+    TinhTrangTheoDoiAnNinh,
+    TinhTrangTheoDoiPccc,
     TrangThaiGiaoDich,
     TrangThaiKhaoSat,
     TrangThaiPhanAnh,
     TrangThaiThongBao,
+    TrangThaiYeuCauHoTro,
     UserStatus,
 } from "@dts";
 import type { BadgeTone } from "@components/ui/badge";
@@ -60,6 +63,31 @@ export const TRANG_THAI_PHAN_ANH_TONE: Record<TrangThaiPhanAnh, BadgeTone> = {
     dong: "gray",
 };
 
+export const LOAI_YEU_CAU_HO_TRO_LABEL: Record<LoaiYeuCauHoTro, string> = {
+    bao_loi: "Báo lỗi",
+    gop_y: "Góp ý",
+};
+
+export const TRANG_THAI_YEU_CAU_HO_TRO_LABEL: Record<
+    TrangThaiYeuCauHoTro,
+    string
+> = {
+    moi: "Mới",
+    dang_xu_ly: "Đang xử lý",
+    da_xu_ly: "Đã xử lý",
+    dong: "Đóng",
+};
+
+export const TRANG_THAI_YEU_CAU_HO_TRO_TONE: Record<
+    TrangThaiYeuCauHoTro,
+    BadgeTone
+> = {
+    moi: "gray",
+    dang_xu_ly: "yellow",
+    da_xu_ly: "green",
+    dong: "gray",
+};
+
 export const LOAI_SO_HUU_LABEL: Record<LoaiSoHuu, string> = {
     chinh_chu: "Chính chủ",
     cho_thue: "Cho thuê",
@@ -79,6 +107,50 @@ export const HOUSE_STATUS_TONE: Record<HouseStatus, BadgeTone> = {
     verified: "green",
     denied: "red",
     locked: "red",
+};
+
+// Nhan hien thi cho cac action ghi trong AuditLog voi targetModel = "HouseRecord"
+// (xem services/houseRecordService.ts) - dung cho khu vuc lich su chinh sua o
+// man chi tiet nha so. Action la chuoi tu do nen fallback ve chinh no neu chua
+// co trong danh sach (vd action moi duoc them sau nay).
+export const HOUSE_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "house.create": "Tạo mới nhà số",
+    "house.update": "Cập nhật thông tin",
+    "house.status_change": "Đổi trạng thái",
+    "house.delete": "Xóa nhà số",
+};
+
+// Cac nhan hien thi cho khu vuc "Lich su chinh sua" cua tung module - xem
+// RecordHistorySection/RecordHistoryPage (src/components/admin). Action la
+// chuoi tu do nen fallback ve chinh no neu chua co trong danh sach.
+export const PCCC_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "pccc.create": "Tạo đợt kiểm tra",
+    "pccc.update": "Cập nhật thông tin",
+    "pccc.assign": "Phân công xử lý",
+    "pccc.attachment.upload": "Tải lên file đính kèm",
+    "pccc.attachment.delete": "Xóa file đính kèm",
+    "pccc.delete": "Xóa đợt kiểm tra",
+};
+
+export const SECURITY_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "security.create": "Tạo hồ sơ an ninh",
+    "security.update": "Cập nhật thông tin",
+    "security.assign": "Phân công theo dõi",
+    "security.delete": "Xóa hồ sơ an ninh",
+};
+
+export const MEETING_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "meeting.create": "Tạo cuộc họp",
+    "meeting.update": "Cập nhật thông tin",
+    "meeting.delete": "Xóa cuộc họp",
+};
+
+export const SURVEY_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "survey.create": "Tạo khảo sát",
+    "survey.update": "Cập nhật thông tin",
+    "survey.open": "Mở khảo sát",
+    "survey.close": "Đóng khảo sát",
+    "survey.delete": "Xóa khảo sát",
 };
 
 export const GIOI_TINH_LABEL: Record<GioiTinh, string> = {
@@ -102,6 +174,24 @@ export const MUC_NGUY_CO_PCCC_TONE: Record<MucNguyCoPccc, BadgeTone> = {
     xanh: "green",
     vang: "yellow",
     do: "red",
+};
+
+export const TINH_TRANG_THEO_DOI_PCCC_LABEL: Record<
+    TinhTrangTheoDoiPccc,
+    string
+> = {
+    chua_khac_phuc: "Chưa khắc phục",
+    dang_khac_phuc: "Đang khắc phục",
+    da_khac_phuc: "Đã khắc phục",
+};
+
+export const TINH_TRANG_THEO_DOI_PCCC_TONE: Record<
+    TinhTrangTheoDoiPccc,
+    BadgeTone
+> = {
+    chua_khac_phuc: "gray",
+    dang_khac_phuc: "yellow",
+    da_khac_phuc: "green",
 };
 
 export const FILE_ASSET_CATEGORY_LABEL: Record<FileAssetCategory, string> = {
@@ -130,16 +220,24 @@ export const MUC_DO_AN_NINH_TONE: Record<MucDoAnNinh, BadgeTone> = {
     khan_cap: "red",
 };
 
-export const TINH_TRANG_XU_LY_AN_NINH_LABEL: Record<TinhTrangXuLyAnNinh, string> = {
-    chua_xu_ly: "Chưa xử lý",
-    dang_xu_ly: "Đang xử lý",
-    da_xu_ly: "Đã xử lý",
+export const TINH_TRANG_THEO_DOI_AN_NINH_LABEL: Record<
+    TinhTrangTheoDoiAnNinh,
+    string
+> = {
+    binh_thuong: "Bình thường",
+    dang_theo_doi: "Đang theo dõi",
+    da_bao_cong_an: "Đã báo Công an",
+    da_ket_thuc: "Đã kết thúc",
 };
 
-export const TINH_TRANG_XU_LY_AN_NINH_TONE: Record<TinhTrangXuLyAnNinh, BadgeTone> = {
-    chua_xu_ly: "gray",
-    dang_xu_ly: "yellow",
-    da_xu_ly: "green",
+export const TINH_TRANG_THEO_DOI_AN_NINH_TONE: Record<
+    TinhTrangTheoDoiAnNinh,
+    BadgeTone
+> = {
+    binh_thuong: "gray",
+    dang_theo_doi: "yellow",
+    da_bao_cong_an: "red",
+    da_ket_thuc: "green",
 };
 
 export const LOAI_THONG_BAO_LABEL: Record<LoaiThongBao, string> = {
