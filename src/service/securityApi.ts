@@ -1,25 +1,31 @@
 import { API } from "@constants/common";
-import { MucDoAnNinh, PaginatedData, SecurityRecord } from "@dts";
+import {
+    AuditLogRecord,
+    MucDoAnNinh,
+    PaginatedData,
+    SecurityRecord,
+    TinhTrangTheoDoiAnNinh,
+} from "@dts";
 import { request } from "./request";
 
 export interface SecurityRecordInput {
-    householdId: string;
+    houseId: string;
     ownershipType?: "chinh_chu" | "cho_thue";
     renterCount?: number;
-    temporaryResidenceDeclared?: boolean;
     hasCamera?: boolean;
     hasSecurityComplaint?: boolean;
     level?: MucDoAnNinh;
     reportedToPolice?: boolean;
-    handlingStatus?: string;
+    monitoringStatus?: TinhTrangTheoDoiAnNinh;
     note?: string;
+    inspectionDate?: string;
 }
 
 export const fetchSecurityRecords = (params?: {
     page?: number;
     limit?: number;
     level?: MucDoAnNinh;
-    householdId?: string;
+    houseId?: string;
 }): Promise<PaginatedData<SecurityRecord>> =>
     request<PaginatedData<SecurityRecord>>("GET", API.SECURITY, params);
 
@@ -39,3 +45,19 @@ export const updateSecurityRecord = (
 
 export const deleteSecurityRecord = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.SECURITY}/${id}`);
+
+export const assignSecurityRecord = (
+    id: string,
+    input: { assigneeId: string },
+): Promise<SecurityRecord> =>
+    request<SecurityRecord>("PATCH", `${API.SECURITY}/${id}/assign`, input);
+
+export const fetchSecurityAuditLogs = (
+    id: string,
+    params?: { page?: number; limit?: number },
+): Promise<PaginatedData<AuditLogRecord>> =>
+    request<PaginatedData<AuditLogRecord>>(
+        "GET",
+        `${API.SECURITY}/${id}/audit-logs`,
+        params,
+    );

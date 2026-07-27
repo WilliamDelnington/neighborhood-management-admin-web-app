@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -10,11 +11,13 @@ import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import StatCard from "@components/admin/StatCard";
-import { DANG_KY_HOP_LABEL } from "@constants/domain";
+import RecordHistorySection from "@components/admin/RecordHistorySection";
+import { DANG_KY_HOP_LABEL, MEETING_AUDIT_ACTION_LABEL } from "@constants/domain";
 import { AppError, DangKyHop, MeetingRegistration } from "@dts";
 import {
     MeetingInput,
     createMeeting,
+    fetchMeetingAuditLogs,
     fetchMeetingDetail,
     fetchMeetingRegistrations,
     updateMeeting,
@@ -37,7 +40,7 @@ const registrantName = (r: MeetingRegistration) => {
 };
 
 const MeetingFormPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary", "neighborhood_leader"]}>
+    <AdminGuard permissions={["meetings.read"]}>
         <MeetingFormContent />
     </AdminGuard>
 );
@@ -46,6 +49,7 @@ const MeetingFormContent: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
+    const canManage = usePermission(isEdit ? "meetings.update" : "meetings.create");
 
     const [loading, setLoading] = useState(isEdit);
     const [loadError, setLoadError] = useState(false);
@@ -216,11 +220,13 @@ const MeetingFormContent: React.FC = () => {
                             Đăng công khai lên web app cho người dân
                         </label>
 
-                        <div className="mt-2">
-                            <Button loading={saving} onClick={handleSubmit}>
-                                {isEdit ? "Lưu thay đổi" : "Tạo cuộc họp"}
-                            </Button>
-                        </div>
+                        {canManage && (
+                            <div className="mt-2">
+                                <Button loading={saving} onClick={handleSubmit}>
+                                    {isEdit ? "Lưu thay đổi" : "Tạo cuộc họp"}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -272,6 +278,15 @@ const MeetingFormContent: React.FC = () => {
                         </>
                     )}
                 </div>
+            )}
+
+            {isEdit && id && (
+                <RecordHistorySection
+                    className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                    fetchHistory={params => fetchMeetingAuditLogs(id, params)}
+                    actionLabels={MEETING_AUDIT_ACTION_LABEL}
+                    historyHref={`/meetings/${id}/history`}
+                />
             )}
         </div>
     );

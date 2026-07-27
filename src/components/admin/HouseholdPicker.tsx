@@ -18,6 +18,9 @@ export interface HouseholdPickerProps {
     valueLabel?: string;
     onChange: (householdId: string, household: Household) => void;
     disabled?: boolean;
+    // Chi cho chon cac ho dan chua gan nha so - dung cho luong "gan ho dan co
+    // san" trong man chi tiet nha so, sau khi bo man danh sach ho dan phang.
+    unassignedOnly?: boolean;
 }
 
 const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
@@ -26,6 +29,7 @@ const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
     valueLabel,
     onChange,
     disabled,
+    unassignedOnly,
 }) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -36,14 +40,19 @@ const HouseholdPicker: React.FC<HouseholdPickerProps> = ({
         if (!open) return;
         setLoading(true);
         const timer = setTimeout(() => {
-            fetchHouseholds({ page: 1, limit: 20, search: search || undefined })
+            fetchHouseholds({
+                page: 1,
+                limit: 20,
+                search: search || undefined,
+                unassigned: unassignedOnly || undefined,
+            })
                 .then(res => setItems(res.items))
                 .catch(() => setItems([]))
                 .finally(() => setLoading(false));
         }, 250);
         // eslint-disable-next-line consistent-return
         return () => clearTimeout(timer);
-    }, [open, search]);
+    }, [open, search, unassignedOnly]);
 
     return (
         <div>

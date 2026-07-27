@@ -11,71 +11,85 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import HouseholdPicker from "@components/admin/HouseholdPicker";
-import { LOAI_SO_HUU_LABEL, MUC_DO_AN_NINH_LABEL } from "@constants/domain";
-import { Household, LoaiSoHuu, MucDoAnNinh } from "@dts";
+import HousePicker from "@components/admin/HousePicker";
+import {
+    LOAI_SO_HUU_LABEL,
+    MUC_DO_AN_NINH_LABEL,
+    TINH_TRANG_THEO_DOI_AN_NINH_LABEL,
+} from "@constants/domain";
+import { House, LoaiSoHuu, MucDoAnNinh, TinhTrangTheoDoiAnNinh } from "@dts";
 import { SecurityRecordInput } from "@service/securityApi";
 
 export interface SecurityFormValues {
-    householdId: string;
-    householdLabel: string;
+    houseId: string;
+    houseLabel: string;
+    houseDeclarationNumber: string;
     ownershipType: LoaiSoHuu;
     renterCount: string;
-    temporaryResidenceDeclared: boolean;
     hasCamera: boolean;
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
     reportedToPolice: boolean;
-    handlingStatus: string;
+    monitoringStatus: TinhTrangTheoDoiAnNinh;
     note: string;
+    inspectionDate: string;
 }
 
 export const EMPTY_SECURITY_FORM: SecurityFormValues = {
-    householdId: "",
-    householdLabel: "",
+    houseId: "",
+    houseLabel: "",
+    houseDeclarationNumber: "",
     ownershipType: "chinh_chu",
     renterCount: "",
-    temporaryResidenceDeclared: false,
     hasCamera: false,
     hasSecurityComplaint: false,
     level: "binh_thuong",
     reportedToPolice: false,
-    handlingStatus: "",
+    monitoringStatus: "binh_thuong",
     note: "",
+    inspectionDate: "",
 };
 
 export function toSecurityInput(
     values: SecurityFormValues,
 ): SecurityRecordInput {
     return {
-        householdId: values.householdId,
+        houseId: values.houseId,
         ownershipType: values.ownershipType,
         renterCount: values.renterCount
             ? Number(values.renterCount)
             : undefined,
-        temporaryResidenceDeclared: values.temporaryResidenceDeclared,
         hasCamera: values.hasCamera,
         hasSecurityComplaint: values.hasSecurityComplaint,
         level: values.level,
         reportedToPolice: values.reportedToPolice,
-        handlingStatus: values.handlingStatus.trim() || undefined,
+        monitoringStatus: values.monitoringStatus,
         note: values.note.trim() || undefined,
+        inspectionDate: values.inspectionDate
+            ? new Date(values.inspectionDate).toISOString()
+            : "",
     };
 }
 
 export function isSecurityFormValid(values: SecurityFormValues): boolean {
-    return !!values.householdId;
+    return !!(values.houseId && values.inspectionDate);
 }
 
 interface SecurityFormProps {
     values: SecurityFormValues;
     onChange: (values: SecurityFormValues) => void;
+    /** Noi dung chen ngay sau truong "Ngay kiem tra" (vd. khu vuc phan cong theo doi). */
+    afterInspectionDate?: React.ReactNode;
 }
 
 /**
  * Bo truong dung chung cho tao moi/chinh sua ho so an ninh, tam tru, nha cho thue.
  */
-const SecurityForm: React.FC<SecurityFormProps> = ({ values, onChange }) => {
+const SecurityForm: React.FC<SecurityFormProps> = ({
+    values,
+    onChange,
+    afterInspectionDate,
+}) => {
     const set = <K extends keyof SecurityFormValues>(
         key: K,
         value: SecurityFormValues[K],
@@ -83,17 +97,38 @@ const SecurityForm: React.FC<SecurityFormProps> = ({ values, onChange }) => {
 
     return (
         <div className="flex flex-col gap-4">
-            <HouseholdPicker
-                value={values.householdId}
-                valueLabel={values.householdLabel}
-                onChange={(householdId, household: Household) =>
+            <HousePicker
+                value={values.houseId}
+                valueLabel={values.houseLabel}
+                onChange={(houseId, house: House) =>
                     onChange({
                         ...values,
-                        householdId,
-                        householdLabel: `${household.code} — ${household.address}`,
+                        houseId,
+                        houseLabel: `${house.code} — ${house.address}`,
+                        houseDeclarationNumber:
+                            house.residenceDeclarationNumber || "",
                     })
                 }
             />
+            <div className="space-y-1.5">
+                <Label>Số khai báo cư trú</Label>
+                <Input
+                    disabled
+                    value={
+                        values.houseDeclarationNumber ||
+                        "Chưa có (khai báo tại hồ sơ Nhà số)"
+                    }
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Ngày kiểm tra</Label>
+                <Input
+                    type="date"
+                    value={values.inspectionDate}
+                    onChange={e => set("inspectionDate", e.target.value)}
+                />
+            </div>
+            {afterInspectionDate}
             <div className="space-y-1.5">
                 <Label>Hình thức sở hữu</Label>
                 <RadioGroup
@@ -122,7 +157,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({ values, onChange }) => {
                 </RadioGroup>
             </div>
             <div className="space-y-1.5">
-                <Label>Số người thuê</Label>
+                <Label>Số người đang ở thực tế</Label>
                 <Input
                     type="number"
                     value={values.renterCount}
@@ -130,22 +165,6 @@ const SecurityForm: React.FC<SecurityFormProps> = ({ values, onChange }) => {
                 />
             </div>
             <div className="flex flex-col gap-2">
-                <label
-                    htmlFor="temporaryResidenceDeclared"
-                    className="flex items-center gap-2 text-sm"
-                >
-                    <Checkbox
-                        id="temporaryResidenceDeclared"
-                        checked={values.temporaryResidenceDeclared}
-                        onCheckedChange={checked =>
-                            set(
-                                "temporaryResidenceDeclared",
-                                checked === true,
-                            )
-                        }
-                    />
-                    Đã khai báo tạm trú
-                </label>
                 <label
                     htmlFor="hasCamera"
                     className="flex items-center gap-2 text-sm"
@@ -210,12 +229,28 @@ const SecurityForm: React.FC<SecurityFormProps> = ({ values, onChange }) => {
                 </Select>
             </div>
             <div className="space-y-1.5">
-                <Label>Tình trạng xử lý</Label>
-                <Input
-                    placeholder="VD: Đã xử lý, đang theo dõi..."
-                    value={values.handlingStatus}
-                    onChange={e => set("handlingStatus", e.target.value)}
-                />
+                <Label>Tình trạng theo dõi</Label>
+                <Select
+                    value={values.monitoringStatus}
+                    onValueChange={v =>
+                        set("monitoringStatus", v as TinhTrangTheoDoiAnNinh)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {(
+                            Object.entries(
+                                TINH_TRANG_THEO_DOI_AN_NINH_LABEL,
+                            ) as [TinhTrangTheoDoiAnNinh, string][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-1.5">
                 <Label>Ghi chú</Label>

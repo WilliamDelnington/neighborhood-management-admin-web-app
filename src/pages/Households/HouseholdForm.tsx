@@ -1,12 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import { LOAI_SO_HUU_LABEL } from "@constants/domain";
 import { LoaiSoHuu } from "@dts";
 import { HouseholdInput } from "@service/householdApi";
+import { useAuthStore } from "@store/authStore";
 
 export interface HouseholdFormValues {
     cluster: string;
@@ -30,7 +38,10 @@ export const EMPTY_HOUSEHOLD_FORM: HouseholdFormValues = {
     note: "",
 };
 
-export function toHouseholdInput(values: HouseholdFormValues): HouseholdInput {
+export function toHouseholdInput(
+    values: HouseholdFormValues,
+    houseId?: string | null,
+): HouseholdInput {
     return {
         cluster: values.cluster.trim(),
         address: values.address.trim(),
@@ -41,6 +52,7 @@ export function toHouseholdInput(values: HouseholdFormValues): HouseholdInput {
             : undefined,
         ownershipType: values.ownershipType,
         needsSupport: values.needsSupport,
+        houseId: houseId !== undefined ? houseId : undefined,
         note: values.note.trim() || undefined,
     };
 }
@@ -56,26 +68,77 @@ export function isHouseholdFormValid(values: HouseholdFormValues): boolean {
 interface HouseholdFormProps {
     values: HouseholdFormValues;
     onChange: (values: HouseholdFormValues) => void;
+    // Khi tao ho dan tu man chi tiet nha so, cum dan cu duoc ke thua tu nha
+    // so va khong cho sua tay de tranh lech voi cum cua nha so cha.
+    lockedCluster?: string;
 }
 
 /**
  * Bo truong dung chung cho tao moi/chinh sua ho dan.
  */
-const HouseholdForm: React.FC<HouseholdFormProps> = ({ values, onChange }) => {
+const HouseholdForm: React.FC<HouseholdFormProps> = ({
+    values,
+    onChange,
+    lockedCluster,
+}) => {
+    // Nguoi dung duoc phan cong cum (vd to truong) chi duoc chon trong cac cum
+    // cua minh, tranh tao/sua ho dan sang cum ma ho khong con thay duoc sau do
+    // (backend cung chan tuong tu, day la lop UX tren truoc).
+    const assignedClusters = useAuthStore(state => state.user?.assignedClusters) || [];
+
     const set = <K extends keyof HouseholdFormValues>(
         key: K,
         value: HouseholdFormValues[K],
     ) => onChange({ ...values, [key]: value });
 
+    useEffect(() => {
+        if (lockedCluster) {
+            if (values.cluster !== lockedCluster) set("cluster", lockedCluster);
+            return;
+        }
+        if (!values.cluster && assignedClusters.length === 1) {
+            set("cluster", assignedClusters[0]);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [assignedClusters.length, lockedCluster]);
+
+    const renderClusterField = () => {
+        if (lockedCluster) {
+            return <Input value={lockedCluster} disabled />;
+        }
+        if (assignedClusters.length > 0) {
+            return (
+                <Select
+                    value={values.cluster}
+                    onValueChange={v => set("cluster", v)}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Chọn cụm dân cư" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {assignedClusters.map(c => (
+                            <SelectItem key={c} value={c}>
+                                {c}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            );
+        }
+        return (
+            <Input
+                placeholder="VD: Cụm 3"
+                value={values.cluster}
+                onChange={e => set("cluster", e.target.value)}
+            />
+        );
+    };
+
     return (
         <div className="flex flex-col gap-4">
             <div className="space-y-1.5">
                 <Label>Cụm dân cư</Label>
-                <Input
-                    placeholder="VD: Cụm 3"
-                    value={values.cluster}
-                    onChange={e => set("cluster", e.target.value)}
-                />
+                {renderClusterField()}
             </div>
             <div className="space-y-1.5">
                 <Label>Địa chỉ</Label>

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Input } from "@components/ui/input";
@@ -17,6 +19,7 @@ import {
 import {
     Dialog,
     DialogContent,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@components/ui/dialog";
@@ -35,17 +38,11 @@ import {
 } from "@constants/domain";
 import {
     assignComplaint,
+    deleteComplaint,
     fetchComplaintDetail,
     updateComplaintStatus,
 } from "@service/complaintApi";
 import { fetchAssignableStaff } from "@service/userApi";
-
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "regional_police",
-    "people_committee_official",
-] as const;
 
 const formatDateTime = (value?: string) =>
     value ? new Date(value).toLocaleString("vi-VN") : "";
@@ -53,13 +50,17 @@ const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
 
 const ComplaintDetailPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["complaints.read"]}>
         <ComplaintDetailContent />
     </AdminGuard>
 );
 
 const ComplaintDetailContent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const canAssign = usePermission("complaints.assign");
+    const canUpdateStatus = usePermission("complaints.update_status");
+    const canDelete = usePermission("complaints.delete");
 
     const [complaint, setComplaint] = useState<Complaint | null>(null);
     const [timeline, setTimeline] = useState<ComplaintTimelineEntry[]>([]);
@@ -77,6 +78,9 @@ const ComplaintDetailContent: React.FC = () => {
     const [assigneeLoading, setAssigneeLoading] = useState(false);
     const [expectedCompletionDate, setExpectedCompletionDate] = useState("");
     const [assigning, setAssigning] = useState(false);
+
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const load = () => {
         if (!id) return;
@@ -152,6 +156,20 @@ const ComplaintDetailContent: React.FC = () => {
         }
     };
 
+    const handleDelete = async () => {
+        if (!id) return;
+        try {
+            setDeleting(true);
+            await deleteComplaint(id);
+            toast.success("Đã xóa phản ánh");
+            navigate("/complaints");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const assigneeName =
         complaint &&
         typeof complaint.assigneeId === "object" &&
@@ -165,6 +183,17 @@ const ComplaintDetailContent: React.FC = () => {
 
     return (
         <div>
+            <div className="mb-4 flex items-center gap-3">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => navigate("/complaints")}
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-lg font-semibold">Phản ánh</h1>
+            </div>
+
             {loading && <LoadingState />}
             {!loading && error && <ErrorState onRetry={load} />}
 
@@ -172,12 +201,35 @@ const ComplaintDetailContent: React.FC = () => {
                 <>
                     <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
-                            <h1 className="text-lg font-semibold">
+                            <h2 className="text-lg font-semibold">
                                 {complaint.code}
-                            </h1>
-                            <Badge tone={TRANG_THAI_PHAN_ANH_TONE[complaint.status]}>
-                                {TRANG_THAI_PHAN_ANH_LABEL[complaint.status]}
-                            </Badge>
+                            </h2>
+                            <div className="flex items-center gap-2">
+                                <Badge
+                                    tone={
+                                        TRANG_THAI_PHAN_ANH_TONE[
+                                            complaint.status
+                                        ]
+                                    }
+                                >
+                                    {
+                                        TRANG_THAI_PHAN_ANH_LABEL[
+                                            complaint.status
+                                        ]
+                                    }
+                                </Badge>
+                                {canDelete && (
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() =>
+                                            setDeleteDialogOpen(true)
+                                        }
+                                    >
+                                        Xóa
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                         <div className="text-sm font-medium">
                             {complaint.title}
@@ -241,90 +293,94 @@ const ComplaintDetailContent: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                        <h2 className="mb-3 text-base font-semibold">
-                            Phân công xử lý
-                        </h2>
-                        <label
-                            htmlFor="expectedCompletionDate"
-                            className="mb-1 block text-sm text-text_2"
-                        >
-                            Dự kiến hoàn thành (tùy chọn)
-                        </label>
-                        <Input
-                            id="expectedCompletionDate"
-                            type="date"
-                            value={expectedCompletionDate}
-                            onChange={e =>
-                                setExpectedCompletionDate(e.target.value)
-                            }
-                        />
-                        <div className="mt-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => setAssigneeDialogOpen(true)}
+                    {canAssign && (
+                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                            <h2 className="mb-3 text-base font-semibold">
+                                Phân công xử lý
+                            </h2>
+                            <label
+                                htmlFor="expectedCompletionDate"
+                                className="mb-1 block text-sm text-text_2"
                             >
-                                {assigneeName
-                                    ? `Đang giao: ${assigneeName} — Đổi người`
-                                    : "Chọn người phụ trách"}
-                            </Button>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                        <h2 className="mb-3 text-base font-semibold">
-                            Cập nhật trạng thái
-                        </h2>
-                        <Select
-                            value={newStatus}
-                            onValueChange={v =>
-                                setNewStatus(v as TrangThaiPhanAnh)
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Trạng thái mới" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(
-                                    Object.entries(
-                                        TRANG_THAI_PHAN_ANH_LABEL,
-                                    ) as [TrangThaiPhanAnh, string][]
-                                ).map(([key, label]) => (
-                                    <SelectItem key={key} value={key}>
-                                        {label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Textarea
-                            className="mt-3"
-                            placeholder="Nội dung cập nhật, phản hồi cho người dân..."
-                            value={note}
-                            onChange={e => setNote(e.target.value)}
-                        />
-                        <label
-                            htmlFor="isPublic"
-                            className="mt-3 flex items-center gap-2 text-sm"
-                        >
-                            <Checkbox
-                                id="isPublic"
-                                checked={isPublic}
-                                onCheckedChange={checked =>
-                                    setIsPublic(checked === true)
+                                Dự kiến hoàn thành (tùy chọn)
+                            </label>
+                            <Input
+                                id="expectedCompletionDate"
+                                type="date"
+                                value={expectedCompletionDate}
+                                onChange={e =>
+                                    setExpectedCompletionDate(e.target.value)
                                 }
                             />
-                            Công khai cho người dân
-                        </label>
-                        <div className="mt-3">
-                            <Button
-                                loading={updating}
-                                disabled={!newStatus}
-                                onClick={handleUpdateStatus}
-                            >
-                                Cập nhật trạng thái
-                            </Button>
+                            <div className="mt-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setAssigneeDialogOpen(true)}
+                                >
+                                    {assigneeName
+                                        ? `Đang giao: ${assigneeName} — Đổi người`
+                                        : "Chọn người phụ trách"}
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
+
+                    {canUpdateStatus && (
+                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                            <h2 className="mb-3 text-base font-semibold">
+                                Cập nhật trạng thái
+                            </h2>
+                            <Select
+                                value={newStatus}
+                                onValueChange={v =>
+                                    setNewStatus(v as TrangThaiPhanAnh)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Trạng thái mới" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(
+                                        Object.entries(
+                                            TRANG_THAI_PHAN_ANH_LABEL,
+                                        ) as [TrangThaiPhanAnh, string][]
+                                    ).map(([key, label]) => (
+                                        <SelectItem key={key} value={key}>
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Textarea
+                                className="mt-3"
+                                placeholder="Nội dung cập nhật, phản hồi cho người dân..."
+                                value={note}
+                                onChange={e => setNote(e.target.value)}
+                            />
+                            <label
+                                htmlFor="isPublic"
+                                className="mt-3 flex items-center gap-2 text-sm"
+                            >
+                                <Checkbox
+                                    id="isPublic"
+                                    checked={isPublic}
+                                    onCheckedChange={checked =>
+                                        setIsPublic(checked === true)
+                                    }
+                                />
+                                Công khai cho người dân
+                            </label>
+                            <div className="mt-3">
+                                <Button
+                                    loading={updating}
+                                    disabled={!newStatus}
+                                    onClick={handleUpdateStatus}
+                                >
+                                    Cập nhật trạng thái
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                         <h2 className="mb-3 text-base font-semibold">
@@ -388,6 +444,33 @@ const ComplaintDetailContent: React.FC = () => {
                                 </button>
                             ))}
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Xóa phản ánh?</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-text_2">
+                        Bạn có chắc muốn xóa phản ánh này? Hành động này không
+                        thể hoàn tác.
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setDeleteDialogOpen(false)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            loading={deleting}
+                            onClick={handleDelete}
+                        >
+                            Xóa
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

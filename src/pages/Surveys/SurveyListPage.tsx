@@ -14,7 +14,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 import {
     TRANG_THAI_KHAO_SAT_LABEL,
     TRANG_THAI_KHAO_SAT_TONE,
@@ -23,17 +23,16 @@ import { AppError, Survey } from "@dts";
 import { closeSurvey, fetchSurveys, openSurvey } from "@service/surveyApi";
 
 const SurveyListPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary", "neighborhood_leader"]}>
+    <AdminGuard permissions={["surveys.read"]}>
         <SurveyListContent />
     </AdminGuard>
 );
 
 const SurveyListContent: React.FC = () => {
     const navigate = useNavigate();
-    const user = useAuthStore(state => state.user);
-    const canManage =
-        !!user &&
-        (user.roles.includes("admin") || user.roles.includes("secretary"));
+    const canCreate = usePermission("surveys.create");
+    const canEdit = usePermission("surveys.update");
+    const canPublish = usePermission("surveys.publish");
 
     const [items, setItems] = useState<Survey[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,7 +73,7 @@ const SurveyListContent: React.FC = () => {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Quản lý khảo sát</h1>
-                {canManage && (
+                {canCreate && (
                     <Button onClick={() => navigate("/surveys/create")}>
                         <Plus className="mr-1 h-4 w-4" />
                         Thêm mới
@@ -102,9 +101,9 @@ const SurveyListContent: React.FC = () => {
                             {items.map(s => (
                                 <TableRow
                                     key={s._id}
-                                    className={canManage ? "cursor-pointer" : ""}
+                                    className={canEdit ? "cursor-pointer" : ""}
                                     onClick={
-                                        canManage
+                                        canEdit
                                             ? () =>
                                                   navigate(
                                                       `/surveys/${s._id}/edit`,
@@ -146,7 +145,7 @@ const SurveyListContent: React.FC = () => {
                                             >
                                                 Kết quả
                                             </Button>
-                                            {canManage &&
+                                            {canPublish &&
                                                 s.status !== "da_dong" && (
                                                     <Button
                                                         size="sm"

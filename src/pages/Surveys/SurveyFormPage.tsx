@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Trash2, X } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -16,16 +17,18 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
-import { LOAI_CAU_HOI_KHAO_SAT_LABEL } from "@constants/domain";
+import RecordHistorySection from "@components/admin/RecordHistorySection";
+import { LOAI_CAU_HOI_KHAO_SAT_LABEL, SURVEY_AUDIT_ACTION_LABEL } from "@constants/domain";
 import { AppError, LoaiCauHoiKhaoSat, SurveyQuestion } from "@dts";
 import {
     createSurvey,
+    fetchSurveyAuditLogs,
     fetchSurveyDetail,
     SurveyInput,
     updateSurvey,
 } from "@service/surveyApi";
 
-type DraftQuestion = Omit<SurveyQuestion, "_id">;
+type DraftQuestion = SurveyQuestion;
 
 const EMPTY_QUESTION: DraftQuestion = {
     question: "",
@@ -37,7 +40,7 @@ const EMPTY_QUESTION: DraftQuestion = {
 const OPTIONS_TYPES: LoaiCauHoiKhaoSat[] = ["chon_mot", "chon_nhieu"];
 
 const SurveyFormPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary"]}>
+    <AdminGuard permissions={["surveys.create", "surveys.update"]}>
         <SurveyFormContent />
     </AdminGuard>
 );
@@ -46,6 +49,7 @@ const SurveyFormContent: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
     const isEdit = !!id;
+    const canSave = usePermission(isEdit ? "surveys.update" : "surveys.create");
 
     const [loading, setLoading] = useState(isEdit);
     const [loadError, setLoadError] = useState(false);
@@ -68,6 +72,7 @@ const SurveyFormContent: React.FC = () => {
                 setQuestions(
                     s.questions.length > 0
                         ? s.questions.map(q => ({
+                              _id: q._id,
                               question: q.question,
                               type: q.type,
                               options: q.options?.length ? q.options : ["", ""],
@@ -155,6 +160,7 @@ const SurveyFormContent: React.FC = () => {
         }
 
         const preparedQuestions: DraftQuestion[] = questions.map(q => ({
+            _id: q._id,
             question: q.question.trim(),
             type: q.type,
             required: q.required,
@@ -406,14 +412,25 @@ const SurveyFormContent: React.FC = () => {
                             </Button>
                         </div>
 
-                        <div className="mt-2">
-                            <Button loading={saving} onClick={handleSubmit}>
-                                {isEdit ? "Lưu thay đổi" : "Tạo khảo sát"}
-                            </Button>
-                        </div>
+                        {canSave && (
+                            <div className="mt-2">
+                                <Button loading={saving} onClick={handleSubmit}>
+                                    {isEdit ? "Lưu thay đổi" : "Tạo khảo sát"}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
+
+            {isEdit && id && (
+                <RecordHistorySection
+                    className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                    fetchHistory={params => fetchSurveyAuditLogs(id, params)}
+                    actionLabels={SURVEY_AUDIT_ACTION_LABEL}
+                    historyHref={`/surveys/${id}/history`}
+                />
+            )}
         </div>
     );
 };

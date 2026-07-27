@@ -1,5 +1,5 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Meeting, MeetingRegistration, PaginatedData } from "@dts";
+import { AuditLogRecord, Meeting, MeetingRegistration, PaginatedData } from "@dts";
 import { request } from "./request";
 
 export interface MeetingInput {
@@ -45,4 +45,14 @@ export const fetchMeetingRegistrations = (
         "GET",
         `${API.MEETINGS}/${id}/register`,
         { page, limit },
+    );
+
+export const fetchMeetingAuditLogs = (
+    id: string,
+    params?: { page?: number; limit?: number },
+): Promise<PaginatedData<AuditLogRecord>> =>
+    request<PaginatedData<AuditLogRecord>>(
+        "GET",
+        `${API.MEETINGS}/${id}/audit-logs`,
+        params,
     );

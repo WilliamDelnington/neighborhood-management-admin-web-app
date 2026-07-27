@@ -11,14 +11,17 @@ import LoginPage from "@pages/Login/LoginPage";
 const DashboardPage = React.lazy(
     () => import("@pages/Dashboard/DashboardPage"),
 );
-const HouseholdListPage = React.lazy(
-    () => import("@pages/Households/HouseholdListPage"),
+const HouseListPage = React.lazy(
+    () => import("@pages/Houses/HouseListPage"),
+);
+const HouseDetailPage = React.lazy(
+    () => import("@pages/Houses/HouseDetailPage"),
+);
+const HouseHistoryPage = React.lazy(
+    () => import("@pages/Houses/HouseHistoryPage"),
 );
 const HouseholdDetailPage = React.lazy(
     () => import("@pages/Households/HouseholdDetailPage"),
-);
-const CitizenListPage = React.lazy(
-    () => import("@pages/Citizens/CitizenListPage"),
 );
 const ComplaintListPage = React.lazy(
     () => import("@pages/Complaints/ComplaintListPage"),
@@ -26,15 +29,30 @@ const ComplaintListPage = React.lazy(
 const ComplaintDetailPage = React.lazy(
     () => import("@pages/Complaints/ComplaintDetailPage"),
 );
+const SupportTicketListPage = React.lazy(
+    () => import("@pages/SupportTickets/SupportTicketListPage"),
+);
+const SupportTicketDetailPage = React.lazy(
+    () => import("@pages/SupportTickets/SupportTicketDetailPage"),
+);
 const PcccListPage = React.lazy(() => import("@pages/Pccc/PcccListPage"));
+const PcccHistoryPage = React.lazy(
+    () => import("@pages/Pccc/PcccHistoryPage"),
+);
 const SecurityListPage = React.lazy(
     () => import("@pages/Security/SecurityListPage"),
+);
+const SecurityHistoryPage = React.lazy(
+    () => import("@pages/Security/SecurityHistoryPage"),
 );
 const MeetingListPage = React.lazy(
     () => import("@pages/Meetings/MeetingListPage"),
 );
 const MeetingFormPage = React.lazy(
     () => import("@pages/Meetings/MeetingFormPage"),
+);
+const MeetingHistoryPage = React.lazy(
+    () => import("@pages/Meetings/MeetingHistoryPage"),
 );
 const AnnouncementListPage = React.lazy(
     () => import("@pages/Announcements/AnnouncementListPage"),
@@ -51,20 +69,23 @@ const SurveyFormPage = React.lazy(
 const SurveyResultsPage = React.lazy(
     () => import("@pages/Surveys/SurveyResultsPage"),
 );
+const SurveyHistoryPage = React.lazy(
+    () => import("@pages/Surveys/SurveyHistoryPage"),
+);
 const FinanceListPage = React.lazy(
     () => import("@pages/Finance/FinanceListPage"),
 );
 const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
-
-const STAFF_5 = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
+const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
+const BusinessTypeListPage = React.lazy(
+    () => import("@pages/BusinessTypes/BusinessTypeListPage"),
+);
+const FileListPage = React.lazy(() => import("@pages/Files/FileListPage"));
+const AuditLogListPage = React.lazy(
+    () => import("@pages/AuditLogs/AuditLogListPage"),
+);
 
 const PageFallback = () => (
     <div className="flex h-64 items-center justify-center">
@@ -98,21 +119,25 @@ const App: React.FC = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route
                         element={
-                            <AdminGuard roles={[...STAFF_5]}>
+                            <AdminGuard permissions={["dashboard.read"]}>
                                 <AdminLayout />
                             </AdminGuard>
                         }
                     >
                         <Route path="/" element={<DashboardPage />} />
+                        <Route path="/houses" element={<HouseListPage />} />
                         <Route
-                            path="/households"
-                            element={<HouseholdListPage />}
+                            path="/houses/:houseId"
+                            element={<HouseDetailPage />}
                         />
                         <Route
-                            path="/households/:id"
+                            path="/houses/:houseId/history"
+                            element={<HouseHistoryPage />}
+                        />
+                        <Route
+                            path="/houses/:houseId/households/:id"
                             element={<HouseholdDetailPage />}
                         />
-                        <Route path="/citizens" element={<CitizenListPage />} />
                         <Route
                             path="/complaints"
                             element={<ComplaintListPage />}
@@ -121,10 +146,26 @@ const App: React.FC = () => {
                             path="/complaints/:id"
                             element={<ComplaintDetailPage />}
                         />
+                        <Route
+                            path="/support-tickets"
+                            element={<SupportTicketListPage />}
+                        />
+                        <Route
+                            path="/support-tickets/:id"
+                            element={<SupportTicketDetailPage />}
+                        />
                         <Route path="/pccc" element={<PcccListPage />} />
+                        <Route
+                            path="/pccc/:id/history"
+                            element={<PcccHistoryPage />}
+                        />
                         <Route
                             path="/security"
                             element={<SecurityListPage />}
+                        />
+                        <Route
+                            path="/security/:id/history"
+                            element={<SecurityHistoryPage />}
                         />
                         <Route path="/meetings" element={<MeetingListPage />} />
                         <Route
@@ -134,6 +175,10 @@ const App: React.FC = () => {
                         <Route
                             path="/meetings/:id/edit"
                             element={<MeetingFormPage />}
+                        />
+                        <Route
+                            path="/meetings/:id/history"
+                            element={<MeetingHistoryPage />}
                         />
                         <Route
                             path="/announcements"
@@ -160,10 +205,24 @@ const App: React.FC = () => {
                             path="/surveys/:id/results"
                             element={<SurveyResultsPage />}
                         />
+                        <Route
+                            path="/surveys/:id/history"
+                            element={<SurveyHistoryPage />}
+                        />
+                        <Route path="/files" element={<FileListPage />} />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/users" element={<UserListPage />} />
+                        <Route path="/roles" element={<RoleListPage />} />
+                        <Route
+                            path="/business-types"
+                            element={<BusinessTypeListPage />}
+                        />
+                        <Route
+                            path="/audit-logs"
+                            element={<AuditLogListPage />}
+                        />
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                 </Routes>

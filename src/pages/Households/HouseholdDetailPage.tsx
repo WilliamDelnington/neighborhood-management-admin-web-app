@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { ArrowLeft, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
@@ -12,11 +13,18 @@ import {
     DialogFooter,
 } from "@components/ui/dialog";
 import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetFooter,
+} from "@components/ui/sheet";
+import {
     LoadingState,
     EmptyState,
     ErrorState,
 } from "@components/admin/DataStates";
-import { useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 import { AppError, Citizen, Household } from "@dts";
 import { LOAI_SO_HUU_LABEL } from "@constants/domain";
 import {
@@ -25,19 +33,22 @@ import {
     fetchHouseholdCitizens,
     updateHousehold,
 } from "@service/householdApi";
+import {
+    createCitizen,
+    deleteCitizen,
+    updateCitizen,
+} from "@service/citizenApi";
+import CitizenForm, {
+    CitizenFormValues,
+    EMPTY_CITIZEN_FORM,
+    isCitizenFormValid,
+    toCitizenInput,
+} from "@pages/Citizens/CitizenForm";
 import HouseholdForm, {
     HouseholdFormValues,
     isHouseholdFormValid,
     toHouseholdInput,
 } from "./HouseholdForm";
-
-const VIEW_ROLES = [
-    "admin",
-    "neighborhood_leader",
-    "secretary",
-    "regional_police",
-    "people_committee_official",
-] as const;
 
 const toFormValues = (h: Household): HouseholdFormValues => ({
     cluster: h.cluster,
@@ -50,20 +61,37 @@ const toFormValues = (h: Household): HouseholdFormValues => ({
     note: h.note || "",
 });
 
+const citizenToForm = (c: Citizen, householdId: string): CitizenFormValues => ({
+    fullName: c.fullName,
+    phone: c.phone || "",
+    cccd: c.cccd || "",
+    birthDate: c.birthDate ? c.birthDate.slice(0, 10) : "",
+    gender: c.gender,
+    relationToHead: c.relationToHead || "",
+    householdId,
+    householdLabel: "",
+    residenceType: c.residenceType,
+    isElderly: c.isElderly,
+    isChild: c.isChild,
+    isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
+    isPartyMember: c.isPartyMember,
+    isUnionMember: c.isUnionMember,
+});
+
 const HouseholdDetailPage: React.FC = () => (
-    <AdminGuard roles={[...VIEW_ROLES]}>
+    <AdminGuard permissions={["households.read"]}>
         <HouseholdDetailContent />
     </AdminGuard>
 );
 
 const HouseholdDetailContent: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+    const { houseId, id } = useParams<{ houseId: string; id: string }>();
     const navigate = useNavigate();
-    const user = useAuthStore(state => state.user);
-    const canManage =
-        !!user &&
-        (user.roles.includes("admin") ||
-            user.roles.includes("neighborhood_leader"));
+    const canUpdate = usePermission("households.update");
+    const canDelete = usePermission("households.delete");
+    const canCreateCitizen = usePermission("citizens.create");
+    const canUpdateCitizen = usePermission("citizens.update");
+    const canDeleteCitizen = usePermission("citizens.delete");
 
     const [household, setHousehold] = useState<Household | null>(null);
     const [loading, setLoading] = useState(true);
@@ -77,6 +105,21 @@ const HouseholdDetailContent: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    const [citizenSheetVisible, setCitizenSheetVisible] = useState(false);
+    const [editingCitizenId, setEditingCitizenId] = useState<string | null>(
+        null,
+    );
+    const [citizenForm, setCitizenForm] = useState<CitizenFormValues>(
+        EMPTY_CITIZEN_FORM,
+    );
+    const [submittingCitizen, setSubmittingCitizen] = useState(false);
+    const [confirmDeleteCitizenId, setConfirmDeleteCitizenId] = useState<
+        string | null
+    >(null);
+    const [deletingCitizen, setDeletingCitizen] = useState(false);
+
+    const backPath = houseId ? `/houses/${houseId}` : "/houses";
 
     const load = () => {
         if (!id) return;
@@ -132,7 +175,7 @@ const HouseholdDetailContent: React.FC = () => {
             setDeleting(true);
             await deleteHousehold(id);
             toast.success("Đã xóa hộ dân");
-            navigate("/households");
+            navigate(backPath);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -141,8 +184,71 @@ const HouseholdDetailContent: React.FC = () => {
         }
     };
 
+    const openCreateCitizen = () => {
+        setEditingCitizenId(null);
+        setCitizenForm({ ...EMPTY_CITIZEN_FORM, householdId: id || "" });
+        setCitizenSheetVisible(true);
+    };
+
+    const openEditCitizen = (c: Citizen) => {
+        if (!canUpdateCitizen || !id) return;
+        setEditingCitizenId(c._id);
+        setCitizenForm(citizenToForm(c, id));
+        setCitizenSheetVisible(true);
+    };
+
+    const handleSubmitCitizen = async () => {
+        if (!isCitizenFormValid(citizenForm)) {
+            toast.error("Vui lòng nhập họ tên");
+            return;
+        }
+        try {
+            setSubmittingCitizen(true);
+            if (editingCitizenId) {
+                await updateCitizen(editingCitizenId, toCitizenInput(citizenForm));
+                toast.success("Đã cập nhật nhân khẩu");
+            } else {
+                await createCitizen(toCitizenInput(citizenForm));
+                toast.success("Đã thêm nhân khẩu mới");
+            }
+            setCitizenSheetVisible(false);
+            loadCitizens();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSubmittingCitizen(false);
+        }
+    };
+
+    const handleDeleteCitizen = async () => {
+        if (!confirmDeleteCitizenId) return;
+        try {
+            setDeletingCitizen(true);
+            await deleteCitizen(confirmDeleteCitizenId);
+            toast.success("Đã xóa nhân khẩu");
+            setConfirmDeleteCitizenId(null);
+            setCitizenSheetVisible(false);
+            loadCitizens();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingCitizen(false);
+        }
+    };
+
     return (
         <div>
+            <div className="mb-4 flex items-center gap-3">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => navigate(backPath)}
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h1 className="text-lg font-semibold">Hộ dân</h1>
+            </div>
+
             {loading && <LoadingState />}
             {!loading && error && <ErrorState onRetry={load} />}
 
@@ -150,9 +256,9 @@ const HouseholdDetailContent: React.FC = () => {
                 <>
                     <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
-                            <h1 className="text-lg font-semibold">
+                            <h2 className="text-lg font-semibold">
                                 {household.code}
-                            </h1>
+                            </h2>
                             {household.needsSupport && (
                                 <Badge tone="yellow">Cần hỗ trợ</Badge>
                             )}
@@ -160,7 +266,15 @@ const HouseholdDetailContent: React.FC = () => {
 
                         {editing ? (
                             <>
-                                <HouseholdForm values={form} onChange={setForm} />
+                                <HouseholdForm
+                                    values={form}
+                                    onChange={setForm}
+                                    lockedCluster={
+                                        household.houseId
+                                            ? household.cluster
+                                            : undefined
+                                    }
+                                />
                                 <div className="mt-4 flex gap-2">
                                     <Button
                                         variant="outline"
@@ -209,14 +323,16 @@ const HouseholdDetailContent: React.FC = () => {
                                     value={household.note || "Không có"}
                                 />
 
-                                {canManage && (
-                                    <div className="mt-4 flex gap-2">
+                                <div className="mt-4 flex gap-2">
+                                    {canUpdate && (
                                         <Button
                                             variant="outline"
                                             onClick={() => setEditing(true)}
                                         >
                                             Chỉnh sửa
                                         </Button>
+                                    )}
+                                    {canDelete && (
                                         <Button
                                             variant="destructive"
                                             onClick={() =>
@@ -225,16 +341,24 @@ const HouseholdDetailContent: React.FC = () => {
                                         >
                                             Xóa
                                         </Button>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </>
                         )}
                     </div>
 
                     <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                        <h2 className="mb-2 text-base font-semibold">
-                            Nhân khẩu trong hộ
-                        </h2>
+                        <div className="mb-2 flex items-center justify-between">
+                            <h2 className="text-base font-semibold">
+                                Nhân khẩu trong hộ
+                            </h2>
+                            {canCreateCitizen && (
+                                <Button size="sm" onClick={openCreateCitizen}>
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    Thêm nhân khẩu
+                                </Button>
+                            )}
+                        </div>
                         {citizensLoading && <LoadingState />}
                         {!citizensLoading && citizens.length === 0 && (
                             <EmptyState label="Chưa có nhân khẩu nào trong hộ" />
@@ -244,8 +368,12 @@ const HouseholdDetailContent: React.FC = () => {
                                 <button
                                     key={c._id}
                                     type="button"
-                                    className="block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
-                                    onClick={() => navigate("/citizens")}
+                                    className={
+                                        canUpdateCitizen
+                                            ? "block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
+                                            : "block w-full border-b border-divider_01 py-2 text-left last:border-0"
+                                    }
+                                    onClick={() => openEditCitizen(c)}
                                 >
                                     <div className="text-sm font-medium">
                                         {c.fullName}
@@ -279,6 +407,73 @@ const HouseholdDetailContent: React.FC = () => {
                             variant="destructive"
                             loading={deleting}
                             onClick={handleDelete}
+                        >
+                            Xóa
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Sheet open={citizenSheetVisible} onOpenChange={setCitizenSheetVisible}>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>
+                            {editingCitizenId ? "Sửa nhân khẩu" : "Thêm nhân khẩu"}
+                        </SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto py-4">
+                        <CitizenForm
+                            values={citizenForm}
+                            onChange={setCitizenForm}
+                            hideHouseholdPicker
+                        />
+                    </div>
+                    <SheetFooter>
+                        {canDeleteCitizen && editingCitizenId && (
+                            <Button
+                                variant="destructive"
+                                className="w-full"
+                                onClick={() =>
+                                    setConfirmDeleteCitizenId(editingCitizenId)
+                                }
+                            >
+                                Xóa nhân khẩu
+                            </Button>
+                        )}
+                        <Button
+                            className="w-full"
+                            loading={submittingCitizen}
+                            onClick={handleSubmitCitizen}
+                        >
+                            {editingCitizenId ? "Lưu thay đổi" : "Thêm nhân khẩu"}
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+
+            <Dialog
+                open={!!confirmDeleteCitizenId}
+                onOpenChange={open => !open && setConfirmDeleteCitizenId(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Xóa nhân khẩu?</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-text_2">
+                        Bạn có chắc muốn xóa nhân khẩu này? Hành động này
+                        không thể hoàn tác.
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmDeleteCitizenId(null)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            loading={deletingCitizen}
+                            onClick={handleDeleteCitizen}
                         >
                             Xóa
                         </Button>

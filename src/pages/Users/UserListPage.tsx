@@ -27,7 +27,8 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { AppError, Role, User, UserStatus } from "@dts";
+import Pagination from "@components/admin/Pagination";
+import { AppError, Role, RoleRecord, User, UserStatus } from "@dts";
 import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -37,9 +38,10 @@ import {
     revokeUserSession,
     updateUser,
 } from "@service/userApi";
+import { fetchRoles } from "@service/roleApi";
 
 const UserListPage: React.FC = () => (
-    <AdminGuard roles={["admin"]}>
+    <AdminGuard permissions={["users.read"]}>
         <UserListContent />
     </AdminGuard>
 );
@@ -48,11 +50,16 @@ const UserListContent: React.FC = () => {
     const [search, setSearch] = useState("");
     const [role, setRole] = useState<Role | "">("");
     const [items, setItems] = useState<User[]>([]);
+    const [roles, setRoles] = useState<RoleRecord[]>([]);
+    const roleNameByKey = React.useMemo(
+        () => Object.fromEntries(roles.map(r => [r.key, r.name])),
+        [roles],
+    );
+    const roleLabel = (key: Role) => roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const [sheetOpen, setSheetOpen] = useState(false);
@@ -71,11 +78,7 @@ const UserListContent: React.FC = () => {
     const [revokingSession, setRevokingSession] = useState(false);
 
     const load = (targetPage = 1, keyword = search) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+        setLoading(true);
         setError(false);
         fetchUsers(
             targetPage,
@@ -84,18 +87,13 @@ const UserListContent: React.FC = () => {
             role || undefined,
         )
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
                 setTotal(res.total);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -103,6 +101,12 @@ const UserListContent: React.FC = () => {
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, role]);
+
+    useEffect(() => {
+        fetchRoles({ active: true, limit: 100 })
+            .then(res => setRoles(res.items))
+            .catch(() => setRoles([]));
+    }, []);
 
     const openManageSheet = (user: User) => {
         setSelectedUser(user);
@@ -146,7 +150,7 @@ const UserListContent: React.FC = () => {
         try {
             setAssigningRole(true);
             await assignUserRole(selectedUser.id, roleToAssign);
-            toast.success(`Đã gán vai trò ${ROLE_LABEL[roleToAssign]}`);
+            toast.success(`Đã gán vai trò ${roleLabel(roleToAssign)}`);
             refreshSelected({
                 ...selectedUser,
                 roles: selectedUser.roles.includes(roleToAssign)
@@ -168,7 +172,7 @@ const UserListContent: React.FC = () => {
                 primaryRole: r,
             });
             refreshSelected(updated);
-            toast.success(`Đã đặt ${ROLE_LABEL[r]} làm vai trò chính`);
+            toast.success(`Đã đặt ${roleLabel(r)} làm vai trò chính`);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -182,7 +186,7 @@ const UserListContent: React.FC = () => {
             setRevokingRole(r);
             const updated = await revokeUserRole(selectedUser.id, r);
             refreshSelected(updated);
-            toast.success(`Đã thu hồi vai trò ${ROLE_LABEL[r]}`);
+            toast.success(`Đã thu hồi vai trò ${roleLabel(r)}`);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -224,15 +228,14 @@ const UserListContent: React.FC = () => {
                 >
                     Tất cả
                 </Button>
-                {(Object.entries(ROLE_LABEL) as [Role, string][]).map(
-                    ([key, label]) => (
+                {roles.map(r => (
                         <Button
-                            key={key}
+                            key={r.key}
                             size="sm"
-                            variant={role === key ? "default" : "outline"}
-                            onClick={() => setRole(key)}
+                            variant={role === r.key ? "default" : "outline"}
+                            onClick={() => setRole(r.key)}
                         >
-                            {label}
+                            {r.name}
                         </Button>
                     ),
                 )}
@@ -273,9 +276,7 @@ const UserListContent: React.FC = () => {
                                         {u.phone ? ` · ${u.phone}` : ""}
                                     </TableCell>
                                     <TableCell>
-                                        {u.roles
-                                            .map(r => ROLE_LABEL[r])
-                                            .join(", ")}
+                                        {u.roles.map(roleLabel).join(", ")}
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={USER_STATUS_TONE[u.status]}>
@@ -289,16 +290,13 @@ const UserListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1, search)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
+            {!loading && !error && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={p => load(p, search)}
+                    disabled={loading}
+                />
             )}
 
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -386,7 +384,7 @@ const UserListContent: React.FC = () => {
                                         className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
                                     >
                                         <div className="text-sm">
-                                            {ROLE_LABEL[r]}
+                                            {roleLabel(r)}
                                             {r === selectedUser.primaryRole && (
                                                 <span className="text-xs text-primary">
                                                     {" "}
@@ -436,16 +434,12 @@ const UserListContent: React.FC = () => {
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {(
-                                                    Object.entries(
-                                                        ROLE_LABEL,
-                                                    ) as [Role, string][]
-                                                ).map(([key, label]) => (
+                                                {roles.map(r => (
                                                     <SelectItem
-                                                        key={key}
-                                                        value={key}
+                                                        key={r.key}
+                                                        value={r.key}
                                                     >
-                                                        {label}
+                                                        {r.name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

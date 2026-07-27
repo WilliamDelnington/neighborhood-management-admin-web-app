@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import {
@@ -27,13 +28,14 @@ const formatDateTime = (iso?: string) => {
 };
 
 const MeetingListPage: React.FC = () => (
-    <AdminGuard roles={["admin", "secretary", "neighborhood_leader"]}>
+    <AdminGuard permissions={["meetings.read"]}>
         <MeetingListContent />
     </AdminGuard>
 );
 
 const MeetingListContent: React.FC = () => {
     const navigate = useNavigate();
+    const canManage = usePermission("meetings.create");
 
     const [items, setItems] = useState<Meeting[]>([]);
     const [loading, setLoading] = useState(true);
@@ -54,10 +56,12 @@ const MeetingListContent: React.FC = () => {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Quản lý cuộc họp</h1>
-                <Button onClick={() => navigate("/meetings/create")}>
-                    <Plus className="mr-1 h-4 w-4" />
-                    Thêm mới
-                </Button>
+                {canManage && (
+                    <Button onClick={() => navigate("/meetings/create")}>
+                        <Plus className="mr-1 h-4 w-4" />
+                        Thêm mới
+                    </Button>
+                )}
             </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">

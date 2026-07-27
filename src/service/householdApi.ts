@@ -10,6 +10,8 @@ export interface HouseholdInput {
     memberCount?: number;
     ownershipType?: "chinh_chu" | "cho_thue";
     needsSupport?: boolean;
+    // id House, hoac null de go lien ket (chua gan nha so).
+    houseId?: string | null;
     note?: string;
 }
 
@@ -18,6 +20,8 @@ export const fetchHouseholds = (params?: {
     limit?: number;
     search?: string;
     cluster?: string;
+    houseId?: string;
+    unassigned?: boolean;
 }): Promise<PaginatedData<Household>> =>
     request<PaginatedData<Household>>("GET", API.HOUSEHOLDS, params);
 

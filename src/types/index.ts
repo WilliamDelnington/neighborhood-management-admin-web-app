@@ -21,13 +21,9 @@ export type AppError = {
 // ---------------------------------------------------------------------------
 // Nguoi dung / vai tro
 // ---------------------------------------------------------------------------
-export type Role =
-    | "resident"
-    | "neighborhood_leader"
-    | "secretary"
-    | "regional_police"
-    | "people_committee_official"
-    | "admin";
+// Vai tro gio la du lieu dong (xem RoleRecord) - Role chi con la alias string,
+// khong con la union tinh liet ke het cac vai tro hop le.
+export type Role = string;
 
 export type UserStatus = "active" | "pending" | "locked";
 
@@ -41,12 +37,15 @@ export type User = {
     address?: string;
     roles: Role[];
     primaryRole: Role;
+    permissions: string[];
+    roleLabels: Record<string, string>;
     status: UserStatus;
     householdId?: string;
     citizenId?: string;
     assignedClusters: string[];
     notificationPermission: boolean;
     createdAt?: string;
+    allowedComplaintCategories: NhomPhanAnh[] | null;
 };
 
 export type AssignableStaff = {
@@ -55,11 +54,65 @@ export type AssignableStaff = {
 };
 
 // ---------------------------------------------------------------------------
+// Vai tro & phan quyen (dong, quan ly qua man hinh /roles)
+// ---------------------------------------------------------------------------
+export type PermissionDef = {
+    key: string;
+    label: string;
+};
+
+export type ModulePermissionGroup = {
+    key: string;
+    label: string;
+    permissions: PermissionDef[];
+};
+
+export type RoleRecord = {
+    _id: string;
+    key: string;
+    name: string;
+    description?: string;
+    permissions: string[];
+    allowedComplaintCategories?: NhomPhanAnh[];
+    system: boolean;
+    active: boolean;
+    sortOrder: number;
+    assignedUserCount: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
 // Ho dan / nhan khau
 // ---------------------------------------------------------------------------
 export type LoaiSoHuu = "chinh_chu" | "cho_thue";
 export type GioiTinh = "nam" | "nu" | "khac";
 export type LoaiCuTru = "thuong_tru" | "tam_tru";
+
+export type BusinessType = {
+    _id: string;
+    name: string;
+    description?: string;
+    active: boolean;
+    sortOrder: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type HouseStatus = "unverified" | "pending" | "verified" | "denied" | "locked";
+
+export type House = {
+    _id: string;
+    code: string;
+    cluster: string;
+    address: string;
+    status: HouseStatus;
+    ownerId?: string | { _id: string; displayName: string } | null;
+    note?: string;
+    residenceDeclarationNumber?: string;
+    createdAt: string;
+    updatedAt: string;
+};
 
 export type Household = {
     _id: string;
@@ -71,6 +124,21 @@ export type Household = {
     memberCount: number;
     ownershipType: LoaiSoHuu;
     needsSupport: boolean;
+    houseId?: string | House;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type Business = {
+    _id: string;
+    name: string;
+    houseId: string | House;
+    cluster: string;
+    businessType?: { _id: string; name: string } | null;
+    ownerName?: string;
+    phone?: string;
+    active: boolean;
     note?: string;
     createdAt: string;
     updatedAt: string;
@@ -151,6 +219,32 @@ export type ComplaintTimelineEntry = {
 export type ComplaintDetail = {
     complaint: Complaint;
     timeline: ComplaintTimelineEntry[];
+};
+
+// ---------------------------------------------------------------------------
+// Ho tro (Mini App - Ho so ca nhan)
+// ---------------------------------------------------------------------------
+export type LoaiYeuCauHoTro = "bao_loi" | "gop_y";
+
+export type TrangThaiYeuCauHoTro = "moi" | "dang_xu_ly" | "da_xu_ly" | "dong";
+
+export type SupportTicket = {
+    _id: string;
+    code: string;
+    type: LoaiYeuCauHoTro;
+    title: string;
+    content: string;
+    images: string[];
+    deviceInfo?: string;
+    status: TrangThaiYeuCauHoTro;
+    createdByUserId:
+        | string
+        | { _id: string; displayName: string; phone?: string };
+    adminResponse?: string;
+    respondedByUserId?: string | { _id: string; displayName: string };
+    resolvedAt?: string;
+    createdAt: string;
+    updatedAt: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -235,9 +329,10 @@ export type Survey = {
 };
 
 export type SurveyResults = {
-    survey: Survey;
+    surveyId: string;
+    title: string;
     totalResponses: number;
-    questionResults: {
+    results: {
         questionId: string;
         question: string;
         type: LoaiCauHoiKhaoSat;
@@ -251,13 +346,28 @@ export type SurveyResults = {
 // ---------------------------------------------------------------------------
 export type MucNguyCoPccc = "xanh" | "vang" | "do";
 export type MucDoAnNinh = "binh_thuong" | "can_theo_doi" | "khan_cap";
+export type TinhTrangTheoDoiAnNinh =
+    | "binh_thuong"
+    | "dang_theo_doi"
+    | "da_bao_cong_an"
+    | "da_ket_thuc";
+export type TinhTrangTheoDoiPccc =
+    | "chua_khac_phuc"
+    | "dang_khac_phuc"
+    | "da_khac_phuc";
 
-type PopulatedHousehold = { _id: string; code: string; address: string; cluster: string };
+type PopulatedHouse = {
+    _id: string;
+    code: string;
+    address: string;
+    cluster: string;
+    residenceDeclarationNumber?: string;
+};
 type PopulatedInspector = { _id: string; displayName: string };
 
 export type PcccCheck = {
     _id: string;
-    householdId: string | PopulatedHousehold;
+    houseId: string | PopulatedHouse | null;
     hasFireExtinguisher: boolean;
     hasEmergencyExit: boolean;
     hasIndoorEvCharging: boolean;
@@ -267,23 +377,37 @@ export type PcccCheck = {
     remediationNeeded?: string;
     inspectionDate: string;
     inspectorId?: string | PopulatedInspector;
-    followUpStatus?: string;
+    followUpStatus?: TinhTrangTheoDoiPccc;
+    deadline?: string;
+    assigneeId?: string | PopulatedInspector | null;
     createdAt: string;
     updatedAt: string;
 };
 
+export type PcccAttachment = {
+    _id: string;
+    name: string;
+    url: string;
+    mimeType?: string;
+    sizeBytes?: number;
+    uploadedBy?: string | { _id: string; displayName: string };
+    createdAt: string;
+};
+
 export type SecurityRecord = {
     _id: string;
-    householdId: string | PopulatedHousehold;
+    houseId: string | PopulatedHouse | null;
     ownershipType: LoaiSoHuu;
     renterCount?: number;
-    temporaryResidenceDeclared: boolean;
     hasCamera: boolean;
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
     reportedToPolice: boolean;
-    handlingStatus?: string;
+    monitoringStatus: TinhTrangTheoDoiAnNinh;
     note?: string;
+    inspectionDate?: string;
+    createdBy?: string | PopulatedInspector;
+    assigneeId?: string | PopulatedInspector | null;
     updatedBy?: string | PopulatedInspector;
     createdAt: string;
     updatedAt: string;
@@ -316,14 +440,24 @@ export type FinanceSummary = {
 // ---------------------------------------------------------------------------
 // Bieu mau / tep tin
 // ---------------------------------------------------------------------------
+export type FileAssetCategory = "form" | "attachment" | "minutes" | "other";
+
 export type FileAsset = {
     _id: string;
     name: string;
     description?: string;
     url: string;
-    category: "form" | "attachment" | "minutes" | "other";
+    mimeType?: string;
+    sizeBytes?: number;
+    category: FileAssetCategory;
+    relatedModel?: string;
+    relatedId?: string;
     isPublic: boolean;
+    targetRoles: Role[];
+    audienceAll: boolean;
+    uploadedBy: string | { _id: string; displayName: string };
     createdAt: string;
+    updatedAt: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -347,6 +481,7 @@ export type DashboardSummary = {
     totalCitizens: number;
     rentalHouseholds: number;
     householdsNeedingSupport: number;
+    scopedToCluster: boolean;
     newComplaints: number;
     inProgressComplaints: number;
     highRiskPcccCount: number;
@@ -367,6 +502,40 @@ export type DashboardSummary = {
         totalResponses: number;
     };
     taskList: DashboardTask[];
+};
+
+// ---------------------------------------------------------------------------
+// Nhat ky he thong (audit log)
+// ---------------------------------------------------------------------------
+export type AuditLogRecord = {
+    _id: string;
+    actorId?: string | { _id: string; displayName: string; phone?: string; email?: string } | null;
+    action: string;
+    targetModel?: string;
+    targetId?: string;
+    metadata?: Record<string, unknown>;
+    ipAddress?: string;
+    createdAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Thong bao (chuong thong bao tren admin)
+// ---------------------------------------------------------------------------
+export type NotificationItem = {
+    _id: string;
+    title: string;
+    body: string;
+    type: string;
+    relatedModel?: string;
+    relatedId?: string;
+    createdAt: string;
+};
+
+export type NotificationDeliveryItem = {
+    deliveryId: string;
+    notification: NotificationItem | null;
+    readAt?: string | null;
+    sentAt?: string;
 };
 
 // ---------------------------------------------------------------------------

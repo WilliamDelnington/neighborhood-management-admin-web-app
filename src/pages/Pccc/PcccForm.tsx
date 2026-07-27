@@ -4,14 +4,24 @@ import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
-import HouseholdPicker from "@components/admin/HouseholdPicker";
-import { MUC_NGUY_CO_PCCC_LABEL } from "@constants/domain";
-import { Household, MucNguyCoPccc } from "@dts";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import HousePicker from "@components/admin/HousePicker";
+import {
+    MUC_NGUY_CO_PCCC_LABEL,
+    TINH_TRANG_THEO_DOI_PCCC_LABEL,
+} from "@constants/domain";
+import { House, MucNguyCoPccc, TinhTrangTheoDoiPccc } from "@dts";
 import { PcccCheckInput } from "@service/pcccApi";
 
 export interface PcccFormValues {
-    householdId: string;
-    householdLabel: string;
+    houseId: string;
+    houseLabel: string;
     hasFireExtinguisher: boolean;
     hasEmergencyExit: boolean;
     hasIndoorEvCharging: boolean;
@@ -20,12 +30,12 @@ export interface PcccFormValues {
     riskLevel: MucNguyCoPccc;
     remediationNeeded: string;
     inspectionDate: string;
-    followUpStatus: string;
+    followUpStatus: TinhTrangTheoDoiPccc;
 }
 
 export const EMPTY_PCCC_FORM: PcccFormValues = {
-    householdId: "",
-    householdLabel: "",
+    houseId: "",
+    houseLabel: "",
     hasFireExtinguisher: false,
     hasEmergencyExit: false,
     hasIndoorEvCharging: false,
@@ -34,12 +44,12 @@ export const EMPTY_PCCC_FORM: PcccFormValues = {
     riskLevel: "xanh",
     remediationNeeded: "",
     inspectionDate: "",
-    followUpStatus: "",
+    followUpStatus: "chua_khac_phuc",
 };
 
 export function toPcccInput(values: PcccFormValues): PcccCheckInput {
     return {
-        householdId: values.householdId,
+        houseId: values.houseId,
         hasFireExtinguisher: values.hasFireExtinguisher,
         hasEmergencyExit: values.hasEmergencyExit,
         hasIndoorEvCharging: values.hasIndoorEvCharging,
@@ -50,23 +60,29 @@ export function toPcccInput(values: PcccFormValues): PcccCheckInput {
         inspectionDate: values.inspectionDate
             ? new Date(values.inspectionDate).toISOString()
             : "",
-        followUpStatus: values.followUpStatus.trim() || undefined,
+        followUpStatus: values.followUpStatus,
     };
 }
 
 export function isPcccFormValid(values: PcccFormValues): boolean {
-    return !!(values.householdId && values.inspectionDate);
+    return !!(values.houseId && values.inspectionDate);
 }
 
 interface PcccFormProps {
     values: PcccFormValues;
     onChange: (values: PcccFormValues) => void;
+    /** Noi dung chen ngay sau truong "Ngay kiem tra" (vd. khu vuc phan cong xu ly). */
+    afterInspectionDate?: React.ReactNode;
 }
 
 /**
  * Bo truong dung chung cho tao moi/chinh sua dot kiem tra PCCC.
  */
-const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
+const PcccForm: React.FC<PcccFormProps> = ({
+    values,
+    onChange,
+    afterInspectionDate,
+}) => {
     const set = <K extends keyof PcccFormValues>(
         key: K,
         value: PcccFormValues[K],
@@ -74,14 +90,14 @@ const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
 
     return (
         <div className="flex flex-col gap-4">
-            <HouseholdPicker
-                value={values.householdId}
-                valueLabel={values.householdLabel}
-                onChange={(householdId, household: Household) =>
+            <HousePicker
+                value={values.houseId}
+                valueLabel={values.houseLabel}
+                onChange={(houseId, house: House) =>
                     onChange({
                         ...values,
-                        householdId,
-                        householdLabel: `${household.code} — ${household.address}`,
+                        houseId,
+                        houseLabel: `${house.code} — ${house.address}`,
                     })
                 }
             />
@@ -93,6 +109,7 @@ const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
                     onChange={e => set("inspectionDate", e.target.value)}
                 />
             </div>
+            {afterInspectionDate}
             <div className="flex flex-col gap-2">
                 <label
                     htmlFor="hasFireExtinguisher"
@@ -197,11 +214,28 @@ const PcccForm: React.FC<PcccFormProps> = ({ values, onChange }) => {
             </div>
             <div className="space-y-1.5">
                 <Label>Tình trạng theo dõi</Label>
-                <Input
-                    placeholder="VD: Đã nhắc nhở, đang chờ khắc phục..."
+                <Select
                     value={values.followUpStatus}
-                    onChange={e => set("followUpStatus", e.target.value)}
-                />
+                    onValueChange={v =>
+                        set("followUpStatus", v as TinhTrangTheoDoiPccc)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {(
+                            Object.entries(TINH_TRANG_THEO_DOI_PCCC_LABEL) as [
+                                TinhTrangTheoDoiPccc,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
         </div>
     );

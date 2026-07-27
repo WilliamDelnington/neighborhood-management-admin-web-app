@@ -14,6 +14,10 @@ export interface AuthState {
     logout: () => void;
 }
 
+export function usePermission(permission: string): boolean {
+    return useAuthStore(state => !!state.user?.permissions.includes(permission));
+}
+
 export const useAuthStore = create<AuthState>()(set => ({
     token: localStorage.getItem(TOKEN_STORAGE_KEY) || undefined,
     user: undefined,
