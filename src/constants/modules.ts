@@ -18,6 +18,7 @@ import {
     FileCheck2,
     History,
     LifeBuoy,
+    MapPinned,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -35,6 +36,13 @@ export const MODULES: ModuleItem[] = [
         path: "/",
         icon: LayoutDashboard,
         permission: "dashboard.read",
+    },
+    {
+        key: "neighborhoods",
+        label: "Tổ dân phố",
+        path: "/neighborhoods",
+        icon: MapPinned,
+        permission: "neighborhoods.read",
     },
     {
         key: "houses",

@@ -42,6 +42,8 @@ export type User = {
     status: UserStatus;
     householdId?: string;
     citizenId?: string;
+    neighborhoodId?: string;
+    assignedNeighborhoodIds: string[];
     assignedClusters: string[];
     notificationPermission: boolean;
     createdAt?: string;
@@ -146,6 +148,37 @@ export type House = {
     residenceDeclarationNumber?: string;
     createdAt: string;
     updatedAt: string;
+};
+
+export type Neighborhood = {
+    _id: string;
+    name: string;
+    code: string;
+    sequence: number;
+    active: boolean;
+    address?: string;
+    description?: string;
+    contactPhone?: string;
+    notes?: string;
+    leaderUserId?: {
+        _id: string;
+        displayName: string;
+        phone?: string;
+        status: UserStatus;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type NeighborhoodLeaderAssignment = {
+    _id: string;
+    neighborhoodId: string;
+    leaderUserId?: { _id: string; displayName: string; phone?: string } | null;
+    assignedBy?: { _id: string; displayName: string } | null;
+    assignedAt: string;
+    unassignedAt?: string;
+    unassignedBy?: { _id: string; displayName: string } | null;
+    note?: string;
 };
 
 export type Household = {

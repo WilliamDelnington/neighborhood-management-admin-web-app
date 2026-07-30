@@ -5,11 +5,18 @@ import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@store/authStore";
 import { fetchMe } from "@service/authApi";
 import AdminGuard from "@components/auth/AdminGuard";
+import RequireNeighborhoodAssignment from "@components/auth/RequireNeighborhoodAssignment";
 import AdminLayout from "@components/layout/AdminLayout";
 import LoginPage from "@pages/Login/LoginPage";
 
 const DashboardPage = React.lazy(
     () => import("@pages/Dashboard/DashboardPage"),
+);
+const NeighborhoodListPage = React.lazy(
+    () => import("@pages/Neighborhoods/NeighborhoodListPage"),
+);
+const NeighborhoodDetailPage = React.lazy(
+    () => import("@pages/Neighborhoods/NeighborhoodDetailPage"),
 );
 const HouseListPage = React.lazy(
     () => import("@pages/Houses/HouseListPage"),
@@ -129,11 +136,21 @@ const App: React.FC = () => {
                     <Route
                         element={
                             <AdminGuard permissions={["dashboard.read"]}>
-                                <AdminLayout />
+                                <RequireNeighborhoodAssignment>
+                                    <AdminLayout />
+                                </RequireNeighborhoodAssignment>
                             </AdminGuard>
                         }
                     >
                         <Route path="/" element={<DashboardPage />} />
+                        <Route
+                            path="/neighborhoods"
+                            element={<NeighborhoodListPage />}
+                        />
+                        <Route
+                            path="/neighborhoods/:id"
+                            element={<NeighborhoodDetailPage />}
+                        />
                         <Route path="/houses" element={<HouseListPage />} />
                         <Route
                             path="/houses/:houseId"
