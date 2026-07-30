@@ -48,6 +48,7 @@ import {
     MUC_NGUY_CO_PCCC_TONE,
     PCCC_AUDIT_ACTION_LABEL,
 } from "@constants/domain";
+import { resolveAssetUrl } from "@constants/common";
 import {
     assignPcccCheck,
     createPcccCheck,
@@ -539,7 +540,7 @@ const PcccListContent: React.FC = () => {
                                             className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
                                         >
                                             <a
-                                                href={a.url}
+                                                href={resolveAssetUrl(a.url)}
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 className="flex items-center gap-2 text-primary hover:underline"

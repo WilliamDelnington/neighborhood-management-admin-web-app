@@ -1,5 +1,5 @@
 import { API } from "@constants/common";
-import { AuditLogRecord, House, HouseStatus, PaginatedData } from "@dts";
+import { AuditLogRecord, FileAsset, House, HouseStatus, PaginatedData } from "@dts";
 import { request } from "./request";
 
 export interface HouseInput {
@@ -56,3 +56,12 @@ export const fetchHouseAuditLogs = (
         `${API.HOUSES}/${id}/audit-logs`,
         params,
     );
+
+export const fetchHouseAttachments = (id: string): Promise<FileAsset[]> =>
+    request<FileAsset[]>("GET", `${API.HOUSES}/${id}/attachments`);
+
+export const deleteHouseAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>("DELETE", `${API.HOUSES}/${id}/attachments/${fileId}`);

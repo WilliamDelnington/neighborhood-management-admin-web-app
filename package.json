@@ -6,6 +6,7 @@
     "license": "UNLICENSED",
     "scripts": {
         "dev": "vite",
+        "start:remote": "vite --mode remote",
         "build": "tsc --noEmit && vite build",
         "preview": "vite preview",
         "lint": "eslint ./src --ext .js,.ts,.jsx,.tsx",

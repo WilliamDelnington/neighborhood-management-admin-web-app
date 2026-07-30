@@ -23,6 +23,9 @@ const HouseHistoryPage = React.lazy(
 const HouseholdDetailPage = React.lazy(
     () => import("@pages/Households/HouseholdDetailPage"),
 );
+const BusinessDetailPage = React.lazy(
+    () => import("@pages/Houses/BusinessDetailPage"),
+);
 const ComplaintListPage = React.lazy(
     () => import("@pages/Complaints/ComplaintListPage"),
 );
@@ -82,6 +85,12 @@ const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
 const BusinessTypeListPage = React.lazy(
     () => import("@pages/BusinessTypes/BusinessTypeListPage"),
 );
+const BusinessListPage = React.lazy(
+    () => import("@pages/Businesses/BusinessListPage"),
+);
+const DocumentTypeListPage = React.lazy(
+    () => import("@pages/DocumentTypes/DocumentTypeListPage"),
+);
 const FileListPage = React.lazy(() => import("@pages/Files/FileListPage"));
 const AuditLogListPage = React.lazy(
     () => import("@pages/AuditLogs/AuditLogListPage"),
@@ -137,6 +146,10 @@ const App: React.FC = () => {
                         <Route
                             path="/houses/:houseId/households/:id"
                             element={<HouseholdDetailPage />}
+                        />
+                        <Route
+                            path="/houses/:houseId/businesses/:businessId"
+                            element={<BusinessDetailPage />}
                         />
                         <Route
                             path="/complaints"
@@ -216,8 +229,16 @@ const App: React.FC = () => {
                         <Route path="/users" element={<UserListPage />} />
                         <Route path="/roles" element={<RoleListPage />} />
                         <Route
+                            path="/businesses"
+                            element={<BusinessListPage />}
+                        />
+                        <Route
                             path="/business-types"
                             element={<BusinessTypeListPage />}
+                        />
+                        <Route
+                            path="/document-types"
+                            element={<DocumentTypeListPage />}
                         />
                         <Route
                             path="/audit-logs"

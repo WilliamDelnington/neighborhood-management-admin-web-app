@@ -89,17 +89,51 @@ export type LoaiSoHuu = "chinh_chu" | "cho_thue";
 export type GioiTinh = "nam" | "nu" | "khac";
 export type LoaiCuTru = "thuong_tru" | "tam_tru";
 
+export type DocumentType = {
+    _id: string;
+    name: string;
+    code: string;
+    description?: string;
+    hasIssueDate: boolean;
+    hasExpiryDate: boolean;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type BusinessTypeDocumentRule = {
+    _id?: string;
+    documentTypeId: string | DocumentType;
+    isRequired: boolean;
+    warningBeforeDays?: number;
+    // Rong = fallback ve permission "businesses.verify" khi duyet giay to nay.
+    reviewerRoles: string[];
+};
+
 export type BusinessType = {
     _id: string;
     name: string;
     description?: string;
     active: boolean;
     sortOrder: number;
+    requiredDocuments: BusinessTypeDocumentRule[];
     createdAt: string;
     updatedAt: string;
 };
 
 export type HouseStatus = "unverified" | "pending" | "verified" | "denied" | "locked";
+
+// Trang thai xac thuc ho kinh doanh - TINH tu ket qua duyet tung giay to bat
+// buoc (xem RequiredDocumentsResult), khong con la mot hanh dong duyet/tu choi
+// thu cong nhu HouseStatus. Xem businessDocumentService.recomputeBusinessStatus
+// o backend.
+export type BusinessStatus =
+    | "unverified"
+    | "pending_approval"
+    | "need_supplement"
+    | "verified";
+
+export type BusinessDocumentStatus = "pending" | "approved" | "rejected";
 
 export type House = {
     _id: string;
@@ -139,9 +173,50 @@ export type Business = {
     ownerName?: string;
     phone?: string;
     active: boolean;
+    status: BusinessStatus;
     note?: string;
     createdAt: string;
     updatedAt: string;
+};
+
+type PopulatedFileAssetSummary = {
+    _id: string;
+    name: string;
+    url: string;
+    mimeType?: string;
+    sizeBytes?: number;
+};
+type PopulatedActor = { _id: string; displayName: string };
+
+export type BusinessDocument = {
+    _id: string;
+    businessId: string;
+    documentTypeId: string | DocumentType;
+    fileAssetId: string | PopulatedFileAssetSummary;
+    docNumber?: string;
+    issueDate?: string;
+    expiryDate?: string;
+    status: BusinessDocumentStatus;
+    rejectionReason?: string;
+    uploadedBy: string | PopulatedActor;
+    reviewedBy?: string | PopulatedActor;
+    reviewedAt?: string;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type RequiredDocumentItem = {
+    rule: BusinessTypeDocumentRule;
+    activeDocument: BusinessDocument | null;
+    history: BusinessDocument[];
+    missing: boolean;
+    expired: boolean;
+};
+
+export type RequiredDocumentsResult = {
+    business: Business;
+    items: RequiredDocumentItem[];
 };
 
 export type Citizen = {

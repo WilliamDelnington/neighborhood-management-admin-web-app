@@ -13,7 +13,9 @@ import {
     Settings,
     KeyRound,
     Briefcase,
+    Store,
     FileText,
+    FileCheck2,
     History,
     LifeBuoy,
 } from "lucide-react";
@@ -42,11 +44,25 @@ export const MODULES: ModuleItem[] = [
         permission: "houses.read",
     },
     {
+        key: "businesses",
+        label: "Hộ kinh doanh",
+        path: "/businesses",
+        icon: Store,
+        permission: "businesses.read",
+    },
+    {
         key: "business_types",
         label: "Loại hình kinh doanh",
         path: "/business-types",
         icon: Briefcase,
         permission: "business_types.read",
+    },
+    {
+        key: "document_types",
+        label: "Danh mục giấy tờ",
+        path: "/document-types",
+        icon: FileCheck2,
+        permission: "document_types.read",
     },
     {
         key: "complaints",

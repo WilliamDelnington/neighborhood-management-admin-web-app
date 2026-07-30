@@ -1,5 +1,14 @@
 export const BASE_URL = import.meta.env.VITE_BASE_URL;
 
+// File dinh kem (FileAsset) duoc backend luu duong dan tuong doi (vd
+// "/uploads/houses/<id>/<file>.pdf"). Trinh duyet phai mo o goc BASE_URL (noi
+// Next.js serve thu muc public/uploads) chu khong phai goc cua chinh SPA nay,
+// neu khong se roi vao route catch-all cua react-router va bi redirect ve "/".
+export function resolveAssetUrl(url: string): string {
+    if (/^https?:\/\//i.test(url)) return url;
+    return new URL(url, BASE_URL || window.location.origin).toString();
+}
+
 export const API = {
     AUTH_LOGIN: "/api/auth/login",
     AUTH_ME: "/api/auth/me",
@@ -18,6 +27,7 @@ export const API = {
     CITIZENS: "/api/citizens",
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",
+    DOCUMENT_TYPES: "/api/document-types",
 
     COMPLAINTS: "/api/complaints",
     SUPPORT_TICKETS: "/api/support-tickets",
