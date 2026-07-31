@@ -141,6 +141,8 @@ export type House = {
     _id: string;
     code: string;
     cluster: string;
+    streetId?: string | Street | null;
+    neighborhoodId?: string | Neighborhood | null;
     address: string;
     status: HouseStatus;
     ownerId?: string | { _id: string; displayName: string } | null;
@@ -170,6 +172,15 @@ export type Neighborhood = {
     updatedAt: string;
 };
 
+export type Street = {
+    _id: string;
+    name: string;
+    code: string;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type NeighborhoodLeaderAssignment = {
     _id: string;
     neighborhoodId: string;
@@ -185,8 +196,10 @@ export type Household = {
     _id: string;
     code: string;
     cluster: string;
+    streetId?: string | Street | null;
     address: string;
     headOfHousehold: string;
+    headOfHouseholdUserId?: string | { _id: string; displayName: string } | null;
     phone?: string;
     memberCount: number;
     ownershipType: LoaiSoHuu;
@@ -431,6 +444,9 @@ export type Survey = {
     eligibleAll?: boolean;
     eligibleRoles?: Role[];
     eligibleClusters?: string[];
+    eligibleStreetIds?: (string | { _id: string; name: string })[];
+    eligibleNeighborhoodIds?: (string | { _id: string; name: string })[];
+    eligibleBusinessTypeIds?: (string | { _id: string; name: string })[];
     openDate?: string;
     closeDate?: string;
     createdAt: string;

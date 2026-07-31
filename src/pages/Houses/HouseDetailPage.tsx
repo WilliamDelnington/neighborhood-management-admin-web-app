@@ -66,8 +66,26 @@ import BusinessForm, {
     toBusinessInput,
 } from "./BusinessForm";
 
+const streetName = (streetId: House["streetId"]): string | null => {
+    if (!streetId) return null;
+    return typeof streetId === "string" ? null : streetId.name;
+};
+
+const neighborhoodName = (
+    neighborhoodId: House["neighborhoodId"],
+): string | null => {
+    if (!neighborhoodId) return null;
+    return typeof neighborhoodId === "string" ? null : neighborhoodId.name;
+};
+
 const toFormValues = (h: House): HouseFormValues => ({
     cluster: h.cluster,
+    streetId:
+        h.streetId && typeof h.streetId !== "string" ? h.streetId._id : "",
+    neighborhoodId:
+        h.neighborhoodId && typeof h.neighborhoodId !== "string"
+            ? h.neighborhoodId._id
+            : "",
     address: h.address,
     note: h.note || "",
     residenceDeclarationNumber: h.residenceDeclarationNumber || "",
@@ -188,7 +206,7 @@ const HouseDetailContent: React.FC = () => {
     const handleSave = async () => {
         if (!houseId || !form) return;
         if (!isHouseFormValid(form)) {
-            toast.error("Vui lòng nhập đầy đủ cụm dân cư, địa chỉ");
+            toast.error("Vui lòng chọn đường/phố hoặc nhập cụm dân cư, và địa chỉ");
             return;
         }
         try {
@@ -353,6 +371,18 @@ const HouseDetailContent: React.FC = () => {
                         ) : (
                             <>
                                 <InfoRow label="Cụm dân cư" value={house.cluster} />
+                                {streetName(house.streetId) && (
+                                    <InfoRow
+                                        label="Đường/phố"
+                                        value={streetName(house.streetId)!}
+                                    />
+                                )}
+                                {neighborhoodName(house.neighborhoodId) && (
+                                    <InfoRow
+                                        label="Tổ dân phố"
+                                        value={neighborhoodName(house.neighborhoodId)!}
+                                    />
+                                )}
                                 <InfoRow label="Địa chỉ" value={house.address} />
                                 <InfoRow
                                     label="Ghi chú"

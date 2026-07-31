@@ -3,7 +3,9 @@ import { AuditLogRecord, FileAsset, House, HouseStatus, PaginatedData } from "@d
 import { request } from "./request";
 
 export interface HouseInput {
-    cluster: string;
+    cluster?: string;
+    streetId?: string;
+    neighborhoodId?: string | null;
     address: string;
     note?: string;
     residenceDeclarationNumber?: string;
@@ -14,6 +16,8 @@ export const fetchHouses = (params?: {
     limit?: number;
     search?: string;
     cluster?: string;
+    streetId?: string;
+    neighborhoodId?: string;
 }): Promise<PaginatedData<House>> =>
     request<PaginatedData<House>>("GET", API.HOUSES, params);
 

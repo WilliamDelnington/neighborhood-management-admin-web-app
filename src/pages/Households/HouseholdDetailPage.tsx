@@ -54,6 +54,14 @@ const toFormValues = (h: Household): HouseholdFormValues => ({
     cluster: h.cluster,
     address: h.address,
     headOfHousehold: h.headOfHousehold,
+    headOfHouseholdUserId:
+        typeof h.headOfHouseholdUserId === "object" && h.headOfHouseholdUserId
+            ? h.headOfHouseholdUserId._id
+            : h.headOfHouseholdUserId || "",
+    headOfHouseholdUserLabel:
+        typeof h.headOfHouseholdUserId === "object" && h.headOfHouseholdUserId
+            ? h.headOfHouseholdUserId.displayName
+            : "",
     phone: h.phone || "",
     memberCount: h.memberCount ? String(h.memberCount) : "",
     ownershipType: h.ownershipType,

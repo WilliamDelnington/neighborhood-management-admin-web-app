@@ -45,6 +45,13 @@ export const MODULES: ModuleItem[] = [
         permission: "neighborhoods.read",
     },
     {
+        key: "streets",
+        label: "Đường / phố",
+        path: "/streets",
+        icon: MapPinned,
+        permission: "streets.read",
+    },
+    {
         key: "houses",
         label: "Nhà số",
         path: "/houses",

@@ -11,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
+import HeadOfHouseholdUserPicker from "@components/admin/HeadOfHouseholdUserPicker";
 import { LOAI_SO_HUU_LABEL } from "@constants/domain";
 import { LoaiSoHuu } from "@dts";
 import { HouseholdInput } from "@service/householdApi";
@@ -20,6 +21,8 @@ export interface HouseholdFormValues {
     cluster: string;
     address: string;
     headOfHousehold: string;
+    headOfHouseholdUserId: string;
+    headOfHouseholdUserLabel: string;
     phone: string;
     memberCount: string;
     ownershipType: LoaiSoHuu;
@@ -31,6 +34,8 @@ export const EMPTY_HOUSEHOLD_FORM: HouseholdFormValues = {
     cluster: "",
     address: "",
     headOfHousehold: "",
+    headOfHouseholdUserId: "",
+    headOfHouseholdUserLabel: "",
     phone: "",
     memberCount: "",
     ownershipType: "chinh_chu",
@@ -46,6 +51,7 @@ export function toHouseholdInput(
         cluster: values.cluster.trim(),
         address: values.address.trim(),
         headOfHousehold: values.headOfHousehold.trim(),
+        headOfHouseholdUserId: values.headOfHouseholdUserId || null,
         phone: values.phone.trim() || undefined,
         memberCount: values.memberCount
             ? Number(values.memberCount)
@@ -154,6 +160,23 @@ const HouseholdForm: React.FC<HouseholdFormProps> = ({
                     placeholder="Họ tên chủ hộ"
                     value={values.headOfHousehold}
                     onChange={e => set("headOfHousehold", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <HeadOfHouseholdUserPicker
+                    value={values.headOfHouseholdUserId}
+                    valueLabel={values.headOfHouseholdUserLabel}
+                    onChange={(userId, user) =>
+                        onChange({
+                            ...values,
+                            headOfHouseholdUserId: userId || "",
+                            headOfHouseholdUserLabel: user?.displayName || "",
+                            headOfHousehold:
+                                userId && user
+                                    ? user.displayName
+                                    : values.headOfHousehold,
+                        })
+                    }
                 />
             </div>
             <div className="space-y-1.5">

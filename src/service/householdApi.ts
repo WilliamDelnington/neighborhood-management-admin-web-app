@@ -6,6 +6,8 @@ export interface HouseholdInput {
     cluster: string;
     address: string;
     headOfHousehold: string;
+    // Lien ket toi tai khoan house_owner thuc su - null = khong lien ket.
+    headOfHouseholdUserId?: string | null;
     phone?: string;
     memberCount?: number;
     ownershipType?: "chinh_chu" | "cho_thue";

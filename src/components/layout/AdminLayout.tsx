@@ -54,7 +54,7 @@ const AdminLayout: React.FC = () => {
             >
                 <div className="flex h-14 items-center justify-between border-b border-divider_01 px-4">
                     <span className="text-base font-semibold text-main">
-                        Tổ dân phố Hòa Bình
+                        Quản lý Tổ dân phố
                     </span>
                     <button
                         type="button"
