@@ -5,6 +5,8 @@ import { request } from "./request";
 export const fetchDocumentTypes = (params?: {
     search?: string;
     active?: boolean;
+    hasIssueDate?: boolean;
+    hasExpiryDate?: boolean;
     page?: number;
     limit?: number;
 }): Promise<PaginatedData<DocumentType>> =>

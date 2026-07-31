@@ -22,6 +22,7 @@ export interface BusinessInput {
 
 export const fetchBusinesses = (params?: {
     search?: string;
+    status?: BusinessStatus;
     page?: number;
     limit?: number;
 }): Promise<PaginatedData<Business>> =>

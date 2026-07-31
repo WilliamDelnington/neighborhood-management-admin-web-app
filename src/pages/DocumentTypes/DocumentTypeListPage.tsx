@@ -9,6 +9,13 @@ import { Textarea } from "@components/ui/textarea";
 import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -47,6 +54,9 @@ const DocumentTypeListPage: React.FC = () => (
     </AdminGuard>
 );
 
+const TRI_ALL = "all";
+type TriState = "" | "true" | "false";
+
 type FormState = {
     name: string;
     code: string;
@@ -70,6 +80,10 @@ const DocumentTypeListContent: React.FC = () => {
     const canUpdate = usePermission("document_types.update");
     const canDelete = usePermission("document_types.delete");
 
+    const [search, setSearch] = useState("");
+    const [active, setActive] = useState<TriState>("");
+    const [hasIssueDate, setHasIssueDate] = useState<TriState>("");
+    const [hasExpiryDate, setHasExpiryDate] = useState<TriState>("");
     const [items, setItems] = useState<DocumentType[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -87,7 +101,15 @@ const DocumentTypeListContent: React.FC = () => {
     const load = (targetPage = 1) => {
         setLoading(true);
         setError(false);
-        fetchDocumentTypes({ page: targetPage })
+        fetchDocumentTypes({
+            page: targetPage,
+            search: search || undefined,
+            active: active === "" ? undefined : active === "true",
+            hasIssueDate:
+                hasIssueDate === "" ? undefined : hasIssueDate === "true",
+            hasExpiryDate:
+                hasExpiryDate === "" ? undefined : hasExpiryDate === "true",
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -98,8 +120,10 @@ const DocumentTypeListContent: React.FC = () => {
     };
 
     useEffect(() => {
-        load(1);
-    }, []);
+        const timer = setTimeout(() => load(1), 300);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search, active, hasIssueDate, hasExpiryDate]);
 
     const openCreateSheet = () => {
         setEditing(null);
@@ -175,6 +199,61 @@ const DocumentTypeListContent: React.FC = () => {
                 {canCreate && (
                     <Button onClick={openCreateSheet}>Thêm loại giấy tờ</Button>
                 )}
+            </div>
+
+            <Input
+                className="mb-3 max-w-sm"
+                placeholder="Tìm theo tên loại giấy tờ..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+            />
+
+            <div className="mb-4 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
+                <Select
+                    value={active || TRI_ALL}
+                    onValueChange={v =>
+                        setActive(v === TRI_ALL ? "" : (v as TriState))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={TRI_ALL}>Tất cả trạng thái</SelectItem>
+                        <SelectItem value="true">Hoạt động</SelectItem>
+                        <SelectItem value="false">Vô hiệu</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={hasIssueDate || TRI_ALL}
+                    onValueChange={v =>
+                        setHasIssueDate(v === TRI_ALL ? "" : (v as TriState))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Ngày cấp" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={TRI_ALL}>Tất cả (ngày cấp)</SelectItem>
+                        <SelectItem value="true">Có ngày cấp</SelectItem>
+                        <SelectItem value="false">Không có ngày cấp</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={hasExpiryDate || TRI_ALL}
+                    onValueChange={v =>
+                        setHasExpiryDate(v === TRI_ALL ? "" : (v as TriState))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Hạn dùng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={TRI_ALL}>Tất cả (hạn dùng)</SelectItem>
+                        <SelectItem value="true">Có hạn dùng</SelectItem>
+                        <SelectItem value="false">Không có hạn dùng</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">

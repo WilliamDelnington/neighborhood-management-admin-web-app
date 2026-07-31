@@ -25,6 +25,7 @@ export const fetchSecurityRecords = (params?: {
     page?: number;
     limit?: number;
     level?: MucDoAnNinh;
+    monitoringStatus?: TinhTrangTheoDoiAnNinh;
     houseId?: string;
 }): Promise<PaginatedData<SecurityRecord>> =>
     request<PaginatedData<SecurityRecord>>("GET", API.SECURITY, params);

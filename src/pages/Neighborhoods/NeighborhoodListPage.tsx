@@ -7,6 +7,13 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -33,6 +40,8 @@ import NeighborhoodForm, {
     toNeighborhoodInput,
 } from "./NeighborhoodForm";
 
+const ACTIVE_ALL = "all";
+
 const NeighborhoodListPage: React.FC = () => (
     <AdminGuard permissions={["neighborhoods.read"]}>
         <NeighborhoodListContent />
@@ -44,6 +53,7 @@ const NeighborhoodListContent: React.FC = () => {
     const canCreate = usePermission("neighborhoods.manage");
 
     const [search, setSearch] = useState("");
+    const [active, setActive] = useState<"" | "true" | "false">("");
     const [items, setItems] = useState<Neighborhood[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -60,7 +70,12 @@ const NeighborhoodListContent: React.FC = () => {
     const load = (targetPage = 1, keyword = search) => {
         setLoading(true);
         setError(false);
-        fetchNeighborhoods({ page: targetPage, search: keyword, limit: 30 })
+        fetchNeighborhoods({
+            page: targetPage,
+            search: keyword,
+            limit: 30,
+            active: active === "" ? undefined : active === "true",
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -75,7 +90,7 @@ const NeighborhoodListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
+    }, [search, active]);
 
     const openCreate = () => {
         setForm(EMPTY_NEIGHBORHOOD_FORM);
@@ -112,12 +127,30 @@ const NeighborhoodListContent: React.FC = () => {
                 )}
             </div>
 
-            <Input
-                className="mb-3 max-w-sm"
-                placeholder="Tìm theo tên hoặc mã tổ dân phố..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-3 grid max-w-xl grid-cols-2 gap-3">
+                <Input
+                    placeholder="Tìm theo tên hoặc mã tổ dân phố..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                <Select
+                    value={active || ACTIVE_ALL}
+                    onValueChange={v =>
+                        setActive(v === ACTIVE_ALL ? "" : (v as "true" | "false"))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ACTIVE_ALL}>
+                            Tất cả trạng thái
+                        </SelectItem>
+                        <SelectItem value="true">Đang hoạt động</SelectItem>
+                        <SelectItem value="false">Ngừng hoạt động</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
 
             {total > 0 && (
                 <div className="mb-2 text-xs text-text_2">

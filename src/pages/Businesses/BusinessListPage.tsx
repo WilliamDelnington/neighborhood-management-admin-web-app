@@ -4,6 +4,13 @@ import AdminGuard from "@components/auth/AdminGuard";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -14,8 +21,10 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { BUSINESS_STATUS_LABEL, BUSINESS_STATUS_TONE } from "@constants/domain";
-import { Business } from "@dts";
+import { Business, BusinessStatus } from "@dts";
 import { fetchBusinesses } from "@service/businessApi";
+
+const ALL_STATUS = "all";
 
 const BusinessListPage: React.FC = () => (
     <AdminGuard permissions={["businesses.read"]}>
@@ -33,6 +42,7 @@ const BusinessListContent: React.FC = () => {
     const navigate = useNavigate();
 
     const [search, setSearch] = useState("");
+    const [status, setStatus] = useState<BusinessStatus | "">("");
     const [items, setItems] = useState<Business[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -42,7 +52,11 @@ const BusinessListContent: React.FC = () => {
     const load = (targetPage = 1, keyword = search) => {
         setLoading(true);
         setError(false);
-        fetchBusinesses({ page: targetPage, search: keyword })
+        fetchBusinesses({
+            page: targetPage,
+            search: keyword,
+            status: status || undefined,
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -56,7 +70,7 @@ const BusinessListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
+    }, [search, status]);
 
     return (
         <div>
@@ -64,12 +78,38 @@ const BusinessListContent: React.FC = () => {
                 <h1 className="text-lg font-semibold">Hộ kinh doanh</h1>
             </div>
 
-            <Input
-                className="mb-4 max-w-sm"
-                placeholder="Tìm theo tên hộ kinh doanh..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
+                <Input
+                    placeholder="Tìm theo tên hộ kinh doanh..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                <Select
+                    value={status || ALL_STATUS}
+                    onValueChange={v =>
+                        setStatus(v === ALL_STATUS ? "" : (v as BusinessStatus))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_STATUS}>
+                            Tất cả trạng thái
+                        </SelectItem>
+                        {(
+                            Object.entries(BUSINESS_STATUS_LABEL) as [
+                                BusinessStatus,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}

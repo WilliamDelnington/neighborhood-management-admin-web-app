@@ -58,6 +58,8 @@ const BusinessTypeListPage: React.FC = () => (
     </AdminGuard>
 );
 
+const ACTIVE_ALL = "all";
+
 type FormState = {
     name: string;
     description: string;
@@ -77,6 +79,8 @@ const BusinessTypeListContent: React.FC = () => {
     const canUpdate = usePermission("business_types.update");
     const canDelete = usePermission("business_types.delete");
 
+    const [search, setSearch] = useState("");
+    const [active, setActive] = useState<"" | "true" | "false">("");
     const [items, setItems] = useState<BusinessType[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -108,7 +112,11 @@ const BusinessTypeListContent: React.FC = () => {
     const load = (targetPage = 1) => {
         setLoading(true);
         setError(false);
-        fetchBusinessTypes({ page: targetPage })
+        fetchBusinessTypes({
+            page: targetPage,
+            search: search || undefined,
+            active: active === "" ? undefined : active === "true",
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -119,8 +127,10 @@ const BusinessTypeListContent: React.FC = () => {
     };
 
     useEffect(() => {
-        load(1);
-    }, []);
+        const timer = setTimeout(() => load(1), 300);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search, active]);
 
     const openCreateSheet = () => {
         setEditing(null);
@@ -267,6 +277,31 @@ const BusinessTypeListContent: React.FC = () => {
                 {canCreate && (
                     <Button onClick={openCreateSheet}>Thêm loại hình</Button>
                 )}
+            </div>
+
+            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
+                <Input
+                    placeholder="Tìm theo tên loại hình..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                <Select
+                    value={active || ACTIVE_ALL}
+                    onValueChange={v =>
+                        setActive(v === ACTIVE_ALL ? "" : (v as "true" | "false"))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ACTIVE_ALL}>
+                            Tất cả trạng thái
+                        </SelectItem>
+                        <SelectItem value="true">Hoạt động</SelectItem>
+                        <SelectItem value="false">Vô hiệu</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
