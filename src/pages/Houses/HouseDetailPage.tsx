@@ -26,15 +26,20 @@ import {
 } from "@components/admin/DataStates";
 import HouseholdPicker from "@components/admin/HouseholdPicker";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
+import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
+    BUSINESS_STATUS_LABEL,
+    BUSINESS_STATUS_TONE,
     HOUSE_AUDIT_ACTION_LABEL,
     HOUSE_STATUS_LABEL,
     HOUSE_STATUS_TONE,
 } from "@constants/domain";
-import { AppError, Business, House, HouseStatus, Household } from "@dts";
+import { AppError, Business, FileAsset, House, HouseStatus, Household } from "@dts";
 import {
     deleteHouse,
+    deleteHouseAttachment,
+    fetchHouseAttachments,
     fetchHouseAuditLogs,
     fetchHouseBusinesses,
     fetchHouseById,
@@ -43,11 +48,7 @@ import {
     updateHouseStatus,
 } from "@service/houseApi";
 import { createHousehold, updateHousehold } from "@service/householdApi";
-import {
-    createBusiness,
-    deleteBusiness,
-    updateBusiness,
-} from "@service/businessApi";
+import { createBusiness } from "@service/businessApi";
 import HouseholdForm, {
     EMPTY_HOUSEHOLD_FORM,
     HouseholdFormValues,
@@ -60,26 +61,34 @@ import HouseForm, {
     toHouseInput,
 } from "./HouseForm";
 import BusinessForm, {
-    BusinessFormValues,
     EMPTY_BUSINESS_FORM,
     isBusinessFormValid,
     toBusinessInput,
 } from "./BusinessForm";
 
+const streetName = (streetId: House["streetId"]): string | null => {
+    if (!streetId) return null;
+    return typeof streetId === "string" ? null : streetId.name;
+};
+
+const neighborhoodName = (
+    neighborhoodId: House["neighborhoodId"],
+): string | null => {
+    if (!neighborhoodId) return null;
+    return typeof neighborhoodId === "string" ? null : neighborhoodId.name;
+};
+
 const toFormValues = (h: House): HouseFormValues => ({
     cluster: h.cluster,
+    streetId:
+        h.streetId && typeof h.streetId !== "string" ? h.streetId._id : "",
+    neighborhoodId:
+        h.neighborhoodId && typeof h.neighborhoodId !== "string"
+            ? h.neighborhoodId._id
+            : "",
     address: h.address,
     note: h.note || "",
     residenceDeclarationNumber: h.residenceDeclarationNumber || "",
-});
-
-const businessToForm = (b: Business): BusinessFormValues => ({
-    name: b.name,
-    businessType: b.businessType?._id || "",
-    ownerName: b.ownerName || "",
-    phone: b.phone || "",
-    active: b.active,
-    note: b.note || "",
 });
 
 const HouseDetailPage: React.FC = () => (
@@ -98,8 +107,7 @@ const HouseDetailContent: React.FC = () => {
     const canLock = usePermission("houses.lock");
     const canCreateHousehold = usePermission("households.create");
     const canCreateBusiness = usePermission("businesses.create");
-    const canUpdateBusiness = usePermission("businesses.update");
-    const canDeleteBusiness = usePermission("businesses.delete");
+    const canManageAttachments = canUpdate || canVerify;
 
     const [house, setHouse] = useState<House | null>(null);
     const [loading, setLoading] = useState(true);
@@ -124,17 +132,14 @@ const HouseDetailContent: React.FC = () => {
     const [businesses, setBusinesses] = useState<Business[]>([]);
     const [businessesLoading, setBusinessesLoading] = useState(true);
     const [businessSheetVisible, setBusinessSheetVisible] = useState(false);
-    const [editingBusinessId, setEditingBusinessId] = useState<string | null>(
-        null,
-    );
-    const [businessForm, setBusinessForm] = useState<BusinessFormValues>(
-        EMPTY_BUSINESS_FORM,
-    );
+    const [businessForm, setBusinessForm] = useState(EMPTY_BUSINESS_FORM);
     const [submittingBusiness, setSubmittingBusiness] = useState(false);
-    const [confirmDeleteBusinessId, setConfirmDeleteBusinessId] = useState<
+
+    const [attachments, setAttachments] = useState<FileAsset[]>([]);
+    const [attachmentsLoading, setAttachmentsLoading] = useState(true);
+    const [deletingAttachmentId, setDeletingAttachmentId] = useState<
         string | null
     >(null);
-    const [deletingBusiness, setDeletingBusiness] = useState(false);
 
     const load = () => {
         if (!houseId) return;
@@ -167,17 +172,41 @@ const HouseDetailContent: React.FC = () => {
             .finally(() => setBusinessesLoading(false));
     };
 
+    const loadAttachments = () => {
+        if (!houseId) return;
+        setAttachmentsLoading(true);
+        fetchHouseAttachments(houseId)
+            .then(setAttachments)
+            .catch(() => setAttachments([]))
+            .finally(() => setAttachmentsLoading(false));
+    };
+
     useEffect(() => {
         load();
         loadHouseholds();
         loadBusinesses();
+        loadAttachments();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [houseId]);
+
+    const handleDeleteAttachment = async (fileId: string) => {
+        if (!houseId) return;
+        try {
+            setDeletingAttachmentId(fileId);
+            await deleteHouseAttachment(houseId, fileId);
+            setAttachments(prev => prev.filter(a => a._id !== fileId));
+            toast.success("Đã xóa tài liệu đính kèm");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingAttachmentId(null);
+        }
+    };
 
     const handleSave = async () => {
         if (!houseId || !form) return;
         if (!isHouseFormValid(form)) {
-            toast.error("Vui lòng nhập đầy đủ cụm dân cư, địa chỉ");
+            toast.error("Vui lòng chọn đường/phố hoặc nhập cụm dân cư, và địa chỉ");
             return;
         }
         try {
@@ -271,15 +300,7 @@ const HouseDetailContent: React.FC = () => {
     };
 
     const openCreateBusiness = () => {
-        setEditingBusinessId(null);
         setBusinessForm(EMPTY_BUSINESS_FORM);
-        setBusinessSheetVisible(true);
-    };
-
-    const openEditBusiness = (b: Business) => {
-        if (!canUpdateBusiness) return;
-        setEditingBusinessId(b._id);
-        setBusinessForm(businessToForm(b));
         setBusinessSheetVisible(true);
     };
 
@@ -290,38 +311,14 @@ const HouseDetailContent: React.FC = () => {
         }
         try {
             setSubmittingBusiness(true);
-            if (editingBusinessId) {
-                await updateBusiness(
-                    editingBusinessId,
-                    toBusinessInput(businessForm, houseId),
-                );
-                toast.success("Đã cập nhật hộ kinh doanh");
-            } else {
-                await createBusiness(toBusinessInput(businessForm, houseId));
-                toast.success("Đã thêm hộ kinh doanh mới");
-            }
+            await createBusiness(toBusinessInput(businessForm, houseId));
+            toast.success("Đã thêm hộ kinh doanh mới");
             setBusinessSheetVisible(false);
             loadBusinesses();
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
             setSubmittingBusiness(false);
-        }
-    };
-
-    const handleDeleteBusiness = async () => {
-        if (!confirmDeleteBusinessId) return;
-        try {
-            setDeletingBusiness(true);
-            await deleteBusiness(confirmDeleteBusinessId);
-            toast.success("Đã xóa hộ kinh doanh");
-            setConfirmDeleteBusinessId(null);
-            setBusinessSheetVisible(false);
-            loadBusinesses();
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setDeletingBusiness(false);
         }
     };
 
@@ -374,6 +371,18 @@ const HouseDetailContent: React.FC = () => {
                         ) : (
                             <>
                                 <InfoRow label="Cụm dân cư" value={house.cluster} />
+                                {streetName(house.streetId) && (
+                                    <InfoRow
+                                        label="Đường/phố"
+                                        value={streetName(house.streetId)!}
+                                    />
+                                )}
+                                {neighborhoodName(house.neighborhoodId) && (
+                                    <InfoRow
+                                        label="Tổ dân phố"
+                                        value={neighborhoodName(house.neighborhoodId)!}
+                                    />
+                                )}
                                 <InfoRow label="Địa chỉ" value={house.address} />
                                 <InfoRow
                                     label="Ghi chú"
@@ -543,20 +552,27 @@ const HouseDetailContent: React.FC = () => {
                                 <button
                                     key={b._id}
                                     type="button"
-                                    className={
-                                        canUpdateBusiness
-                                            ? "block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
-                                            : "block w-full border-b border-divider_01 py-2 text-left last:border-0"
+                                    className="block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
+                                    onClick={() =>
+                                        navigate(
+                                            `/houses/${houseId}/businesses/${b._id}`,
+                                        )
                                     }
-                                    onClick={() => openEditBusiness(b)}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="text-sm font-medium">
                                             {b.name}
                                         </div>
-                                        {!b.active && (
-                                            <Badge tone="gray">Ngừng hoạt động</Badge>
-                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <Badge tone={BUSINESS_STATUS_TONE[b.status]}>
+                                                {BUSINESS_STATUS_LABEL[b.status]}
+                                            </Badge>
+                                            {!b.active && (
+                                                <Badge tone="gray">
+                                                    Ngừng hoạt động
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="text-xs text-text_2">
                                         {b.businessType?.name || "Chưa phân loại"}
@@ -564,6 +580,14 @@ const HouseDetailContent: React.FC = () => {
                                 </button>
                             ))}
                     </div>
+
+                    <AttachmentsPanel
+                        attachments={attachments}
+                        loading={attachmentsLoading}
+                        canManage={canManageAttachments}
+                        deletingId={deletingAttachmentId}
+                        onDelete={handleDeleteAttachment}
+                    />
 
                     {houseId && (
                         <RecordHistorySection
@@ -653,11 +677,7 @@ const HouseDetailContent: React.FC = () => {
             >
                 <SheetContent>
                     <SheetHeader>
-                        <SheetTitle>
-                            {editingBusinessId
-                                ? "Sửa hộ kinh doanh"
-                                : "Thêm hộ kinh doanh"}
-                        </SheetTitle>
+                        <SheetTitle>Thêm hộ kinh doanh</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
                         <BusinessForm
@@ -666,59 +686,16 @@ const HouseDetailContent: React.FC = () => {
                         />
                     </div>
                     <SheetFooter>
-                        {canDeleteBusiness && editingBusinessId && (
-                            <Button
-                                variant="destructive"
-                                className="w-full"
-                                onClick={() =>
-                                    setConfirmDeleteBusinessId(
-                                        editingBusinessId,
-                                    )
-                                }
-                            >
-                                Xóa hộ kinh doanh
-                            </Button>
-                        )}
                         <Button
                             className="w-full"
                             loading={submittingBusiness}
                             onClick={handleSubmitBusiness}
                         >
-                            {editingBusinessId ? "Lưu thay đổi" : "Thêm hộ kinh doanh"}
+                            Thêm hộ kinh doanh
                         </Button>
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
-
-            <Dialog
-                open={!!confirmDeleteBusinessId}
-                onOpenChange={open => !open && setConfirmDeleteBusinessId(null)}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xóa hộ kinh doanh?</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-sm text-text_2">
-                        Bạn có chắc muốn xóa hộ kinh doanh này? Hành động này
-                        không thể hoàn tác.
-                    </p>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setConfirmDeleteBusinessId(null)}
-                        >
-                            Hủy
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            loading={deletingBusiness}
-                            onClick={handleDeleteBusiness}
-                        >
-                            Xóa
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };

@@ -28,7 +28,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
-import { AppError, Role, RoleRecord, User, UserStatus } from "@dts";
+import { AppError, Neighborhood, Role, RoleRecord, User, UserStatus } from "@dts";
 import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -39,6 +39,12 @@ import {
     updateUser,
 } from "@service/userApi";
 import { fetchRoles } from "@service/roleApi";
+import {
+    assignNeighborhoodLeader,
+    fetchNeighborhoods,
+} from "@service/neighborhoodApi";
+
+const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
 
 const UserListPage: React.FC = () => (
     <AdminGuard permissions={["users.read"]}>
@@ -67,7 +73,6 @@ const UserListContent: React.FC = () => {
     const [displayName, setDisplayName] = useState("");
     const [phone, setPhone] = useState("");
     const [status, setStatus] = useState<UserStatus>("active");
-    const [clustersText, setClustersText] = useState("");
     const [saving, setSaving] = useState(false);
     const [roleToAssign, setRoleToAssign] = useState<Role>("resident");
     const [assigningRole, setAssigningRole] = useState(false);
@@ -76,6 +81,18 @@ const UserListContent: React.FC = () => {
         null,
     );
     const [revokingSession, setRevokingSession] = useState(false);
+
+    const [managedNeighborhoods, setManagedNeighborhoods] = useState<
+        Neighborhood[]
+    >([]);
+    const [availableNeighborhoods, setAvailableNeighborhoods] = useState<
+        Neighborhood[]
+    >([]);
+    const [neighborhoodToAssign, setNeighborhoodToAssign] = useState("");
+    const [assigningNeighborhood, setAssigningNeighborhood] = useState(false);
+    const [unassigningNeighborhoodId, setUnassigningNeighborhoodId] = useState<
+        string | null
+    >(null);
 
     const load = (targetPage = 1, keyword = search) => {
         setLoading(true);
@@ -108,13 +125,28 @@ const UserListContent: React.FC = () => {
             .catch(() => setRoles([]));
     }, []);
 
+    const loadNeighborhoodSections = (user: User) => {
+        if (!user.roles.includes(NEIGHBORHOOD_LEADER_ROLE)) {
+            setManagedNeighborhoods([]);
+            setAvailableNeighborhoods([]);
+            return;
+        }
+        fetchNeighborhoods({ leaderUserId: user.id })
+            .then(res => setManagedNeighborhoods(res.items))
+            .catch(() => setManagedNeighborhoods([]));
+        fetchNeighborhoods({ active: true, limit: 30 })
+            .then(res => setAvailableNeighborhoods(res.items))
+            .catch(() => setAvailableNeighborhoods([]));
+    };
+
     const openManageSheet = (user: User) => {
         setSelectedUser(user);
         setDisplayName(user.displayName || "");
         setPhone(user.phone || "");
         setStatus(user.status);
-        setClustersText((user.assignedClusters || []).join(", "));
         setRoleToAssign("resident");
+        setNeighborhoodToAssign("");
+        loadNeighborhoodSections(user);
         setSheetOpen(true);
     };
 
@@ -131,10 +163,6 @@ const UserListContent: React.FC = () => {
                 displayName: displayName.trim(),
                 phone: phone.trim() || undefined,
                 status,
-                assignedClusters: clustersText
-                    .split(",")
-                    .map(c => c.trim())
-                    .filter(Boolean),
             });
             refreshSelected(updated);
             toast.success("Đã cập nhật người dùng");
@@ -151,12 +179,16 @@ const UserListContent: React.FC = () => {
             setAssigningRole(true);
             await assignUserRole(selectedUser.id, roleToAssign);
             toast.success(`Đã gán vai trò ${roleLabel(roleToAssign)}`);
-            refreshSelected({
+            const updatedUser = {
                 ...selectedUser,
                 roles: selectedUser.roles.includes(roleToAssign)
                     ? selectedUser.roles
                     : [...selectedUser.roles, roleToAssign],
-            });
+            };
+            refreshSelected(updatedUser);
+            if (roleToAssign === NEIGHBORHOOD_LEADER_ROLE) {
+                loadNeighborhoodSections(updatedUser);
+            }
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -186,11 +218,43 @@ const UserListContent: React.FC = () => {
             setRevokingRole(r);
             const updated = await revokeUserRole(selectedUser.id, r);
             refreshSelected(updated);
+            if (r === NEIGHBORHOOD_LEADER_ROLE) {
+                loadNeighborhoodSections(updated);
+            }
             toast.success(`Đã thu hồi vai trò ${roleLabel(r)}`);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
             setRevokingRole(null);
+        }
+    };
+
+    const handleAssignNeighborhood = async () => {
+        if (!selectedUser || !neighborhoodToAssign) return;
+        try {
+            setAssigningNeighborhood(true);
+            await assignNeighborhoodLeader(neighborhoodToAssign, selectedUser.id);
+            toast.success("Đã gán tổ dân phố phụ trách");
+            setNeighborhoodToAssign("");
+            loadNeighborhoodSections(selectedUser);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setAssigningNeighborhood(false);
+        }
+    };
+
+    const handleUnassignNeighborhood = async (neighborhoodId: string) => {
+        if (!selectedUser) return;
+        try {
+            setUnassigningNeighborhoodId(neighborhoodId);
+            await assignNeighborhoodLeader(neighborhoodId, null);
+            toast.success("Đã bỏ gán tổ dân phố");
+            loadNeighborhoodSections(selectedUser);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUnassigningNeighborhoodId(null);
         }
     };
 
@@ -351,19 +415,6 @@ const UserListContent: React.FC = () => {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label>
-                                        Cụm dân cư phụ trách (cách nhau bởi dấu
-                                        phẩy)
-                                    </Label>
-                                    <Input
-                                        placeholder="Cụm 1, Cụm 2"
-                                        value={clustersText}
-                                        onChange={e =>
-                                            setClustersText(e.target.value)
-                                        }
-                                    />
-                                </div>
                                 <Button loading={saving} onClick={handleSaveProfile}>
                                     Lưu thông tin
                                 </Button>
@@ -453,6 +504,93 @@ const UserListContent: React.FC = () => {
                                     </Button>
                                 </div>
                             </div>
+
+                            {selectedUser.roles.includes(
+                                NEIGHBORHOOD_LEADER_ROLE,
+                            ) && (
+                                <div className="mt-5 border-t border-divider_01 pt-4">
+                                    <h3 className="mb-2 text-sm font-semibold">
+                                        Tổ dân phố phụ trách
+                                    </h3>
+                                    {managedNeighborhoods.length === 0 && (
+                                        <div className="mb-2 text-xs text-text_2">
+                                            Chưa phụ trách tổ dân phố nào
+                                        </div>
+                                    )}
+                                    {managedNeighborhoods.map(n => (
+                                        <div
+                                            key={n._id}
+                                            className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
+                                        >
+                                            <div className="text-sm">
+                                                {n.name}
+                                                <span className="text-xs text-text_2">
+                                                    {" "}
+                                                    ({n.code})
+                                                </span>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                loading={
+                                                    unassigningNeighborhoodId ===
+                                                    n._id
+                                                }
+                                                onClick={() =>
+                                                    handleUnassignNeighborhood(
+                                                        n._id,
+                                                    )
+                                                }
+                                            >
+                                                Bỏ gán
+                                            </Button>
+                                        </div>
+                                    ))}
+
+                                    <div className="mt-3 flex items-end gap-2">
+                                        <div className="flex-1 space-y-1.5">
+                                            <Label>Gán tổ dân phố mới</Label>
+                                            <Select
+                                                value={neighborhoodToAssign}
+                                                onValueChange={setNeighborhoodToAssign}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Chọn tổ dân phố" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {availableNeighborhoods
+                                                        .filter(
+                                                            n =>
+                                                                !managedNeighborhoods.some(
+                                                                    m =>
+                                                                        m._id ===
+                                                                        n._id,
+                                                                ),
+                                                        )
+                                                        .map(n => (
+                                                            <SelectItem
+                                                                key={n._id}
+                                                                value={n._id}
+                                                            >
+                                                                {n.name} ({n.code})
+                                                                {n.leaderUserId
+                                                                    ? ` · đang có tổ trưởng: ${n.leaderUserId.displayName}`
+                                                                    : ""}
+                                                            </SelectItem>
+                                                        ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Button
+                                            loading={assigningNeighborhood}
+                                            disabled={!neighborhoodToAssign}
+                                            onClick={handleAssignNeighborhood}
+                                        >
+                                            Gán
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="mt-5 border-t border-divider_01 pt-4">
                                 <Button

@@ -13,9 +13,12 @@ import {
     Settings,
     KeyRound,
     Briefcase,
+    Store,
     FileText,
+    FileCheck2,
     History,
     LifeBuoy,
+    MapPinned,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -35,6 +38,20 @@ export const MODULES: ModuleItem[] = [
         permission: "dashboard.read",
     },
     {
+        key: "neighborhoods",
+        label: "Tổ dân phố",
+        path: "/neighborhoods",
+        icon: MapPinned,
+        permission: "neighborhoods.read",
+    },
+    {
+        key: "streets",
+        label: "Đường / phố",
+        path: "/streets",
+        icon: MapPinned,
+        permission: "streets.read",
+    },
+    {
         key: "houses",
         label: "Nhà số",
         path: "/houses",
@@ -42,11 +59,25 @@ export const MODULES: ModuleItem[] = [
         permission: "houses.read",
     },
     {
+        key: "businesses",
+        label: "Hộ kinh doanh",
+        path: "/businesses",
+        icon: Store,
+        permission: "businesses.read",
+    },
+    {
         key: "business_types",
         label: "Loại hình kinh doanh",
         path: "/business-types",
         icon: Briefcase,
         permission: "business_types.read",
+    },
+    {
+        key: "document_types",
+        label: "Danh mục giấy tờ",
+        path: "/document-types",
+        icon: FileCheck2,
+        permission: "document_types.read",
     },
     {
         key: "complaints",

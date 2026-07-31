@@ -5,11 +5,24 @@ import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@store/authStore";
 import { fetchMe } from "@service/authApi";
 import AdminGuard from "@components/auth/AdminGuard";
+import RequireNeighborhoodAssignment from "@components/auth/RequireNeighborhoodAssignment";
 import AdminLayout from "@components/layout/AdminLayout";
 import LoginPage from "@pages/Login/LoginPage";
 
 const DashboardPage = React.lazy(
     () => import("@pages/Dashboard/DashboardPage"),
+);
+const NeighborhoodListPage = React.lazy(
+    () => import("@pages/Neighborhoods/NeighborhoodListPage"),
+);
+const NeighborhoodDetailPage = React.lazy(
+    () => import("@pages/Neighborhoods/NeighborhoodDetailPage"),
+);
+const StreetListPage = React.lazy(
+    () => import("@pages/Streets/StreetListPage"),
+);
+const StreetDetailPage = React.lazy(
+    () => import("@pages/Streets/StreetDetailPage"),
 );
 const HouseListPage = React.lazy(
     () => import("@pages/Houses/HouseListPage"),
@@ -22,6 +35,9 @@ const HouseHistoryPage = React.lazy(
 );
 const HouseholdDetailPage = React.lazy(
     () => import("@pages/Households/HouseholdDetailPage"),
+);
+const BusinessDetailPage = React.lazy(
+    () => import("@pages/Houses/BusinessDetailPage"),
 );
 const ComplaintListPage = React.lazy(
     () => import("@pages/Complaints/ComplaintListPage"),
@@ -82,6 +98,12 @@ const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
 const BusinessTypeListPage = React.lazy(
     () => import("@pages/BusinessTypes/BusinessTypeListPage"),
 );
+const BusinessListPage = React.lazy(
+    () => import("@pages/Businesses/BusinessListPage"),
+);
+const DocumentTypeListPage = React.lazy(
+    () => import("@pages/DocumentTypes/DocumentTypeListPage"),
+);
 const FileListPage = React.lazy(() => import("@pages/Files/FileListPage"));
 const AuditLogListPage = React.lazy(
     () => import("@pages/AuditLogs/AuditLogListPage"),
@@ -120,11 +142,26 @@ const App: React.FC = () => {
                     <Route
                         element={
                             <AdminGuard permissions={["dashboard.read"]}>
-                                <AdminLayout />
+                                <RequireNeighborhoodAssignment>
+                                    <AdminLayout />
+                                </RequireNeighborhoodAssignment>
                             </AdminGuard>
                         }
                     >
                         <Route path="/" element={<DashboardPage />} />
+                        <Route
+                            path="/neighborhoods"
+                            element={<NeighborhoodListPage />}
+                        />
+                        <Route
+                            path="/neighborhoods/:id"
+                            element={<NeighborhoodDetailPage />}
+                        />
+                        <Route path="/streets" element={<StreetListPage />} />
+                        <Route
+                            path="/streets/:id"
+                            element={<StreetDetailPage />}
+                        />
                         <Route path="/houses" element={<HouseListPage />} />
                         <Route
                             path="/houses/:houseId"
@@ -137,6 +174,10 @@ const App: React.FC = () => {
                         <Route
                             path="/houses/:houseId/households/:id"
                             element={<HouseholdDetailPage />}
+                        />
+                        <Route
+                            path="/houses/:houseId/businesses/:businessId"
+                            element={<BusinessDetailPage />}
                         />
                         <Route
                             path="/complaints"
@@ -216,8 +257,16 @@ const App: React.FC = () => {
                         <Route path="/users" element={<UserListPage />} />
                         <Route path="/roles" element={<RoleListPage />} />
                         <Route
+                            path="/businesses"
+                            element={<BusinessListPage />}
+                        />
+                        <Route
                             path="/business-types"
                             element={<BusinessTypeListPage />}
+                        />
+                        <Route
+                            path="/document-types"
+                            element={<DocumentTypeListPage />}
                         />
                         <Route
                             path="/audit-logs"

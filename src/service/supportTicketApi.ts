@@ -25,6 +25,17 @@ export const fetchSupportTickets = (params?: {
 export const fetchSupportTicketDetail = (id: string): Promise<SupportTicket> =>
     request<SupportTicket>("GET", `${API.SUPPORT_TICKETS}/${id}`);
 
+export interface CreateSupportTicketInput {
+    type: LoaiYeuCauHoTro;
+    title: string;
+    content: string;
+}
+
+export const createSupportTicket = (
+    input: CreateSupportTicketInput,
+): Promise<SupportTicket> =>
+    request<SupportTicket>("POST", API.SUPPORT_TICKETS, input);
+
 export interface UpdateSupportTicketStatusInput {
     status: TrangThaiYeuCauHoTro;
     response?: string;

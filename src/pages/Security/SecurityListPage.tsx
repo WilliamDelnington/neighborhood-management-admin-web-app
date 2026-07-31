@@ -38,7 +38,13 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import AssigneePicker from "@components/admin/AssigneePicker";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { usePermission } from "@store/authStore";
-import { AppError, AssignableStaff, MucDoAnNinh, SecurityRecord } from "@dts";
+import {
+    AppError,
+    AssignableStaff,
+    MucDoAnNinh,
+    SecurityRecord,
+    TinhTrangTheoDoiAnNinh,
+} from "@dts";
 import {
     LOAI_SO_HUU_LABEL,
     MUC_DO_AN_NINH_LABEL,
@@ -63,6 +69,7 @@ import SecurityForm, {
 } from "./SecurityForm";
 
 const LEVEL_ALL = "all";
+const MONITORING_STATUS_ALL = "all";
 
 const houseText = (h: SecurityRecord["houseId"]) => {
     if (typeof h === "string") return h;
@@ -115,6 +122,12 @@ const SecurityListContent: React.FC = () => {
     const [level, setLevel] = useState<MucDoAnNinh | "">(
         (searchParams.get("level") as MucDoAnNinh | null) || "",
     );
+    const [monitoringStatus, setMonitoringStatus] = useState<
+        TinhTrangTheoDoiAnNinh | ""
+    >(
+        (searchParams.get("monitoringStatus") as TinhTrangTheoDoiAnNinh | null) ||
+            "",
+    );
     const [items, setItems] = useState<SecurityRecord[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -142,7 +155,11 @@ const SecurityListContent: React.FC = () => {
             setLoadingMore(true);
         }
         setError(false);
-        fetchSecurityRecords({ page: targetPage, level: level || undefined })
+        fetchSecurityRecords({
+            page: targetPage,
+            level: level || undefined,
+            monitoringStatus: monitoringStatus || undefined,
+        })
             .then(res => {
                 setItems(prev =>
                     targetPage === 1 ? res.items : [...prev, ...res.items],
@@ -160,7 +177,7 @@ const SecurityListContent: React.FC = () => {
     useEffect(() => {
         load(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [level]);
+    }, [level, monitoringStatus]);
 
     const openCreate = () => {
         setEditingId(null);
@@ -248,29 +265,60 @@ const SecurityListContent: React.FC = () => {
                 )}
             </div>
 
-            <Select
-                value={level || LEVEL_ALL}
-                onValueChange={v =>
-                    setLevel(v === LEVEL_ALL ? "" : (v as MucDoAnNinh))
-                }
-            >
-                <SelectTrigger className="mb-4 max-w-sm">
-                    <SelectValue placeholder="Lọc theo mức độ" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value={LEVEL_ALL}>Tất cả mức độ</SelectItem>
-                    {(
-                        Object.entries(MUC_DO_AN_NINH_LABEL) as [
-                            MucDoAnNinh,
-                            string,
-                        ][]
-                    ).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>
-                            {label}
+            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
+                <Select
+                    value={level || LEVEL_ALL}
+                    onValueChange={v =>
+                        setLevel(v === LEVEL_ALL ? "" : (v as MucDoAnNinh))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Lọc theo mức độ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={LEVEL_ALL}>Tất cả mức độ</SelectItem>
+                        {(
+                            Object.entries(MUC_DO_AN_NINH_LABEL) as [
+                                MucDoAnNinh,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={monitoringStatus || MONITORING_STATUS_ALL}
+                    onValueChange={v =>
+                        setMonitoringStatus(
+                            v === MONITORING_STATUS_ALL
+                                ? ""
+                                : (v as TinhTrangTheoDoiAnNinh),
+                        )
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Lọc theo tình trạng theo dõi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={MONITORING_STATUS_ALL}>
+                            Tất cả tình trạng theo dõi
                         </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+                        {(
+                            Object.entries(TINH_TRANG_THEO_DOI_AN_NINH_LABEL) as [
+                                TinhTrangTheoDoiAnNinh,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}

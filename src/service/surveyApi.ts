@@ -12,6 +12,11 @@ export interface SurveyInput {
     title: string;
     description?: string;
     questions: SurveyQuestion[];
+    eligibleAll?: boolean;
+    eligibleRoles?: string[];
+    eligibleStreetIds?: string[];
+    eligibleNeighborhoodIds?: string[];
+    eligibleBusinessTypeIds?: string[];
 }
 
 export const fetchSurveys = (

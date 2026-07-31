@@ -9,6 +9,13 @@ import { Textarea } from "@components/ui/textarea";
 import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -33,19 +40,25 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
-import { AppError, BusinessType } from "@dts";
+import { AppError, BusinessType, DocumentType, RoleRecord } from "@dts";
 import {
     createBusinessType,
     deleteBusinessType,
+    DocumentRuleInput,
     fetchBusinessTypes,
+    putBusinessTypeDocumentRules,
     updateBusinessType,
 } from "@service/businessTypeApi";
+import { fetchDocumentTypes } from "@service/documentTypeApi";
+import { fetchRoles } from "@service/roleApi";
 
 const BusinessTypeListPage: React.FC = () => (
     <AdminGuard permissions={["business_types.read"]}>
         <BusinessTypeListContent />
     </AdminGuard>
 );
+
+const ACTIVE_ALL = "all";
 
 type FormState = {
     name: string;
@@ -66,6 +79,8 @@ const BusinessTypeListContent: React.FC = () => {
     const canUpdate = usePermission("business_types.update");
     const canDelete = usePermission("business_types.delete");
 
+    const [search, setSearch] = useState("");
+    const [active, setActive] = useState<"" | "true" | "false">("");
     const [items, setItems] = useState<BusinessType[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -80,10 +95,28 @@ const BusinessTypeListContent: React.FC = () => {
     const [toDelete, setToDelete] = useState<BusinessType | null>(null);
     const [deleting, setDeleting] = useState(false);
 
+    const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
+    const [roles, setRoles] = useState<RoleRecord[]>([]);
+    const [rules, setRules] = useState<DocumentRuleInput[]>([]);
+    const [rulesSaving, setRulesSaving] = useState(false);
+
+    useEffect(() => {
+        fetchDocumentTypes({ active: true, limit: 100 })
+            .then(res => setDocumentTypes(res.items))
+            .catch(() => setDocumentTypes([]));
+        fetchRoles({ active: true, limit: 100 })
+            .then(res => setRoles(res.items))
+            .catch(() => setRoles([]));
+    }, []);
+
     const load = (targetPage = 1) => {
         setLoading(true);
         setError(false);
-        fetchBusinessTypes({ page: targetPage })
+        fetchBusinessTypes({
+            page: targetPage,
+            search: search || undefined,
+            active: active === "" ? undefined : active === "true",
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -94,12 +127,15 @@ const BusinessTypeListContent: React.FC = () => {
     };
 
     useEffect(() => {
-        load(1);
-    }, []);
+        const timer = setTimeout(() => load(1), 300);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search, active]);
 
     const openCreateSheet = () => {
         setEditing(null);
         setForm(EMPTY_FORM);
+        setRules([]);
         setSheetOpen(true);
     };
 
@@ -111,7 +147,82 @@ const BusinessTypeListContent: React.FC = () => {
             active: businessType.active,
             sortOrder: businessType.sortOrder,
         });
+        setRules(
+            (businessType.requiredDocuments || []).map(rule => ({
+                documentTypeId:
+                    typeof rule.documentTypeId === "string"
+                        ? rule.documentTypeId
+                        : rule.documentTypeId._id,
+                isRequired: rule.isRequired,
+                warningBeforeDays: rule.warningBeforeDays,
+                reviewerRoles: rule.reviewerRoles,
+            })),
+        );
         setSheetOpen(true);
+    };
+
+    const addRule = () => {
+        setRules(prev => [
+            ...prev,
+            {
+                documentTypeId: "",
+                isRequired: true,
+                warningBeforeDays: undefined,
+                reviewerRoles: [],
+            },
+        ]);
+    };
+
+    const removeRule = (index: number) => {
+        setRules(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const updateRule = (index: number, patch: Partial<DocumentRuleInput>) => {
+        setRules(prev =>
+            prev.map((r, i) => (i === index ? { ...r, ...patch } : r)),
+        );
+    };
+
+    const toggleReviewerRole = (index: number, roleKey: string) => {
+        setRules(prev =>
+            prev.map((r, i) => {
+                if (i !== index) return r;
+                const has = r.reviewerRoles.includes(roleKey);
+                return {
+                    ...r,
+                    reviewerRoles: has
+                        ? r.reviewerRoles.filter(k => k !== roleKey)
+                        : [...r.reviewerRoles, roleKey],
+                };
+            }),
+        );
+    };
+
+    const documentTypeById = (id: string) =>
+        documentTypes.find(dt => dt._id === id);
+
+    const handleSaveRules = async () => {
+        if (!editing) return;
+        if (rules.some(r => !r.documentTypeId)) {
+            toast.error("Vui lòng chọn loại giấy tờ cho tất cả các dòng");
+            return;
+        }
+        try {
+            setRulesSaving(true);
+            const updated = await putBusinessTypeDocumentRules(
+                editing._id,
+                rules,
+            );
+            setEditing(updated);
+            setItems(prev =>
+                prev.map(bt => (bt._id === updated._id ? updated : bt)),
+            );
+            toast.success("Đã cập nhật yêu cầu giấy tờ");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setRulesSaving(false);
+        }
     };
 
     const handleSave = async () => {
@@ -166,6 +277,31 @@ const BusinessTypeListContent: React.FC = () => {
                 {canCreate && (
                     <Button onClick={openCreateSheet}>Thêm loại hình</Button>
                 )}
+            </div>
+
+            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
+                <Input
+                    placeholder="Tìm theo tên loại hình..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                <Select
+                    value={active || ACTIVE_ALL}
+                    onValueChange={v =>
+                        setActive(v === ACTIVE_ALL ? "" : (v as "true" | "false"))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ACTIVE_ALL}>
+                            Tất cả trạng thái
+                        </SelectItem>
+                        <SelectItem value="true">Hoạt động</SelectItem>
+                        <SelectItem value="false">Vô hiệu</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
@@ -234,7 +370,7 @@ const BusinessTypeListContent: React.FC = () => {
             )}
 
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetContent>
+                <SheetContent className="flex flex-col sm:max-w-lg">
                     <SheetHeader>
                         <SheetTitle>
                             {editing
@@ -286,6 +422,193 @@ const BusinessTypeListContent: React.FC = () => {
                                 Đang hoạt động
                             </label>
                         </div>
+
+                        {editing && (
+                            <div className="mt-5 border-t border-divider_01 pt-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="text-sm font-semibold">
+                                        Giấy tờ yêu cầu
+                                    </h3>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={addRule}
+                                    >
+                                        + Thêm giấy tờ
+                                    </Button>
+                                </div>
+
+                                {rules.length === 0 && (
+                                    <p className="text-sm text-text_2">
+                                        Loại hình này chưa yêu cầu giấy tờ nào.
+                                    </p>
+                                )}
+
+                                <div className="flex flex-col gap-3">
+                                    {rules.map((rule, index) => {
+                                        const dt = documentTypeById(
+                                            rule.documentTypeId,
+                                        );
+                                        const usedElsewhere = new Set(
+                                            rules
+                                                .filter((_, i) => i !== index)
+                                                .map(r => r.documentTypeId),
+                                        );
+                                        return (
+                                            <div
+                                                key={index}
+                                                className="rounded-lg border border-divider_01 p-3"
+                                            >
+                                                <div className="mb-2 flex items-center gap-2">
+                                                    <Select
+                                                        value={
+                                                            rule.documentTypeId ||
+                                                            undefined
+                                                        }
+                                                        onValueChange={val =>
+                                                            updateRule(index, {
+                                                                documentTypeId:
+                                                                    val,
+                                                            })
+                                                        }
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Chọn loại giấy tờ" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {documentTypes
+                                                                .filter(
+                                                                    d =>
+                                                                        !usedElsewhere.has(
+                                                                            d._id,
+                                                                        ),
+                                                                )
+                                                                .map(d => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            d._id
+                                                                        }
+                                                                        value={
+                                                                            d._id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            d.name
+                                                                        }
+                                                                    </SelectItem>
+                                                                ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="!text-red-500"
+                                                        onClick={() =>
+                                                            removeRule(index)
+                                                        }
+                                                    >
+                                                        Xóa
+                                                    </Button>
+                                                </div>
+
+                                                <div className="mb-2 flex items-center gap-2">
+                                                    <Checkbox
+                                                        checked={
+                                                            rule.isRequired
+                                                        }
+                                                        onCheckedChange={checked =>
+                                                            updateRule(index, {
+                                                                isRequired:
+                                                                    !!checked,
+                                                            })
+                                                        }
+                                                    />
+                                                    <Label className="text-sm font-normal">
+                                                        Bắt buộc
+                                                    </Label>
+                                                </div>
+
+                                                {dt?.hasExpiryDate && (
+                                                    <div className="mb-2 space-y-1.5">
+                                                        <Label className="text-xs">
+                                                            Cảnh báo trước hết
+                                                            hạn (ngày)
+                                                        </Label>
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            value={
+                                                                rule.warningBeforeDays ??
+                                                                ""
+                                                            }
+                                                            onChange={e =>
+                                                                updateRule(
+                                                                    index,
+                                                                    {
+                                                                        warningBeforeDays:
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                                ? Number(
+                                                                                      e
+                                                                                          .target
+                                                                                          .value,
+                                                                                  )
+                                                                                : undefined,
+                                                                    },
+                                                                )
+                                                            }
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <div>
+                                                    <Label className="text-xs">
+                                                        Vai trò được duyệt
+                                                        (để trống = dùng quyền
+                                                        &quot;Duyệt / từ chối hộ
+                                                        kinh doanh&quot; mặc
+                                                        định)
+                                                    </Label>
+                                                    <div className="mt-1.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                                                        {roles.map(role => (
+                                                            <div
+                                                                key={role.key}
+                                                                className="flex items-center gap-2"
+                                                            >
+                                                                <Checkbox
+                                                                    checked={rule.reviewerRoles.includes(
+                                                                        role.key,
+                                                                    )}
+                                                                    onCheckedChange={() =>
+                                                                        toggleReviewerRole(
+                                                                            index,
+                                                                            role.key,
+                                                                        )
+                                                                    }
+                                                                />
+                                                                <Label className="text-sm font-normal">
+                                                                    {role.name}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <Button
+                                    className="mt-3 w-full"
+                                    variant="outline"
+                                    loading={rulesSaving}
+                                    onClick={handleSaveRules}
+                                >
+                                    Lưu yêu cầu giấy tờ
+                                </Button>
+                            </div>
+                        )}
                     </div>
                     <SheetFooter>
                         <Button

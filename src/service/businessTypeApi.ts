@@ -2,6 +2,13 @@ import { API } from "@constants/common";
 import { BusinessType, PaginatedData } from "@dts";
 import { request } from "./request";
 
+export interface DocumentRuleInput {
+    documentTypeId: string;
+    isRequired: boolean;
+    warningBeforeDays?: number;
+    reviewerRoles: string[];
+}
+
 export const fetchBusinessTypes = (params?: {
     search?: string;
     active?: boolean;
@@ -40,3 +47,13 @@ export const updateBusinessType = (
 
 export const deleteBusinessType = (id: string): Promise<{ _id: string }> =>
     request<{ _id: string }>("DELETE", `${API.BUSINESS_TYPES}/${id}`);
+
+export const putBusinessTypeDocumentRules = (
+    id: string,
+    requiredDocuments: DocumentRuleInput[],
+): Promise<BusinessType> =>
+    request<BusinessType>(
+        "PUT",
+        `${API.BUSINESS_TYPES}/${id}/document-rules`,
+        { requiredDocuments },
+    );

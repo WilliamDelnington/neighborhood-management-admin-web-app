@@ -1,4 +1,6 @@
 import type {
+    BusinessDocumentStatus,
+    BusinessStatus,
     DangKyHop,
     FileAssetCategory,
     GioiTinh,
@@ -25,7 +27,7 @@ import type {
 import type { BadgeTone } from "@components/ui/badge";
 
 export const ROLE_LABEL: Record<Role, string> = {
-    resident: "Người dân",
+    house_owner: "Chủ hộ",
     neighborhood_leader: "Tổ trưởng",
     secretary: "Bí thư",
     regional_police: "Công an khu vực",
@@ -107,6 +109,41 @@ export const HOUSE_STATUS_TONE: Record<HouseStatus, BadgeTone> = {
     verified: "green",
     denied: "red",
     locked: "red",
+};
+
+// Trang thai xac thuc ho kinh doanh - tinh tu ket qua duyet tung giay to bat
+// buoc (xem @dts BusinessStatus). Khac HouseStatus (khong con "pending"/"denied"/
+// "locked" ma thay bang "pending_approval"/"need_supplement").
+export const BUSINESS_STATUS_LABEL: Record<BusinessStatus, string> = {
+    unverified: "Chưa xác thực",
+    pending_approval: "Đang chờ duyệt",
+    need_supplement: "Cần bổ sung hồ sơ",
+    verified: "Đã xác thực",
+};
+
+export const BUSINESS_STATUS_TONE: Record<BusinessStatus, BadgeTone> = {
+    unverified: "gray",
+    pending_approval: "yellow",
+    need_supplement: "red",
+    verified: "green",
+};
+
+export const BUSINESS_DOCUMENT_STATUS_LABEL: Record<
+    BusinessDocumentStatus,
+    string
+> = {
+    pending: "Chờ duyệt",
+    approved: "Đã duyệt",
+    rejected: "Bị từ chối, cần bổ sung",
+};
+
+export const BUSINESS_DOCUMENT_STATUS_TONE: Record<
+    BusinessDocumentStatus,
+    BadgeTone
+> = {
+    pending: "yellow",
+    approved: "green",
+    rejected: "red",
 };
 
 // Nhan hien thi cho cac action ghi trong AuditLog voi targetModel = "HouseRecord"

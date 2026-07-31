@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
@@ -10,10 +10,15 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import { HouseInput } from "@service/houseApi";
-import { useAuthStore } from "@store/authStore";
+import { fetchStreets } from "@service/streetApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import { Neighborhood, Street } from "@dts";
+import { useAuthStore, usePermission } from "@store/authStore";
 
 export interface HouseFormValues {
     cluster: string;
+    streetId: string;
+    neighborhoodId: string;
     address: string;
     note: string;
     residenceDeclarationNumber: string;
@@ -21,6 +26,8 @@ export interface HouseFormValues {
 
 export const EMPTY_HOUSE_FORM: HouseFormValues = {
     cluster: "",
+    streetId: "",
+    neighborhoodId: "",
     address: "",
     note: "",
     residenceDeclarationNumber: "",
@@ -28,7 +35,9 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
 
 export function toHouseInput(values: HouseFormValues): HouseInput {
     return {
-        cluster: values.cluster.trim(),
+        cluster: values.streetId ? undefined : values.cluster.trim(),
+        streetId: values.streetId || undefined,
+        neighborhoodId: values.neighborhoodId || null,
         address: values.address.trim(),
         note: values.note.trim() || undefined,
         residenceDeclarationNumber:
@@ -37,7 +46,10 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
 }
 
 export function isHouseFormValid(values: HouseFormValues): boolean {
-    return !!(values.cluster.trim() && values.address.trim());
+    return !!(
+        (values.cluster.trim() || values.streetId) &&
+        values.address.trim()
+    );
 }
 
 interface HouseFormProps {
@@ -52,6 +64,14 @@ const HouseForm: React.FC<HouseFormProps> = ({ values, onChange }) => {
     // Nguoi dung duoc phan cong cum (vd to truong) chi duoc chon trong cac cum
     // cua minh, tuong tu HouseholdForm.
     const assignedClusters = useAuthStore(state => state.user?.assignedClusters) || [];
+    // Chi nguoi dung co quyen "streets.read" (vd admin) moi thay Street picker -
+    // house_owner tu khai bao cum dan cu tu do nhu truoc (xem streetSync.ts o backend).
+    const canPickStreet = usePermission("streets.read");
+    const [streets, setStreets] = useState<Street[]>([]);
+    // To dan pho la thuoc tinh rieng cua nha so, KHONG suy ra tu Street (mot
+    // duong/pho co the chay qua nhieu to dan pho) - xem models/HouseRecord.ts.
+    const canPickNeighborhood = usePermission("neighborhoods.read");
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
 
     const set = <K extends keyof HouseFormValues>(
         key: K,
@@ -65,34 +85,94 @@ const HouseForm: React.FC<HouseFormProps> = ({ values, onChange }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [assignedClusters.length]);
 
+    useEffect(() => {
+        if (!canPickStreet) return;
+        fetchStreets({ active: true, limit: 200 })
+            .then(res => setStreets(res.items))
+            .catch(() => setStreets([]));
+    }, [canPickStreet]);
+
+    useEffect(() => {
+        if (!canPickNeighborhood) return;
+        fetchNeighborhoods({ active: true, limit: 200 })
+            .then(res => setNeighborhoods(res.items))
+            .catch(() => setNeighborhoods([]));
+    }, [canPickNeighborhood]);
+
     return (
         <div className="flex flex-col gap-4">
-            <div className="space-y-1.5">
-                <Label>Cụm dân cư</Label>
-                {assignedClusters.length > 0 ? (
+            {canPickStreet ? (
+                <div className="space-y-1.5">
+                    <Label>Đường/phố</Label>
                     <Select
-                        value={values.cluster}
-                        onValueChange={v => set("cluster", v)}
+                        value={values.streetId}
+                        onValueChange={v => set("streetId", v)}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder="Chọn cụm dân cư" />
+                            <SelectValue placeholder="Chọn đường/phố" />
                         </SelectTrigger>
                         <SelectContent>
-                            {assignedClusters.map(c => (
-                                <SelectItem key={c} value={c}>
-                                    {c}
+                            {streets.map(s => (
+                                <SelectItem key={s._id} value={s._id}>
+                                    {s.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
-                ) : (
-                    <Input
-                        placeholder="VD: Cụm 3"
-                        value={values.cluster}
-                        onChange={e => set("cluster", e.target.value)}
-                    />
-                )}
-            </div>
+                </div>
+            ) : (
+                <div className="space-y-1.5">
+                    <Label>Cụm dân cư</Label>
+                    {assignedClusters.length > 0 ? (
+                        <Select
+                            value={values.cluster}
+                            onValueChange={v => set("cluster", v)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Chọn cụm dân cư" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {assignedClusters.map(c => (
+                                    <SelectItem key={c} value={c}>
+                                        {c}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                        <Input
+                            placeholder="VD: Cụm 3"
+                            value={values.cluster}
+                            onChange={e => set("cluster", e.target.value)}
+                        />
+                    )}
+                </div>
+            )}
+            {canPickNeighborhood && (
+                <div className="space-y-1.5">
+                    <Label>Tổ dân phố</Label>
+                    <Select
+                        value={values.neighborhoodId || "__none__"}
+                        onValueChange={v =>
+                            set("neighborhoodId", v === "__none__" ? "" : v)
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Chưa gán tổ dân phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="__none__">
+                                Chưa gán tổ dân phố
+                            </SelectItem>
+                            {neighborhoods.map(n => (
+                                <SelectItem key={n._id} value={n._id}>
+                                    {n.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
             <div className="space-y-1.5">
                 <Label>Địa chỉ</Label>
                 <Input

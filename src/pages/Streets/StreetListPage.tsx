@@ -7,6 +7,13 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -24,45 +31,54 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { usePermission } from "@store/authStore";
-import { HOUSE_STATUS_LABEL, HOUSE_STATUS_TONE } from "@constants/domain";
-import { House, AppError } from "@dts";
-import { createHouse, fetchHouses } from "@service/houseApi";
-import HouseForm, {
-    EMPTY_HOUSE_FORM,
-    HouseFormValues,
-    isHouseFormValid,
-    toHouseInput,
-} from "./HouseForm";
+import { AppError, Street } from "@dts";
+import { createStreet, fetchStreets } from "@service/streetApi";
+import StreetForm, {
+    EMPTY_STREET_FORM,
+    StreetFormValues,
+    isStreetFormValid,
+    toStreetInput,
+} from "./StreetForm";
 
-const HouseListPage: React.FC = () => (
-    <AdminGuard permissions={["houses.read"]}>
-        <HouseListContent />
+const ACTIVE_ALL = "all";
+
+const StreetListPage: React.FC = () => (
+    <AdminGuard permissions={["streets.read"]}>
+        <StreetListContent />
     </AdminGuard>
 );
 
-const HouseListContent: React.FC = () => {
+const StreetListContent: React.FC = () => {
     const navigate = useNavigate();
-    const canCreate = usePermission("houses.create");
+    const canCreate = usePermission("streets.manage");
 
     const [search, setSearch] = useState("");
-    const [items, setItems] = useState<House[]>([]);
+    const [active, setActive] = useState<"" | "true" | "false">("");
+    const [items, setItems] = useState<Street[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
     const [createVisible, setCreateVisible] = useState(false);
-    const [form, setForm] = useState<HouseFormValues>(EMPTY_HOUSE_FORM);
+    const [form, setForm] = useState<StreetFormValues>(EMPTY_STREET_FORM);
     const [submitting, setSubmitting] = useState(false);
 
     const load = (targetPage = 1, keyword = search) => {
         setLoading(true);
         setError(false);
-        fetchHouses({ page: targetPage, search: keyword })
+        fetchStreets({
+            page: targetPage,
+            search: keyword,
+            limit: 30,
+            active: active === "" ? undefined : active === "true",
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
+                setTotal(res.total);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -72,22 +88,22 @@ const HouseListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
+    }, [search, active]);
 
     const openCreate = () => {
-        setForm(EMPTY_HOUSE_FORM);
+        setForm(EMPTY_STREET_FORM);
         setCreateVisible(true);
     };
 
     const handleCreate = async () => {
-        if (!isHouseFormValid(form)) {
-            toast.error("Vui lòng chọn đường/phố hoặc nhập cụm dân cư, và địa chỉ");
+        if (!isStreetFormValid(form, "create")) {
+            toast.error("Vui lòng nhập đầy đủ tên và mã đường/phố");
             return;
         }
         try {
             setSubmitting(true);
-            await createHouse(toHouseInput(form));
-            toast.success("Đã thêm nhà số mới");
+            await createStreet(toStreetInput(form));
+            toast.success("Đã thêm đường/phố mới");
             setCreateVisible(false);
             load(1, search);
         } catch (err) {
@@ -100,21 +116,45 @@ const HouseListContent: React.FC = () => {
     return (
         <div>
             <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý nhà số</h1>
+                <h1 className="text-lg font-semibold">Đường / phố</h1>
                 {canCreate && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" />
-                        Thêm nhà số
+                        Thêm đường/phố
                     </Button>
                 )}
             </div>
 
-            <Input
-                className="mb-4 max-w-sm"
-                placeholder="Tìm theo mã nhà, địa chỉ..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-3 grid max-w-xl grid-cols-2 gap-3">
+                <Input
+                    placeholder="Tìm theo tên hoặc mã đường/phố..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                <Select
+                    value={active || ACTIVE_ALL}
+                    onValueChange={v =>
+                        setActive(v === ACTIVE_ALL ? "" : (v as "true" | "false"))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ACTIVE_ALL}>
+                            Tất cả trạng thái
+                        </SelectItem>
+                        <SelectItem value="true">Đang hoạt động</SelectItem>
+                        <SelectItem value="false">Ngừng hoạt động</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {total > 0 && (
+                <div className="mb-2 text-xs text-text_2">
+                    {total} đường/phố
+                </div>
+            )}
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
@@ -122,33 +162,35 @@ const HouseListContent: React.FC = () => {
                     <ErrorState onRetry={() => load(1, search)} />
                 )}
                 {!loading && !error && items.length === 0 && (
-                    <EmptyState label="Chưa có nhà số nào" />
+                    <EmptyState label="Chưa có đường/phố nào" />
                 )}
                 {!loading && !error && items.length > 0 && (
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Mã nhà</TableHead>
-                                <TableHead>Địa chỉ</TableHead>
-                                <TableHead>Tổ dân phố</TableHead>
+                                <TableHead>Mã</TableHead>
+                                <TableHead>Tên</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(h => (
+                            {items.map(s => (
                                 <TableRow
-                                    key={h._id}
+                                    key={s._id}
                                     className="cursor-pointer"
-                                    onClick={() => navigate(`/houses/${h._id}`)}
+                                    onClick={() =>
+                                        navigate(`/streets/${s._id}`)
+                                    }
                                 >
                                     <TableCell className="font-medium">
-                                        {h.code}
+                                        {s.code}
                                     </TableCell>
-                                    <TableCell>{h.address}</TableCell>
-                                    <TableCell>{h.cluster}</TableCell>
+                                    <TableCell>{s.name}</TableCell>
                                     <TableCell>
-                                        <Badge tone={HOUSE_STATUS_TONE[h.status]}>
-                                            {HOUSE_STATUS_LABEL[h.status]}
+                                        <Badge tone={s.active ? "green" : "gray"}>
+                                            {s.active
+                                                ? "Đang hoạt động"
+                                                : "Ngừng hoạt động"}
                                         </Badge>
                                     </TableCell>
                                 </TableRow>
@@ -170,10 +212,10 @@ const HouseListContent: React.FC = () => {
             <Sheet open={createVisible} onOpenChange={setCreateVisible}>
                 <SheetContent>
                     <SheetHeader>
-                        <SheetTitle>Thêm nhà số</SheetTitle>
+                        <SheetTitle>Thêm đường/phố</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
-                        <HouseForm values={form} onChange={setForm} />
+                        <StreetForm values={form} onChange={setForm} mode="create" />
                     </div>
                     <SheetFooter>
                         <Button
@@ -181,7 +223,7 @@ const HouseListContent: React.FC = () => {
                             loading={submitting}
                             onClick={handleCreate}
                         >
-                            Lưu nhà số
+                            Lưu đường/phố
                         </Button>
                     </SheetFooter>
                 </SheetContent>
@@ -190,4 +232,4 @@ const HouseListContent: React.FC = () => {
     );
 };
 
-export default HouseListPage;
+export default StreetListPage;
