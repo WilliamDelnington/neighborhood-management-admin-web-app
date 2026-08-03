@@ -49,7 +49,7 @@ const LoginPage: React.FC = () => {
                 className="w-full max-w-sm rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
             >
                 <h1 className="text-center text-lg font-semibold text-main">
-                    Quản trị Tổ dân phố Hòa Bình
+                    Quản lý Tổ dân phố
                 </h1>
                 <p className="mb-6 mt-1 text-center text-sm text-text_2">
                     Đăng nhập bằng số điện thoại cán bộ

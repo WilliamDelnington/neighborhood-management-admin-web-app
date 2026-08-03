@@ -13,7 +13,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import StatCard from "@components/admin/StatCard";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { DANG_KY_HOP_LABEL, MEETING_AUDIT_ACTION_LABEL } from "@constants/domain";
-import { AppError, DangKyHop, MeetingRegistration } from "@dts";
+import { AppError, BusinessType, DangKyHop, MeetingRegistration, Neighborhood, RoleRecord, Street } from "@dts";
 import {
     MeetingInput,
     createMeeting,
@@ -22,6 +22,13 @@ import {
     fetchMeetingRegistrations,
     updateMeeting,
 } from "@service/meetingApi";
+import { fetchStreets } from "@service/streetApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import { fetchBusinessTypes } from "@service/businessTypeApi";
+import { fetchRoles } from "@service/roleApi";
+
+const idOf = (ref: string | { _id: string }): string =>
+    typeof ref === "string" ? ref : ref._id;
 
 /** Chuyen ISO string sang dinh dang gia tri cho input[type=datetime-local]. */
 const toDateTimeLocalValue = (iso?: string) => {
@@ -62,6 +69,21 @@ const MeetingFormContent: React.FC = () => {
     const [minutes, setMinutes] = useState("");
     const [published, setPublished] = useState(false);
 
+    const [eligibleAll, setEligibleAll] = useState(true);
+    const [eligibleRoles, setEligibleRoles] = useState<string[]>([]);
+    const [eligibleStreetIds, setEligibleStreetIds] = useState<string[]>([]);
+    const [eligibleNeighborhoodIds, setEligibleNeighborhoodIds] = useState<
+        string[]
+    >([]);
+    const [eligibleBusinessTypeIds, setEligibleBusinessTypeIds] = useState<
+        string[]
+    >([]);
+
+    const [roles, setRoles] = useState<RoleRecord[]>([]);
+    const [streets, setStreets] = useState<Street[]>([]);
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
+    const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
+
     const [registrations, setRegistrations] = useState<MeetingRegistration[]>(
         [],
     );
@@ -79,6 +101,15 @@ const MeetingFormContent: React.FC = () => {
                 setContent(m.content);
                 setMinutes(m.minutes || "");
                 setPublished(m.published);
+                setEligibleAll(m.eligibleAll ?? true);
+                setEligibleRoles(m.eligibleRoles || []);
+                setEligibleStreetIds((m.eligibleStreetIds || []).map(idOf));
+                setEligibleNeighborhoodIds(
+                    (m.eligibleNeighborhoodIds || []).map(idOf),
+                );
+                setEligibleBusinessTypeIds(
+                    (m.eligibleBusinessTypeIds || []).map(idOf),
+                );
             })
             .catch(() => setLoadError(true))
             .finally(() => setLoading(false));
@@ -98,6 +129,31 @@ const MeetingFormContent: React.FC = () => {
         loadRegistrations();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
+
+    useEffect(() => {
+        fetchRoles({ limit: 100, active: true })
+            .then(res => setRoles(res.items))
+            .catch(() => setRoles([]));
+        fetchStreets({ limit: 200, active: true })
+            .then(res => setStreets(res.items))
+            .catch(() => setStreets([]));
+        fetchNeighborhoods({ limit: 200, active: true })
+            .then(res => setNeighborhoods(res.items))
+            .catch(() => setNeighborhoods([]));
+        fetchBusinessTypes({ limit: 200, active: true })
+            .then(res => setBusinessTypes(res.items))
+            .catch(() => setBusinessTypes([]));
+    }, []);
+
+    const toggleId = (
+        list: string[],
+        setList: (v: string[]) => void,
+        id2: string,
+    ) => {
+        setList(
+            list.includes(id2) ? list.filter(x => x !== id2) : [...list, id2],
+        );
+    };
 
     const countByAnswer = (answer: DangKyHop) =>
         registrations.filter(r => r.answer === answer).length;
@@ -119,6 +175,11 @@ const MeetingFormContent: React.FC = () => {
             content: content.trim(),
             minutes: minutes.trim() || undefined,
             published,
+            eligibleAll,
+            eligibleRoles: eligibleAll ? [] : eligibleRoles,
+            eligibleStreetIds: eligibleAll ? [] : eligibleStreetIds,
+            eligibleNeighborhoodIds: eligibleAll ? [] : eligibleNeighborhoodIds,
+            eligibleBusinessTypeIds: eligibleAll ? [] : eligibleBusinessTypeIds,
         };
         try {
             setSaving(true);
@@ -219,6 +280,166 @@ const MeetingFormContent: React.FC = () => {
                             />
                             Đăng công khai lên web app cho người dân
                         </label>
+
+                        <div className="rounded-2xl border border-divider_01 p-4">
+                            <h2 className="mb-3 text-sm font-semibold">
+                                Đối tượng nhận thông báo
+                            </h2>
+
+                            <label className="mb-3 flex items-center gap-2 text-sm">
+                                <Checkbox
+                                    checked={eligibleAll}
+                                    onCheckedChange={checked =>
+                                        setEligibleAll(checked === true)
+                                    }
+                                />
+                                Áp dụng cho tất cả mọi người
+                            </label>
+
+                            {!eligibleAll && (
+                                <div className="flex flex-col gap-4">
+                                    <div>
+                                        <Label className="mb-1.5 block">
+                                            Vai trò
+                                        </Label>
+                                        <div className="flex flex-wrap gap-3">
+                                            {roles.length === 0 && (
+                                                <span className="text-xs text-text_2">
+                                                    Chưa có vai trò nào
+                                                </span>
+                                            )}
+                                            {roles.map(r => (
+                                                <label
+                                                    key={r.key}
+                                                    className="flex items-center gap-1.5 text-sm"
+                                                >
+                                                    <Checkbox
+                                                        checked={eligibleRoles.includes(
+                                                            r.key,
+                                                        )}
+                                                        onCheckedChange={() =>
+                                                            toggleId(
+                                                                eligibleRoles,
+                                                                setEligibleRoles,
+                                                                r.key,
+                                                            )
+                                                        }
+                                                    />
+                                                    {r.name}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <Label className="mb-1.5 block">
+                                            Đường / phố
+                                        </Label>
+                                        <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto rounded-lg border border-divider_01 p-2">
+                                            {streets.length === 0 && (
+                                                <span className="text-xs text-text_2">
+                                                    Chưa có đường/phố nào
+                                                </span>
+                                            )}
+                                            {streets.map(s => (
+                                                <label
+                                                    key={s._id}
+                                                    className="flex items-center gap-1.5 text-sm"
+                                                >
+                                                    <Checkbox
+                                                        checked={eligibleStreetIds.includes(
+                                                            s._id,
+                                                        )}
+                                                        onCheckedChange={() =>
+                                                            toggleId(
+                                                                eligibleStreetIds,
+                                                                setEligibleStreetIds,
+                                                                s._id,
+                                                            )
+                                                        }
+                                                    />
+                                                    {s.name}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <Label className="mb-1.5 block">
+                                            Tổ dân phố
+                                        </Label>
+                                        <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto rounded-lg border border-divider_01 p-2">
+                                            {neighborhoods.length === 0 && (
+                                                <span className="text-xs text-text_2">
+                                                    Chưa có tổ dân phố nào
+                                                </span>
+                                            )}
+                                            {neighborhoods.map(n => (
+                                                <label
+                                                    key={n._id}
+                                                    className="flex items-center gap-1.5 text-sm"
+                                                >
+                                                    <Checkbox
+                                                        checked={eligibleNeighborhoodIds.includes(
+                                                            n._id,
+                                                        )}
+                                                        onCheckedChange={() =>
+                                                            toggleId(
+                                                                eligibleNeighborhoodIds,
+                                                                setEligibleNeighborhoodIds,
+                                                                n._id,
+                                                            )
+                                                        }
+                                                    />
+                                                    {n.name}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <Label className="mb-1.5 block">
+                                            Loại hình kinh doanh
+                                        </Label>
+                                        <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto rounded-lg border border-divider_01 p-2">
+                                            {businessTypes.length === 0 && (
+                                                <span className="text-xs text-text_2">
+                                                    Chưa có loại hình kinh doanh nào
+                                                </span>
+                                            )}
+                                            {businessTypes.map(bt => (
+                                                <label
+                                                    key={bt._id}
+                                                    className="flex items-center gap-1.5 text-sm"
+                                                >
+                                                    <Checkbox
+                                                        checked={eligibleBusinessTypeIds.includes(
+                                                            bt._id,
+                                                        )}
+                                                        onCheckedChange={() =>
+                                                            toggleId(
+                                                                eligibleBusinessTypeIds,
+                                                                setEligibleBusinessTypeIds,
+                                                                bt._id,
+                                                            )
+                                                        }
+                                                    />
+                                                    {bt.name}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <p className="text-xs text-text_2">
+                                        Chỉ những người khớp vai trò đã chọn
+                                        (nếu có) VÀ khớp ít nhất một trong các
+                                        tiêu chí đường/phố, tổ dân phố, hoặc
+                                        loại hình kinh doanh (nếu có chọn) mới
+                                        nhận được thông báo về cuộc họp này.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
                         {canManage && (
                             <div className="mt-2">

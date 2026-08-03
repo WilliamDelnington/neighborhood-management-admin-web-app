@@ -9,6 +9,9 @@ export interface HouseInput {
     address: string;
     note?: string;
     residenceDeclarationNumber?: string;
+    // Neu co: nha so duoc dang ky duoi ten to chuc nay (actor phai la nguoi
+    // dai dien - xem OrganizationPicker). Neu khong: chu nha la chinh actor.
+    organizationId?: string | null;
 }
 
 export const fetchHouses = (params?: {

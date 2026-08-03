@@ -20,10 +20,9 @@ import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import {
     LOAI_CAU_HOI_KHAO_SAT_LABEL,
-    ROLE_LABEL,
     SURVEY_AUDIT_ACTION_LABEL,
 } from "@constants/domain";
-import { AppError, BusinessType, LoaiCauHoiKhaoSat, Neighborhood, Street, SurveyQuestion } from "@dts";
+import { AppError, BusinessType, LoaiCauHoiKhaoSat, Neighborhood, RoleRecord, Street, SurveyQuestion } from "@dts";
 import {
     createSurvey,
     fetchSurveyAuditLogs,
@@ -34,6 +33,7 @@ import {
 import { fetchStreets } from "@service/streetApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
+import { fetchRoles } from "@service/roleApi";
 
 const idOf = (ref: string | { _id: string }): string =>
     typeof ref === "string" ? ref : ref._id;
@@ -81,6 +81,7 @@ const SurveyFormContent: React.FC = () => {
         string[]
     >([]);
 
+    const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [streets, setStreets] = useState<Street[]>([]);
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
@@ -124,6 +125,9 @@ const SurveyFormContent: React.FC = () => {
     }, [id]);
 
     useEffect(() => {
+        fetchRoles({ limit: 100, active: true })
+            .then(res => setRoles(res.items))
+            .catch(() => setRoles([]));
         fetchStreets({ limit: 200, active: true })
             .then(res => setStreets(res.items))
             .catch(() => setStreets([]));
@@ -326,28 +330,31 @@ const SurveyFormContent: React.FC = () => {
                                             Vai trò
                                         </Label>
                                         <div className="flex flex-wrap gap-3">
-                                            {Object.entries(ROLE_LABEL).map(
-                                                ([key, label]) => (
-                                                    <label
-                                                        key={key}
-                                                        className="flex items-center gap-1.5 text-sm"
-                                                    >
-                                                        <Checkbox
-                                                            checked={eligibleRoles.includes(
-                                                                key,
-                                                            )}
-                                                            onCheckedChange={() =>
-                                                                toggleId(
-                                                                    eligibleRoles,
-                                                                    setEligibleRoles,
-                                                                    key,
-                                                                )
-                                                            }
-                                                        />
-                                                        {label}
-                                                    </label>
-                                                ),
+                                            {roles.length === 0 && (
+                                                <span className="text-xs text-text_2">
+                                                    Chưa có vai trò nào
+                                                </span>
                                             )}
+                                            {roles.map(r => (
+                                                <label
+                                                    key={r.key}
+                                                    className="flex items-center gap-1.5 text-sm"
+                                                >
+                                                    <Checkbox
+                                                        checked={eligibleRoles.includes(
+                                                            r.key,
+                                                        )}
+                                                        onCheckedChange={() =>
+                                                            toggleId(
+                                                                eligibleRoles,
+                                                                setEligibleRoles,
+                                                                r.key,
+                                                            )
+                                                        }
+                                                    />
+                                                    {r.name}
+                                                </label>
+                                            ))}
                                         </div>
                                     </div>
 

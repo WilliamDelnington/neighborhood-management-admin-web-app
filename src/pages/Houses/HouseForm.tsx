@@ -12,7 +12,8 @@ import {
 import { HouseInput } from "@service/houseApi";
 import { fetchStreets } from "@service/streetApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
-import { Neighborhood, Street } from "@dts";
+import OrganizationPicker from "@components/admin/OrganizationPicker";
+import { Neighborhood, Organization, Street } from "@dts";
 import { useAuthStore, usePermission } from "@store/authStore";
 
 export interface HouseFormValues {
@@ -22,6 +23,10 @@ export interface HouseFormValues {
     address: string;
     note: string;
     residenceDeclarationNumber: string;
+    // "" = dang ky bang ca nhan (mac dinh). Chi co y nghia luc tao moi - backend
+    // khong ho tro doi chu nha sau khi da tao (xem houseRecordService.createHouseRecord).
+    organizationId: string;
+    organizationLabel: string;
 }
 
 export const EMPTY_HOUSE_FORM: HouseFormValues = {
@@ -31,6 +36,8 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
     address: "",
     note: "",
     residenceDeclarationNumber: "",
+    organizationId: "",
+    organizationLabel: "",
 };
 
 export function toHouseInput(values: HouseFormValues): HouseInput {
@@ -42,6 +49,7 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
         note: values.note.trim() || undefined,
         residenceDeclarationNumber:
             values.residenceDeclarationNumber.trim() || undefined,
+        organizationId: values.organizationId || undefined,
     };
 }
 
@@ -55,12 +63,17 @@ export function isHouseFormValid(values: HouseFormValues): boolean {
 interface HouseFormProps {
     values: HouseFormValues;
     onChange: (values: HouseFormValues) => void;
+    mode?: "create" | "edit";
 }
 
 /**
  * Bo truong dung chung cho tao moi/chinh sua nha so.
  */
-const HouseForm: React.FC<HouseFormProps> = ({ values, onChange }) => {
+const HouseForm: React.FC<HouseFormProps> = ({
+    values,
+    onChange,
+    mode = "create",
+}) => {
     // Nguoi dung duoc phan cong cum (vd to truong) chi duoc chon trong cac cum
     // cua minh, tuong tu HouseholdForm.
     const assignedClusters = useAuthStore(state => state.user?.assignedClusters) || [];
@@ -72,6 +85,10 @@ const HouseForm: React.FC<HouseFormProps> = ({ values, onChange }) => {
     // duong/pho co the chay qua nhieu to dan pho) - xem models/HouseRecord.ts.
     const canPickNeighborhood = usePermission("neighborhoods.read");
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
+    // Chi house_owner/admin (nguoi co the la nguoi dai dien to chuc) moi thay
+    // lua chon nay, va chi luc tao moi - xem ghi chu o HouseFormValues.organizationId.
+    const hasOrganizationPermission = usePermission("organizations.create");
+    const canPickOrganization = mode === "create" && hasOrganizationPermission;
 
     const set = <K extends keyof HouseFormValues>(
         key: K,
@@ -181,6 +198,19 @@ const HouseForm: React.FC<HouseFormProps> = ({ values, onChange }) => {
                     onChange={e => set("address", e.target.value)}
                 />
             </div>
+            {canPickOrganization && (
+                <OrganizationPicker
+                    value={values.organizationId}
+                    valueLabel={values.organizationLabel}
+                    onChange={(organizationId, organization: Organization | undefined) => {
+                        onChange({
+                            ...values,
+                            organizationId: organizationId || "",
+                            organizationLabel: organization?.name || "",
+                        });
+                    }}
+                />
+            )}
             <div className="space-y-1.5">
                 <Label>Số khai báo cư trú</Label>
                 <Input

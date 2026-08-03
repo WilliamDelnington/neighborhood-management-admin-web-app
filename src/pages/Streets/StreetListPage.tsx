@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, FileSpreadsheet } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -39,6 +39,7 @@ import StreetForm, {
     isStreetFormValid,
     toStreetInput,
 } from "./StreetForm";
+import StreetImportSheet from "./StreetImportSheet";
 
 const ACTIVE_ALL = "all";
 
@@ -51,6 +52,7 @@ const StreetListPage: React.FC = () => (
 const StreetListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("streets.manage");
+    const canImport = usePermission("imports.manage");
 
     const [search, setSearch] = useState("");
     const [active, setActive] = useState<"" | "true" | "false">("");
@@ -64,6 +66,7 @@ const StreetListContent: React.FC = () => {
     const [createVisible, setCreateVisible] = useState(false);
     const [form, setForm] = useState<StreetFormValues>(EMPTY_STREET_FORM);
     const [submitting, setSubmitting] = useState(false);
+    const [importVisible, setImportVisible] = useState(false);
 
     const load = (targetPage = 1, keyword = search) => {
         setLoading(true);
@@ -117,12 +120,23 @@ const StreetListContent: React.FC = () => {
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Đường / phố</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm đường/phố
-                    </Button>
-                )}
+                <div className="flex items-center gap-2">
+                    {canImport && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setImportVisible(true)}
+                        >
+                            <FileSpreadsheet className="mr-1 h-4 w-4" />
+                            Nhập từ Excel
+                        </Button>
+                    )}
+                    {canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm đường/phố
+                        </Button>
+                    )}
+                </div>
             </div>
 
             <div className="mb-3 grid max-w-xl grid-cols-2 gap-3">
@@ -228,6 +242,12 @@ const StreetListContent: React.FC = () => {
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
+
+            <StreetImportSheet
+                open={importVisible}
+                onOpenChange={setImportVisible}
+                onImported={() => load(1, search)}
+            />
         </div>
     );
 };

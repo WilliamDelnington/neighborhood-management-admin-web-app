@@ -24,6 +24,9 @@ const StreetListPage = React.lazy(
 const StreetDetailPage = React.lazy(
     () => import("@pages/Streets/StreetDetailPage"),
 );
+const OrganizationListPage = React.lazy(
+    () => import("@pages/Organizations/OrganizationListPage"),
+);
 const HouseListPage = React.lazy(
     () => import("@pages/Houses/HouseListPage"),
 );
@@ -94,6 +97,9 @@ const FinanceListPage = React.lazy(
 const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
+const CreateHouseOwnerPage = React.lazy(
+    () => import("@pages/Users/CreateHouseOwnerPage"),
+);
 const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
 const BusinessTypeListPage = React.lazy(
     () => import("@pages/BusinessTypes/BusinessTypeListPage"),
@@ -161,6 +167,10 @@ const App: React.FC = () => {
                         <Route
                             path="/streets/:id"
                             element={<StreetDetailPage />}
+                        />
+                        <Route
+                            path="/organizations"
+                            element={<OrganizationListPage />}
                         />
                         <Route path="/houses" element={<HouseListPage />} />
                         <Route
@@ -255,6 +265,10 @@ const App: React.FC = () => {
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route path="/users" element={<UserListPage />} />
+                        <Route
+                            path="/users/new-house-owner"
+                            element={<CreateHouseOwnerPage />}
+                        />
                         <Route path="/roles" element={<RoleListPage />} />
                         <Route
                             path="/businesses"
