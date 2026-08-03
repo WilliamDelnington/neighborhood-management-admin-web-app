@@ -48,6 +48,7 @@ import {
     updateHouseStatus,
 } from "@service/houseApi";
 import { createHousehold, updateHousehold } from "@service/householdApi";
+import { fetchOrganizationById } from "@service/organizationApi";
 import { createBusiness } from "@service/businessApi";
 import HouseholdForm, {
     EMPTY_HOUSEHOLD_FORM,
@@ -89,6 +90,9 @@ const toFormValues = (h: House): HouseFormValues => ({
     address: h.address,
     note: h.note || "",
     residenceDeclarationNumber: h.residenceDeclarationNumber || "",
+    // Khong the doi chu nha sau khi tao (xem HouseForm.tsx) - khong can dien lai.
+    organizationId: "",
+    organizationLabel: "",
 });
 
 const HouseDetailPage: React.FC = () => (
@@ -238,14 +242,39 @@ const HouseDetailContent: React.FC = () => {
         }
     };
 
-    let ownerId: string | undefined;
-    if (house?.ownerId) {
-        ownerId =
-            typeof house.ownerId === "string"
-                ? house.ownerId
-                : house.ownerId._id;
-    }
-    const isOwner = !!ownerId && ownerId === currentUserId;
+    const [isOwner, setIsOwner] = useState(false);
+    useEffect(() => {
+        if (!house?.ownerId) {
+            setIsOwner(false);
+            return;
+        }
+        const ownerId =
+            typeof house.ownerId === "string" ? house.ownerId : house.ownerId._id;
+        if (house.ownerType !== "organization") {
+            setIsOwner(ownerId === currentUserId);
+            return;
+        }
+        // Chu la to chuc - phai tra ve nguoi dai dien cua to chuc do de so
+        // sanh, vi to chuc khong tu dang nhap duoc (xem resolveOwnerActingUserId
+        // o backend). ownerId khong duoc backend populate san nen goi rieng.
+        let cancelled = false;
+        fetchOrganizationById(ownerId)
+            .then(org => {
+                if (cancelled) return;
+                const representativeId =
+                    typeof org.representativeUserId === "string"
+                        ? org.representativeUserId
+                        : org.representativeUserId._id;
+                setIsOwner(representativeId === currentUserId);
+            })
+            .catch(() => {
+                if (!cancelled) setIsOwner(false);
+            });
+        // eslint-disable-next-line consistent-return
+        return () => {
+            cancelled = true;
+        };
+    }, [house?.ownerId, house?.ownerType, currentUserId]);
 
     const handleStatusChange = async (status: HouseStatus) => {
         if (!houseId) return;
@@ -352,7 +381,11 @@ const HouseDetailContent: React.FC = () => {
 
                         {editing ? (
                             <>
-                                <HouseForm values={form} onChange={setForm} />
+                                <HouseForm
+                                    values={form}
+                                    onChange={setForm}
+                                    mode="edit"
+                                />
                                 <div className="mt-4 flex gap-2">
                                     <Button
                                         variant="outline"

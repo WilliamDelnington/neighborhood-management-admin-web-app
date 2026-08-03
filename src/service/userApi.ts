@@ -49,6 +49,17 @@ export const updateUser = (
 export const revokeUserSession = (id: string): Promise<null> =>
     request<null>("POST", `${API.USERS}/${id}/revoke-session`);
 
+export interface CreateHouseOwnerParams {
+    phone: string;
+    password: string;
+    displayName: string;
+    address?: string;
+}
+
+export const createHouseOwner = (
+    params: CreateHouseOwnerParams,
+): Promise<User> => request<User>("POST", API.USERS, params);
+
 export const assignUserRole = (
     userId: string,
     role: Role,

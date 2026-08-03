@@ -125,6 +125,35 @@ export type BusinessType = {
 
 export type HouseStatus = "unverified" | "pending" | "verified" | "denied" | "locked";
 
+// ---------------------------------------------------------------------------
+// Chu so huu (nha so co the thuoc ca nhan hoac to chuc)
+// ---------------------------------------------------------------------------
+export type OwnerType = "user" | "organization";
+
+export type OrganizationType = "cong_ty" | "hop_tac_xa" | "co_quan_nha_nuoc" | "khac";
+
+export const ORGANIZATION_TYPE_LABEL: Record<OrganizationType, string> = {
+    cong_ty: "Công ty",
+    hop_tac_xa: "Hợp tác xã",
+    co_quan_nha_nuoc: "Cơ quan nhà nước",
+    khac: "Khác",
+};
+
+export type Organization = {
+    _id: string;
+    name: string;
+    taxCode: string;
+    organizationType: OrganizationType;
+    representativeUserId: string | { _id: string; displayName: string; phone?: string };
+    representativeRole?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
+
 // Trang thai xac thuc ho kinh doanh - TINH tu ket qua duyet tung giay to bat
 // buoc (xem RequiredDocumentsResult), khong con la mot hanh dong duyet/tu choi
 // thu cong nhu HouseStatus. Xem businessDocumentService.recomputeBusinessStatus
@@ -137,6 +166,9 @@ export type BusinessStatus =
 
 export type BusinessDocumentStatus = "pending" | "approved" | "rejected";
 
+// ownerId khong duoc backend populate (van la id tho) - khi ownerType la
+// "organization", frontend tu goi fetchOrganizationById de biet
+// representativeUserId (xem HouseDetailPage.tsx).
 export type House = {
     _id: string;
     code: string;
@@ -145,6 +177,7 @@ export type House = {
     neighborhoodId?: string | Neighborhood | null;
     address: string;
     status: HouseStatus;
+    ownerType?: OwnerType;
     ownerId?: string | { _id: string; displayName: string } | null;
     note?: string;
     residenceDeclarationNumber?: string;
@@ -407,6 +440,11 @@ export type Meeting = {
     minutes?: string;
     attachments: string[];
     published: boolean;
+    eligibleAll?: boolean;
+    eligibleRoles?: Role[];
+    eligibleStreetIds?: (string | { _id: string; name: string })[];
+    eligibleNeighborhoodIds?: (string | { _id: string; name: string })[];
+    eligibleBusinessTypeIds?: (string | { _id: string; name: string })[];
     createdAt: string;
 };
 

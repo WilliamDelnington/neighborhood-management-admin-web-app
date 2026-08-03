@@ -10,6 +10,11 @@ export interface MeetingInput {
     minutes?: string;
     attachments?: string[];
     published: boolean;
+    eligibleAll?: boolean;
+    eligibleRoles?: string[];
+    eligibleStreetIds?: string[];
+    eligibleNeighborhoodIds?: string[];
+    eligibleBusinessTypeIds?: string[];
 }
 
 export const fetchMeetings = (

@@ -23,6 +23,7 @@ export const API = {
     ROLES_REVOKE: "/api/roles/revoke",
 
     HOUSES: "/api/houses",
+    ORGANIZATIONS: "/api/organizations",
     HOUSEHOLDS: "/api/households",
     NEIGHBORHOODS: "/api/neighborhoods",
     STREETS: "/api/streets",

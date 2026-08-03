@@ -10,6 +10,7 @@ import {
     Wallet,
     BarChart3,
     UserCog,
+    UserPlus,
     Settings,
     KeyRound,
     Briefcase,
@@ -19,6 +20,7 @@ import {
     History,
     LifeBuoy,
     MapPinned,
+    Building2,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -50,6 +52,13 @@ export const MODULES: ModuleItem[] = [
         path: "/streets",
         icon: MapPinned,
         permission: "streets.read",
+    },
+    {
+        key: "organizations",
+        label: "Tổ chức (chủ nhà)",
+        path: "/organizations",
+        icon: Building2,
+        permission: "organizations.read",
     },
     {
         key: "houses",
@@ -155,6 +164,13 @@ export const MODULES: ModuleItem[] = [
         path: "/users",
         icon: UserCog,
         permission: "users.read",
+    },
+    {
+        key: "create_house_owner",
+        label: "Tạo tài khoản chủ hộ",
+        path: "/users/new-house-owner",
+        icon: UserPlus,
+        permission: "users.create",
     },
     {
         key: "roles",
