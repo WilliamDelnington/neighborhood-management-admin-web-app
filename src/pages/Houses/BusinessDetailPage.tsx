@@ -122,7 +122,7 @@ const BusinessDetailContent: React.FC = () => {
     }, [businessId]);
 
     const houseIdValue = (): string => {
-        if (!business) return "";
+        if (!business || !business.houseId) return "";
         return typeof business.houseId === "string"
             ? business.houseId
             : business.houseId._id;

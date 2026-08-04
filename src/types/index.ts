@@ -246,7 +246,7 @@ export type Household = {
 export type Business = {
     _id: string;
     name: string;
-    houseId: string | House;
+    houseId: string | House | null;
     cluster: string;
     businessType?: { _id: string; name: string } | null;
     ownerName?: string;
