@@ -32,11 +32,17 @@ const BusinessListPage: React.FC = () => (
     </AdminGuard>
 );
 
-const houseIdOf = (b: Business): string =>
-    typeof b.houseId === "string" ? b.houseId : b.houseId._id;
+const houseIdOf = (b: Business): string => {
+    if (!b.houseId) return "";
+    return typeof b.houseId === "string" ? b.houseId : b.houseId._id;
+};
 
-const houseLabelOf = (b: Business): string =>
-    typeof b.houseId === "string" ? b.houseId : `${b.houseId.code} — ${b.houseId.address}`;
+const houseLabelOf = (b: Business): string => {
+    if (!b.houseId) return "Không xác định";
+    return typeof b.houseId === "string"
+        ? b.houseId
+        : `${b.houseId.code} — ${b.houseId.address}`;
+};
 
 const BusinessListContent: React.FC = () => {
     const navigate = useNavigate();
