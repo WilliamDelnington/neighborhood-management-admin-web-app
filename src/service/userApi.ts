@@ -35,6 +35,9 @@ export interface UpdateUserParams {
     displayName?: string;
     phone?: string;
     status?: "active" | "pending" | "locked";
+    // Bat buoc khi status co mat trong payload (khoa/mo tai khoan) - xem
+    // updateUserSchema o backend.
+    statusReason?: string;
     householdId?: string | null;
     citizenId?: string | null;
     assignedClusters?: string[];
@@ -48,6 +51,20 @@ export const updateUser = (
 
 export const revokeUserSession = (id: string): Promise<null> =>
     request<null>("POST", `${API.USERS}/${id}/revoke-session`);
+
+/**
+ * Khoa/mo tai khoan chu nha - quyen HEP hon updateUser (users.update):
+ * chi doi status, gioi han theo pham vi to dan pho neu actor la to truong
+ * (users.lock, khong phai users.update) - xem PATCH /api/users/:id/lock o
+ * backend. Dung tu HouseOwnershipPanel.tsx thay vi UserListPage (khong doi
+ * hoi users.read, tranh lo toan bo danh sach nguoi dung he thong).
+ */
+export const lockUserAccount = (
+    id: string,
+    status: "active" | "locked",
+    statusReason: string,
+): Promise<User> =>
+    request<User>("PATCH", `${API.USERS}/${id}/lock`, { status, statusReason });
 
 export interface CreateHouseOwnerParams {
     phone: string;

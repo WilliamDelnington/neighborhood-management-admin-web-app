@@ -172,6 +172,7 @@ const NeighborhoodListContent: React.FC = () => {
                             <TableRow>
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
+                                <TableHead>Phường/Xã</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Tổ trưởng</TableHead>
                             </TableRow>
@@ -189,6 +190,13 @@ const NeighborhoodListContent: React.FC = () => {
                                         {n.code}
                                     </TableCell>
                                     <TableCell>{n.name}</TableCell>
+                                    <TableCell>
+                                        {n.wardName || (
+                                            <span className="text-text_2">
+                                                Chưa gán
+                                            </span>
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge tone={n.active ? "green" : "gray"}>
                                             {n.active

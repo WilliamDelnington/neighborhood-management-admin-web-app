@@ -24,7 +24,11 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { usePermission } from "@store/authStore";
-import { HOUSE_STATUS_LABEL, HOUSE_STATUS_TONE } from "@constants/domain";
+import {
+    formatFullAddress,
+    HOUSE_STATUS_LABEL,
+    HOUSE_STATUS_TONE,
+} from "@constants/domain";
 import { House, AppError } from "@dts";
 import { createHouse, fetchHouses } from "@service/houseApi";
 import HouseForm, {
@@ -81,7 +85,9 @@ const HouseListContent: React.FC = () => {
 
     const handleCreate = async () => {
         if (!isHouseFormValid(form)) {
-            toast.error("Vui lòng chọn đường/phố hoặc nhập cụm dân cư, và địa chỉ");
+            toast.error(
+                "Vui lòng chọn đường/phố hoặc nhập cụm dân cư, địa chỉ, và họ tên + số điện thoại chủ nhà (nếu có chọn)",
+            );
             return;
         }
         try {
@@ -144,8 +150,13 @@ const HouseListContent: React.FC = () => {
                                     <TableCell className="font-medium">
                                         {h.code}
                                     </TableCell>
-                                    <TableCell>{h.address}</TableCell>
-                                    <TableCell>{h.cluster}</TableCell>
+                                    <TableCell>{formatFullAddress(h)}</TableCell>
+                                    <TableCell>
+                                        {h.neighborhoodId &&
+                                        typeof h.neighborhoodId !== "string"
+                                            ? h.neighborhoodId.name
+                                            : "Chưa gán"}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge tone={HOUSE_STATUS_TONE[h.status]}>
                                             {HOUSE_STATUS_LABEL[h.status]}

@@ -125,10 +125,29 @@ export type BusinessType = {
 
 export type HouseStatus = "unverified" | "pending" | "verified" | "denied" | "locked";
 
+// Trang thai xac thuc dung chung cho House/Household/Business - ba thuc the
+// nay co trang thai xac thuc DOC LAP voi nhau (chi phu thuoc nhau mot chieu
+// qua cascade khi House chuyen sang "verified"), nhung cung dung chung mot bo
+// 5 gia tri nhu HouseStatus. Household/Business dung alias nay cho truong
+// `status` cua chung thay vi mot enum rieng.
+export type VerificationStatus = HouseStatus;
+
+// Tinh trang cong trinh thuc te - doc lap voi HouseStatus (trang thai ho
+// so/xac thuc). Optional: nha chua duoc khai se khong co gia tri nay.
+export type HousePhysicalStatus =
+    | "not_handed_over"
+    | "not_renovated"
+    | "under_construction"
+    | "under_renovation"
+    | "completed"
+    | "in_use"
+    | "vacant"
+    | "damaged";
+
 // ---------------------------------------------------------------------------
 // Chu so huu (nha so co the thuoc ca nhan hoac to chuc)
 // ---------------------------------------------------------------------------
-export type OwnerType = "user" | "organization";
+export type OwnerType = "user" | "organization" | "person";
 
 export type OrganizationType = "cong_ty" | "hop_tac_xa" | "co_quan_nha_nuoc" | "khac";
 
@@ -144,7 +163,10 @@ export type Organization = {
     name: string;
     taxCode: string;
     organizationType: OrganizationType;
-    representativeUserId: string | { _id: string; displayName: string; phone?: string };
+    // Optional: to chuc duoc khai bao luc tao nha so co the chua co nguoi dai
+    // dien nao dang nhap duoc (xem HouseForm.tsx - checkbox "Tao tai khoan
+    // nguoi dai dien").
+    representativeUserId?: string | { _id: string; displayName: string; phone?: string };
     representativeRole?: string;
     phone?: string;
     email?: string;
@@ -154,15 +176,16 @@ export type Organization = {
     updatedAt: string;
 };
 
-// Trang thai xac thuc ho kinh doanh - TINH tu ket qua duyet tung giay to bat
-// buoc (xem RequiredDocumentsResult), khong con la mot hanh dong duyet/tu choi
-// thu cong nhu HouseStatus. Xem businessDocumentService.recomputeBusinessStatus
-// o backend.
-export type BusinessStatus =
-    | "unverified"
-    | "pending_approval"
-    | "need_supplement"
-    | "verified";
+// Danh tinh duoc khai bao (ten/sdt/email) cho chu nha/nguoi dai dien to chuc
+// KHONG tao tai khoan dang nhap - xem OwnerType="person" o HouseOwnership.
+export type Person = {
+    _id: string;
+    fullName: string;
+    phone?: string;
+    email?: string;
+    createdAt: string;
+    updatedAt: string;
+};
 
 export type BusinessDocumentStatus = "pending" | "approved" | "rejected";
 
@@ -176,11 +199,55 @@ export type House = {
     streetId?: string | Street | null;
     neighborhoodId?: string | Neighborhood | null;
     address: string;
+    // Phuong/xa va tinh/thanh pho - hien thi dia chi day du, khong lien quan
+    // RBAC/pham vi (khac cluster/neighborhoodId) - xem administrativeDivisionApi.ts.
+    provinceCode?: number;
+    provinceName?: string;
+    wardCode?: number;
+    wardName?: string;
     status: HouseStatus;
+    physicalStatus?: HousePhysicalStatus;
+    // Cache cua quan he primary_owner dang active trong HouseOwnership (xem
+    // ben duoi) - mot nha co the co nhieu chu so huu/nguoi quan ly dong thoi,
+    // hai truong nay chi phan anh chu so huu CHINH hien tai.
     ownerType?: OwnerType;
     ownerId?: string | { _id: string; displayName: string } | null;
     note?: string;
+    approvalNote?: string;
+    denialReason?: string;
     residenceDeclarationNumber?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type HouseOwnershipRelationshipType =
+    | "primary_owner"
+    | "co_owner"
+    | "authorized_manager"
+    | "legal_representative"
+    | "contact_person";
+
+export type HouseOwnershipVerificationStatus =
+    | "waiting_verification"
+    | "verified"
+    | "rejected";
+
+// ownerId luon la id tho (khong duoc backend populate, vi la ref da hinh User/
+// Organization) - ownerDisplayName/ownerPhone duoc backend tu resolve rieng
+// (xem houseOwnershipService.listHouseOwnerships) de khong phai goi them API.
+export type HouseOwnership = {
+    _id: string;
+    houseId: string;
+    ownerType: OwnerType;
+    ownerId: string;
+    ownerDisplayName?: string;
+    ownerPhone?: string;
+    relationshipType: HouseOwnershipRelationshipType;
+    startDate: string;
+    endDate?: string | null;
+    active: boolean;
+    verificationStatus: HouseOwnershipVerificationStatus;
+    reason?: string;
     createdAt: string;
     updatedAt: string;
 };
@@ -191,6 +258,12 @@ export type Neighborhood = {
     code: string;
     sequence: number;
     active: boolean;
+    // Bat buoc luc tao (xem NeighborhoodForm.tsx) nhung optional o day vi to
+    // dan pho tao truoc khi co truong nay se khong co gia tri (khong backfill).
+    provinceCode?: number;
+    provinceName?: string;
+    wardCode?: number;
+    wardName?: string;
     address?: string;
     description?: string;
     contactPhone?: string;
@@ -212,6 +285,26 @@ export type Street = {
     active: boolean;
     createdAt: string;
     updatedAt: string;
+};
+
+// Du lieu don vi hanh chinh cong khai (tinh/thanh pho, phuong/xa) tu
+// https://provinces.open-api.vn - khong phai entity quan ly boi backend, chi
+// proxy/cache lai (xem administrativeDivisionApi.ts). Shape khop nguyen voi
+// API ben ngoai, khong doi ten field.
+export type Province = {
+    name: string;
+    code: number;
+    division_type: string;
+    codename: string;
+    phone_code?: number;
+};
+
+export type Ward = {
+    name: string;
+    code: number;
+    division_type: string;
+    codename: string;
+    province_code: number;
 };
 
 export type NeighborhoodLeaderAssignment = {
@@ -238,6 +331,9 @@ export type Household = {
     ownershipType: LoaiSoHuu;
     needsSupport: boolean;
     houseId?: string | House;
+    status: VerificationStatus;
+    approvalNote?: string;
+    denialReason?: string;
     note?: string;
     createdAt: string;
     updatedAt: string;
@@ -252,7 +348,9 @@ export type Business = {
     ownerName?: string;
     phone?: string;
     active: boolean;
-    status: BusinessStatus;
+    status: VerificationStatus;
+    approvalNote?: string;
+    denialReason?: string;
     note?: string;
     createdAt: string;
     updatedAt: string;
@@ -277,6 +375,7 @@ export type BusinessDocument = {
     expiryDate?: string;
     status: BusinessDocumentStatus;
     rejectionReason?: string;
+    approvalNote?: string;
     uploadedBy: string | PopulatedActor;
     reviewedBy?: string | PopulatedActor;
     reviewedAt?: string;

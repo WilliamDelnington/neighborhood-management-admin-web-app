@@ -5,6 +5,8 @@ import { ArrowLeft, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
+import { Label } from "@components/ui/label";
+import { Textarea } from "@components/ui/textarea";
 import {
     Dialog,
     DialogContent,
@@ -25,13 +27,18 @@ import {
     ErrorState,
 } from "@components/admin/DataStates";
 import { usePermission } from "@store/authStore";
-import { AppError, Citizen, Household } from "@dts";
-import { LOAI_SO_HUU_LABEL } from "@constants/domain";
+import { AppError, Citizen, Household, VerificationStatus } from "@dts";
+import {
+    LOAI_SO_HUU_LABEL,
+    VERIFICATION_STATUS_LABEL,
+    VERIFICATION_STATUS_TONE,
+} from "@constants/domain";
 import {
     deleteHousehold,
     fetchHouseholdById,
     fetchHouseholdCitizens,
     updateHousehold,
+    updateHouseholdStatus,
 } from "@service/householdApi";
 import {
     createCitizen,
@@ -97,6 +104,7 @@ const HouseholdDetailContent: React.FC = () => {
     const navigate = useNavigate();
     const canUpdate = usePermission("households.update");
     const canDelete = usePermission("households.delete");
+    const canVerify = usePermission("households.verify");
     const canCreateCitizen = usePermission("citizens.create");
     const canUpdateCitizen = usePermission("citizens.update");
     const canDeleteCitizen = usePermission("citizens.delete");
@@ -113,6 +121,10 @@ const HouseholdDetailContent: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [statusUpdating, setStatusUpdating] = useState(false);
+    const [statusDialogTarget, setStatusDialogTarget] =
+        useState<VerificationStatus | null>(null);
+    const [statusNote, setStatusNote] = useState("");
 
     const [citizenSheetVisible, setCitizenSheetVisible] = useState(false);
     const [editingCitizenId, setEditingCitizenId] = useState<string | null>(
@@ -192,6 +204,35 @@ const HouseholdDetailContent: React.FC = () => {
         }
     };
 
+    const handleStatusChange = async (status: VerificationStatus, note?: string) => {
+        if (!id) return;
+        try {
+            setStatusUpdating(true);
+            const updated = await updateHouseholdStatus(id, status, note);
+            setHousehold(updated);
+            toast.success("Đã cập nhật trạng thái hộ dân");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setStatusUpdating(false);
+        }
+    };
+
+    const openStatusDialog = (status: VerificationStatus) => {
+        setStatusNote("");
+        setStatusDialogTarget(status);
+    };
+
+    const confirmStatusChange = async () => {
+        if (!statusDialogTarget) return;
+        if (statusDialogTarget === "denied" && !statusNote.trim()) {
+            toast.error("Vui lòng nhập lý do từ chối");
+            return;
+        }
+        await handleStatusChange(statusDialogTarget, statusNote.trim() || undefined);
+        setStatusDialogTarget(null);
+    };
+
     const openCreateCitizen = () => {
         setEditingCitizenId(null);
         setCitizenForm({ ...EMPTY_CITIZEN_FORM, householdId: id || "" });
@@ -267,9 +308,14 @@ const HouseholdDetailContent: React.FC = () => {
                             <h2 className="text-lg font-semibold">
                                 {household.code}
                             </h2>
-                            {household.needsSupport && (
-                                <Badge tone="yellow">Cần hỗ trợ</Badge>
-                            )}
+                            <div className="flex items-center gap-2">
+                                {household.needsSupport && (
+                                    <Badge tone="yellow">Cần hỗ trợ</Badge>
+                                )}
+                                <Badge tone={VERIFICATION_STATUS_TONE[household.status]}>
+                                    {VERIFICATION_STATUS_LABEL[household.status]}
+                                </Badge>
+                            </div>
                         </div>
 
                         {editing ? (
@@ -331,15 +377,18 @@ const HouseholdDetailContent: React.FC = () => {
                                     value={household.note || "Không có"}
                                 />
 
-                                <div className="mt-4 flex gap-2">
-                                    {canUpdate && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => setEditing(true)}
-                                        >
-                                            Chỉnh sửa
-                                        </Button>
-                                    )}
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {canUpdate &&
+                                        ["unverified", "pending"].includes(
+                                            household.status,
+                                        ) && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setEditing(true)}
+                                            >
+                                                Chỉnh sửa
+                                            </Button>
+                                        )}
                                     {canDelete && (
                                         <Button
                                             variant="destructive"
@@ -349,6 +398,39 @@ const HouseholdDetailContent: React.FC = () => {
                                         >
                                             Xóa
                                         </Button>
+                                    )}
+                                    {canUpdate &&
+                                        (household.status === "unverified" ||
+                                            household.status === "denied") && (
+                                            <Button
+                                                loading={statusUpdating}
+                                                onClick={() =>
+                                                    handleStatusChange("pending")
+                                                }
+                                            >
+                                                Gửi duyệt
+                                            </Button>
+                                        )}
+                                    {canVerify && household.status === "pending" && (
+                                        <>
+                                            <Button
+                                                loading={statusUpdating}
+                                                onClick={() =>
+                                                    openStatusDialog("verified")
+                                                }
+                                            >
+                                                Duyệt
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                loading={statusUpdating}
+                                                onClick={() =>
+                                                    openStatusDialog("denied")
+                                                }
+                                            >
+                                                Từ chối
+                                            </Button>
+                                        </>
                                     )}
                                 </div>
                             </>
@@ -484,6 +566,56 @@ const HouseholdDetailContent: React.FC = () => {
                             onClick={handleDeleteCitizen}
                         >
                             Xóa
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!statusDialogTarget}
+                onOpenChange={open => !open && setStatusDialogTarget(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {statusDialogTarget === "denied"
+                                ? "Từ chối hộ dân"
+                                : "Duyệt hộ dân"}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-1.5">
+                        <Label className="text-sm text-text_2">
+                            {statusDialogTarget === "denied"
+                                ? "Lý do từ chối (bắt buộc)"
+                                : "Ghi chú duyệt (không bắt buộc)"}
+                        </Label>
+                        <Textarea
+                            value={statusNote}
+                            onChange={e => setStatusNote(e.target.value)}
+                            placeholder={
+                                statusDialogTarget === "denied"
+                                    ? "VD: Thiếu giấy tờ, sai địa chỉ..."
+                                    : "Ghi chú thêm (nếu có)"
+                            }
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setStatusDialogTarget(null)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant={
+                                statusDialogTarget === "denied"
+                                    ? "destructive"
+                                    : "default"
+                            }
+                            loading={statusUpdating}
+                            onClick={confirmStatusChange}
+                        >
+                            {statusDialogTarget === "denied" ? "Từ chối" : "Duyệt"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

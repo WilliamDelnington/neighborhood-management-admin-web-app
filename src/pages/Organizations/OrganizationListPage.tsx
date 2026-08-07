@@ -127,8 +127,9 @@ const OrganizationListContent: React.FC = () => {
 
     const openEditSheet = (organization: Organization) => {
         setEditing(organization);
-        const representative =
-            typeof organization.representativeUserId === "string"
+        const representative = !organization.representativeUserId
+            ? { id: "", label: "" }
+            : typeof organization.representativeUserId === "string"
                 ? { id: organization.representativeUserId, label: "" }
                 : {
                       id: organization.representativeUserId._id,
@@ -251,9 +252,11 @@ const OrganizationListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell>{o.taxCode}</TableCell>
                                     <TableCell>
-                                        {typeof o.representativeUserId === "string"
-                                            ? o.representativeUserId
-                                            : o.representativeUserId.displayName}
+                                        {!o.representativeUserId
+                                            ? "Chưa có người đại diện"
+                                            : typeof o.representativeUserId === "string"
+                                                ? o.representativeUserId
+                                                : o.representativeUserId.displayName}
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={o.active ? "green" : "gray"}>

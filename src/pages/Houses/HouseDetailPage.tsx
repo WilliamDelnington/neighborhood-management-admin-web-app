@@ -5,6 +5,8 @@ import { ArrowLeft, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
+import { Label } from "@components/ui/label";
+import { Textarea } from "@components/ui/textarea";
 import {
     Dialog,
     DialogContent,
@@ -27,11 +29,13 @@ import {
 import HouseholdPicker from "@components/admin/HouseholdPicker";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
+import HouseOwnershipPanel from "@components/admin/HouseOwnershipPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
-    BUSINESS_STATUS_LABEL,
-    BUSINESS_STATUS_TONE,
+    VERIFICATION_STATUS_LABEL,
+    VERIFICATION_STATUS_TONE,
     HOUSE_AUDIT_ACTION_LABEL,
+    HOUSE_PHYSICAL_STATUS_LABEL,
     HOUSE_STATUS_LABEL,
     HOUSE_STATUS_TONE,
 } from "@constants/domain";
@@ -88,11 +92,28 @@ const toFormValues = (h: House): HouseFormValues => ({
             ? h.neighborhoodId._id
             : "",
     address: h.address,
+    provinceCode: h.provinceCode ? String(h.provinceCode) : "",
+    provinceName: h.provinceName || "",
+    wardCode: h.wardCode ? String(h.wardCode) : "",
+    wardName: h.wardName || "",
+    physicalStatus: h.physicalStatus || "",
     note: h.note || "",
     residenceDeclarationNumber: h.residenceDeclarationNumber || "",
     // Khong the doi chu nha sau khi tao (xem HouseForm.tsx) - khong can dien lai.
-    organizationId: "",
-    organizationLabel: "",
+    ownerKind: "none",
+    ownerName: "",
+    ownerPhone: "",
+    ownerEmail: "",
+    createOwnerAccount: false,
+    orgName: "",
+    orgTaxCode: "",
+    orgAddress: "",
+    orgPhone: "",
+    orgEmail: "",
+    createRepresentativeAccount: false,
+    repName: "",
+    repPhone: "",
+    repEmail: "",
 });
 
 const HouseDetailPage: React.FC = () => (
@@ -122,6 +143,9 @@ const HouseDetailContent: React.FC = () => {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
+    const [statusDialogTarget, setStatusDialogTarget] =
+        useState<HouseStatus | null>(null);
+    const [statusNote, setStatusNote] = useState("");
 
     const [households, setHouseholds] = useState<Household[]>([]);
     const [householdsLoading, setHouseholdsLoading] = useState(true);
@@ -261,6 +285,12 @@ const HouseDetailContent: React.FC = () => {
         fetchOrganizationById(ownerId)
             .then(org => {
                 if (cancelled) return;
+                // To chuc duoc khai bao luc tao nha so co the chua co nguoi
+                // dai dien nao dang nhap duoc (xem HouseForm.tsx).
+                if (!org.representativeUserId) {
+                    setIsOwner(false);
+                    return;
+                }
                 const representativeId =
                     typeof org.representativeUserId === "string"
                         ? org.representativeUserId
@@ -276,11 +306,11 @@ const HouseDetailContent: React.FC = () => {
         };
     }, [house?.ownerId, house?.ownerType, currentUserId]);
 
-    const handleStatusChange = async (status: HouseStatus) => {
+    const handleStatusChange = async (status: HouseStatus, note?: string) => {
         if (!houseId) return;
         try {
             setStatusUpdating(true);
-            const updated = await updateHouseStatus(houseId, status);
+            const updated = await updateHouseStatus(houseId, status, note);
             setHouse(updated);
             toast.success("Đã cập nhật trạng thái nhà số");
         } catch (err) {
@@ -288,6 +318,21 @@ const HouseDetailContent: React.FC = () => {
         } finally {
             setStatusUpdating(false);
         }
+    };
+
+    const openStatusDialog = (status: HouseStatus) => {
+        setStatusNote("");
+        setStatusDialogTarget(status);
+    };
+
+    const confirmStatusChange = async () => {
+        if (!statusDialogTarget) return;
+        if (statusDialogTarget === "denied" && !statusNote.trim()) {
+            toast.error("Vui lòng nhập lý do từ chối");
+            return;
+        }
+        await handleStatusChange(statusDialogTarget, statusNote.trim() || undefined);
+        setStatusDialogTarget(null);
     };
 
     const openCreateHousehold = () => {
@@ -403,6 +448,18 @@ const HouseDetailContent: React.FC = () => {
                             </>
                         ) : (
                             <>
+                                {house.provinceName && (
+                                    <InfoRow
+                                        label="Tỉnh/Thành phố"
+                                        value={house.provinceName}
+                                    />
+                                )}
+                                {house.wardName && (
+                                    <InfoRow
+                                        label="Phường/Xã"
+                                        value={house.wardName}
+                                    />
+                                )}
                                 <InfoRow label="Cụm dân cư" value={house.cluster} />
                                 {streetName(house.streetId) && (
                                     <InfoRow
@@ -418,9 +475,33 @@ const HouseDetailContent: React.FC = () => {
                                 )}
                                 <InfoRow label="Địa chỉ" value={house.address} />
                                 <InfoRow
+                                    label="Tình trạng công trình"
+                                    value={
+                                        house.physicalStatus
+                                            ? HOUSE_PHYSICAL_STATUS_LABEL[
+                                                  house.physicalStatus
+                                              ]
+                                            : "Chưa cập nhật"
+                                    }
+                                />
+                                <InfoRow
                                     label="Ghi chú"
                                     value={house.note || "Không có"}
                                 />
+                                {house.status === "verified" &&
+                                    house.approvalNote && (
+                                        <InfoRow
+                                            label="Ghi chú duyệt"
+                                            value={house.approvalNote}
+                                        />
+                                    )}
+                                {house.status === "denied" &&
+                                    house.denialReason && (
+                                        <InfoRow
+                                            label="Lý do từ chối"
+                                            value={house.denialReason}
+                                        />
+                                    )}
 
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {canUpdate && (
@@ -460,7 +541,7 @@ const HouseDetailContent: React.FC = () => {
                                             <Button
                                                 loading={statusUpdating}
                                                 onClick={() =>
-                                                    handleStatusChange(
+                                                    openStatusDialog(
                                                         "verified",
                                                     )
                                                 }
@@ -471,7 +552,7 @@ const HouseDetailContent: React.FC = () => {
                                                 variant="destructive"
                                                 loading={statusUpdating}
                                                 onClick={() =>
-                                                    handleStatusChange(
+                                                    openStatusDialog(
                                                         "denied",
                                                     )
                                                 }
@@ -506,6 +587,13 @@ const HouseDetailContent: React.FC = () => {
                             </>
                         )}
                     </div>
+
+                    {houseId && (
+                        <HouseOwnershipPanel
+                            houseId={houseId}
+                            canManage={canUpdate}
+                        />
+                    )}
 
                     <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
@@ -551,11 +639,16 @@ const HouseDetailContent: React.FC = () => {
                                         <div className="text-sm font-medium">
                                             {h.code} — {h.headOfHousehold}
                                         </div>
-                                        {h.needsSupport && (
-                                            <Badge tone="yellow">
-                                                Cần hỗ trợ
+                                        <div className="flex items-center gap-2">
+                                            {h.needsSupport && (
+                                                <Badge tone="yellow">
+                                                    Cần hỗ trợ
+                                                </Badge>
+                                            )}
+                                            <Badge tone={VERIFICATION_STATUS_TONE[h.status]}>
+                                                {VERIFICATION_STATUS_LABEL[h.status]}
                                             </Badge>
-                                        )}
+                                        </div>
                                     </div>
                                     <div className="text-xs text-text_2">
                                         {h.memberCount} nhân khẩu
@@ -597,8 +690,8 @@ const HouseDetailContent: React.FC = () => {
                                             {b.name}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge tone={BUSINESS_STATUS_TONE[b.status]}>
-                                                {BUSINESS_STATUS_LABEL[b.status]}
+                                            <Badge tone={VERIFICATION_STATUS_TONE[b.status]}>
+                                                {VERIFICATION_STATUS_LABEL[b.status]}
                                             </Badge>
                                             {!b.active && (
                                                 <Badge tone="gray">
@@ -656,6 +749,58 @@ const HouseDetailContent: React.FC = () => {
                             onClick={handleDelete}
                         >
                             Xóa
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!statusDialogTarget}
+                onOpenChange={open => !open && setStatusDialogTarget(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {statusDialogTarget === "denied"
+                                ? "Từ chối nhà số"
+                                : "Duyệt nhà số"}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-1.5">
+                        <Label className="text-sm text-text_2">
+                            {statusDialogTarget === "denied"
+                                ? "Lý do từ chối (bắt buộc)"
+                                : "Ghi chú duyệt (không bắt buộc)"}
+                        </Label>
+                        <Textarea
+                            value={statusNote}
+                            onChange={e => setStatusNote(e.target.value)}
+                            placeholder={
+                                statusDialogTarget === "denied"
+                                    ? "VD: Thiếu giấy tờ, sai địa chỉ..."
+                                    : "Ghi chú thêm (nếu có)"
+                            }
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setStatusDialogTarget(null)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant={
+                                statusDialogTarget === "denied"
+                                    ? "destructive"
+                                    : "default"
+                            }
+                            loading={statusUpdating}
+                            onClick={confirmStatusChange}
+                        >
+                            {statusDialogTarget === "denied"
+                                ? "Từ chối"
+                                : "Duyệt"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

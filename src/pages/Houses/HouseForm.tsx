@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
+import { Checkbox } from "@components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
 import {
     Select,
     SelectContent,
@@ -9,24 +11,108 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import { HouseInput } from "@service/houseApi";
+import FilterableSelect from "@components/admin/FilterableSelect";
+import {
+    checkOwnerPhone,
+    HouseInput,
+    OwnerPhoneCheckResult,
+} from "@service/houseApi";
 import { fetchStreets } from "@service/streetApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
-import OrganizationPicker from "@components/admin/OrganizationPicker";
-import { Neighborhood, Organization, Street } from "@dts";
+import {
+    fetchProvinces,
+    fetchWardsByProvince,
+} from "@service/administrativeDivisionApi";
+import { HOUSE_PHYSICAL_STATUS_LABEL } from "@constants/domain";
+import { HousePhysicalStatus, Neighborhood, Province, Street, Ward } from "@dts";
 import { useAuthStore, usePermission } from "@store/authStore";
+
+const HOUSE_PHYSICAL_STATUS_KEYS = Object.keys(
+    HOUSE_PHYSICAL_STATUS_LABEL,
+) as HousePhysicalStatus[];
+
+// Trung voi isValidVnPhone o backend (src/lib/phone.ts) - chi goi API kiem tra
+// khi da nhap du dinh dang, tranh goi API lien tuc tren so dien thoai con dang go.
+const VN_PHONE_REGEX = /^0(3|5|7|8|9)\d{8}$/;
+
+/**
+ * Kiem tra (debounce 400ms) so dien thoai da co tai khoan trong he thong hay
+ * chua - dung tren ownerPhone/repPhone de canh bao ngay tren form truoc khi
+ * nop, vi resolveOrCreateHouseOwner/resolveOrCreatePersonOwner o backend se tu
+ * dong dung tai khoan co san (khong tao trung) neu so dien thoai da ton tai.
+ * Truyen phone="" (field khong ap dung/chua du dinh dang) de tat kiem tra.
+ */
+function useOwnerPhoneCheck(phone: string): OwnerPhoneCheckResult | null {
+    const [result, setResult] = useState<OwnerPhoneCheckResult | null>(null);
+
+    useEffect(() => {
+        if (!VN_PHONE_REGEX.test(phone)) {
+            setResult(null);
+            return;
+        }
+        let cancelled = false;
+        const timer = setTimeout(() => {
+            checkOwnerPhone(phone)
+                .then(res => {
+                    if (!cancelled) setResult(res);
+                })
+                .catch(() => {
+                    if (!cancelled) setResult(null);
+                });
+        }, 400);
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [phone]);
+
+    return result;
+}
+
+export type HouseOwnerKind = "individual" | "organization" | "none";
 
 export interface HouseFormValues {
     cluster: string;
     streetId: string;
     neighborhoodId: string;
     address: string;
+    // Tinh/thanh pho + phuong/xa - hien thi dia chi day du, khong bat buoc
+    // (xem administrativeDivisionApi.ts). provinceCode/wardCode la chuoi de
+    // bind vao Select (giong streetId/neighborhoodId), provinceName/wardName
+    // luu lai ten hien thi tai thoi diem chon (gui kem len backend, khong tu
+    // resolve lai).
+    provinceCode: string;
+    provinceName: string;
+    wardCode: string;
+    wardName: string;
+    // "" = chua khai bao tinh trang cong trinh - doc lap voi trang thai ho so
+    // (HouseStatus), xem HouseForm.tsx.
+    physicalStatus: HousePhysicalStatus | "";
     note: string;
     residenceDeclarationNumber: string;
-    // "" = dang ky bang ca nhan (mac dinh). Chi co y nghia luc tao moi - backend
-    // khong ho tro doi chu nha sau khi da tao (xem houseRecordService.createHouseRecord).
-    organizationId: string;
-    organizationLabel: string;
+    // Loai chu nha - chi co y nghia luc tao moi, backend khong ho tro doi loai
+    // chu nha sau khi da tao (xem houseRecordService.createHouseRecord).
+    ownerKind: HouseOwnerKind;
+    // ownerKind="individual": thong tin chu nha luon duoc thu thap (kem du co
+    // tick tao tai khoan hay khong - de van khai bao duoc chu nha ma khong bat
+    // buoc tao tai khoan dang nhap, xem createOwnerAccount).
+    ownerName: string;
+    ownerPhone: string;
+    ownerEmail: string;
+    createOwnerAccount: boolean;
+    // ownerKind="organization": thong tin to chuc duoc khai bao inline, luon
+    // duoc thu thap - backend tim-hoac-tao theo taxCode.
+    orgName: string;
+    orgTaxCode: string;
+    orgAddress: string;
+    orgPhone: string;
+    orgEmail: string;
+    // Chi hien them sub-form nguoi dai dien khi tick - to chuc co the khong co
+    // ai dang nhap thay duoc.
+    createRepresentativeAccount: boolean;
+    repName: string;
+    repPhone: string;
+    repEmail: string;
 }
 
 export const EMPTY_HOUSE_FORM: HouseFormValues = {
@@ -34,10 +120,27 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
     streetId: "",
     neighborhoodId: "",
     address: "",
+    provinceCode: "",
+    provinceName: "",
+    wardCode: "",
+    wardName: "",
+    physicalStatus: "",
     note: "",
     residenceDeclarationNumber: "",
-    organizationId: "",
-    organizationLabel: "",
+    ownerKind: "none",
+    ownerName: "",
+    ownerPhone: "",
+    ownerEmail: "",
+    createOwnerAccount: false,
+    orgName: "",
+    orgTaxCode: "",
+    orgAddress: "",
+    orgPhone: "",
+    orgEmail: "",
+    createRepresentativeAccount: false,
+    repName: "",
+    repPhone: "",
+    repEmail: "",
 };
 
 export function toHouseInput(values: HouseFormValues): HouseInput {
@@ -46,18 +149,69 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
         streetId: values.streetId || undefined,
         neighborhoodId: values.neighborhoodId || null,
         address: values.address.trim(),
+        provinceCode: values.provinceCode
+            ? Number(values.provinceCode)
+            : undefined,
+        provinceName: values.provinceName || undefined,
+        wardCode: values.wardCode ? Number(values.wardCode) : undefined,
+        wardName: values.wardName || undefined,
+        physicalStatus: values.physicalStatus || undefined,
         note: values.note.trim() || undefined,
         residenceDeclarationNumber:
             values.residenceDeclarationNumber.trim() || undefined,
-        organizationId: values.organizationId || undefined,
+        ownerKind: values.ownerKind,
+        owner:
+            values.ownerKind === "individual"
+                ? {
+                      displayName: values.ownerName.trim(),
+                      phone: values.ownerPhone.trim(),
+                      email: values.ownerEmail.trim() || undefined,
+                  }
+                : undefined,
+        createOwnerAccount:
+            values.ownerKind === "individual"
+                ? values.createOwnerAccount
+                : undefined,
+        organization:
+            values.ownerKind === "organization"
+                ? {
+                      name: values.orgName.trim(),
+                      taxCode: values.orgTaxCode.trim(),
+                      address: values.orgAddress.trim() || undefined,
+                      phone: values.orgPhone.trim() || undefined,
+                      email: values.orgEmail.trim() || undefined,
+                  }
+                : undefined,
+        createRepresentativeAccount:
+            values.ownerKind === "organization"
+                ? values.createRepresentativeAccount
+                : undefined,
+        representative:
+            values.ownerKind === "organization" &&
+            values.createRepresentativeAccount
+                ? {
+                      displayName: values.repName.trim(),
+                      phone: values.repPhone.trim(),
+                      email: values.repEmail.trim() || undefined,
+                  }
+                : undefined,
     };
 }
 
 export function isHouseFormValid(values: HouseFormValues): boolean {
-    return !!(
-        (values.cluster.trim() || values.streetId) &&
-        values.address.trim()
-    );
+    if (!(values.cluster.trim() || values.streetId) || !values.address.trim()) {
+        return false;
+    }
+    if (values.ownerKind === "individual") {
+        return !!(values.ownerName.trim() && values.ownerPhone.trim());
+    }
+    if (values.ownerKind === "organization") {
+        if (!(values.orgName.trim() && values.orgTaxCode.trim())) return false;
+        if (values.createRepresentativeAccount) {
+            return !!(values.repName.trim() && values.repPhone.trim());
+        }
+    }
+    return true;
 }
 
 interface HouseFormProps {
@@ -86,9 +240,28 @@ const HouseForm: React.FC<HouseFormProps> = ({
     const canPickNeighborhood = usePermission("neighborhoods.read");
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     // Chi house_owner/admin (nguoi co the la nguoi dai dien to chuc) moi thay
-    // lua chon nay, va chi luc tao moi - xem ghi chu o HouseFormValues.organizationId.
+    // lua chon "Tổ chức", va chi luc tao moi - xem ghi chu o HouseFormValues.ownerKind.
     const hasOrganizationPermission = usePermission("organizations.create");
     const canPickOrganization = mode === "create" && hasOrganizationPermission;
+    // Chi nhan vien co quyen tao tai khoan chu ho thay (vd to truong - xem
+    // trang /users/new-house-owner) moi thay muc nay, va chi luc tao moi nha -
+    // ho khong tu so huu nha (khac house_owner tu dang ky), nen can nhap thong
+    // tin chu nha ca nhan hoac de trong (chua co chu nha, gan sau).
+    const canAttachOwner = mode === "create" && usePermission("users.create");
+
+    // Tinh/thanh pho + phuong/xa - khong gan permission rieng (du lieu tham
+    // chieu cong khai, khong nhay cam) - xem administrativeDivisionApi.ts.
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+
+    const ownerPhoneCheck = useOwnerPhoneCheck(
+        values.ownerKind === "individual" ? values.ownerPhone : "",
+    );
+    const repPhoneCheck = useOwnerPhoneCheck(
+        values.ownerKind === "organization" && values.createRepresentativeAccount
+            ? values.repPhone
+            : "",
+    );
 
     const set = <K extends keyof HouseFormValues>(
         key: K,
@@ -116,27 +289,126 @@ const HouseForm: React.FC<HouseFormProps> = ({
             .catch(() => setNeighborhoods([]));
     }, [canPickNeighborhood]);
 
+    useEffect(() => {
+        fetchProvinces()
+            .then(setProvinces)
+            .catch(() => setProvinces([]));
+    }, []);
+
+    useEffect(() => {
+        if (!values.provinceCode) {
+            setWards([]);
+            return;
+        }
+        fetchWardsByProvince(Number(values.provinceCode))
+            .then(setWards)
+            .catch(() => setWards([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [values.provinceCode]);
+
+    const handleProvinceChange = (code: string, province?: Province) => {
+        onChange({
+            ...values,
+            provinceCode: code,
+            provinceName: province?.name || "",
+            // Doi tinh/thanh pho thi phuong/xa da chon (thuoc tinh cu) khong
+            // con hop le nua - xoa de nguoi dung chon lai.
+            wardCode: "",
+            wardName: "",
+        });
+    };
+
+    const handleWardChange = (code: string, ward?: Ward) => {
+        onChange({
+            ...values,
+            wardCode: code,
+            wardName: ward?.name || "",
+        });
+    };
+
+    // Neu to dan pho duoc chon co san phuong/xa (bat buoc voi to dan pho MOI,
+    // nhung to dan pho cu tao truoc khi co truong nay co the chua co), phuong/xa
+    // cua nha so PHAI khop voi to dan pho - tu dien va khoa 2 select tren, giong
+    // hanh vi backend (xem houseRecordService.resolveAdministrativeDivisions).
+    // Neu to dan pho chua co phuong/xa rieng thi khong khoa, de nguoi dung tu
+    // chon nhu binh thuong (doc lap, giong Street/Neighborhood hom nay).
+    const selectedNeighborhood = neighborhoods.find(
+        n => n._id === values.neighborhoodId,
+    );
+    const wardLockedByNeighborhood = !!selectedNeighborhood?.wardCode;
+
+    const handleNeighborhoodChange = (id: string) => {
+        if (!id) {
+            onChange({ ...values, neighborhoodId: "" });
+            return;
+        }
+        const neighborhood = neighborhoods.find(n => n._id === id);
+        if (neighborhood?.wardCode) {
+            onChange({
+                ...values,
+                neighborhoodId: id,
+                provinceCode: String(neighborhood.provinceCode),
+                provinceName: neighborhood.provinceName || "",
+                wardCode: String(neighborhood.wardCode),
+                wardName: neighborhood.wardName || "",
+            });
+        } else {
+            onChange({ ...values, neighborhoodId: id });
+        }
+    };
+
     return (
         <div className="flex flex-col gap-4">
+            <FilterableSelect
+                label="Tỉnh/Thành phố"
+                placeholder="Chọn tỉnh/thành phố"
+                searchPlaceholder="Tìm theo tên tỉnh/thành phố..."
+                items={provinces}
+                getId={p => String(p.code)}
+                getLabel={p => p.name}
+                value={values.provinceCode}
+                valueLabel={values.provinceName}
+                onChange={(code, province) =>
+                    handleProvinceChange(code || "", province)
+                }
+                disabled={wardLockedByNeighborhood}
+            />
+            <FilterableSelect
+                label="Phường/Xã"
+                placeholder={
+                    values.provinceCode
+                        ? "Chọn phường/xã"
+                        : "Chọn tỉnh/thành phố trước"
+                }
+                searchPlaceholder="Tìm theo tên phường/xã..."
+                items={wards}
+                getId={w => String(w.code)}
+                getLabel={w => w.name}
+                value={values.wardCode}
+                valueLabel={values.wardName}
+                onChange={(code, ward) => handleWardChange(code || "", ward)}
+                disabled={!values.provinceCode || wardLockedByNeighborhood}
+                hint={
+                    wardLockedByNeighborhood
+                        ? "Tự động điền theo tổ dân phố đã chọn."
+                        : undefined
+                }
+            />
             {canPickStreet ? (
-                <div className="space-y-1.5">
-                    <Label>Đường/phố</Label>
-                    <Select
-                        value={values.streetId}
-                        onValueChange={v => set("streetId", v)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Chọn đường/phố" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {streets.map(s => (
-                                <SelectItem key={s._id} value={s._id}>
-                                    {s.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <FilterableSelect
+                    label="Đường/phố"
+                    placeholder="Chọn đường/phố"
+                    searchPlaceholder="Tìm theo tên đường/phố..."
+                    items={streets}
+                    getId={s => s._id}
+                    getLabel={s => s.name}
+                    value={values.streetId}
+                    valueLabel={
+                        streets.find(s => s._id === values.streetId)?.name
+                    }
+                    onChange={id => set("streetId", id || "")}
+                    clearable={false}
+                />
             ) : (
                 <div className="space-y-1.5">
                     <Label>Cụm dân cư</Label>
@@ -166,29 +438,20 @@ const HouseForm: React.FC<HouseFormProps> = ({
                 </div>
             )}
             {canPickNeighborhood && (
-                <div className="space-y-1.5">
-                    <Label>Tổ dân phố</Label>
-                    <Select
-                        value={values.neighborhoodId || "__none__"}
-                        onValueChange={v =>
-                            set("neighborhoodId", v === "__none__" ? "" : v)
-                        }
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Chưa gán tổ dân phố" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="__none__">
-                                Chưa gán tổ dân phố
-                            </SelectItem>
-                            {neighborhoods.map(n => (
-                                <SelectItem key={n._id} value={n._id}>
-                                    {n.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <FilterableSelect
+                    label="Tổ dân phố"
+                    placeholder="Chưa gán tổ dân phố"
+                    searchPlaceholder="Tìm theo tên tổ dân phố..."
+                    items={neighborhoods}
+                    getId={n => n._id}
+                    getLabel={n => n.name}
+                    value={values.neighborhoodId}
+                    valueLabel={
+                        neighborhoods.find(n => n._id === values.neighborhoodId)
+                            ?.name
+                    }
+                    onChange={id => handleNeighborhoodChange(id || "")}
+                />
             )}
             <div className="space-y-1.5">
                 <Label>Địa chỉ</Label>
@@ -198,18 +461,256 @@ const HouseForm: React.FC<HouseFormProps> = ({
                     onChange={e => set("address", e.target.value)}
                 />
             </div>
-            {canPickOrganization && (
-                <OrganizationPicker
-                    value={values.organizationId}
-                    valueLabel={values.organizationLabel}
-                    onChange={(organizationId, organization: Organization | undefined) => {
-                        onChange({
-                            ...values,
-                            organizationId: organizationId || "",
-                            organizationLabel: organization?.name || "",
-                        });
-                    }}
-                />
+            <div className="space-y-1.5">
+                <Label>Tình trạng công trình</Label>
+                <Select
+                    value={values.physicalStatus || "__none__"}
+                    onValueChange={v =>
+                        set(
+                            "physicalStatus",
+                            v === "__none__" ? "" : (v as HousePhysicalStatus),
+                        )
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Chưa cập nhật" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="__none__">Chưa cập nhật</SelectItem>
+                        {HOUSE_PHYSICAL_STATUS_KEYS.map(key => (
+                            <SelectItem key={key} value={key}>
+                                {HOUSE_PHYSICAL_STATUS_LABEL[key]}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            {(canAttachOwner || canPickOrganization) && (
+                <div className="space-y-3 rounded-xl border border-divider_01 p-3">
+                    <div className="space-y-1.5">
+                        <Label>Loại chủ nhà</Label>
+                        <RadioGroup
+                            className="flex flex-row flex-wrap gap-4"
+                            value={values.ownerKind}
+                            onValueChange={v =>
+                                set("ownerKind", v as HouseOwnerKind)
+                            }
+                        >
+                            {canAttachOwner && (
+                                <label className="flex items-center gap-2 text-sm">
+                                    <RadioGroupItem
+                                        id="owner-kind-individual"
+                                        value="individual"
+                                    />
+                                    Cá nhân
+                                </label>
+                            )}
+                            {canPickOrganization && (
+                                <label className="flex items-center gap-2 text-sm">
+                                    <RadioGroupItem
+                                        id="owner-kind-organization"
+                                        value="organization"
+                                    />
+                                    Tổ chức
+                                </label>
+                            )}
+                            <label className="flex items-center gap-2 text-sm">
+                                <RadioGroupItem
+                                    id="owner-kind-none"
+                                    value="none"
+                                />
+                                Chưa khai báo
+                            </label>
+                        </RadioGroup>
+                    </div>
+
+                    {values.ownerKind === "individual" && (
+                        <div className="flex flex-col gap-3">
+                            <div className="space-y-1.5">
+                                <Label>Họ tên chủ nhà</Label>
+                                <Input
+                                    placeholder="Họ và tên"
+                                    value={values.ownerName}
+                                    onChange={e =>
+                                        set("ownerName", e.target.value)
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Số điện thoại chủ nhà</Label>
+                                <Input
+                                    placeholder="VD: 0912345678"
+                                    value={values.ownerPhone}
+                                    onChange={e =>
+                                        set("ownerPhone", e.target.value)
+                                    }
+                                />
+                                {ownerPhoneCheck?.exists && (
+                                    <p className="text-xs text-amber-600">
+                                        Số điện thoại này đã có tài khoản
+                                        {ownerPhoneCheck.displayName
+                                            ? ` (${ownerPhoneCheck.displayName})`
+                                            : ""}{" "}
+                                        — tài khoản đó sẽ được thêm nhà số này
+                                        để quản lý, thay vì tạo tài khoản mới.
+                                    </p>
+                                )}
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Email (không bắt buộc)</Label>
+                                <Input
+                                    type="email"
+                                    placeholder="email@vidu.com"
+                                    value={values.ownerEmail}
+                                    onChange={e =>
+                                        set("ownerEmail", e.target.value)
+                                    }
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id="house-create-owner-account"
+                                    checked={values.createOwnerAccount}
+                                    onCheckedChange={checked =>
+                                        set(
+                                            "createOwnerAccount",
+                                            checked === true,
+                                        )
+                                    }
+                                />
+                                <Label htmlFor="house-create-owner-account">
+                                    Tạo tài khoản Chủ sở hữu
+                                </Label>
+                            </div>
+                        </div>
+                    )}
+
+                    {values.ownerKind === "organization" && (
+                        <div className="flex flex-col gap-3">
+                            <div className="space-y-1.5">
+                                <Label>Tên tổ chức</Label>
+                                <Input
+                                    placeholder="Tên tổ chức"
+                                    value={values.orgName}
+                                    onChange={e =>
+                                        set("orgName", e.target.value)
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Mã số thuế</Label>
+                                <Input
+                                    placeholder="Mã số thuế / số đăng ký kinh doanh"
+                                    value={values.orgTaxCode}
+                                    onChange={e =>
+                                        set("orgTaxCode", e.target.value)
+                                    }
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Nếu mã số thuế đã tồn tại, nhà sẽ được gắn
+                                    vào tổ chức đó.
+                                </p>
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Địa chỉ tổ chức</Label>
+                                <Input
+                                    placeholder="Địa chỉ trụ sở"
+                                    value={values.orgAddress}
+                                    onChange={e =>
+                                        set("orgAddress", e.target.value)
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Số điện thoại tổ chức</Label>
+                                <Input
+                                    placeholder="VD: 0912345678"
+                                    value={values.orgPhone}
+                                    onChange={e =>
+                                        set("orgPhone", e.target.value)
+                                    }
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Email tổ chức (không bắt buộc)</Label>
+                                <Input
+                                    type="email"
+                                    placeholder="email@vidu.com"
+                                    value={values.orgEmail}
+                                    onChange={e =>
+                                        set("orgEmail", e.target.value)
+                                    }
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Checkbox
+                                    id="house-create-representative-account"
+                                    checked={values.createRepresentativeAccount}
+                                    onCheckedChange={checked =>
+                                        set(
+                                            "createRepresentativeAccount",
+                                            checked === true,
+                                        )
+                                    }
+                                />
+                                <Label htmlFor="house-create-representative-account">
+                                    Tạo tài khoản người đại diện
+                                </Label>
+                            </div>
+                            {values.createRepresentativeAccount && (
+                                <div className="flex flex-col gap-3 rounded-xl border border-divider_01 p-3">
+                                    <div className="space-y-1.5">
+                                        <Label>Họ tên người đại diện</Label>
+                                        <Input
+                                            placeholder="Họ và tên"
+                                            value={values.repName}
+                                            onChange={e =>
+                                                set("repName", e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>
+                                            Số điện thoại người đại diện
+                                        </Label>
+                                        <Input
+                                            placeholder="VD: 0912345678"
+                                            value={values.repPhone}
+                                            onChange={e =>
+                                                set("repPhone", e.target.value)
+                                            }
+                                        />
+                                        {repPhoneCheck?.exists && (
+                                            <p className="text-xs text-amber-600">
+                                                Số điện thoại này đã có tài
+                                                khoản
+                                                {repPhoneCheck.displayName
+                                                    ? ` (${repPhoneCheck.displayName})`
+                                                    : ""}{" "}
+                                                — tài khoản đó sẽ trở thành
+                                                người đại diện của tổ chức.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>
+                                            Email người đại diện (không bắt
+                                            buộc)
+                                        </Label>
+                                        <Input
+                                            type="email"
+                                            placeholder="email@vidu.com"
+                                            value={values.repEmail}
+                                            onChange={e =>
+                                                set("repEmail", e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             )}
             <div className="space-y-1.5">
                 <Label>Số khai báo cư trú</Label>
