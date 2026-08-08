@@ -17,6 +17,7 @@ export const API = {
 
     USERS: "/api/users",
     USERS_ASSIGNABLE_STAFF: "/api/users/assignable-staff",
+    USERS_SEARCH_RESIDENTS: "/api/users/search-residents",
     ROLES: "/api/roles",
     ROLES_PERMISSIONS: "/api/roles/permissions",
     ROLES_ASSIGN: "/api/roles/assign",

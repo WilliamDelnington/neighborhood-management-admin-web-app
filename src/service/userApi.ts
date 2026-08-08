@@ -1,5 +1,11 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { AssignableStaff, PaginatedData, Role, User } from "@dts";
+import {
+    AssignableStaff,
+    PaginatedData,
+    ResidentSearchResult,
+    Role,
+    User,
+} from "@dts";
 import { request } from "./request";
 
 /**
@@ -14,6 +20,27 @@ export const fetchAssignableStaff = (
     request<AssignableStaff[]>("GET", API.USERS_ASSIGNABLE_STAFF, {
         permission,
     });
+
+/**
+ * Tim chu ho theo ten/so dien thoai - dung cho man chon "nguoi nhan cu the"
+ * khi gui Thong bao.
+ */
+export const searchResidentUsers = (
+    search: string,
+): Promise<ResidentSearchResult[]> =>
+    request<ResidentSearchResult[]>("GET", API.USERS_SEARCH_RESIDENTS, {
+        search,
+    });
+
+/** "Resolve nguoc" mot danh sach userId da luu san thanh id+displayName+phone. */
+export const fetchResidentUsersByIds = (
+    ids: string[],
+): Promise<ResidentSearchResult[]> =>
+    ids.length === 0
+        ? Promise.resolve([])
+        : request<ResidentSearchResult[]>("GET", API.USERS_SEARCH_RESIDENTS, {
+              ids: ids.join(","),
+          });
 
 export const fetchUsers = (
     page = 1,

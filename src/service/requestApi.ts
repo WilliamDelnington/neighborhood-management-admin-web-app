@@ -91,6 +91,17 @@ export const updateMyRequestStatus = (
         input,
     );
 
+export const confirmRequestRecipient = (
+    requestId: string,
+    userId: string,
+    input: { decision: "resolved" | "in_progress"; note?: string },
+) =>
+    request(
+        "PATCH",
+        `${API.REQUESTS}/${requestId}/recipients/${userId}`,
+        input,
+    );
+
 export const fetchRequestAuditLogs = (
     id: string,
     params?: { page?: number; limit?: number },

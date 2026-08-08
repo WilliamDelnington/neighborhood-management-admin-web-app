@@ -1,5 +1,11 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Announcement, LoaiThongBao, PaginatedData, Role } from "@dts";
+import {
+    Announcement,
+    AnnouncementAttachment,
+    LoaiThongBao,
+    PaginatedData,
+    Role,
+} from "@dts";
 import { request } from "./request";
 
 export interface AnnouncementInput {
@@ -11,6 +17,9 @@ export interface AnnouncementInput {
     audienceAll?: boolean;
     targetRoles?: Role[];
     targetClusters?: string[];
+    targetUserIds?: string[];
+    targetNeighborhoodIds?: string[];
+    isUrgent?: boolean;
 }
 
 export const fetchAdminAnnouncements = (
@@ -43,3 +52,33 @@ export const updateAnnouncement = (
 
 export const publishAnnouncement = (id: string): Promise<Announcement> =>
     request<Announcement>("POST", `${API.ANNOUNCEMENTS}/${id}/publish`);
+
+export const fetchAnnouncementAttachments = (
+    id: string,
+): Promise<AnnouncementAttachment[]> =>
+    request<AnnouncementAttachment[]>(
+        "GET",
+        `${API.ANNOUNCEMENTS}/${id}/attachments`,
+    );
+
+export const uploadAnnouncementAttachment = (
+    id: string,
+    file: File,
+): Promise<AnnouncementAttachment> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<AnnouncementAttachment>(
+        "POST",
+        `${API.ANNOUNCEMENTS}/${id}/attachments`,
+        formData,
+    );
+};
+
+export const deleteAnnouncementAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>(
+        "DELETE",
+        `${API.ANNOUNCEMENTS}/${id}/attachments/${fileId}`,
+    );

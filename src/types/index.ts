@@ -55,6 +55,12 @@ export type AssignableStaff = {
     displayName: string;
 };
 
+export type ResidentSearchResult = {
+    id: string;
+    displayName: string;
+    phone?: string;
+};
+
 // ---------------------------------------------------------------------------
 // Vai tro & phan quyen (dong, quan ly qua man hinh /roles)
 // ---------------------------------------------------------------------------
@@ -124,14 +130,28 @@ export type BusinessType = {
     updatedAt: string;
 };
 
-export type HouseStatus = "unverified" | "pending" | "verified" | "denied" | "locked";
+export type HouseStatus =
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "denied"
+    | "needs_update"
+    | "locked";
 
 // Trang thai xac thuc dung chung cho House/Household/Business - ba thuc the
 // nay co trang thai xac thuc DOC LAP voi nhau (chi phu thuoc nhau mot chieu
 // qua cascade khi House chuyen sang "verified"), nhung cung dung chung mot bo
 // 5 gia tri nhu HouseStatus. Household/Business dung alias nay cho truong
 // `status` cua chung thay vi mot enum rieng.
-export type VerificationStatus = HouseStatus;
+// Doc lap voi HouseStatus (khong con la alias) - Household/Business/Company
+// dung chung enum xac thuc 5 trang thai goc; "needs_update" chi ap dung rieng
+// cho House (xem HouseStatus o tren).
+export type VerificationStatus =
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "denied"
+    | "locked";
 
 // Tinh trang cong trinh thuc te - doc lap voi HouseStatus (trang thai ho
 // so/xac thuc). Optional: nha chua duoc khai se khong co gia tri nay.
@@ -223,6 +243,7 @@ export type House = {
     note?: string;
     approvalNote?: string;
     denialReason?: string;
+    needsUpdateNote?: string;
     residenceDeclarationNumber?: string;
     createdAt: string;
     updatedAt: string;
@@ -557,6 +578,16 @@ export type LoaiThongBao =
 
 export type TrangThaiThongBao = "nhap" | "da_dang";
 
+export type AnnouncementAttachment = {
+    _id: string;
+    name: string;
+    url: string;
+    mimeType?: string;
+    sizeBytes?: number;
+    uploadedBy?: string | { _id: string; displayName: string };
+    createdAt: string;
+};
+
 export type Announcement = {
     _id: string;
     title: string;
@@ -568,6 +599,9 @@ export type Announcement = {
     audienceAll?: boolean;
     targetRoles?: Role[];
     targetClusters?: string[];
+    targetUserIds?: string[];
+    targetNeighborhoodIds?: string[];
+    isUrgent?: boolean;
     publishedAt?: string;
     createdAt: string;
 };
@@ -734,13 +768,15 @@ export type ResidentRecord = {
 // PCCC/An ninh. Mo rong duoc cho cac loai yeu cau khac sau nay chi bang cach
 // them gia tri vao REQUEST_TYPES.
 // ---------------------------------------------------------------------------
-export const REQUEST_TYPES = ["pccc", "security"] as const;
+export const REQUEST_TYPES = ["pccc", "security", "other"] as const;
 export type RequestType = typeof REQUEST_TYPES[number];
 
 export const REQUEST_STATUSES = [
     "pending",
     "acknowledged",
     "in_progress",
+    "needs_info",
+    "awaiting_confirmation",
     "resolved",
 ] as const;
 export type RequestStatus = typeof REQUEST_STATUSES[number];
@@ -870,6 +906,7 @@ export type DashboardTask = { label: string; count: number; link?: string };
 
 export type DashboardSummary = {
     totalHouseholds: number;
+    totalHouses: number;
     totalCitizens: number;
     rentalHouseholds: number;
     householdsNeedingSupport: number;

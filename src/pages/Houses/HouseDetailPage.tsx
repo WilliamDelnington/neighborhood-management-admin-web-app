@@ -401,6 +401,10 @@ const HouseDetailContent: React.FC = () => {
             toast.error("Vui lòng nhập lý do từ chối");
             return;
         }
+        if (statusDialogTarget === "needs_update" && !statusNote.trim()) {
+            toast.error("Vui lòng nhập chi tiết cần cập nhật");
+            return;
+        }
         await handleStatusChange(statusDialogTarget, statusNote.trim() || undefined);
         setStatusDialogTarget(null);
     };
@@ -723,6 +727,13 @@ const HouseDetailContent: React.FC = () => {
                                             value={house.denialReason}
                                         />
                                     )}
+                                {house.status === "needs_update" &&
+                                    house.needsUpdateNote && (
+                                        <InfoRow
+                                            label="Cần cập nhật"
+                                            value={house.needsUpdateNote}
+                                        />
+                                    )}
 
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {canUpdate && (
@@ -745,7 +756,9 @@ const HouseDetailContent: React.FC = () => {
                                     )}
                                     {isOwner &&
                                         (house.status === "unverified" ||
-                                            house.status === "denied") && (
+                                            house.status === "denied" ||
+                                            house.status ===
+                                                "needs_update") && (
                                             <Button
                                                 loading={statusUpdating}
                                                 onClick={() =>
@@ -768,6 +781,17 @@ const HouseDetailContent: React.FC = () => {
                                                 }
                                             >
                                                 Duyệt
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                loading={statusUpdating}
+                                                onClick={() =>
+                                                    openStatusDialog(
+                                                        "needs_update",
+                                                    )
+                                                }
+                                            >
+                                                Yêu cầu cập nhật
                                             </Button>
                                             <Button
                                                 variant="destructive"
@@ -1099,14 +1123,18 @@ const HouseDetailContent: React.FC = () => {
                         <DialogTitle>
                             {statusDialogTarget === "denied"
                                 ? "Từ chối nhà số"
-                                : "Duyệt nhà số"}
+                                : statusDialogTarget === "needs_update"
+                                  ? "Yêu cầu cập nhật nhà số"
+                                  : "Duyệt nhà số"}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-1.5">
                         <Label className="text-sm text-text_2">
                             {statusDialogTarget === "denied"
                                 ? "Lý do từ chối (bắt buộc)"
-                                : "Ghi chú duyệt (không bắt buộc)"}
+                                : statusDialogTarget === "needs_update"
+                                  ? "Chi tiết cần cập nhật (bắt buộc)"
+                                  : "Ghi chú duyệt (không bắt buộc)"}
                         </Label>
                         <Textarea
                             value={statusNote}
@@ -1114,7 +1142,9 @@ const HouseDetailContent: React.FC = () => {
                             placeholder={
                                 statusDialogTarget === "denied"
                                     ? "VD: Thiếu giấy tờ, sai địa chỉ..."
-                                    : "Ghi chú thêm (nếu có)"
+                                    : statusDialogTarget === "needs_update"
+                                      ? "VD: Bổ sung ảnh mặt tiền, cập nhật số điện thoại liên hệ..."
+                                      : "Ghi chú thêm (nếu có)"
                             }
                         />
                     </div>
@@ -1136,7 +1166,9 @@ const HouseDetailContent: React.FC = () => {
                         >
                             {statusDialogTarget === "denied"
                                 ? "Từ chối"
-                                : "Duyệt"}
+                                : statusDialogTarget === "needs_update"
+                                  ? "Gửi yêu cầu cập nhật"
+                                  : "Duyệt"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

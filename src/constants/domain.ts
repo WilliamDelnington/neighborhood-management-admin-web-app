@@ -108,6 +108,7 @@ export const HOUSE_STATUS_LABEL: Record<HouseStatus, string> = {
     pending: "Chờ duyệt",
     verified: "Đã duyệt",
     denied: "Bị từ chối",
+    needs_update: "Cần cập nhật",
     locked: "Bị khóa",
 };
 
@@ -116,6 +117,7 @@ export const HOUSE_STATUS_TONE: Record<HouseStatus, BadgeTone> = {
     pending: "yellow",
     verified: "green",
     denied: "red",
+    needs_update: "yellow",
     locked: "red",
 };
 
@@ -173,13 +175,26 @@ export const HOUSE_OWNERSHIP_VERIFICATION_STATUS_TONE: Record<
     rejected: "red",
 };
 
-// Household/Business dung chung bo trang thai xac thuc voi House (xem @dts
-// VerificationStatus) - doc lap voi nhau ve gia tri, nhung cung mot 5-trang-thai
-// nen tai su dung nguyen nhan/mau cua HOUSE_STATUS_LABEL/_TONE.
-export const VERIFICATION_STATUS_LABEL: Record<VerificationStatus, string> =
-    HOUSE_STATUS_LABEL;
-export const VERIFICATION_STATUS_TONE: Record<VerificationStatus, BadgeTone> =
-    HOUSE_STATUS_TONE;
+// Household/Business/Company dung chung bo trang thai xac thuc 5-gia-tri goc
+// (khong co "needs_update" - trang thai do chi rieng cho House, xem @dts
+// HouseStatus/VerificationStatus). La object doc lap voi HOUSE_STATUS_LABEL/
+// _TONE (khong dung chung tham chieu) de Object.entries() o cac man danh sach
+// Household/Business/Company khong bi "lot" them tuy chon needs_update khong
+// bao gio khop duoc.
+export const VERIFICATION_STATUS_LABEL: Record<VerificationStatus, string> = {
+    unverified: "Chưa xác thực",
+    pending: "Chờ duyệt",
+    verified: "Đã duyệt",
+    denied: "Bị từ chối",
+    locked: "Bị khóa",
+};
+export const VERIFICATION_STATUS_TONE: Record<VerificationStatus, BadgeTone> = {
+    unverified: "gray",
+    pending: "yellow",
+    verified: "green",
+    denied: "red",
+    locked: "red",
+};
 
 export const HOUSE_USAGE_TYPE_LABEL: Record<HouseUsageType, string> = {
     household: "Hộ dân",
@@ -245,13 +260,16 @@ export const RESIDENT_AUDIT_ACTION_LABEL: Record<string, string> = {
 
 export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
     pccc: "PCCC",
-    security: "An ninh & Quản lý cư trú",
+    security: "An ninh",
+    other: "Khác",
 };
 
 export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
     pending: "Chưa xử lý",
     acknowledged: "Đã tiếp nhận",
     in_progress: "Đang xử lý",
+    needs_info: "Yêu cầu bổ sung",
+    awaiting_confirmation: "Chờ xác nhận",
     resolved: "Đã hoàn thành",
 };
 
@@ -259,6 +277,8 @@ export const REQUEST_STATUS_TONE: Record<RequestStatus, BadgeTone> = {
     pending: "gray",
     acknowledged: "blue",
     in_progress: "yellow",
+    needs_info: "yellow",
+    awaiting_confirmation: "blue",
     resolved: "green",
 };
 

@@ -11,6 +11,8 @@ import {
     fetchPcccReport,
     fetchSecurityReport,
     fetchFinanceReport,
+    fetchHouseReport,
+    fetchBusinessReport,
     downloadReportExcel,
 } from "@service/reportApi";
 
@@ -19,7 +21,14 @@ import {
  * nen khong dua vao danh sach tab tong quat nay - se duoc truy cap tu man hinh chi tiet
  * cuoc hop/khao sat tuong ung trong tuong lai.
  */
-type ReportTabKey = "population" | "complaints" | "pccc" | "security" | "finance";
+type ReportTabKey =
+    | "population"
+    | "complaints"
+    | "pccc"
+    | "security"
+    | "finance"
+    | "houses"
+    | "business";
 
 type ReportTab = {
     key: ReportTabKey;
@@ -75,6 +84,12 @@ const KEY_LABEL: Record<string, string> = {
     income: "Thu",
     expense: "Chi",
     count: "Số lượng",
+    total: "Tổng số",
+    totalCompanies: "Tổng số công ty",
+    byUsageType: "Theo mục đích sử dụng",
+    usageType: "Mục đích sử dụng",
+    byBusinessType: "Theo loại hình kinh doanh",
+    businessType: "Loại hình kinh doanh",
 };
 
 // Truong ID ky thuat khong can hien thi cho nguoi dung (da co "code" lam ma
@@ -185,6 +200,18 @@ const ReportsContent: React.FC = () => {
                       label: "Phản ánh",
                       fetch: () => fetchComplaintReport(),
                       excelFileName: "bao-cao-phan-anh.xlsx",
+                  },
+                  {
+                      key: "houses" as ReportTabKey,
+                      label: "Nhà số",
+                      fetch: fetchHouseReport,
+                      excelFileName: "bao-cao-nha-so.xlsx",
+                  },
+                  {
+                      key: "business" as ReportTabKey,
+                      label: "Hộ kinh doanh",
+                      fetch: fetchBusinessReport,
+                      excelFileName: "bao-cao-ho-kinh-doanh.xlsx",
                   },
               ]
             : []),

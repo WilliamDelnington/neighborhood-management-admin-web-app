@@ -73,6 +73,14 @@ const DashboardContent: React.FC = () => {
                         <StatCard
                             label={
                                 summary.scopedToCluster
+                                    ? "Nhà số trong khu vực"
+                                    : "Tổng số nhà"
+                            }
+                            value={summary.totalHouses}
+                        />
+                        <StatCard
+                            label={
+                                summary.scopedToCluster
                                     ? "Nhân khẩu trong khu vực"
                                     : "Tổng nhân khẩu"
                             }

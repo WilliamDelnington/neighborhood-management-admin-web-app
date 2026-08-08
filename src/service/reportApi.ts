@@ -29,6 +29,12 @@ export const fetchMeetingReport = (meetingId: string): Promise<unknown> =>
 export const fetchSurveyReport = (surveyId: string): Promise<unknown> =>
     request("GET", `${API.REPORTS}/surveys`, { surveyId });
 
+export const fetchHouseReport = (): Promise<unknown> =>
+    request("GET", `${API.REPORTS}/houses`);
+
+export const fetchBusinessReport = (): Promise<unknown> =>
+    request("GET", `${API.REPORTS}/business`);
+
 /**
  * Cac bao cao ho tro tai xuong Excel qua query ?format=excel. Vi day la tai file nhi phan
  * (khong theo envelope JSON chuan), khong dung request() ma mo truc tiep bang token trong URL
@@ -42,7 +48,9 @@ export const downloadReportExcel = async (
         | "security"
         | "finance"
         | "meetings"
-        | "surveys",
+        | "surveys"
+        | "houses"
+        | "business",
     fileName: string,
     extraParams: Record<string, string | undefined> = {},
 ): Promise<void> => {

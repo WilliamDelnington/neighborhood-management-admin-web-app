@@ -23,6 +23,7 @@ import {
 } from "@constants/domain";
 import { AppError, RequestAttachment, RequestItem, RequestMeta } from "@dts";
 import {
+    confirmRequestRecipient,
     fetchRequestAttachments,
     fetchRequestById,
     fetchRequestMeta,
@@ -69,6 +70,9 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
     const [addUserIds, setAddUserIds] = useState<string[]>([]);
     const [addRoles, setAddRoles] = useState<string[]>([]);
     const [addingRecipients, setAddingRecipients] = useState(false);
+    const [confirmingUserId, setConfirmingUserId] = useState<string | null>(
+        null,
+    );
 
     const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(false);
@@ -141,6 +145,28 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
             toast.error((err as AppError).message);
         } finally {
             setAddingRecipients(false);
+        }
+    };
+
+    const handleConfirmRecipient = async (
+        userId: string,
+        decision: "resolved" | "in_progress",
+    ) => {
+        if (!requestId) return;
+        try {
+            setConfirmingUserId(userId);
+            await confirmRequestRecipient(requestId, userId, { decision });
+            toast.success(
+                decision === "resolved"
+                    ? "Đã xác nhận hoàn thành"
+                    : "Đã yêu cầu xử lý lại",
+            );
+            load(requestId);
+            onUpdated?.();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setConfirmingUserId(null);
         }
     };
 
@@ -234,21 +260,73 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                 <h3 className="mb-2 text-sm font-semibold">
                                     Người nhận
                                 </h3>
-                                <div className="flex flex-wrap gap-1.5">
+                                <div className="flex flex-col gap-2">
                                     {request.recipients.map(rec => (
-                                        <Badge
-                                            key={rec._id}
-                                            tone={
-                                                rec.isOverdue
-                                                    ? "red"
-                                                    : REQUEST_STATUS_TONE[
-                                                          rec.status
-                                                      ]
-                                            }
-                                        >
-                                            {rec.displayName} ·{" "}
-                                            {REQUEST_STATUS_LABEL[rec.status]}
-                                        </Badge>
+                                        <div key={rec._id} className="text-sm">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge
+                                                    tone={
+                                                        rec.isOverdue
+                                                            ? "red"
+                                                            : REQUEST_STATUS_TONE[
+                                                                  rec.status
+                                                              ]
+                                                    }
+                                                >
+                                                    {rec.displayName} ·{" "}
+                                                    {
+                                                        REQUEST_STATUS_LABEL[
+                                                            rec.status
+                                                        ]
+                                                    }
+                                                </Badge>
+                                                {canManage &&
+                                                    rec.status ===
+                                                        "awaiting_confirmation" && (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                loading={
+                                                                    confirmingUserId ===
+                                                                    rec.userId
+                                                                }
+                                                                onClick={() =>
+                                                                    handleConfirmRecipient(
+                                                                        rec.userId,
+                                                                        "resolved",
+                                                                    )
+                                                                }
+                                                            >
+                                                                Xác nhận hoàn
+                                                                thành
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                loading={
+                                                                    confirmingUserId ===
+                                                                    rec.userId
+                                                                }
+                                                                onClick={() =>
+                                                                    handleConfirmRecipient(
+                                                                        rec.userId,
+                                                                        "in_progress",
+                                                                    )
+                                                                }
+                                                            >
+                                                                Yêu cầu xử lý
+                                                                lại
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                            </div>
+                                            {rec.note && (
+                                                <p className="mt-1 pl-1 text-xs text-text_2">
+                                                    {rec.note}
+                                                </p>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                                 {canManage && meta && (
