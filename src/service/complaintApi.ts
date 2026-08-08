@@ -2,11 +2,15 @@ import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     Complaint,
     ComplaintDetail,
+    FileAsset,
     NhomPhanAnh,
     PaginatedData,
     TrangThaiPhanAnh,
 } from "@dts";
 import { request } from "./request";
+
+export const fetchComplaintAttachments = (id: string): Promise<FileAsset[]> =>
+    request<FileAsset[]>("GET", `${API.COMPLAINTS}/${id}/attachments`);
 
 export const fetchComplaints = (params?: {
     page?: number;

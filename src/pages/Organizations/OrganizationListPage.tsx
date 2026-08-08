@@ -137,7 +137,7 @@ const OrganizationListContent: React.FC = () => {
                   };
         setForm({
             name: organization.name,
-            taxCode: organization.taxCode,
+            taxCode: organization.taxCode || "",
             organizationType: organization.organizationType,
             representativeUserId: representative.id,
             representativeUserLabel: representative.label,
@@ -151,8 +151,8 @@ const OrganizationListContent: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (!form.name.trim() || (!editing && !form.taxCode.trim())) {
-            toast.error("Vui lòng nhập đầy đủ tên và mã số thuế");
+        if (!form.name.trim()) {
+            toast.error("Vui lòng nhập tên tổ chức");
             return;
         }
         try {
@@ -172,7 +172,7 @@ const OrganizationListContent: React.FC = () => {
             } else {
                 await createOrganization({
                     name: form.name.trim(),
-                    taxCode: form.taxCode.trim(),
+                    taxCode: form.taxCode.trim() || undefined,
                     organizationType: form.organizationType,
                     representativeUserId: form.representativeUserId || undefined,
                     representativeRole: form.representativeRole.trim() || undefined,
@@ -250,7 +250,9 @@ const OrganizationListContent: React.FC = () => {
                                     <TableCell className="font-medium">
                                         {o.name}
                                     </TableCell>
-                                    <TableCell>{o.taxCode}</TableCell>
+                                    <TableCell>
+                                        {o.taxCode || "Chưa có"}
+                                    </TableCell>
                                     <TableCell>
                                         {!o.representativeUserId
                                             ? "Chưa có người đại diện"
@@ -299,9 +301,12 @@ const OrganizationListContent: React.FC = () => {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Mã số thuế / số đăng ký kinh doanh</Label>
+                                <Label>
+                                    Mã số thuế / số đăng ký kinh doanh (không
+                                    bắt buộc)
+                                </Label>
                                 <Input
-                                    placeholder="VD: 0123456789"
+                                    placeholder="VD: 0123456789 (nếu có)"
                                     value={form.taxCode}
                                     disabled={!!editing}
                                     onChange={e =>

@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LogOut, Menu, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 import { useAuthStore } from "@store/authStore";
 import { ROLE_LABEL } from "@constants/domain";
-import { MODULES } from "@constants/modules";
+import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
@@ -16,15 +16,79 @@ import {
     DropdownMenuTrigger,
 } from "@components/ui/dropdown-menu";
 
+// Ghi nho nhom nao dang mo rong giua cac lan tai lai trang - theo dung kieu
+// doc/ghi localStorage truc tiep da dung trong authStore.ts (chua dung
+// zustand persist middleware o dau trong app nay).
+const EXPANDED_GROUPS_STORAGE_KEY = "hb_admin_sidebar_expanded_groups";
+
+function loadExpandedGroups(): Set<string> {
+    try {
+        const raw = localStorage.getItem(EXPANDED_GROUPS_STORAGE_KEY);
+        return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+        return new Set();
+    }
+}
+
+function saveExpandedGroups(groups: Set<string>): void {
+    localStorage.setItem(
+        EXPANDED_GROUPS_STORAGE_KEY,
+        JSON.stringify([...groups]),
+    );
+}
+
+const isModuleActive = (path: string, pathname: string) =>
+    pathname === path || pathname.startsWith(`${path}/`);
+
 const AdminLayout: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const user = useAuthStore(state => state.user);
     const storeLogout = useAuthStore(state => state.logout);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-
-    const visibleModules = MODULES.filter(m =>
-        user?.permissions?.includes(m.permission),
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+        loadExpandedGroups,
     );
+
+    const hasPermission = (m: ModuleItem) =>
+        !!user?.permissions?.includes(m.permission);
+
+    const visibleTopLevel = TOP_LEVEL_MODULES.filter(hasPermission);
+    const visibleGroups = MODULE_GROUPS.map(group => ({
+        ...group,
+        items: group.items.filter(hasPermission),
+    })).filter(group => group.items.length > 0);
+
+    // Tu dong mo rong nhom chua route dang active - vd bam link tu Bang dieu
+    // khien vao thang mot trang con trong nhom dang thu gon thi nhom do phai
+    // hien ra, khong chi phu thuoc vao viec nguoi dung tung bam mo no.
+    useEffect(() => {
+        const activeGroup = MODULE_GROUPS.find(group =>
+            group.items.some(m => isModuleActive(m.path, location.pathname)),
+        );
+        if (activeGroup && !expandedGroups.has(activeGroup.key)) {
+            setExpandedGroups(prev => {
+                const next = new Set(prev);
+                next.add(activeGroup.key);
+                saveExpandedGroups(next);
+                return next;
+            });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname]);
+
+    const toggleGroup = (key: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(key)) {
+                next.delete(key);
+            } else {
+                next.add(key);
+            }
+            saveExpandedGroups(next);
+            return next;
+        });
+    };
 
     const handleLogout = async () => {
         try {
@@ -65,7 +129,7 @@ const AdminLayout: React.FC = () => {
                     </button>
                 </div>
                 <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-                    {visibleModules.map(m => (
+                    {visibleTopLevel.map(m => (
                         <NavLink
                             key={m.key}
                             to={m.path}
@@ -82,6 +146,53 @@ const AdminLayout: React.FC = () => {
                             {m.label}
                         </NavLink>
                     ))}
+
+                    {visibleGroups.map(group => {
+                        const expanded = expandedGroups.has(group.key);
+                        return (
+                            <div key={group.key}>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleGroup(group.key)}
+                                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-text_2 transition-colors hover:bg-ng_10"
+                                >
+                                    <span className="flex items-center gap-3">
+                                        <group.icon className="h-4 w-4" />
+                                        {group.label}
+                                    </span>
+                                    <ChevronDown
+                                        className={cn(
+                                            "h-4 w-4 transition-transform duration-200",
+                                            expanded && "rotate-180",
+                                        )}
+                                    />
+                                </button>
+                                {expanded && (
+                                    <div className="ml-3 space-y-1 border-l border-divider_01 pl-3">
+                                        {group.items.map(m => (
+                                            <NavLink
+                                                key={m.key}
+                                                to={m.path}
+                                                onClick={() =>
+                                                    setSidebarOpen(false)
+                                                }
+                                                className={({ isActive }) =>
+                                                    cn(
+                                                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text_1 transition-colors hover:bg-ng_10",
+                                                        isActive &&
+                                                            "bg-blue_10 text-main",
+                                                    )
+                                                }
+                                            >
+                                                <m.icon className="h-4 w-4" />
+                                                {m.label}
+                                            </NavLink>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </nav>
             </aside>
 

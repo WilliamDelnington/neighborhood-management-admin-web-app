@@ -5,6 +5,7 @@ import {
     House,
     HousePhysicalStatus,
     HouseStatus,
+    HouseUsageType,
     PaginatedData,
 } from "@dts";
 import { request } from "./request";
@@ -17,7 +18,7 @@ export interface HouseOwnerPersonInput {
 
 export interface HouseOwnerOrganizationInput {
     name: string;
-    taxCode: string;
+    taxCode?: string;
     organizationType?: string;
     address?: string;
     phone?: string;
@@ -36,8 +37,9 @@ export interface HouseInput {
     wardCode?: number;
     wardName?: string;
     physicalStatus?: HousePhysicalStatus;
+    usageTypes?: HouseUsageType[];
+    otherUsageNote?: string;
     note?: string;
-    residenceDeclarationNumber?: string;
     // Loai chu nha duoc khai bao luc tao nha so - xem HouseForm.tsx. "none" =
     // chua khai bao (hanh vi cu khi khong nhap gi ca).
     ownerKind?: "individual" | "organization" | "none";
@@ -90,6 +92,11 @@ export const fetchHouseBusinesses = (
     id: string,
     params?: { page?: number; limit?: number },
 ) => request("GET", `${API.HOUSES}/${id}/businesses`, params);
+
+export const fetchHouseCompanies = (
+    id: string,
+    params?: { page?: number; limit?: number },
+) => request("GET", `${API.HOUSES}/${id}/companies`, params);
 
 export const createHouse = (input: HouseInput): Promise<House> =>
     request<House>("POST", API.HOUSES, input);

@@ -24,11 +24,13 @@ import {
     DialogTitle,
 } from "@components/ui/dialog";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import {
     AppError,
     AssignableStaff,
     Complaint,
     ComplaintTimelineEntry,
+    FileAsset,
     TrangThaiPhanAnh,
 } from "@dts";
 import {
@@ -39,6 +41,7 @@ import {
 import {
     assignComplaint,
     deleteComplaint,
+    fetchComplaintAttachments,
     fetchComplaintDetail,
     updateComplaintStatus,
 } from "@service/complaintApi";
@@ -67,6 +70,9 @@ const ComplaintDetailContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
+    const [attachments, setAttachments] = useState<FileAsset[]>([]);
+    const [attachmentsLoading, setAttachmentsLoading] = useState(true);
+
     const [newStatus, setNewStatus] = useState<TrangThaiPhanAnh | "">("");
     const [note, setNote] = useState("");
     const [isPublic, setIsPublic] = useState(true);
@@ -94,6 +100,12 @@ const ComplaintDetailContent: React.FC = () => {
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
+
+        setAttachmentsLoading(true);
+        fetchComplaintAttachments(id)
+            .then(setAttachments)
+            .catch(() => setAttachments([]))
+            .finally(() => setAttachmentsLoading(false));
     };
 
     useEffect(() => {
@@ -240,19 +252,6 @@ const ComplaintDetailContent: React.FC = () => {
                         </div>
                         <p className="mt-3 text-sm">{complaint.content}</p>
 
-                        {complaint.images.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {complaint.images.map(img => (
-                                    <img
-                                        key={img}
-                                        src={img}
-                                        alt="Ảnh đính kèm"
-                                        className="h-[88px] w-[88px] rounded-lg object-cover"
-                                    />
-                                ))}
-                            </div>
-                        )}
-
                         <div className="mt-3 border-t border-divider_01 pt-3">
                             {creator && (
                                 <InfoRow
@@ -292,6 +291,12 @@ const ComplaintDetailContent: React.FC = () => {
                             )}
                         </div>
                     </div>
+
+                    <AttachmentsPanel
+                        attachments={attachments}
+                        loading={attachmentsLoading}
+                        canManage={false}
+                    />
 
                     {canAssign && (
                         <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">

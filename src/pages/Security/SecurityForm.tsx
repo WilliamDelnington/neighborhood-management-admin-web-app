@@ -3,7 +3,6 @@ import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
 import {
     Select,
     SelectContent,
@@ -13,19 +12,15 @@ import {
 } from "@components/ui/select";
 import HousePicker from "@components/admin/HousePicker";
 import {
-    LOAI_SO_HUU_LABEL,
     MUC_DO_AN_NINH_LABEL,
     TINH_TRANG_THEO_DOI_AN_NINH_LABEL,
 } from "@constants/domain";
-import { House, LoaiSoHuu, MucDoAnNinh, TinhTrangTheoDoiAnNinh } from "@dts";
+import { House, MucDoAnNinh, TinhTrangTheoDoiAnNinh } from "@dts";
 import { SecurityRecordInput } from "@service/securityApi";
 
 export interface SecurityFormValues {
     houseId: string;
     houseLabel: string;
-    houseDeclarationNumber: string;
-    ownershipType: LoaiSoHuu;
-    renterCount: string;
     hasCamera: boolean;
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
@@ -38,9 +33,6 @@ export interface SecurityFormValues {
 export const EMPTY_SECURITY_FORM: SecurityFormValues = {
     houseId: "",
     houseLabel: "",
-    houseDeclarationNumber: "",
-    ownershipType: "chinh_chu",
-    renterCount: "",
     hasCamera: false,
     hasSecurityComplaint: false,
     level: "binh_thuong",
@@ -55,10 +47,6 @@ export function toSecurityInput(
 ): SecurityRecordInput {
     return {
         houseId: values.houseId,
-        ownershipType: values.ownershipType,
-        renterCount: values.renterCount
-            ? Number(values.renterCount)
-            : undefined,
         hasCamera: values.hasCamera,
         hasSecurityComplaint: values.hasSecurityComplaint,
         level: values.level,
@@ -80,15 +68,20 @@ interface SecurityFormProps {
     onChange: (values: SecurityFormValues) => void;
     /** Noi dung chen ngay sau truong "Ngay kiem tra" (vd. khu vuc phan cong theo doi). */
     afterInspectionDate?: React.ReactNode;
+    /** Noi dung chen ngay sau truong "Muc do" (vd. muc tao yeu cau xu ly). */
+    afterLevel?: React.ReactNode;
 }
 
 /**
- * Bo truong dung chung cho tao moi/chinh sua ho so an ninh, tam tru, nha cho thue.
+ * Bo truong dung chung cho tao moi/chinh sua ho so an ninh - chi con phan
+ * lien quan an ninh, phan cu tru (hinh thuc so huu, so nguoi o thuc te) da
+ * tach sang ResidentForm.tsx.
  */
 const SecurityForm: React.FC<SecurityFormProps> = ({
     values,
     onChange,
     afterInspectionDate,
+    afterLevel,
 }) => {
     const set = <K extends keyof SecurityFormValues>(
         key: K,
@@ -105,21 +98,9 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                         ...values,
                         houseId,
                         houseLabel: `${house.code} — ${house.address}`,
-                        houseDeclarationNumber:
-                            house.residenceDeclarationNumber || "",
                     })
                 }
             />
-            <div className="space-y-1.5">
-                <Label>Số khai báo cư trú</Label>
-                <Input
-                    disabled
-                    value={
-                        values.houseDeclarationNumber ||
-                        "Chưa có (khai báo tại hồ sơ Nhà số)"
-                    }
-                />
-            </div>
             <div className="space-y-1.5">
                 <Label>Ngày kiểm tra</Label>
                 <Input
@@ -129,41 +110,6 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 />
             </div>
             {afterInspectionDate}
-            <div className="space-y-1.5">
-                <Label>Hình thức sở hữu</Label>
-                <RadioGroup
-                    className="flex flex-row gap-5"
-                    value={values.ownershipType}
-                    onValueChange={v => set("ownershipType", v as LoaiSoHuu)}
-                >
-                    {(
-                        Object.entries(LOAI_SO_HUU_LABEL) as [
-                            LoaiSoHuu,
-                            string,
-                        ][]
-                    ).map(([key, label]) => (
-                        <label
-                            key={key}
-                            htmlFor={`ownershipType-${key}`}
-                            className="flex items-center gap-2 text-sm"
-                        >
-                            <RadioGroupItem
-                                id={`ownershipType-${key}`}
-                                value={key}
-                            />
-                            {label}
-                        </label>
-                    ))}
-                </RadioGroup>
-            </div>
-            <div className="space-y-1.5">
-                <Label>Số người đang ở thực tế</Label>
-                <Input
-                    type="number"
-                    value={values.renterCount}
-                    onChange={e => set("renterCount", e.target.value)}
-                />
-            </div>
             <div className="flex flex-col gap-2">
                 <label
                     htmlFor="hasCamera"
@@ -228,6 +174,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                     </SelectContent>
                 </Select>
             </div>
+            {afterLevel}
             <div className="space-y-1.5">
                 <Label>Tình trạng theo dõi</Label>
                 <Select

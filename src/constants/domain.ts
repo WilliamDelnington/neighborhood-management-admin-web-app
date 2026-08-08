@@ -8,6 +8,7 @@ import type {
     HouseOwnershipVerificationStatus,
     HousePhysicalStatus,
     HouseStatus,
+    HouseUsageType,
     LoaiCauHoiKhaoSat,
     LoaiCuTru,
     LoaiGiaoDichTaiChinh,
@@ -17,6 +18,8 @@ import type {
     MucDoAnNinh,
     MucNguyCoPccc,
     NhomPhanAnh,
+    RequestStatus,
+    RequestType,
     Role,
     TinhTrangTheoDoiAnNinh,
     TinhTrangTheoDoiPccc,
@@ -178,6 +181,12 @@ export const VERIFICATION_STATUS_LABEL: Record<VerificationStatus, string> =
 export const VERIFICATION_STATUS_TONE: Record<VerificationStatus, BadgeTone> =
     HOUSE_STATUS_TONE;
 
+export const HOUSE_USAGE_TYPE_LABEL: Record<HouseUsageType, string> = {
+    household: "Hộ dân",
+    business: "Hộ kinh doanh",
+    company: "Công ty",
+};
+
 export const BUSINESS_DOCUMENT_STATUS_LABEL: Record<
     BusinessDocumentStatus,
     string
@@ -217,6 +226,7 @@ export const PCCC_AUDIT_ACTION_LABEL: Record<string, string> = {
     "pccc.attachment.upload": "Tải lên file đính kèm",
     "pccc.attachment.delete": "Xóa file đính kèm",
     "pccc.delete": "Xóa đợt kiểm tra",
+    "pccc.status_sync": "Tự động cập nhật tình trạng theo dõi (từ yêu cầu)",
 };
 
 export const SECURITY_AUDIT_ACTION_LABEL: Record<string, string> = {
@@ -224,6 +234,42 @@ export const SECURITY_AUDIT_ACTION_LABEL: Record<string, string> = {
     "security.update": "Cập nhật thông tin",
     "security.assign": "Phân công theo dõi",
     "security.delete": "Xóa hồ sơ an ninh",
+    "security.status_sync": "Tự động cập nhật tình trạng theo dõi (từ yêu cầu)",
+};
+
+export const RESIDENT_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "resident.create": "Tạo hồ sơ cư trú",
+    "resident.update": "Cập nhật thông tin",
+    "resident.delete": "Xóa hồ sơ cư trú",
+};
+
+export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
+    pccc: "PCCC",
+    security: "An ninh & Quản lý cư trú",
+};
+
+export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
+    pending: "Chưa xử lý",
+    acknowledged: "Đã tiếp nhận",
+    in_progress: "Đang xử lý",
+    resolved: "Đã hoàn thành",
+};
+
+export const REQUEST_STATUS_TONE: Record<RequestStatus, BadgeTone> = {
+    pending: "gray",
+    acknowledged: "blue",
+    in_progress: "yellow",
+    resolved: "green",
+};
+
+export const REQUEST_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "request.create": "Gửi yêu cầu",
+    "request.update": "Cập nhật yêu cầu",
+    "request.cancel": "Hủy yêu cầu",
+    "request.update_status": "Cập nhật trạng thái xử lý",
+    "request.add_recipients": "Thêm người nhận",
+    "request.attachment.upload": "Tải lên file đính kèm",
+    "request.attachment.delete": "Xóa file đính kèm",
 };
 
 export const MEETING_AUDIT_ACTION_LABEL: Record<string, string> = {
@@ -252,9 +298,9 @@ export const LOAI_CU_TRU_LABEL: Record<LoaiCuTru, string> = {
 };
 
 export const MUC_NGUY_CO_PCCC_LABEL: Record<MucNguyCoPccc, string> = {
-    xanh: "Xanh",
-    vang: "Vàng",
-    do: "Đỏ",
+    xanh: "Thấp",
+    vang: "Trung bình",
+    do: "Cao",
 };
 
 export const MUC_NGUY_CO_PCCC_TONE: Record<MucNguyCoPccc, BadgeTone> = {

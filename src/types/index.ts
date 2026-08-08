@@ -76,6 +76,7 @@ export type RoleRecord = {
     description?: string;
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
+    allowedRequestTypes?: RequestType[];
     system: boolean;
     active: boolean;
     sortOrder: number;
@@ -161,7 +162,7 @@ export const ORGANIZATION_TYPE_LABEL: Record<OrganizationType, string> = {
 export type Organization = {
     _id: string;
     name: string;
-    taxCode: string;
+    taxCode?: string;
     organizationType: OrganizationType;
     // Optional: to chuc duoc khai bao luc tao nha so co the chua co nguoi dai
     // dien nao dang nhap duoc (xem HouseForm.tsx - checkbox "Tao tai khoan
@@ -207,6 +208,13 @@ export type House = {
     wardName?: string;
     status: HouseStatus;
     physicalStatus?: HousePhysicalStatus;
+    // Muc dich su dung nha do chu nha tu khai bao (co the nhieu gia tri dong
+    // thoi) - xem models/HouseRecord.ts o backend. Doc lap voi HouseUsageUnit
+    // (lop gan don vi cho tung Household/Business/Company DA TON TAI) - truong
+    // nay chi la "y dinh" khai bao, dung de nhac nho khai bao thieu (xem
+    // HouseDetailPage.tsx).
+    usageTypes: HouseUsageType[];
+    otherUsageNote?: string;
     // Cache cua quan he primary_owner dang active trong HouseOwnership (xem
     // ben duoi) - mot nha co the co nhieu chu so huu/nguoi quan ly dong thoi,
     // hai truong nay chi phan anh chu so huu CHINH hien tai.
@@ -365,6 +373,43 @@ type PopulatedFileAssetSummary = {
 };
 type PopulatedActor = { _id: string; displayName: string };
 
+// Mirror cua Business nhung khong co businessType/quy trinh giay to rieng -
+// xem models/Company.ts o backend.
+export type Company = {
+    _id: string;
+    name: string;
+    houseId: string | House | null;
+    cluster: string;
+    ownerName?: string;
+    phone?: string;
+    active: boolean;
+    status: VerificationStatus;
+    approvalNote?: string;
+    denialReason?: string;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type HouseUsageType = "household" | "business" | "company";
+
+// Lop bo sung ghi nhan mot nha so duoc chia thanh nhieu don vi su dung (vd
+// tang/phong) cho Household/Business/Company - KHONG thay the houseId truc
+// tiep tren ba thuc the do, xem models/HouseUsageUnit.ts o backend. Chi dung
+// DUNG MOT trong ba truong tham chieu, khop voi usageType.
+export type HouseUsageUnit = {
+    _id: string;
+    houseId: string | House;
+    unitLabel: string;
+    usageType: HouseUsageType;
+    householdId?: string | Household | null;
+    businessId?: string | Business | null;
+    companyId?: string | Company | null;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type BusinessDocument = {
     _id: string;
     businessId: string;
@@ -445,7 +490,6 @@ export type Complaint = {
     title: string;
     content: string;
     area?: string;
-    images: string[];
     status: TrangThaiPhanAnh;
     createdByUserId:
         | string
@@ -636,6 +680,7 @@ export type PcccCheck = {
     isCrowdedRental: boolean;
     riskLevel: MucNguyCoPccc;
     remediationNeeded?: string;
+    note?: string;
     inspectionDate: string;
     inspectorId?: string | PopulatedInspector;
     followUpStatus?: TinhTrangTheoDoiPccc;
@@ -658,8 +703,6 @@ export type PcccAttachment = {
 export type SecurityRecord = {
     _id: string;
     houseId: string | PopulatedHouse | null;
-    ownershipType: LoaiSoHuu;
-    renterCount?: number;
     hasCamera: boolean;
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
@@ -672,6 +715,94 @@ export type SecurityRecord = {
     updatedBy?: string | PopulatedInspector;
     createdAt: string;
     updatedAt: string;
+};
+
+export type ResidentRecord = {
+    _id: string;
+    houseId: string | PopulatedHouse | null;
+    ownershipType: LoaiSoHuu;
+    renterCount?: number;
+    inspectionDate?: string;
+    createdBy?: string | PopulatedInspector;
+    updatedBy?: string | PopulatedInspector;
+    createdAt: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Yeu cau cong viec (Request) - thay the cac luong "giao viec" rieng le cua
+// PCCC/An ninh. Mo rong duoc cho cac loai yeu cau khac sau nay chi bang cach
+// them gia tri vao REQUEST_TYPES.
+// ---------------------------------------------------------------------------
+export const REQUEST_TYPES = ["pccc", "security"] as const;
+export type RequestType = typeof REQUEST_TYPES[number];
+
+export const REQUEST_STATUSES = [
+    "pending",
+    "acknowledged",
+    "in_progress",
+    "resolved",
+] as const;
+export type RequestStatus = typeof REQUEST_STATUSES[number];
+
+export type RequestRecipientItem = {
+    _id: string;
+    userId: string;
+    displayName: string;
+    status: RequestStatus;
+    note?: string;
+    respondedAt?: string;
+    resolvedAt?: string;
+    isOverdue: boolean;
+};
+
+export type RequestAttachment = {
+    _id: string;
+    name: string;
+    url: string;
+    mimeType?: string;
+    sizeBytes?: number;
+    uploadedBy?: string | { _id: string; displayName: string };
+    createdAt: string;
+};
+
+export type RequestItem = {
+    _id: string;
+    type: RequestType;
+    title: string;
+    description?: string;
+    note?: string;
+    relatedModel?: string;
+    relatedId?: string;
+    houseId?: string | PopulatedHouse | null;
+    dueDate?: string;
+    targetRoles: string[];
+    recipients: RequestRecipientItem[];
+    createdBy?: string | PopulatedInspector;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type MyRequestItem = {
+    _id: string;
+    requestId: string;
+    type: RequestType;
+    title: string;
+    description?: string;
+    houseId?: string | PopulatedHouse | null;
+    dueDate?: string;
+    createdBy?: string | PopulatedInspector;
+    createdAt: string;
+    status: RequestStatus;
+    note?: string;
+    respondedAt?: string;
+    resolvedAt?: string;
+    isOverdue: boolean;
+};
+
+export type RequestMeta = {
+    allowedTypes: RequestType[];
+    eligibleRolesByType: Record<string, string[]>;
 };
 
 // ---------------------------------------------------------------------------

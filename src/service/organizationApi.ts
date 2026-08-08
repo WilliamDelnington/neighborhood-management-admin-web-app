@@ -22,7 +22,7 @@ export const fetchOrganizationById = (id: string): Promise<Organization> =>
 
 export interface OrganizationInput {
     name: string;
-    taxCode: string;
+    taxCode?: string;
     organizationType: OrganizationType;
     // Chi admin can gui - house_owner tu tao to chuc luon bi ep ve chinh minh
     // o backend (xem organizationService.createOrganization), bo qua truong

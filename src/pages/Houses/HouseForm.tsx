@@ -23,13 +23,27 @@ import {
     fetchProvinces,
     fetchWardsByProvince,
 } from "@service/administrativeDivisionApi";
-import { HOUSE_PHYSICAL_STATUS_LABEL } from "@constants/domain";
-import { HousePhysicalStatus, Neighborhood, Province, Street, Ward } from "@dts";
+import {
+    HOUSE_PHYSICAL_STATUS_LABEL,
+    HOUSE_USAGE_TYPE_LABEL,
+} from "@constants/domain";
+import {
+    HousePhysicalStatus,
+    HouseUsageType,
+    Neighborhood,
+    Province,
+    Street,
+    Ward,
+} from "@dts";
 import { useAuthStore, usePermission } from "@store/authStore";
 
 const HOUSE_PHYSICAL_STATUS_KEYS = Object.keys(
     HOUSE_PHYSICAL_STATUS_LABEL,
 ) as HousePhysicalStatus[];
+
+const HOUSE_USAGE_TYPE_KEYS = Object.keys(
+    HOUSE_USAGE_TYPE_LABEL,
+) as HouseUsageType[];
 
 // Trung voi isValidVnPhone o backend (src/lib/phone.ts) - chi goi API kiem tra
 // khi da nhap du dinh dang, tranh goi API lien tuc tren so dien thoai con dang go.
@@ -88,8 +102,11 @@ export interface HouseFormValues {
     // "" = chua khai bao tinh trang cong trinh - doc lap voi trang thai ho so
     // (HouseStatus), xem HouseForm.tsx.
     physicalStatus: HousePhysicalStatus | "";
+    // Muc dich su dung nha do chu nha tu khai bao (co the chon nhieu) - xem
+    // models/HouseRecord.ts o backend.
+    usageTypes: HouseUsageType[];
+    otherUsageNote: string;
     note: string;
-    residenceDeclarationNumber: string;
     // Loai chu nha - chi co y nghia luc tao moi, backend khong ho tro doi loai
     // chu nha sau khi da tao (xem houseRecordService.createHouseRecord).
     ownerKind: HouseOwnerKind;
@@ -101,7 +118,8 @@ export interface HouseFormValues {
     ownerEmail: string;
     createOwnerAccount: boolean;
     // ownerKind="organization": thong tin to chuc duoc khai bao inline, luon
-    // duoc thu thap - backend tim-hoac-tao theo taxCode.
+    // duoc thu thap - backend tim-hoac-tao theo taxCode neu co nhap, khong thi
+    // luon tao moi (taxCode khong bat buoc).
     orgName: string;
     orgTaxCode: string;
     orgAddress: string;
@@ -125,8 +143,9 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
     wardCode: "",
     wardName: "",
     physicalStatus: "",
+    usageTypes: ["household"],
+    otherUsageNote: "",
     note: "",
-    residenceDeclarationNumber: "",
     ownerKind: "none",
     ownerName: "",
     ownerPhone: "",
@@ -156,9 +175,9 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
         wardCode: values.wardCode ? Number(values.wardCode) : undefined,
         wardName: values.wardName || undefined,
         physicalStatus: values.physicalStatus || undefined,
+        usageTypes: values.usageTypes,
+        otherUsageNote: values.otherUsageNote.trim() || undefined,
         note: values.note.trim() || undefined,
-        residenceDeclarationNumber:
-            values.residenceDeclarationNumber.trim() || undefined,
         ownerKind: values.ownerKind,
         owner:
             values.ownerKind === "individual"
@@ -176,7 +195,7 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
             values.ownerKind === "organization"
                 ? {
                       name: values.orgName.trim(),
-                      taxCode: values.orgTaxCode.trim(),
+                      taxCode: values.orgTaxCode.trim() || undefined,
                       address: values.orgAddress.trim() || undefined,
                       phone: values.orgPhone.trim() || undefined,
                       email: values.orgEmail.trim() || undefined,
@@ -202,11 +221,12 @@ export function isHouseFormValid(values: HouseFormValues): boolean {
     if (!(values.cluster.trim() || values.streetId) || !values.address.trim()) {
         return false;
     }
+    if (values.usageTypes.length === 0) return false;
     if (values.ownerKind === "individual") {
         return !!(values.ownerName.trim() && values.ownerPhone.trim());
     }
     if (values.ownerKind === "organization") {
-        if (!(values.orgName.trim() && values.orgTaxCode.trim())) return false;
+        if (!values.orgName.trim()) return false;
         if (values.createRepresentativeAccount) {
             return !!(values.repName.trim() && values.repPhone.trim());
         }
@@ -485,6 +505,39 @@ const HouseForm: React.FC<HouseFormProps> = ({
                     </SelectContent>
                 </Select>
             </div>
+            <div className="space-y-1.5">
+                <Label>Mục đích sử dụng</Label>
+                <div className="flex flex-row flex-wrap gap-4">
+                    {HOUSE_USAGE_TYPE_KEYS.map(usageType => (
+                        <label
+                            key={usageType}
+                            className="flex items-center gap-2 text-sm"
+                        >
+                            <Checkbox
+                                checked={values.usageTypes.includes(
+                                    usageType,
+                                )}
+                                onCheckedChange={checked =>
+                                    set(
+                                        "usageTypes",
+                                        checked === true
+                                            ? [...values.usageTypes, usageType]
+                                            : values.usageTypes.filter(
+                                                  t => t !== usageType,
+                                              ),
+                                    )
+                                }
+                            />
+                            {HOUSE_USAGE_TYPE_LABEL[usageType]}
+                        </label>
+                    ))}
+                </div>
+                <Input
+                    placeholder="Mục đích sử dụng khác (nếu có)"
+                    value={values.otherUsageNote}
+                    onChange={e => set("otherUsageNote", e.target.value)}
+                />
+            </div>
             {(canAttachOwner || canPickOrganization) && (
                 <div className="space-y-3 rounded-xl border border-divider_01 p-3">
                     <div className="space-y-1.5">
@@ -598,17 +651,18 @@ const HouseForm: React.FC<HouseFormProps> = ({
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Mã số thuế</Label>
+                                <Label>Mã số thuế (không bắt buộc)</Label>
                                 <Input
-                                    placeholder="Mã số thuế / số đăng ký kinh doanh"
+                                    placeholder="Mã số thuế / số đăng ký kinh doanh (nếu có)"
                                     value={values.orgTaxCode}
                                     onChange={e =>
                                         set("orgTaxCode", e.target.value)
                                     }
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Nếu mã số thuế đã tồn tại, nhà sẽ được gắn
-                                    vào tổ chức đó.
+                                    Nếu nhập mã số thuế đã tồn tại, nhà sẽ được
+                                    gắn vào tổ chức đó. Để trống nếu tổ chức
+                                    chưa có mã số thuế.
                                 </p>
                             </div>
                             <div className="space-y-1.5">
@@ -712,16 +766,6 @@ const HouseForm: React.FC<HouseFormProps> = ({
                     )}
                 </div>
             )}
-            <div className="space-y-1.5">
-                <Label>Số khai báo cư trú</Label>
-                <Input
-                    placeholder="Số khai báo tạm trú/thường trú do công an cấp (nếu có)"
-                    value={values.residenceDeclarationNumber}
-                    onChange={e =>
-                        set("residenceDeclarationNumber", e.target.value)
-                    }
-                />
-            </div>
             <div className="space-y-1.5">
                 <Label>Ghi chú</Label>
                 <Textarea

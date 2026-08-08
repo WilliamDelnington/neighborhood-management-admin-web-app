@@ -33,6 +33,8 @@ export const API = {
     CITIZENS: "/api/citizens",
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",
+    COMPANIES: "/api/companies",
+    USAGE_UNITS: "/api/usage-units",
     DOCUMENT_TYPES: "/api/document-types",
 
     COMPLAINTS: "/api/complaints",
@@ -44,6 +46,10 @@ export const API = {
 
     PCCC: "/api/pccc",
     SECURITY: "/api/security",
+    RESIDENTS: "/api/residents",
+    REQUESTS: "/api/requests",
+    REQUESTS_META: "/api/requests/meta",
+    REQUESTS_MY: "/api/requests/my",
 
     FINANCE: "/api/finance",
     FILES: "/api/files",
