@@ -1,18 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
+import FilterableSelect from "@components/admin/FilterableSelect";
 import {
     NeighborhoodInput,
     UpdateNeighborhoodInput,
 } from "@service/neighborhoodApi";
+import {
+    fetchProvinces,
+    fetchWardsByProvince,
+} from "@service/administrativeDivisionApi";
+import { Province, Ward } from "@dts";
 
 export interface NeighborhoodFormValues {
     name: string;
     code: string;
     sequence: string;
     active: boolean;
+    // Bat buoc luc tao (moi to dan pho phai thuoc mot phuong/xa) - xem
+    // validators/neighborhood.ts o backend.
+    provinceCode: string;
+    provinceName: string;
+    wardCode: string;
+    wardName: string;
     address: string;
     description: string;
     contactPhone: string;
@@ -24,6 +36,10 @@ export const EMPTY_NEIGHBORHOOD_FORM: NeighborhoodFormValues = {
     code: "",
     sequence: "",
     active: true,
+    provinceCode: "",
+    provinceName: "",
+    wardCode: "",
+    wardName: "",
     address: "",
     description: "",
     contactPhone: "",
@@ -38,6 +54,12 @@ export function toNeighborhoodInput(
         code: values.code.trim(),
         sequence: Number(values.sequence),
         active: values.active,
+        provinceCode: values.provinceCode
+            ? Number(values.provinceCode)
+            : undefined,
+        provinceName: values.provinceName || undefined,
+        wardCode: values.wardCode ? Number(values.wardCode) : undefined,
+        wardName: values.wardName || undefined,
         address: values.address.trim() || undefined,
         description: values.description.trim() || undefined,
         contactPhone: values.contactPhone.trim() || undefined,
@@ -53,6 +75,12 @@ export function toUpdateNeighborhoodInput(
     return {
         name: values.name.trim(),
         active: values.active,
+        provinceCode: values.provinceCode
+            ? Number(values.provinceCode)
+            : undefined,
+        provinceName: values.provinceName || undefined,
+        wardCode: values.wardCode ? Number(values.wardCode) : undefined,
+        wardName: values.wardName || undefined,
         address: values.address.trim() || undefined,
         description: values.description.trim() || undefined,
         contactPhone: values.contactPhone.trim() || undefined,
@@ -69,6 +97,10 @@ export function isNeighborhoodFormValid(
         if (!values.code.trim()) return false;
         const sequence = Number(values.sequence);
         if (!Number.isInteger(sequence) || sequence <= 0) return false;
+        // Chi bat buoc luc tao - to dan pho da co tu truoc co the chua co
+        // phuong/xa, khong chan sua cac truong khac cua ho (xem
+        // validators/neighborhood.ts o backend).
+        if (!values.provinceCode || !values.wardCode) return false;
     }
     return true;
 }
@@ -92,6 +124,44 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
         key: K,
         value: NeighborhoodFormValues[K],
     ) => onChange({ ...values, [key]: value });
+
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+
+    useEffect(() => {
+        fetchProvinces()
+            .then(setProvinces)
+            .catch(() => setProvinces([]));
+    }, []);
+
+    useEffect(() => {
+        if (!values.provinceCode) {
+            setWards([]);
+            return;
+        }
+        fetchWardsByProvince(Number(values.provinceCode))
+            .then(setWards)
+            .catch(() => setWards([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [values.provinceCode]);
+
+    const handleProvinceChange = (code: string, province?: Province) => {
+        onChange({
+            ...values,
+            provinceCode: code,
+            provinceName: province?.name || "",
+            wardCode: "",
+            wardName: "",
+        });
+    };
+
+    const handleWardChange = (code: string, ward?: Ward) => {
+        onChange({
+            ...values,
+            wardCode: code,
+            wardName: ward?.name || "",
+        });
+    };
 
     return (
         <div className="flex flex-col gap-4">
@@ -124,6 +194,35 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
                     />
                 </div>
             </div>
+            <FilterableSelect
+                label="Tỉnh/Thành phố"
+                placeholder="Chọn tỉnh/thành phố"
+                searchPlaceholder="Tìm theo tên tỉnh/thành phố..."
+                items={provinces}
+                getId={p => String(p.code)}
+                getLabel={p => p.name}
+                value={values.provinceCode}
+                valueLabel={values.provinceName}
+                onChange={(code, province) =>
+                    handleProvinceChange(code || "", province)
+                }
+            />
+            <FilterableSelect
+                label="Phường/Xã"
+                placeholder={
+                    values.provinceCode
+                        ? "Chọn phường/xã"
+                        : "Chọn tỉnh/thành phố trước"
+                }
+                searchPlaceholder="Tìm theo tên phường/xã..."
+                items={wards}
+                getId={w => String(w.code)}
+                getLabel={w => w.name}
+                value={values.wardCode}
+                valueLabel={values.wardName}
+                onChange={(code, ward) => handleWardChange(code || "", ward)}
+                disabled={!values.provinceCode}
+            />
             <div className="space-y-1.5">
                 <Label>Địa chỉ</Label>
                 <Input

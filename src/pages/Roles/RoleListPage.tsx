@@ -31,8 +31,14 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
-import { AppError, ModulePermissionGroup, NhomPhanAnh, RoleRecord } from "@dts";
-import { NHOM_PHAN_ANH_LABEL } from "@constants/domain";
+import {
+    AppError,
+    ModulePermissionGroup,
+    NhomPhanAnh,
+    RequestType,
+    RoleRecord,
+} from "@dts";
+import { NHOM_PHAN_ANH_LABEL, REQUEST_TYPE_LABEL } from "@constants/domain";
 import {
     createRole,
     deleteRole,
@@ -56,6 +62,8 @@ type FormState = {
     permissions: string[];
     // null = khong gioi han (xem tat ca nhom phan anh) - mac dinh cho den khi admin chot.
     allowedComplaintCategories: NhomPhanAnh[] | null;
+    // null = khong gioi han (gui duoc tat ca loai yeu cau) - cung quy uoc.
+    allowedRequestTypes: RequestType[] | null;
 };
 
 const EMPTY_FORM: FormState = {
@@ -66,11 +74,14 @@ const EMPTY_FORM: FormState = {
     sortOrder: 0,
     permissions: [],
     allowedComplaintCategories: null,
+    allowedRequestTypes: null,
 };
 
 const ALL_NHOM_PHAN_ANH = Object.keys(
     NHOM_PHAN_ANH_LABEL,
 ) as NhomPhanAnh[];
+
+const ALL_REQUEST_TYPES = Object.keys(REQUEST_TYPE_LABEL) as RequestType[];
 
 const RoleListContent: React.FC = () => {
     const [roles, setRoles] = useState<RoleRecord[]>([]);
@@ -125,6 +136,7 @@ const RoleListContent: React.FC = () => {
             sortOrder: role.sortOrder,
             permissions: role.permissions,
             allowedComplaintCategories: role.allowedComplaintCategories ?? null,
+            allowedRequestTypes: role.allowedRequestTypes ?? null,
         });
         setSheetOpen(true);
     };
@@ -144,6 +156,25 @@ const RoleListContent: React.FC = () => {
                 allowedComplaintCategories: current.includes(category)
                     ? current.filter(c => c !== category)
                     : [...current, category],
+            };
+        });
+    };
+
+    const toggleRequestTypeRestriction = (restricted: boolean) => {
+        setForm(prev => ({
+            ...prev,
+            allowedRequestTypes: restricted ? [] : null,
+        }));
+    };
+
+    const toggleRequestType = (type: RequestType) => {
+        setForm(prev => {
+            const current = prev.allowedRequestTypes || [];
+            return {
+                ...prev,
+                allowedRequestTypes: current.includes(type)
+                    ? current.filter(t => t !== type)
+                    : [...current, type],
             };
         });
     };
@@ -179,6 +210,7 @@ const RoleListContent: React.FC = () => {
                     sortOrder: form.sortOrder,
                     permissions: form.permissions,
                     allowedComplaintCategories: form.allowedComplaintCategories,
+                    allowedRequestTypes: form.allowedRequestTypes,
                 });
                 load(page);
                 toast.success("Đã cập nhật vai trò");
@@ -192,6 +224,7 @@ const RoleListContent: React.FC = () => {
                     permissions: form.permissions,
                     allowedComplaintCategories:
                         form.allowedComplaintCategories ?? undefined,
+                    allowedRequestTypes: form.allowedRequestTypes ?? undefined,
                 });
                 load(1);
                 toast.success("Đã tạo vai trò mới");
@@ -458,6 +491,46 @@ const RoleListContent: React.FC = () => {
                                             />
                                             <Label className="text-sm font-normal">
                                                 {NHOM_PHAN_ANH_LABEL[category]}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-5 border-t border-divider_01 pt-4">
+                            <h3 className="mb-3 text-sm font-semibold">
+                                Phạm vi gửi yêu cầu công việc
+                            </h3>
+                            <div className="mb-2 flex items-center gap-2">
+                                <Checkbox
+                                    checked={form.allowedRequestTypes === null}
+                                    onCheckedChange={checked =>
+                                        toggleRequestTypeRestriction(!checked)
+                                    }
+                                />
+                                <Label>
+                                    Không giới hạn (gửi được tất cả loại yêu
+                                    cầu)
+                                </Label>
+                            </div>
+                            {form.allowedRequestTypes !== null && (
+                                <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2">
+                                    {ALL_REQUEST_TYPES.map(type => (
+                                        <div
+                                            key={type}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Checkbox
+                                                checked={form.allowedRequestTypes!.includes(
+                                                    type,
+                                                )}
+                                                onCheckedChange={() =>
+                                                    toggleRequestType(type)
+                                                }
+                                            />
+                                            <Label className="text-sm font-normal">
+                                                {REQUEST_TYPE_LABEL[type]}
                                             </Label>
                                         </div>
                                     ))}

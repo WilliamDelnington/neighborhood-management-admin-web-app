@@ -226,6 +226,10 @@ const BusinessTypeListContent: React.FC = () => {
     };
 
     const handleSave = async () => {
+        if (rules.some(r => !r.documentTypeId)) {
+            toast.error("Vui lòng chọn loại giấy tờ cho tất cả các dòng");
+            return;
+        }
         try {
             setSaving(true);
             if (editing) {
@@ -235,15 +239,19 @@ const BusinessTypeListContent: React.FC = () => {
                     active: form.active,
                     sortOrder: form.sortOrder,
                 });
+                await putBusinessTypeDocumentRules(editing._id, rules);
                 toast.success("Đã cập nhật loại hình kinh doanh");
                 load(page);
             } else {
-                await createBusinessType({
+                const created = await createBusinessType({
                     name: form.name.trim(),
                     description: form.description.trim() || undefined,
                     active: form.active,
                     sortOrder: form.sortOrder,
                 });
+                if (rules.length > 0) {
+                    await putBusinessTypeDocumentRules(created._id, rules);
+                }
                 toast.success("Đã tạo loại hình kinh doanh mới");
                 load(1);
             }
@@ -423,182 +431,182 @@ const BusinessTypeListContent: React.FC = () => {
                             </label>
                         </div>
 
-                        {editing && (
-                            <div className="mt-5 border-t border-divider_01 pt-4">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <h3 className="text-sm font-semibold">
-                                        Giấy tờ yêu cầu
-                                    </h3>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={addRule}
-                                    >
-                                        + Thêm giấy tờ
-                                    </Button>
-                                </div>
+                        <div className="mt-5 border-t border-divider_01 pt-4">
+                            <div className="mb-3 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">
+                                    Giấy tờ yêu cầu
+                                </h3>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={addRule}
+                                >
+                                    + Thêm giấy tờ
+                                </Button>
+                            </div>
 
-                                {rules.length === 0 && (
-                                    <p className="text-sm text-text_2">
-                                        Loại hình này chưa yêu cầu giấy tờ nào.
-                                    </p>
-                                )}
+                            {rules.length === 0 && (
+                                <p className="text-sm text-text_2">
+                                    Loại hình này chưa yêu cầu giấy tờ nào.
+                                </p>
+                            )}
 
-                                <div className="flex flex-col gap-3">
-                                    {rules.map((rule, index) => {
-                                        const dt = documentTypeById(
-                                            rule.documentTypeId,
-                                        );
-                                        const usedElsewhere = new Set(
-                                            rules
-                                                .filter((_, i) => i !== index)
-                                                .map(r => r.documentTypeId),
-                                        );
-                                        return (
-                                            <div
-                                                key={index}
-                                                className="rounded-lg border border-divider_01 p-3"
-                                            >
-                                                <div className="mb-2 flex items-center gap-2">
-                                                    <Select
+                            <div className="flex flex-col gap-3">
+                                {rules.map((rule, index) => {
+                                    const dt = documentTypeById(
+                                        rule.documentTypeId,
+                                    );
+                                    const usedElsewhere = new Set(
+                                        rules
+                                            .filter((_, i) => i !== index)
+                                            .map(r => r.documentTypeId),
+                                    );
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="rounded-lg border border-divider_01 p-3"
+                                        >
+                                            <div className="mb-2 flex items-center gap-2">
+                                                <Select
+                                                    value={
+                                                        rule.documentTypeId ||
+                                                        undefined
+                                                    }
+                                                    onValueChange={val =>
+                                                        updateRule(index, {
+                                                            documentTypeId:
+                                                                val,
+                                                        })
+                                                    }
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Chọn loại giấy tờ" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {documentTypes
+                                                            .filter(
+                                                                d =>
+                                                                    !usedElsewhere.has(
+                                                                        d._id,
+                                                                    ),
+                                                            )
+                                                            .map(d => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        d._id
+                                                                    }
+                                                                    value={
+                                                                        d._id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        d.name
+                                                                    }
+                                                                </SelectItem>
+                                                            ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="!text-red-500"
+                                                    onClick={() =>
+                                                        removeRule(index)
+                                                    }
+                                                >
+                                                    Xóa
+                                                </Button>
+                                            </div>
+
+                                            <div className="mb-2 flex items-center gap-2">
+                                                <Checkbox
+                                                    checked={
+                                                        rule.isRequired
+                                                    }
+                                                    onCheckedChange={checked =>
+                                                        updateRule(index, {
+                                                            isRequired:
+                                                                !!checked,
+                                                        })
+                                                    }
+                                                />
+                                                <Label className="text-sm font-normal">
+                                                    Bắt buộc
+                                                </Label>
+                                            </div>
+
+                                            {dt?.hasExpiryDate && (
+                                                <div className="mb-2 space-y-1.5">
+                                                    <Label className="text-xs">
+                                                        Cảnh báo trước hết
+                                                        hạn (ngày)
+                                                    </Label>
+                                                    <Input
+                                                        type="number"
+                                                        min={1}
                                                         value={
-                                                            rule.documentTypeId ||
-                                                            undefined
+                                                            rule.warningBeforeDays ??
+                                                            ""
                                                         }
-                                                        onValueChange={val =>
-                                                            updateRule(index, {
-                                                                documentTypeId:
-                                                                    val,
-                                                            })
-                                                        }
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Chọn loại giấy tờ" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {documentTypes
-                                                                .filter(
-                                                                    d =>
-                                                                        !usedElsewhere.has(
-                                                                            d._id,
-                                                                        ),
-                                                                )
-                                                                .map(d => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            d._id
-                                                                        }
-                                                                        value={
-                                                                            d._id
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            d.name
-                                                                        }
-                                                                    </SelectItem>
-                                                                ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="!text-red-500"
-                                                        onClick={() =>
-                                                            removeRule(index)
-                                                        }
-                                                    >
-                                                        Xóa
-                                                    </Button>
-                                                </div>
-
-                                                <div className="mb-2 flex items-center gap-2">
-                                                    <Checkbox
-                                                        checked={
-                                                            rule.isRequired
-                                                        }
-                                                        onCheckedChange={checked =>
-                                                            updateRule(index, {
-                                                                isRequired:
-                                                                    !!checked,
-                                                            })
+                                                        onChange={e =>
+                                                            updateRule(
+                                                                index,
+                                                                {
+                                                                    warningBeforeDays:
+                                                                        e
+                                                                            .target
+                                                                            .value
+                                                                            ? Number(
+                                                                                  e
+                                                                                      .target
+                                                                                      .value,
+                                                                              )
+                                                                            : undefined,
+                                                                },
+                                                            )
                                                         }
                                                     />
-                                                    <Label className="text-sm font-normal">
-                                                        Bắt buộc
-                                                    </Label>
                                                 </div>
+                                            )}
 
-                                                {dt?.hasExpiryDate && (
-                                                    <div className="mb-2 space-y-1.5">
-                                                        <Label className="text-xs">
-                                                            Cảnh báo trước hết
-                                                            hạn (ngày)
-                                                        </Label>
-                                                        <Input
-                                                            type="number"
-                                                            min={1}
-                                                            value={
-                                                                rule.warningBeforeDays ??
-                                                                ""
-                                                            }
-                                                            onChange={e =>
-                                                                updateRule(
-                                                                    index,
-                                                                    {
-                                                                        warningBeforeDays:
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                                ? Number(
-                                                                                      e
-                                                                                          .target
-                                                                                          .value,
-                                                                                  )
-                                                                                : undefined,
-                                                                    },
-                                                                )
-                                                            }
-                                                        />
-                                                    </div>
-                                                )}
-
-                                                <div>
-                                                    <Label className="text-xs">
-                                                        Vai trò được duyệt
-                                                        (để trống = dùng quyền
-                                                        &quot;Duyệt / từ chối hộ
-                                                        kinh doanh&quot; mặc
-                                                        định)
-                                                    </Label>
-                                                    <div className="mt-1.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                                                        {roles.map(role => (
-                                                            <div
-                                                                key={role.key}
-                                                                className="flex items-center gap-2"
-                                                            >
-                                                                <Checkbox
-                                                                    checked={rule.reviewerRoles.includes(
+                                            <div>
+                                                <Label className="text-xs">
+                                                    Vai trò được duyệt
+                                                    (để trống = dùng quyền
+                                                    &quot;Duyệt / từ chối hộ
+                                                    kinh doanh&quot; mặc
+                                                    định)
+                                                </Label>
+                                                <div className="mt-1.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                                                    {roles.map(role => (
+                                                        <div
+                                                            key={role.key}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <Checkbox
+                                                                checked={rule.reviewerRoles.includes(
+                                                                    role.key,
+                                                                )}
+                                                                onCheckedChange={() =>
+                                                                    toggleReviewerRole(
+                                                                        index,
                                                                         role.key,
-                                                                    )}
-                                                                    onCheckedChange={() =>
-                                                                        toggleReviewerRole(
-                                                                            index,
-                                                                            role.key,
-                                                                        )
-                                                                    }
-                                                                />
-                                                                <Label className="text-sm font-normal">
-                                                                    {role.name}
-                                                                </Label>
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                                                    )
+                                                                }
+                                                            />
+                                                            <Label className="text-sm font-normal">
+                                                                {role.name}
+                                                            </Label>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
 
+                            {editing && (
                                 <Button
                                     className="mt-3 w-full"
                                     variant="outline"
@@ -607,8 +615,8 @@ const BusinessTypeListContent: React.FC = () => {
                                 >
                                     Lưu yêu cầu giấy tờ
                                 </Button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                     <SheetFooter>
                         <Button

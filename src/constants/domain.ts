@@ -1,10 +1,14 @@
 import type {
     BusinessDocumentStatus,
-    BusinessStatus,
     DangKyHop,
     FileAssetCategory,
     GioiTinh,
+    House,
+    HouseOwnershipRelationshipType,
+    HouseOwnershipVerificationStatus,
+    HousePhysicalStatus,
     HouseStatus,
+    HouseUsageType,
     LoaiCauHoiKhaoSat,
     LoaiCuTru,
     LoaiGiaoDichTaiChinh,
@@ -14,6 +18,8 @@ import type {
     MucDoAnNinh,
     MucNguyCoPccc,
     NhomPhanAnh,
+    RequestStatus,
+    RequestType,
     Role,
     TinhTrangTheoDoiAnNinh,
     TinhTrangTheoDoiPccc,
@@ -23,6 +29,7 @@ import type {
     TrangThaiThongBao,
     TrangThaiYeuCauHoTro,
     UserStatus,
+    VerificationStatus,
 } from "@dts";
 import type { BadgeTone } from "@components/ui/badge";
 
@@ -112,21 +119,72 @@ export const HOUSE_STATUS_TONE: Record<HouseStatus, BadgeTone> = {
     locked: "red",
 };
 
-// Trang thai xac thuc ho kinh doanh - tinh tu ket qua duyet tung giay to bat
-// buoc (xem @dts BusinessStatus). Khac HouseStatus (khong con "pending"/"denied"/
-// "locked" ma thay bang "pending_approval"/"need_supplement").
-export const BUSINESS_STATUS_LABEL: Record<BusinessStatus, string> = {
-    unverified: "Chưa xác thực",
-    pending_approval: "Đang chờ duyệt",
-    need_supplement: "Cần bổ sung hồ sơ",
-    verified: "Đã xác thực",
+// Ghep dia chi day du tu cac thanh phan doc lap cua House (so nha/ngo, duong,
+// phuong/xa, tinh/thanh pho) - bo qua thanh phan nao chua co (nha cu/chua
+// khai bao het). Duong/pho lay tu streetId populated neu co, khong thi bo qua
+// (cluster la ten cum dan cu, khong phai ten duong nen khong ghep vao day).
+export function formatFullAddress(house: House): string {
+    const street =
+        house.streetId && typeof house.streetId !== "string"
+            ? house.streetId.name
+            : undefined;
+    return [house.address, street, house.wardName, house.provinceName]
+        .filter(Boolean)
+        .join(", ");
+}
+
+export const HOUSE_PHYSICAL_STATUS_LABEL: Record<HousePhysicalStatus, string> = {
+    not_handed_over: "Chưa bàn giao",
+    not_renovated: "Chưa sửa",
+    under_construction: "Đang hoàn thiện",
+    under_renovation: "Đang sửa",
+    completed: "Đã hoàn thiện",
+    in_use: "Đang sử dụng",
+    vacant: "Để trống",
+    damaged: "Xuống cấp",
 };
 
-export const BUSINESS_STATUS_TONE: Record<BusinessStatus, BadgeTone> = {
-    unverified: "gray",
-    pending_approval: "yellow",
-    need_supplement: "red",
+export const HOUSE_OWNERSHIP_RELATIONSHIP_TYPE_LABEL: Record<
+    HouseOwnershipRelationshipType,
+    string
+> = {
+    primary_owner: "Chủ sở hữu chính",
+    co_owner: "Đồng sở hữu",
+    authorized_manager: "Người được ủy quyền quản lý",
+    legal_representative: "Người đại diện pháp luật",
+    contact_person: "Người liên hệ",
+};
+
+export const HOUSE_OWNERSHIP_VERIFICATION_STATUS_LABEL: Record<
+    HouseOwnershipVerificationStatus,
+    string
+> = {
+    waiting_verification: "Chờ xác thực",
+    verified: "Đã xác thực",
+    rejected: "Bị từ chối",
+};
+
+export const HOUSE_OWNERSHIP_VERIFICATION_STATUS_TONE: Record<
+    HouseOwnershipVerificationStatus,
+    BadgeTone
+> = {
+    waiting_verification: "yellow",
     verified: "green",
+    rejected: "red",
+};
+
+// Household/Business dung chung bo trang thai xac thuc voi House (xem @dts
+// VerificationStatus) - doc lap voi nhau ve gia tri, nhung cung mot 5-trang-thai
+// nen tai su dung nguyen nhan/mau cua HOUSE_STATUS_LABEL/_TONE.
+export const VERIFICATION_STATUS_LABEL: Record<VerificationStatus, string> =
+    HOUSE_STATUS_LABEL;
+export const VERIFICATION_STATUS_TONE: Record<VerificationStatus, BadgeTone> =
+    HOUSE_STATUS_TONE;
+
+export const HOUSE_USAGE_TYPE_LABEL: Record<HouseUsageType, string> = {
+    household: "Hộ dân",
+    business: "Hộ kinh doanh",
+    company: "Công ty",
 };
 
 export const BUSINESS_DOCUMENT_STATUS_LABEL: Record<
@@ -168,6 +226,7 @@ export const PCCC_AUDIT_ACTION_LABEL: Record<string, string> = {
     "pccc.attachment.upload": "Tải lên file đính kèm",
     "pccc.attachment.delete": "Xóa file đính kèm",
     "pccc.delete": "Xóa đợt kiểm tra",
+    "pccc.status_sync": "Tự động cập nhật tình trạng theo dõi (từ yêu cầu)",
 };
 
 export const SECURITY_AUDIT_ACTION_LABEL: Record<string, string> = {
@@ -175,6 +234,42 @@ export const SECURITY_AUDIT_ACTION_LABEL: Record<string, string> = {
     "security.update": "Cập nhật thông tin",
     "security.assign": "Phân công theo dõi",
     "security.delete": "Xóa hồ sơ an ninh",
+    "security.status_sync": "Tự động cập nhật tình trạng theo dõi (từ yêu cầu)",
+};
+
+export const RESIDENT_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "resident.create": "Tạo hồ sơ cư trú",
+    "resident.update": "Cập nhật thông tin",
+    "resident.delete": "Xóa hồ sơ cư trú",
+};
+
+export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
+    pccc: "PCCC",
+    security: "An ninh & Quản lý cư trú",
+};
+
+export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {
+    pending: "Chưa xử lý",
+    acknowledged: "Đã tiếp nhận",
+    in_progress: "Đang xử lý",
+    resolved: "Đã hoàn thành",
+};
+
+export const REQUEST_STATUS_TONE: Record<RequestStatus, BadgeTone> = {
+    pending: "gray",
+    acknowledged: "blue",
+    in_progress: "yellow",
+    resolved: "green",
+};
+
+export const REQUEST_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "request.create": "Gửi yêu cầu",
+    "request.update": "Cập nhật yêu cầu",
+    "request.cancel": "Hủy yêu cầu",
+    "request.update_status": "Cập nhật trạng thái xử lý",
+    "request.add_recipients": "Thêm người nhận",
+    "request.attachment.upload": "Tải lên file đính kèm",
+    "request.attachment.delete": "Xóa file đính kèm",
 };
 
 export const MEETING_AUDIT_ACTION_LABEL: Record<string, string> = {
@@ -203,9 +298,9 @@ export const LOAI_CU_TRU_LABEL: Record<LoaiCuTru, string> = {
 };
 
 export const MUC_NGUY_CO_PCCC_LABEL: Record<MucNguyCoPccc, string> = {
-    xanh: "Xanh",
-    vang: "Vàng",
-    do: "Đỏ",
+    xanh: "Thấp",
+    vang: "Trung bình",
+    do: "Cao",
 };
 
 export const MUC_NGUY_CO_PCCC_TONE: Record<MucNguyCoPccc, BadgeTone> = {

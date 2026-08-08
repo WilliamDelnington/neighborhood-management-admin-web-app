@@ -16,13 +16,14 @@ import {
     markAllNotificationsRead,
     markNotificationRead,
 } from "@service/notificationApi";
-
-const UNREAD_POLL_MS = 30_000;
+import { connectSocket, disconnectSocket } from "@service/socket";
+import { useAuthStore } from "@store/authStore";
 
 const formatTime = (value?: string) =>
     value ? new Date(value).toLocaleString("vi-VN") : "";
 
 const NotificationBell: React.FC = () => {
+    const token = useAuthStore(state => state.token);
     const [open, setOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const [items, setItems] = useState<NotificationDeliveryItem[]>([]);
@@ -36,9 +37,23 @@ const NotificationBell: React.FC = () => {
 
     useEffect(() => {
         refreshUnreadCount();
-        const timer = setInterval(refreshUnreadCount, UNREAD_POLL_MS);
-        return () => clearInterval(timer);
     }, []);
+
+    useEffect(() => {
+        if (!token) return;
+
+        const socket = connectSocket(token);
+        socket.on("notification:unread-count", (payload: { count: number }) =>
+            setUnreadCount(payload.count),
+        );
+        // Dong bo lai qua REST moi khi (tai) ket noi thanh cong, de bu cac su
+        // kien co the bi lo trong luc mat ket noi tam thoi.
+        socket.on("connect", refreshUnreadCount);
+
+        return () => {
+            disconnectSocket();
+        };
+    }, [token]);
 
     useEffect(() => {
         if (!open) return;

@@ -29,6 +29,10 @@ export interface NeighborhoodInput {
     code: string;
     sequence: number;
     active?: boolean;
+    provinceCode?: number;
+    provinceName?: string;
+    wardCode?: number;
+    wardName?: string;
     address?: string;
     description?: string;
     contactPhone?: string;

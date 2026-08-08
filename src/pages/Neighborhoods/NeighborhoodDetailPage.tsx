@@ -38,6 +38,10 @@ const toFormValues = (n: Neighborhood): NeighborhoodFormValues => ({
     code: n.code,
     sequence: String(n.sequence),
     active: n.active,
+    provinceCode: n.provinceCode ? String(n.provinceCode) : "",
+    provinceName: n.provinceName || "",
+    wardCode: n.wardCode ? String(n.wardCode) : "",
+    wardName: n.wardName || "",
     address: n.address || "",
     description: n.description || "",
     contactPhone: n.contactPhone || "",
@@ -228,6 +232,14 @@ const NeighborhoodDetailContent: React.FC = () => {
                             </>
                         ) : (
                             <>
+                                <InfoRow
+                                    label="Tỉnh/Thành phố"
+                                    value={neighborhood.provinceName || "Chưa gán"}
+                                />
+                                <InfoRow
+                                    label="Phường/Xã"
+                                    value={neighborhood.wardName || "Chưa gán"}
+                                />
                                 <InfoRow
                                     label="Địa chỉ"
                                     value={neighborhood.address || "Chưa có"}

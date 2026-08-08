@@ -10,8 +10,6 @@ import { request } from "./request";
 
 export interface SecurityRecordInput {
     houseId: string;
-    ownershipType?: "chinh_chu" | "cho_thue";
-    renterCount?: number;
     hasCamera?: boolean;
     hasSecurityComplaint?: boolean;
     level?: MucDoAnNinh;
@@ -46,12 +44,6 @@ export const updateSecurityRecord = (
 
 export const deleteSecurityRecord = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.SECURITY}/${id}`);
-
-export const assignSecurityRecord = (
-    id: string,
-    input: { assigneeId: string },
-): Promise<SecurityRecord> =>
-    request<SecurityRecord>("PATCH", `${API.SECURITY}/${id}/assign`, input);
 
 export const fetchSecurityAuditLogs = (
     id: string,

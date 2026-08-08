@@ -1,5 +1,5 @@
 import { API } from "@constants/common";
-import { Household, PaginatedData } from "@dts";
+import { Household, PaginatedData, VerificationStatus } from "@dts";
 import { request } from "./request";
 
 export interface HouseholdInput {
@@ -44,3 +44,10 @@ export const updateHousehold = (
 
 export const deleteHousehold = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.HOUSEHOLDS}/${id}`);
+
+export const updateHouseholdStatus = (
+    id: string,
+    status: VerificationStatus,
+    note?: string,
+): Promise<Household> =>
+    request<Household>("PATCH", `${API.HOUSEHOLDS}/${id}/status`, { status, note });

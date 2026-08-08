@@ -29,6 +29,7 @@ export interface PcccFormValues {
     isCrowdedRental: boolean;
     riskLevel: MucNguyCoPccc;
     remediationNeeded: string;
+    note: string;
     inspectionDate: string;
     followUpStatus: TinhTrangTheoDoiPccc;
 }
@@ -43,6 +44,7 @@ export const EMPTY_PCCC_FORM: PcccFormValues = {
     isCrowdedRental: false,
     riskLevel: "xanh",
     remediationNeeded: "",
+    note: "",
     inspectionDate: "",
     followUpStatus: "chua_khac_phuc",
 };
@@ -57,6 +59,7 @@ export function toPcccInput(values: PcccFormValues): PcccCheckInput {
         isCrowdedRental: values.isCrowdedRental,
         riskLevel: values.riskLevel,
         remediationNeeded: values.remediationNeeded.trim() || undefined,
+        note: values.note.trim() || undefined,
         inspectionDate: values.inspectionDate
             ? new Date(values.inspectionDate).toISOString()
             : "",
@@ -73,6 +76,8 @@ interface PcccFormProps {
     onChange: (values: PcccFormValues) => void;
     /** Noi dung chen ngay sau truong "Ngay kiem tra" (vd. khu vuc phan cong xu ly). */
     afterInspectionDate?: React.ReactNode;
+    /** Noi dung chen ngay sau truong "Muc nguy co" (vd. muc tao yeu cau xu ly). */
+    afterRiskLevel?: React.ReactNode;
 }
 
 /**
@@ -82,6 +87,7 @@ const PcccForm: React.FC<PcccFormProps> = ({
     values,
     onChange,
     afterInspectionDate,
+    afterRiskLevel,
 }) => {
     const set = <K extends keyof PcccFormValues>(
         key: K,
@@ -204,12 +210,21 @@ const PcccForm: React.FC<PcccFormProps> = ({
                     ))}
                 </RadioGroup>
             </div>
+            {afterRiskLevel}
             <div className="space-y-1.5">
                 <Label>Việc cần khắc phục</Label>
                 <Textarea
                     placeholder="Mô tả các việc cần khắc phục (nếu có)"
                     value={values.remediationNeeded}
                     onChange={e => set("remediationNeeded", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Ghi chú</Label>
+                <Textarea
+                    placeholder="Ghi chú thêm (nếu có)"
+                    value={values.note}
+                    onChange={e => set("note", e.target.value)}
                 />
             </div>
             <div className="space-y-1.5">

@@ -23,6 +23,9 @@ export const API = {
     ROLES_REVOKE: "/api/roles/revoke",
 
     HOUSES: "/api/houses",
+    HOUSES_CHECK_OWNER_PHONE: "/api/houses/check-owner-phone",
+    ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
+    ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
     ORGANIZATIONS: "/api/organizations",
     HOUSEHOLDS: "/api/households",
     NEIGHBORHOODS: "/api/neighborhoods",
@@ -30,6 +33,8 @@ export const API = {
     CITIZENS: "/api/citizens",
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",
+    COMPANIES: "/api/companies",
+    USAGE_UNITS: "/api/usage-units",
     DOCUMENT_TYPES: "/api/document-types",
 
     COMPLAINTS: "/api/complaints",
@@ -41,6 +46,10 @@ export const API = {
 
     PCCC: "/api/pccc",
     SECURITY: "/api/security",
+    RESIDENTS: "/api/residents",
+    REQUESTS: "/api/requests",
+    REQUESTS_META: "/api/requests/meta",
+    REQUESTS_MY: "/api/requests/my",
 
     FINANCE: "/api/finance",
     FILES: "/api/files",

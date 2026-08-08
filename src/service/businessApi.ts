@@ -2,10 +2,10 @@ import { API } from "@constants/common";
 import {
     Business,
     BusinessDocument,
-    BusinessStatus,
     FileAsset,
     PaginatedData,
     RequiredDocumentsResult,
+    VerificationStatus,
 } from "@dts";
 import { request } from "./request";
 
@@ -22,7 +22,7 @@ export interface BusinessInput {
 
 export const fetchBusinesses = (params?: {
     search?: string;
-    status?: BusinessStatus;
+    status?: VerificationStatus;
     page?: number;
     limit?: number;
 }): Promise<PaginatedData<Business>> =>
@@ -43,12 +43,13 @@ export const updateBusiness = (
 export const deleteBusiness = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.BUSINESSES}/${id}`);
 
-// Ghi de thu cong - CHI danh cho admin (xem PATCH /api/businesses/:id/status
-// o backend). Luong binh thuong dung reviewBusinessDocument ben duoi, trang
-// thai duoc backend tu tinh lai.
+// Ghi de thu cong (admin: bat ky trang thai nao; chu ho: chi "denied" ->
+// "pending" de gui lai - xem PATCH /api/businesses/:id/status o backend).
+// Luong binh thuong dung reviewBusinessDocument ben duoi, trang thai duoc
+// backend tu tinh lai.
 export const updateBusinessStatus = (
     id: string,
-    status: BusinessStatus,
+    status: VerificationStatus,
 ): Promise<Business> =>
     request<Business>("PATCH", `${API.BUSINESSES}/${id}/status`, { status });
 
@@ -74,9 +75,10 @@ export const reviewBusinessDocument = (
     documentId: string,
     decision: "approved" | "rejected",
     rejectionReason?: string,
+    approvalNote?: string,
 ): Promise<BusinessDocument> =>
     request<BusinessDocument>(
         "PUT",
         `${API.BUSINESSES}/${businessId}/documents/${documentId}/review`,
-        { decision, rejectionReason },
+        { decision, rejectionReason, approvalNote },
     );

@@ -76,6 +76,7 @@ export type RoleRecord = {
     description?: string;
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
+    allowedRequestTypes?: RequestType[];
     system: boolean;
     active: boolean;
     sortOrder: number;
@@ -125,10 +126,29 @@ export type BusinessType = {
 
 export type HouseStatus = "unverified" | "pending" | "verified" | "denied" | "locked";
 
+// Trang thai xac thuc dung chung cho House/Household/Business - ba thuc the
+// nay co trang thai xac thuc DOC LAP voi nhau (chi phu thuoc nhau mot chieu
+// qua cascade khi House chuyen sang "verified"), nhung cung dung chung mot bo
+// 5 gia tri nhu HouseStatus. Household/Business dung alias nay cho truong
+// `status` cua chung thay vi mot enum rieng.
+export type VerificationStatus = HouseStatus;
+
+// Tinh trang cong trinh thuc te - doc lap voi HouseStatus (trang thai ho
+// so/xac thuc). Optional: nha chua duoc khai se khong co gia tri nay.
+export type HousePhysicalStatus =
+    | "not_handed_over"
+    | "not_renovated"
+    | "under_construction"
+    | "under_renovation"
+    | "completed"
+    | "in_use"
+    | "vacant"
+    | "damaged";
+
 // ---------------------------------------------------------------------------
 // Chu so huu (nha so co the thuoc ca nhan hoac to chuc)
 // ---------------------------------------------------------------------------
-export type OwnerType = "user" | "organization";
+export type OwnerType = "user" | "organization" | "person";
 
 export type OrganizationType = "cong_ty" | "hop_tac_xa" | "co_quan_nha_nuoc" | "khac";
 
@@ -142,9 +162,12 @@ export const ORGANIZATION_TYPE_LABEL: Record<OrganizationType, string> = {
 export type Organization = {
     _id: string;
     name: string;
-    taxCode: string;
+    taxCode?: string;
     organizationType: OrganizationType;
-    representativeUserId: string | { _id: string; displayName: string; phone?: string };
+    // Optional: to chuc duoc khai bao luc tao nha so co the chua co nguoi dai
+    // dien nao dang nhap duoc (xem HouseForm.tsx - checkbox "Tao tai khoan
+    // nguoi dai dien").
+    representativeUserId?: string | { _id: string; displayName: string; phone?: string };
     representativeRole?: string;
     phone?: string;
     email?: string;
@@ -154,15 +177,16 @@ export type Organization = {
     updatedAt: string;
 };
 
-// Trang thai xac thuc ho kinh doanh - TINH tu ket qua duyet tung giay to bat
-// buoc (xem RequiredDocumentsResult), khong con la mot hanh dong duyet/tu choi
-// thu cong nhu HouseStatus. Xem businessDocumentService.recomputeBusinessStatus
-// o backend.
-export type BusinessStatus =
-    | "unverified"
-    | "pending_approval"
-    | "need_supplement"
-    | "verified";
+// Danh tinh duoc khai bao (ten/sdt/email) cho chu nha/nguoi dai dien to chuc
+// KHONG tao tai khoan dang nhap - xem OwnerType="person" o HouseOwnership.
+export type Person = {
+    _id: string;
+    fullName: string;
+    phone?: string;
+    email?: string;
+    createdAt: string;
+    updatedAt: string;
+};
 
 export type BusinessDocumentStatus = "pending" | "approved" | "rejected";
 
@@ -176,11 +200,62 @@ export type House = {
     streetId?: string | Street | null;
     neighborhoodId?: string | Neighborhood | null;
     address: string;
+    // Phuong/xa va tinh/thanh pho - hien thi dia chi day du, khong lien quan
+    // RBAC/pham vi (khac cluster/neighborhoodId) - xem administrativeDivisionApi.ts.
+    provinceCode?: number;
+    provinceName?: string;
+    wardCode?: number;
+    wardName?: string;
     status: HouseStatus;
+    physicalStatus?: HousePhysicalStatus;
+    // Muc dich su dung nha do chu nha tu khai bao (co the nhieu gia tri dong
+    // thoi) - xem models/HouseRecord.ts o backend. Doc lap voi HouseUsageUnit
+    // (lop gan don vi cho tung Household/Business/Company DA TON TAI) - truong
+    // nay chi la "y dinh" khai bao, dung de nhac nho khai bao thieu (xem
+    // HouseDetailPage.tsx).
+    usageTypes: HouseUsageType[];
+    otherUsageNote?: string;
+    // Cache cua quan he primary_owner dang active trong HouseOwnership (xem
+    // ben duoi) - mot nha co the co nhieu chu so huu/nguoi quan ly dong thoi,
+    // hai truong nay chi phan anh chu so huu CHINH hien tai.
     ownerType?: OwnerType;
     ownerId?: string | { _id: string; displayName: string } | null;
     note?: string;
+    approvalNote?: string;
+    denialReason?: string;
     residenceDeclarationNumber?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type HouseOwnershipRelationshipType =
+    | "primary_owner"
+    | "co_owner"
+    | "authorized_manager"
+    | "legal_representative"
+    | "contact_person";
+
+export type HouseOwnershipVerificationStatus =
+    | "waiting_verification"
+    | "verified"
+    | "rejected";
+
+// ownerId luon la id tho (khong duoc backend populate, vi la ref da hinh User/
+// Organization) - ownerDisplayName/ownerPhone duoc backend tu resolve rieng
+// (xem houseOwnershipService.listHouseOwnerships) de khong phai goi them API.
+export type HouseOwnership = {
+    _id: string;
+    houseId: string;
+    ownerType: OwnerType;
+    ownerId: string;
+    ownerDisplayName?: string;
+    ownerPhone?: string;
+    relationshipType: HouseOwnershipRelationshipType;
+    startDate: string;
+    endDate?: string | null;
+    active: boolean;
+    verificationStatus: HouseOwnershipVerificationStatus;
+    reason?: string;
     createdAt: string;
     updatedAt: string;
 };
@@ -191,6 +266,12 @@ export type Neighborhood = {
     code: string;
     sequence: number;
     active: boolean;
+    // Bat buoc luc tao (xem NeighborhoodForm.tsx) nhung optional o day vi to
+    // dan pho tao truoc khi co truong nay se khong co gia tri (khong backfill).
+    provinceCode?: number;
+    provinceName?: string;
+    wardCode?: number;
+    wardName?: string;
     address?: string;
     description?: string;
     contactPhone?: string;
@@ -212,6 +293,26 @@ export type Street = {
     active: boolean;
     createdAt: string;
     updatedAt: string;
+};
+
+// Du lieu don vi hanh chinh cong khai (tinh/thanh pho, phuong/xa) tu
+// https://provinces.open-api.vn - khong phai entity quan ly boi backend, chi
+// proxy/cache lai (xem administrativeDivisionApi.ts). Shape khop nguyen voi
+// API ben ngoai, khong doi ten field.
+export type Province = {
+    name: string;
+    code: number;
+    division_type: string;
+    codename: string;
+    phone_code?: number;
+};
+
+export type Ward = {
+    name: string;
+    code: number;
+    division_type: string;
+    codename: string;
+    province_code: number;
 };
 
 export type NeighborhoodLeaderAssignment = {
@@ -238,6 +339,9 @@ export type Household = {
     ownershipType: LoaiSoHuu;
     needsSupport: boolean;
     houseId?: string | House;
+    status: VerificationStatus;
+    approvalNote?: string;
+    denialReason?: string;
     note?: string;
     createdAt: string;
     updatedAt: string;
@@ -252,7 +356,9 @@ export type Business = {
     ownerName?: string;
     phone?: string;
     active: boolean;
-    status: BusinessStatus;
+    status: VerificationStatus;
+    approvalNote?: string;
+    denialReason?: string;
     note?: string;
     createdAt: string;
     updatedAt: string;
@@ -267,6 +373,43 @@ type PopulatedFileAssetSummary = {
 };
 type PopulatedActor = { _id: string; displayName: string };
 
+// Mirror cua Business nhung khong co businessType/quy trinh giay to rieng -
+// xem models/Company.ts o backend.
+export type Company = {
+    _id: string;
+    name: string;
+    houseId: string | House | null;
+    cluster: string;
+    ownerName?: string;
+    phone?: string;
+    active: boolean;
+    status: VerificationStatus;
+    approvalNote?: string;
+    denialReason?: string;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type HouseUsageType = "household" | "business" | "company";
+
+// Lop bo sung ghi nhan mot nha so duoc chia thanh nhieu don vi su dung (vd
+// tang/phong) cho Household/Business/Company - KHONG thay the houseId truc
+// tiep tren ba thuc the do, xem models/HouseUsageUnit.ts o backend. Chi dung
+// DUNG MOT trong ba truong tham chieu, khop voi usageType.
+export type HouseUsageUnit = {
+    _id: string;
+    houseId: string | House;
+    unitLabel: string;
+    usageType: HouseUsageType;
+    householdId?: string | Household | null;
+    businessId?: string | Business | null;
+    companyId?: string | Company | null;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type BusinessDocument = {
     _id: string;
     businessId: string;
@@ -277,6 +420,7 @@ export type BusinessDocument = {
     expiryDate?: string;
     status: BusinessDocumentStatus;
     rejectionReason?: string;
+    approvalNote?: string;
     uploadedBy: string | PopulatedActor;
     reviewedBy?: string | PopulatedActor;
     reviewedAt?: string;
@@ -346,7 +490,6 @@ export type Complaint = {
     title: string;
     content: string;
     area?: string;
-    images: string[];
     status: TrangThaiPhanAnh;
     createdByUserId:
         | string
@@ -537,6 +680,7 @@ export type PcccCheck = {
     isCrowdedRental: boolean;
     riskLevel: MucNguyCoPccc;
     remediationNeeded?: string;
+    note?: string;
     inspectionDate: string;
     inspectorId?: string | PopulatedInspector;
     followUpStatus?: TinhTrangTheoDoiPccc;
@@ -559,8 +703,6 @@ export type PcccAttachment = {
 export type SecurityRecord = {
     _id: string;
     houseId: string | PopulatedHouse | null;
-    ownershipType: LoaiSoHuu;
-    renterCount?: number;
     hasCamera: boolean;
     hasSecurityComplaint: boolean;
     level: MucDoAnNinh;
@@ -573,6 +715,94 @@ export type SecurityRecord = {
     updatedBy?: string | PopulatedInspector;
     createdAt: string;
     updatedAt: string;
+};
+
+export type ResidentRecord = {
+    _id: string;
+    houseId: string | PopulatedHouse | null;
+    ownershipType: LoaiSoHuu;
+    renterCount?: number;
+    inspectionDate?: string;
+    createdBy?: string | PopulatedInspector;
+    updatedBy?: string | PopulatedInspector;
+    createdAt: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Yeu cau cong viec (Request) - thay the cac luong "giao viec" rieng le cua
+// PCCC/An ninh. Mo rong duoc cho cac loai yeu cau khac sau nay chi bang cach
+// them gia tri vao REQUEST_TYPES.
+// ---------------------------------------------------------------------------
+export const REQUEST_TYPES = ["pccc", "security"] as const;
+export type RequestType = typeof REQUEST_TYPES[number];
+
+export const REQUEST_STATUSES = [
+    "pending",
+    "acknowledged",
+    "in_progress",
+    "resolved",
+] as const;
+export type RequestStatus = typeof REQUEST_STATUSES[number];
+
+export type RequestRecipientItem = {
+    _id: string;
+    userId: string;
+    displayName: string;
+    status: RequestStatus;
+    note?: string;
+    respondedAt?: string;
+    resolvedAt?: string;
+    isOverdue: boolean;
+};
+
+export type RequestAttachment = {
+    _id: string;
+    name: string;
+    url: string;
+    mimeType?: string;
+    sizeBytes?: number;
+    uploadedBy?: string | { _id: string; displayName: string };
+    createdAt: string;
+};
+
+export type RequestItem = {
+    _id: string;
+    type: RequestType;
+    title: string;
+    description?: string;
+    note?: string;
+    relatedModel?: string;
+    relatedId?: string;
+    houseId?: string | PopulatedHouse | null;
+    dueDate?: string;
+    targetRoles: string[];
+    recipients: RequestRecipientItem[];
+    createdBy?: string | PopulatedInspector;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type MyRequestItem = {
+    _id: string;
+    requestId: string;
+    type: RequestType;
+    title: string;
+    description?: string;
+    houseId?: string | PopulatedHouse | null;
+    dueDate?: string;
+    createdBy?: string | PopulatedInspector;
+    createdAt: string;
+    status: RequestStatus;
+    note?: string;
+    respondedAt?: string;
+    resolvedAt?: string;
+    isOverdue: boolean;
+};
+
+export type RequestMeta = {
+    allowedTypes: RequestType[];
+    eligibleRolesByType: Record<string, string[]>;
 };
 
 // ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ export interface PcccCheckInput {
     isCrowdedRental?: boolean;
     riskLevel?: MucNguyCoPccc;
     remediationNeeded?: string;
+    note?: string;
     inspectionDate: string;
     inspectorId?: string;
     followUpStatus?: TinhTrangTheoDoiPccc;
@@ -53,12 +54,6 @@ export const deletePcccCheck = (id: string): Promise<null> =>
 
 export const fetchPcccRiskSummary = (): Promise<Record<string, number>> =>
     request<Record<string, number>>("GET", `${API.PCCC}/summary`);
-
-export const assignPcccCheck = (
-    id: string,
-    input: { assigneeId: string; deadline?: string },
-): Promise<PcccCheck> =>
-    request<PcccCheck>("PATCH", `${API.PCCC}/${id}/assign`, input);
 
 export const fetchPcccAttachments = (id: string): Promise<PcccAttachment[]> =>
     request<PcccAttachment[]>("GET", `${API.PCCC}/${id}/attachments`);

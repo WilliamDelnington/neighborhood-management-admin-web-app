@@ -5,9 +5,12 @@ import { Paperclip, Plus, Trash2, Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
-import { Input } from "@components/ui/input";
-import { Label } from "@components/ui/label";
-import AssigneePicker from "@components/admin/AssigneePicker";
+import SendRequestSheet from "@components/admin/SendRequestSheet";
+import RequestSubSection, {
+    emptyRequestSubSection,
+    isRequestSubSectionValid,
+    RequestSubSectionValue,
+} from "@components/admin/RequestSubSection";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import {
     Select,
@@ -42,15 +45,16 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import StatCard from "@components/admin/StatCard";
 import { usePermission } from "@store/authStore";
-import { AppError, AssignableStaff, MucNguyCoPccc, PcccAttachment, PcccCheck } from "@dts";
+import { AppError, MucNguyCoPccc, PcccAttachment, PcccCheck, RequestItem } from "@dts";
 import {
     MUC_NGUY_CO_PCCC_LABEL,
     MUC_NGUY_CO_PCCC_TONE,
     PCCC_AUDIT_ACTION_LABEL,
+    REQUEST_STATUS_LABEL,
+    REQUEST_STATUS_TONE,
 } from "@constants/domain";
 import { resolveAssetUrl } from "@constants/common";
 import {
-    assignPcccCheck,
     createPcccCheck,
     deletePcccAttachment,
     deletePcccCheck,
@@ -61,6 +65,7 @@ import {
     updatePcccCheck,
     uploadPcccAttachment,
 } from "@service/pcccApi";
+import { createRequest, fetchRequests } from "@service/requestApi";
 import PcccForm, {
     EMPTY_PCCC_FORM,
     PcccFormValues,
@@ -82,17 +87,6 @@ const houseIdOf = (h: PcccCheck["houseId"]) =>
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
 
-const assigneeText = (a: PcccCheck["assigneeId"]) => {
-    if (!a) return "";
-    if (typeof a === "string") return a;
-    return a.displayName;
-};
-
-const isOverdue = (c: PcccCheck) =>
-    !!c.deadline &&
-    new Date(c.deadline) < new Date() &&
-    c.followUpStatus !== "da_khac_phuc";
-
 const checkToForm = (c: PcccCheck): PcccFormValues => ({
     houseId: houseIdOf(c.houseId),
     houseLabel: houseText(c.houseId),
@@ -103,6 +97,7 @@ const checkToForm = (c: PcccCheck): PcccFormValues => ({
     isCrowdedRental: c.isCrowdedRental,
     riskLevel: c.riskLevel,
     remediationNeeded: c.remediationNeeded || "",
+    note: c.note || "",
     inspectionDate: c.inspectionDate ? c.inspectionDate.slice(0, 10) : "",
     followUpStatus: c.followUpStatus || "chua_khac_phuc",
 });
@@ -137,10 +132,12 @@ const PcccListContent: React.FC = () => {
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const canAssign = usePermission("pccc.assign");
-    const [deadlineInput, setDeadlineInput] = useState("");
-    const [assigneeDialogOpen, setAssigneeDialogOpen] = useState(false);
-    const [assigning, setAssigning] = useState(false);
+    const canSendRequest = usePermission("requests.create");
+    const [sendRequestOpen, setSendRequestOpen] = useState(false);
+    const [relatedRequests, setRelatedRequests] = useState<RequestItem[]>([]);
+    const [relatedRequestsLoading, setRelatedRequestsLoading] = useState(false);
+    const [requestSubSection, setRequestSubSection] =
+        useState<RequestSubSectionValue>(emptyRequestSubSection());
 
     const [attachments, setAttachments] = useState<PcccAttachment[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(false);
@@ -200,7 +197,16 @@ const PcccListContent: React.FC = () => {
         setEditingCheck(null);
         setForm(EMPTY_PCCC_FORM);
         setAttachments([]);
+        setRequestSubSection(emptyRequestSubSection("Xử lý nguy cơ PCCC"));
         setFormVisible(true);
+    };
+
+    const loadRelatedRequests = (checkId: string) => {
+        setRelatedRequestsLoading(true);
+        fetchRequests({ relatedModel: "PcccCheck", relatedId: checkId })
+            .then(res => setRelatedRequests(res.items))
+            .catch(() => setRelatedRequests([]))
+            .finally(() => setRelatedRequestsLoading(false));
     };
 
     const openEdit = (c: PcccCheck) => {
@@ -208,35 +214,17 @@ const PcccListContent: React.FC = () => {
         setEditingId(c._id);
         setEditingCheck(c);
         setForm(checkToForm(c));
-        setDeadlineInput(c.deadline ? c.deadline.slice(0, 10) : "");
+        setRequestSubSection(
+            emptyRequestSubSection(`Xử lý nguy cơ PCCC — ${houseText(c.houseId)}`),
+        );
         setFormVisible(true);
+        loadRelatedRequests(c._id);
 
         setAttachmentsLoading(true);
         fetchPcccAttachments(c._id)
             .then(setAttachments)
             .catch(() => setAttachments([]))
             .finally(() => setAttachmentsLoading(false));
-    };
-
-    const handleAssign = async (staff: AssignableStaff) => {
-        if (!editingId) return;
-        try {
-            setAssigning(true);
-            const updated = await assignPcccCheck(editingId, {
-                assigneeId: staff.id,
-                deadline: deadlineInput
-                    ? new Date(deadlineInput).toISOString()
-                    : undefined,
-            });
-            setEditingCheck(updated);
-            setAssigneeDialogOpen(false);
-            toast.success(`Đã giao cho ${staff.displayName} phụ trách`);
-            load(page);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigning(false);
-        }
     };
 
     const handleUploadClick = () => fileInputRef.current?.click();
@@ -278,15 +266,43 @@ const PcccListContent: React.FC = () => {
             toast.error("Vui lòng chọn hộ dân và ngày kiểm tra");
             return;
         }
+        if (!isRequestSubSectionValid(requestSubSection)) {
+            toast.error(
+                "Vui lòng nhập tiêu đề và chọn ít nhất một người nhận cho yêu cầu",
+            );
+            return;
+        }
         try {
             setSubmitting(true);
-            if (editingId) {
-                await updatePcccCheck(editingId, toPcccInput(form));
-                toast.success("Đã cập nhật đợt kiểm tra");
-            } else {
-                await createPcccCheck(toPcccInput(form));
-                toast.success("Đã thêm đợt kiểm tra PCCC");
+            const check = editingId
+                ? await updatePcccCheck(editingId, toPcccInput(form))
+                : await createPcccCheck(toPcccInput(form));
+            toast.success(
+                editingId ? "Đã cập nhật đợt kiểm tra" : "Đã thêm đợt kiểm tra PCCC",
+            );
+
+            if (requestSubSection.enabled) {
+                try {
+                    await createRequest({
+                        type: "pccc",
+                        title: requestSubSection.title,
+                        relatedModel: "PcccCheck",
+                        relatedId: check._id,
+                        houseId: houseIdOf(check.houseId),
+                        dueDate: requestSubSection.dueDate
+                            ? new Date(requestSubSection.dueDate).toISOString()
+                            : undefined,
+                        targetUserIds: requestSubSection.targetUserIds,
+                        targetRoles: requestSubSection.targetRoles,
+                    });
+                    toast.success("Đã gửi yêu cầu xử lý");
+                } catch (err) {
+                    toast.error(
+                        `Đã lưu đợt kiểm tra nhưng gửi yêu cầu thất bại: ${(err as AppError).message}`,
+                    );
+                }
             }
+
             setFormVisible(false);
             load(1);
             loadSummary();
@@ -369,8 +385,6 @@ const PcccListContent: React.FC = () => {
                                 <TableHead>Nhà</TableHead>
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Mức nguy cơ</TableHead>
-                                <TableHead>Người phụ trách</TableHead>
-                                <TableHead>Hạn xử lý</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -394,25 +408,6 @@ const PcccListContent: React.FC = () => {
                                         >
                                             {MUC_NGUY_CO_PCCC_LABEL[c.riskLevel]}
                                         </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {assigneeText(c.assigneeId) || (
-                                            <span className="text-text_2">
-                                                Chưa giao
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        {c.deadline && (
-                                            <div className="flex items-center gap-2">
-                                                {formatDate(c.deadline)}
-                                                {isOverdue(c) && (
-                                                    <Badge tone="red">
-                                                        Quá hạn
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -443,61 +438,82 @@ const PcccListContent: React.FC = () => {
                         <PcccForm
                             values={form}
                             onChange={setForm}
+                            afterRiskLevel={
+                                form.riskLevel !== "xanh" && (
+                                    <RequestSubSection
+                                        type="pccc"
+                                        value={requestSubSection}
+                                        onChange={setRequestSubSection}
+                                    />
+                                )
+                            }
                             afterInspectionDate={
                                 editingId && (
                                     <div className="rounded-lg border border-divider_01 p-3">
-                                        <h3 className="mb-3 text-sm font-semibold">
-                                            Phân công xử lý
-                                        </h3>
-                                        <p className="mb-1 text-sm text-text_2">
-                                            Người phụ trách:{" "}
-                                            <span className="font-medium text-text_1">
-                                                {assigneeText(
-                                                    editingCheck?.assigneeId,
-                                                ) || "Chưa giao"}
-                                            </span>
-                                        </p>
-                                        <p className="mb-3 text-sm text-text_2">
-                                            Hạn xử lý:{" "}
-                                            <span className="font-medium text-text_1">
-                                                {formatDate(
-                                                    editingCheck?.deadline,
-                                                ) || "Chưa đặt"}
-                                            </span>
-                                        </p>
-                                        {canAssign && (
-                                            <>
-                                                <div className="space-y-1.5">
-                                                    <Label>
-                                                        Hạn xử lý (tùy chọn)
-                                                    </Label>
-                                                    <Input
-                                                        type="date"
-                                                        value={deadlineInput}
-                                                        onChange={e =>
-                                                            setDeadlineInput(
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                    />
-                                                </div>
+                                        <div className="mb-3 flex items-center justify-between">
+                                            <h3 className="text-sm font-semibold">
+                                                Yêu cầu liên quan
+                                            </h3>
+                                            {canSendRequest && (
                                                 <Button
-                                                    className="mt-3"
+                                                    size="sm"
                                                     variant="outline"
                                                     onClick={() =>
-                                                        setAssigneeDialogOpen(
-                                                            true,
-                                                        )
+                                                        setSendRequestOpen(true)
                                                     }
                                                 >
-                                                    {assigneeText(
-                                                        editingCheck?.assigneeId,
-                                                    )
-                                                        ? "Đổi người phụ trách"
-                                                        : "Chọn người phụ trách"}
+                                                    Gửi yêu cầu
                                                 </Button>
-                                            </>
+                                            )}
+                                        </div>
+                                        {relatedRequestsLoading && (
+                                            <LoadingState />
                                         )}
+                                        {!relatedRequestsLoading &&
+                                            relatedRequests.length === 0 && (
+                                                <EmptyState label="Chưa có yêu cầu nào liên quan" />
+                                            )}
+                                        {!relatedRequestsLoading &&
+                                            relatedRequests.map(r => (
+                                                <div
+                                                    key={r._id}
+                                                    className="border-b border-divider_01 py-2 text-sm last:border-0"
+                                                >
+                                                    <div className="font-medium">
+                                                        {r.title}
+                                                    </div>
+                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                        {r.recipients.map(
+                                                            rec => (
+                                                                <Badge
+                                                                    key={
+                                                                        rec._id
+                                                                    }
+                                                                    tone={
+                                                                        rec.isOverdue
+                                                                            ? "red"
+                                                                            : REQUEST_STATUS_TONE[
+                                                                                  rec
+                                                                                      .status
+                                                                              ]
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        rec.displayName
+                                                                    }{" "}
+                                                                    ·{" "}
+                                                                    {
+                                                                        REQUEST_STATUS_LABEL[
+                                                                            rec
+                                                                                .status
+                                                                        ]
+                                                                    }
+                                                                </Badge>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
                                     </div>
                                 )
                             }
@@ -633,13 +649,21 @@ const PcccListContent: React.FC = () => {
                 </DialogContent>
             </Dialog>
 
-            <AssigneePicker
-                open={assigneeDialogOpen}
-                onOpenChange={setAssigneeDialogOpen}
-                permission="pccc.assign"
-                onSelect={handleAssign}
-                selecting={assigning}
-            />
+            {editingId && (
+                <SendRequestSheet
+                    open={sendRequestOpen}
+                    onOpenChange={setSendRequestOpen}
+                    lockedType="pccc"
+                    relatedModel="PcccCheck"
+                    relatedId={editingId}
+                    defaultTitle="Theo dõi khắc phục PCCC"
+                    defaultHouseId={editingCheck ? houseIdOf(editingCheck.houseId) : undefined}
+                    defaultHouseLabel={
+                        editingCheck ? houseText(editingCheck.houseId) : undefined
+                    }
+                    onCreated={() => loadRelatedRequests(editingId)}
+                />
+            )}
         </div>
     );
 };

@@ -42,6 +42,9 @@ const HouseholdDetailPage = React.lazy(
 const BusinessDetailPage = React.lazy(
     () => import("@pages/Houses/BusinessDetailPage"),
 );
+const CompanyDetailPage = React.lazy(
+    () => import("@pages/Houses/CompanyDetailPage"),
+);
 const ComplaintListPage = React.lazy(
     () => import("@pages/Complaints/ComplaintListPage"),
 );
@@ -63,6 +66,21 @@ const SecurityListPage = React.lazy(
 );
 const SecurityHistoryPage = React.lazy(
     () => import("@pages/Security/SecurityHistoryPage"),
+);
+const ResidentListPage = React.lazy(
+    () => import("@pages/Residents/ResidentListPage"),
+);
+const ResidentHistoryPage = React.lazy(
+    () => import("@pages/Residents/ResidentHistoryPage"),
+);
+const RequestListPage = React.lazy(
+    () => import("@pages/Requests/RequestListPage"),
+);
+const MyRequestsPage = React.lazy(
+    () => import("@pages/Requests/MyRequestsPage"),
+);
+const RequestHistoryPage = React.lazy(
+    () => import("@pages/Requests/RequestHistoryPage"),
 );
 const MeetingListPage = React.lazy(
     () => import("@pages/Meetings/MeetingListPage"),
@@ -106,6 +124,12 @@ const BusinessTypeListPage = React.lazy(
 );
 const BusinessListPage = React.lazy(
     () => import("@pages/Businesses/BusinessListPage"),
+);
+const CompanyListPage = React.lazy(
+    () => import("@pages/Companies/CompanyListPage"),
+);
+const MiniAppFeaturesPage = React.lazy(
+    () => import("@pages/MiniAppFeatures/MiniAppFeaturesPage"),
 );
 const DocumentTypeListPage = React.lazy(
     () => import("@pages/DocumentTypes/DocumentTypeListPage"),
@@ -190,6 +214,10 @@ const App: React.FC = () => {
                             element={<BusinessDetailPage />}
                         />
                         <Route
+                            path="/houses/:houseId/companies/:companyId"
+                            element={<CompanyDetailPage />}
+                        />
+                        <Route
                             path="/complaints"
                             element={<ComplaintListPage />}
                         />
@@ -217,6 +245,17 @@ const App: React.FC = () => {
                         <Route
                             path="/security/:id/history"
                             element={<SecurityHistoryPage />}
+                        />
+                        <Route path="/residents" element={<ResidentListPage />} />
+                        <Route
+                            path="/residents/:id/history"
+                            element={<ResidentHistoryPage />}
+                        />
+                        <Route path="/requests" element={<RequestListPage />} />
+                        <Route path="/requests/my" element={<MyRequestsPage />} />
+                        <Route
+                            path="/requests/:id/history"
+                            element={<RequestHistoryPage />}
                         />
                         <Route path="/meetings" element={<MeetingListPage />} />
                         <Route
@@ -264,6 +303,10 @@ const App: React.FC = () => {
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route
+                            path="/mini-app-features"
+                            element={<MiniAppFeaturesPage />}
+                        />
                         <Route path="/users" element={<UserListPage />} />
                         <Route
                             path="/users/new-house-owner"
@@ -273,6 +316,10 @@ const App: React.FC = () => {
                         <Route
                             path="/businesses"
                             element={<BusinessListPage />}
+                        />
+                        <Route
+                            path="/companies"
+                            element={<CompanyListPage />}
                         />
                         <Route
                             path="/business-types"

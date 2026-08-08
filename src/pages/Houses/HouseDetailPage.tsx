@@ -5,6 +5,9 @@ import { ArrowLeft, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
+import { Input } from "@components/ui/input";
+import { Label } from "@components/ui/label";
+import { Textarea } from "@components/ui/textarea";
 import {
     Dialog,
     DialogContent,
@@ -20,6 +23,13 @@ import {
     SheetFooter,
 } from "@components/ui/sheet";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     LoadingState,
     EmptyState,
     ErrorState,
@@ -27,15 +37,28 @@ import {
 import HouseholdPicker from "@components/admin/HouseholdPicker";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
+import HouseOwnershipPanel from "@components/admin/HouseOwnershipPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
-    BUSINESS_STATUS_LABEL,
-    BUSINESS_STATUS_TONE,
+    VERIFICATION_STATUS_LABEL,
+    VERIFICATION_STATUS_TONE,
     HOUSE_AUDIT_ACTION_LABEL,
+    HOUSE_PHYSICAL_STATUS_LABEL,
     HOUSE_STATUS_LABEL,
     HOUSE_STATUS_TONE,
+    HOUSE_USAGE_TYPE_LABEL,
 } from "@constants/domain";
-import { AppError, Business, FileAsset, House, HouseStatus, Household } from "@dts";
+import {
+    AppError,
+    Business,
+    Company,
+    FileAsset,
+    House,
+    HouseStatus,
+    Household,
+    HouseUsageType,
+    HouseUsageUnit,
+} from "@dts";
 import {
     deleteHouse,
     deleteHouseAttachment,
@@ -43,6 +66,7 @@ import {
     fetchHouseAuditLogs,
     fetchHouseBusinesses,
     fetchHouseById,
+    fetchHouseCompanies,
     fetchHouseHouseholds,
     updateHouse,
     updateHouseStatus,
@@ -50,6 +74,12 @@ import {
 import { createHousehold, updateHousehold } from "@service/householdApi";
 import { fetchOrganizationById } from "@service/organizationApi";
 import { createBusiness } from "@service/businessApi";
+import { createCompany } from "@service/companyApi";
+import {
+    createHouseUsageUnit,
+    deleteHouseUsageUnit,
+    fetchHouseUsageUnits,
+} from "@service/houseUsageUnitApi";
 import HouseholdForm, {
     EMPTY_HOUSEHOLD_FORM,
     HouseholdFormValues,
@@ -66,6 +96,11 @@ import BusinessForm, {
     isBusinessFormValid,
     toBusinessInput,
 } from "./BusinessForm";
+import CompanyForm, {
+    EMPTY_COMPANY_FORM,
+    isCompanyFormValid,
+    toCompanyInput,
+} from "./CompanyForm";
 
 const streetName = (streetId: House["streetId"]): string | null => {
     if (!streetId) return null;
@@ -88,11 +123,29 @@ const toFormValues = (h: House): HouseFormValues => ({
             ? h.neighborhoodId._id
             : "",
     address: h.address,
+    provinceCode: h.provinceCode ? String(h.provinceCode) : "",
+    provinceName: h.provinceName || "",
+    wardCode: h.wardCode ? String(h.wardCode) : "",
+    wardName: h.wardName || "",
+    physicalStatus: h.physicalStatus || "",
+    usageTypes: h.usageTypes || [],
+    otherUsageNote: h.otherUsageNote || "",
     note: h.note || "",
-    residenceDeclarationNumber: h.residenceDeclarationNumber || "",
     // Khong the doi chu nha sau khi tao (xem HouseForm.tsx) - khong can dien lai.
-    organizationId: "",
-    organizationLabel: "",
+    ownerKind: "none",
+    ownerName: "",
+    ownerPhone: "",
+    ownerEmail: "",
+    createOwnerAccount: false,
+    orgName: "",
+    orgTaxCode: "",
+    orgAddress: "",
+    orgPhone: "",
+    orgEmail: "",
+    createRepresentativeAccount: false,
+    repName: "",
+    repPhone: "",
+    repEmail: "",
 });
 
 const HouseDetailPage: React.FC = () => (
@@ -111,6 +164,9 @@ const HouseDetailContent: React.FC = () => {
     const canLock = usePermission("houses.lock");
     const canCreateHousehold = usePermission("households.create");
     const canCreateBusiness = usePermission("businesses.create");
+    const canCreateCompany = usePermission("companies.create");
+    const canCreateUsageUnit = usePermission("usage_units.create");
+    const canDeleteUsageUnit = usePermission("usage_units.delete");
     const canManageAttachments = canUpdate || canVerify;
 
     const [house, setHouse] = useState<House | null>(null);
@@ -122,6 +178,9 @@ const HouseDetailContent: React.FC = () => {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
+    const [statusDialogTarget, setStatusDialogTarget] =
+        useState<HouseStatus | null>(null);
+    const [statusNote, setStatusNote] = useState("");
 
     const [households, setHouseholds] = useState<Household[]>([]);
     const [householdsLoading, setHouseholdsLoading] = useState(true);
@@ -138,6 +197,21 @@ const HouseDetailContent: React.FC = () => {
     const [businessSheetVisible, setBusinessSheetVisible] = useState(false);
     const [businessForm, setBusinessForm] = useState(EMPTY_BUSINESS_FORM);
     const [submittingBusiness, setSubmittingBusiness] = useState(false);
+
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [companiesLoading, setCompaniesLoading] = useState(true);
+    const [companySheetVisible, setCompanySheetVisible] = useState(false);
+    const [companyForm, setCompanyForm] = useState(EMPTY_COMPANY_FORM);
+    const [submittingCompany, setSubmittingCompany] = useState(false);
+
+    const [usageUnits, setUsageUnits] = useState<HouseUsageUnit[]>([]);
+    const [usageUnitsLoading, setUsageUnitsLoading] = useState(true);
+    const [addUnitVisible, setAddUnitVisible] = useState(false);
+    const [unitLabel, setUnitLabel] = useState("");
+    const [unitUsageType, setUnitUsageType] = useState<HouseUsageType>("household");
+    const [unitOccupantId, setUnitOccupantId] = useState("");
+    const [submittingUnit, setSubmittingUnit] = useState(false);
+    const [deletingUnitId, setDeletingUnitId] = useState<string | null>(null);
 
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
@@ -176,6 +250,24 @@ const HouseDetailContent: React.FC = () => {
             .finally(() => setBusinessesLoading(false));
     };
 
+    const loadCompanies = () => {
+        if (!houseId) return;
+        setCompaniesLoading(true);
+        fetchHouseCompanies(houseId)
+            .then((res: any) => setCompanies(res.items || res))
+            .catch(() => setCompanies([]))
+            .finally(() => setCompaniesLoading(false));
+    };
+
+    const loadUsageUnits = () => {
+        if (!houseId) return;
+        setUsageUnitsLoading(true);
+        fetchHouseUsageUnits(houseId)
+            .then(setUsageUnits)
+            .catch(() => setUsageUnits([]))
+            .finally(() => setUsageUnitsLoading(false));
+    };
+
     const loadAttachments = () => {
         if (!houseId) return;
         setAttachmentsLoading(true);
@@ -189,6 +281,8 @@ const HouseDetailContent: React.FC = () => {
         load();
         loadHouseholds();
         loadBusinesses();
+        loadCompanies();
+        loadUsageUnits();
         loadAttachments();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [houseId]);
@@ -261,6 +355,12 @@ const HouseDetailContent: React.FC = () => {
         fetchOrganizationById(ownerId)
             .then(org => {
                 if (cancelled) return;
+                // To chuc duoc khai bao luc tao nha so co the chua co nguoi
+                // dai dien nao dang nhap duoc (xem HouseForm.tsx).
+                if (!org.representativeUserId) {
+                    setIsOwner(false);
+                    return;
+                }
                 const representativeId =
                     typeof org.representativeUserId === "string"
                         ? org.representativeUserId
@@ -276,11 +376,11 @@ const HouseDetailContent: React.FC = () => {
         };
     }, [house?.ownerId, house?.ownerType, currentUserId]);
 
-    const handleStatusChange = async (status: HouseStatus) => {
+    const handleStatusChange = async (status: HouseStatus, note?: string) => {
         if (!houseId) return;
         try {
             setStatusUpdating(true);
-            const updated = await updateHouseStatus(houseId, status);
+            const updated = await updateHouseStatus(houseId, status, note);
             setHouse(updated);
             toast.success("Đã cập nhật trạng thái nhà số");
         } catch (err) {
@@ -288,6 +388,21 @@ const HouseDetailContent: React.FC = () => {
         } finally {
             setStatusUpdating(false);
         }
+    };
+
+    const openStatusDialog = (status: HouseStatus) => {
+        setStatusNote("");
+        setStatusDialogTarget(status);
+    };
+
+    const confirmStatusChange = async () => {
+        if (!statusDialogTarget) return;
+        if (statusDialogTarget === "denied" && !statusNote.trim()) {
+            toast.error("Vui lòng nhập lý do từ chối");
+            return;
+        }
+        await handleStatusChange(statusDialogTarget, statusNote.trim() || undefined);
+        setStatusDialogTarget(null);
     };
 
     const openCreateHousehold = () => {
@@ -351,6 +466,144 @@ const HouseDetailContent: React.FC = () => {
         }
     };
 
+    const openCreateCompany = () => {
+        setCompanyForm(EMPTY_COMPANY_FORM);
+        setCompanySheetVisible(true);
+    };
+
+    const handleSubmitCompany = async () => {
+        if (!houseId || !isCompanyFormValid(companyForm)) {
+            toast.error("Vui lòng nhập tên công ty");
+            return;
+        }
+        try {
+            setSubmittingCompany(true);
+            await createCompany(toCompanyInput(companyForm, houseId));
+            toast.success("Đã thêm công ty mới");
+            setCompanySheetVisible(false);
+            loadCompanies();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSubmittingCompany(false);
+        }
+    };
+
+    // Cac householdId/businessId/companyId da duoc gan vao mot don vi su
+    // dung khac - loai khoi danh sach chon o dialog "Thêm đơn vị" (moi doi
+    // tuong chi duoc gan vao TOI DA mot don vi, xem houseUsageUnitService.ts).
+    const linkedOccupantIds = (type: HouseUsageType): Set<string> => {
+        const ids = usageUnits
+            .filter(u => u.usageType === type)
+            .map(u => {
+                const ref =
+                    type === "household"
+                        ? u.householdId
+                        : type === "business"
+                          ? u.businessId
+                          : u.companyId;
+                if (!ref) return undefined;
+                return typeof ref === "string" ? ref : ref._id;
+            })
+            .filter((id): id is string => !!id);
+        return new Set(ids);
+    };
+
+    const availableOccupants = (): { _id: string; label: string }[] => {
+        if (unitUsageType === "household") {
+            const linked = linkedOccupantIds("household");
+            return households
+                .filter(h => !linked.has(h._id))
+                .map(h => ({ _id: h._id, label: `${h.code} — ${h.headOfHousehold}` }));
+        }
+        if (unitUsageType === "business") {
+            const linked = linkedOccupantIds("business");
+            return businesses
+                .filter(b => !linked.has(b._id))
+                .map(b => ({ _id: b._id, label: b.name }));
+        }
+        const linked = linkedOccupantIds("company");
+        return companies
+            .filter(c => !linked.has(c._id))
+            .map(c => ({ _id: c._id, label: c.name }));
+    };
+
+    const openAddUnit = () => {
+        setUnitLabel("");
+        setUnitUsageType("household");
+        setUnitOccupantId("");
+        setAddUnitVisible(true);
+    };
+
+    const handleCreateUnit = async () => {
+        if (!houseId || !unitLabel.trim() || !unitOccupantId) {
+            toast.error("Vui lòng nhập tên đơn vị và chọn đối tượng sử dụng");
+            return;
+        }
+        try {
+            setSubmittingUnit(true);
+            await createHouseUsageUnit(houseId, {
+                unitLabel: unitLabel.trim(),
+                usageType: unitUsageType,
+                householdId: unitUsageType === "household" ? unitOccupantId : undefined,
+                businessId: unitUsageType === "business" ? unitOccupantId : undefined,
+                companyId: unitUsageType === "company" ? unitOccupantId : undefined,
+            });
+            toast.success("Đã thêm đơn vị sử dụng");
+            setAddUnitVisible(false);
+            loadUsageUnits();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSubmittingUnit(false);
+        }
+    };
+
+    const handleDeleteUnit = async (unitId: string) => {
+        try {
+            setDeletingUnitId(unitId);
+            await deleteHouseUsageUnit(unitId);
+            setUsageUnits(prev => prev.filter(u => u._id !== unitId));
+            toast.success("Đã xóa đơn vị sử dụng");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingUnitId(null);
+        }
+    };
+
+    const unitOccupantLabel = (unit: HouseUsageUnit): string => {
+        const ref =
+            unit.usageType === "household"
+                ? unit.householdId
+                : unit.usageType === "business"
+                  ? unit.businessId
+                  : unit.companyId;
+        if (!ref || typeof ref === "string") return "—";
+        return unit.usageType === "household"
+            ? `${(ref as Household).code} — ${(ref as Household).headOfHousehold}`
+            : (ref as Business | Company).name;
+    };
+
+    const unitOccupantHref = (unit: HouseUsageUnit): string | null => {
+        const ref =
+            unit.usageType === "household"
+                ? unit.householdId
+                : unit.usageType === "business"
+                  ? unit.businessId
+                  : unit.companyId;
+        if (!ref) return null;
+        const id = typeof ref === "string" ? ref : ref._id;
+        if (unit.usageType === "household") return `/houses/${houseId}/households/${id}`;
+        if (unit.usageType === "business") return `/houses/${houseId}/businesses/${id}`;
+        return `/houses/${houseId}/companies/${id}`;
+    };
+
+    // Phong ngua truong hop du lieu cu/chua kip dong bo khong co usageTypes
+    // (vd nha tao truoc khi co tinh nang khai bao muc dich su dung) - tranh
+    // crash trang trang khi goi .includes()/.map() tren undefined.
+    const houseUsageTypes = house?.usageTypes || [];
+
     return (
         <div>
             <div className="mb-4 flex items-center gap-3">
@@ -403,6 +656,18 @@ const HouseDetailContent: React.FC = () => {
                             </>
                         ) : (
                             <>
+                                {house.provinceName && (
+                                    <InfoRow
+                                        label="Tỉnh/Thành phố"
+                                        value={house.provinceName}
+                                    />
+                                )}
+                                {house.wardName && (
+                                    <InfoRow
+                                        label="Phường/Xã"
+                                        value={house.wardName}
+                                    />
+                                )}
                                 <InfoRow label="Cụm dân cư" value={house.cluster} />
                                 {streetName(house.streetId) && (
                                     <InfoRow
@@ -418,9 +683,46 @@ const HouseDetailContent: React.FC = () => {
                                 )}
                                 <InfoRow label="Địa chỉ" value={house.address} />
                                 <InfoRow
+                                    label="Tình trạng công trình"
+                                    value={
+                                        house.physicalStatus
+                                            ? HOUSE_PHYSICAL_STATUS_LABEL[
+                                                  house.physicalStatus
+                                              ]
+                                            : "Chưa cập nhật"
+                                    }
+                                />
+                                <InfoRow
+                                    label="Mục đích sử dụng"
+                                    value={
+                                        [
+                                            ...houseUsageTypes.map(
+                                                t => HOUSE_USAGE_TYPE_LABEL[t],
+                                            ),
+                                            ...(house.otherUsageNote
+                                                ? [house.otherUsageNote]
+                                                : []),
+                                        ].join(", ") || "Chưa khai báo"
+                                    }
+                                />
+                                <InfoRow
                                     label="Ghi chú"
                                     value={house.note || "Không có"}
                                 />
+                                {house.status === "verified" &&
+                                    house.approvalNote && (
+                                        <InfoRow
+                                            label="Ghi chú duyệt"
+                                            value={house.approvalNote}
+                                        />
+                                    )}
+                                {house.status === "denied" &&
+                                    house.denialReason && (
+                                        <InfoRow
+                                            label="Lý do từ chối"
+                                            value={house.denialReason}
+                                        />
+                                    )}
 
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {canUpdate && (
@@ -460,7 +762,7 @@ const HouseDetailContent: React.FC = () => {
                                             <Button
                                                 loading={statusUpdating}
                                                 onClick={() =>
-                                                    handleStatusChange(
+                                                    openStatusDialog(
                                                         "verified",
                                                     )
                                                 }
@@ -471,7 +773,7 @@ const HouseDetailContent: React.FC = () => {
                                                 variant="destructive"
                                                 loading={statusUpdating}
                                                 onClick={() =>
-                                                    handleStatusChange(
+                                                    openStatusDialog(
                                                         "denied",
                                                     )
                                                 }
@@ -507,6 +809,13 @@ const HouseDetailContent: React.FC = () => {
                         )}
                     </div>
 
+                    {houseId && (
+                        <HouseOwnershipPanel
+                            houseId={houseId}
+                            canManage={canUpdate}
+                        />
+                    )}
+
                     <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">
@@ -531,6 +840,11 @@ const HouseDetailContent: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                        {houseUsageTypes.includes("household") &&
+                            !householdsLoading &&
+                            households.length === 0 && (
+                                <UsageWarningBanner text="Nhà đã khai báo có hộ dân sinh sống nhưng chưa khai báo hộ dân nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
+                            )}
                         {householdsLoading && <LoadingState />}
                         {!householdsLoading && households.length === 0 && (
                             <EmptyState label="Chưa có hộ dân nào trong nhà" />
@@ -551,11 +865,16 @@ const HouseDetailContent: React.FC = () => {
                                         <div className="text-sm font-medium">
                                             {h.code} — {h.headOfHousehold}
                                         </div>
-                                        {h.needsSupport && (
-                                            <Badge tone="yellow">
-                                                Cần hỗ trợ
+                                        <div className="flex items-center gap-2">
+                                            {h.needsSupport && (
+                                                <Badge tone="yellow">
+                                                    Cần hỗ trợ
+                                                </Badge>
+                                            )}
+                                            <Badge tone={VERIFICATION_STATUS_TONE[h.status]}>
+                                                {VERIFICATION_STATUS_LABEL[h.status]}
                                             </Badge>
-                                        )}
+                                        </div>
                                     </div>
                                     <div className="text-xs text-text_2">
                                         {h.memberCount} nhân khẩu
@@ -576,6 +895,11 @@ const HouseDetailContent: React.FC = () => {
                                 </Button>
                             )}
                         </div>
+                        {houseUsageTypes.includes("business") &&
+                            !businessesLoading &&
+                            businesses.length === 0 && (
+                                <UsageWarningBanner text="Nhà đã khai báo có hộ kinh doanh nhưng chưa khai báo hộ kinh doanh nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
+                            )}
                         {businessesLoading && <LoadingState />}
                         {!businessesLoading && businesses.length === 0 && (
                             <EmptyState label="Chưa có hộ kinh doanh nào" />
@@ -597,8 +921,8 @@ const HouseDetailContent: React.FC = () => {
                                             {b.name}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <Badge tone={BUSINESS_STATUS_TONE[b.status]}>
-                                                {BUSINESS_STATUS_LABEL[b.status]}
+                                            <Badge tone={VERIFICATION_STATUS_TONE[b.status]}>
+                                                {VERIFICATION_STATUS_LABEL[b.status]}
                                             </Badge>
                                             {!b.active && (
                                                 <Badge tone="gray">
@@ -612,6 +936,111 @@ const HouseDetailContent: React.FC = () => {
                                     </div>
                                 </button>
                             ))}
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                        <div className="mb-2 flex items-center justify-between">
+                            <h2 className="text-base font-semibold">Công ty</h2>
+                            {canCreateCompany && (
+                                <Button size="sm" onClick={openCreateCompany}>
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    Thêm công ty
+                                </Button>
+                            )}
+                        </div>
+                        {houseUsageTypes.includes("company") &&
+                            !companiesLoading &&
+                            companies.length === 0 && (
+                                <UsageWarningBanner text="Nhà đã khai báo có công ty nhưng chưa khai báo công ty nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
+                            )}
+                        {companiesLoading && <LoadingState />}
+                        {!companiesLoading && companies.length === 0 && (
+                            <EmptyState label="Chưa có công ty nào" />
+                        )}
+                        {!companiesLoading &&
+                            companies.map(c => (
+                                <button
+                                    key={c._id}
+                                    type="button"
+                                    className="block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
+                                    onClick={() =>
+                                        navigate(
+                                            `/houses/${houseId}/companies/${c._id}`,
+                                        )
+                                    }
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-sm font-medium">
+                                            {c.name}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>
+                                                {VERIFICATION_STATUS_LABEL[c.status]}
+                                            </Badge>
+                                            {!c.active && (
+                                                <Badge tone="gray">
+                                                    Ngừng hoạt động
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                        <div className="mb-2 flex items-center justify-between">
+                            <h2 className="text-base font-semibold">
+                                Đơn vị sử dụng
+                            </h2>
+                            {canCreateUsageUnit && (
+                                <Button size="sm" onClick={openAddUnit}>
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    Thêm đơn vị
+                                </Button>
+                            )}
+                        </div>
+                        {usageUnitsLoading && <LoadingState />}
+                        {!usageUnitsLoading && usageUnits.length === 0 && (
+                            <EmptyState label="Nhà chưa được chia thành đơn vị sử dụng nào" />
+                        )}
+                        {!usageUnitsLoading &&
+                            usageUnits.map(u => {
+                                const href = unitOccupantHref(u);
+                                return (
+                                    <div
+                                        key={u._id}
+                                        className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
+                                    >
+                                        <button
+                                            type="button"
+                                            className="flex-1 text-left hover:underline disabled:cursor-default disabled:no-underline"
+                                            disabled={!href}
+                                            onClick={() => href && navigate(href)}
+                                        >
+                                            <div className="text-sm font-medium">
+                                                {u.unitLabel} —{" "}
+                                                {unitOccupantLabel(u)}
+                                            </div>
+                                            <div className="text-xs text-text_2">
+                                                {HOUSE_USAGE_TYPE_LABEL[u.usageType]}
+                                            </div>
+                                        </button>
+                                        {canDeleteUsageUnit && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                loading={deletingUnitId === u._id}
+                                                onClick={() =>
+                                                    handleDeleteUnit(u._id)
+                                                }
+                                            >
+                                                Gỡ
+                                            </Button>
+                                        )}
+                                    </div>
+                                );
+                            })}
                     </div>
 
                     <AttachmentsPanel
@@ -656,6 +1085,58 @@ const HouseDetailContent: React.FC = () => {
                             onClick={handleDelete}
                         >
                             Xóa
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!statusDialogTarget}
+                onOpenChange={open => !open && setStatusDialogTarget(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {statusDialogTarget === "denied"
+                                ? "Từ chối nhà số"
+                                : "Duyệt nhà số"}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-1.5">
+                        <Label className="text-sm text-text_2">
+                            {statusDialogTarget === "denied"
+                                ? "Lý do từ chối (bắt buộc)"
+                                : "Ghi chú duyệt (không bắt buộc)"}
+                        </Label>
+                        <Textarea
+                            value={statusNote}
+                            onChange={e => setStatusNote(e.target.value)}
+                            placeholder={
+                                statusDialogTarget === "denied"
+                                    ? "VD: Thiếu giấy tờ, sai địa chỉ..."
+                                    : "Ghi chú thêm (nếu có)"
+                            }
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setStatusDialogTarget(null)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant={
+                                statusDialogTarget === "denied"
+                                    ? "destructive"
+                                    : "default"
+                            }
+                            loading={statusUpdating}
+                            onClick={confirmStatusChange}
+                        >
+                            {statusDialogTarget === "denied"
+                                ? "Từ chối"
+                                : "Duyệt"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -729,9 +1210,123 @@ const HouseDetailContent: React.FC = () => {
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
+
+            <Sheet
+                open={companySheetVisible}
+                onOpenChange={setCompanySheetVisible}
+            >
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>Thêm công ty</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto py-4">
+                        <CompanyForm
+                            values={companyForm}
+                            onChange={setCompanyForm}
+                        />
+                    </div>
+                    <SheetFooter>
+                        <Button
+                            className="w-full"
+                            loading={submittingCompany}
+                            onClick={handleSubmitCompany}
+                        >
+                            Thêm công ty
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+
+            <Dialog open={addUnitVisible} onOpenChange={setAddUnitVisible}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Thêm đơn vị sử dụng</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <div className="space-y-1.5">
+                            <Label>Tên đơn vị</Label>
+                            <Input
+                                placeholder="VD: Tầng 1, Phòng 101..."
+                                value={unitLabel}
+                                onChange={e => setUnitLabel(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Loại sử dụng</Label>
+                            <Select
+                                value={unitUsageType}
+                                onValueChange={v => {
+                                    setUnitUsageType(v as HouseUsageType);
+                                    setUnitOccupantId("");
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(
+                                        Object.entries(
+                                            HOUSE_USAGE_TYPE_LABEL,
+                                        ) as [HouseUsageType, string][]
+                                    ).map(([key, label]) => (
+                                        <SelectItem key={key} value={key}>
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Đối tượng sử dụng</Label>
+                            <Select
+                                value={unitOccupantId || undefined}
+                                onValueChange={setUnitOccupantId}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn đối tượng đã có trong nhà" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableOccupants().map(o => (
+                                        <SelectItem key={o._id} value={o._id}>
+                                            {o.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {availableOccupants().length === 0 && (
+                                <p className="text-xs text-text_2">
+                                    Không còn đối tượng nào chưa được gán đơn
+                                    vị - hãy thêm hộ dân/hộ kinh doanh/công ty
+                                    mới trước.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setAddUnitVisible(false)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            loading={submittingUnit}
+                            onClick={handleCreateUnit}
+                        >
+                            Thêm
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
+
+const UsageWarningBanner: React.FC<{ text: string }> = ({ text }) => (
+    <div className="mb-2 rounded-lg border border-yellow-300 bg-yellow-50 p-2 text-xs text-yellow-800">
+        {text}
+    </div>
+);
 
 const InfoRow: React.FC<{ label: string; value: string }> = ({
     label,

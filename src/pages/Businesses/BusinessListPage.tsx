@@ -20,8 +20,11 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
-import { BUSINESS_STATUS_LABEL, BUSINESS_STATUS_TONE } from "@constants/domain";
-import { Business, BusinessStatus } from "@dts";
+import {
+    VERIFICATION_STATUS_LABEL,
+    VERIFICATION_STATUS_TONE,
+} from "@constants/domain";
+import { Business, VerificationStatus } from "@dts";
 import { fetchBusinesses } from "@service/businessApi";
 
 const ALL_STATUS = "all";
@@ -48,7 +51,7 @@ const BusinessListContent: React.FC = () => {
     const navigate = useNavigate();
 
     const [search, setSearch] = useState("");
-    const [status, setStatus] = useState<BusinessStatus | "">("");
+    const [status, setStatus] = useState<VerificationStatus | "">("");
     const [items, setItems] = useState<Business[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -93,7 +96,7 @@ const BusinessListContent: React.FC = () => {
                 <Select
                     value={status || ALL_STATUS}
                     onValueChange={v =>
-                        setStatus(v === ALL_STATUS ? "" : (v as BusinessStatus))
+                        setStatus(v === ALL_STATUS ? "" : (v as VerificationStatus))
                     }
                 >
                     <SelectTrigger>
@@ -104,8 +107,8 @@ const BusinessListContent: React.FC = () => {
                             Tất cả trạng thái
                         </SelectItem>
                         {(
-                            Object.entries(BUSINESS_STATUS_LABEL) as [
-                                BusinessStatus,
+                            Object.entries(VERIFICATION_STATUS_LABEL) as [
+                                VerificationStatus,
                                 string,
                             ][]
                         ).map(([key, label]) => (
@@ -156,8 +159,8 @@ const BusinessListContent: React.FC = () => {
                                         {b.businessType?.name || "Chưa phân loại"}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge tone={BUSINESS_STATUS_TONE[b.status]}>
-                                            {BUSINESS_STATUS_LABEL[b.status]}
+                                        <Badge tone={VERIFICATION_STATUS_TONE[b.status]}>
+                                            {VERIFICATION_STATUS_LABEL[b.status]}
                                         </Badge>
                                     </TableCell>
                                 </TableRow>

@@ -71,7 +71,7 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
     const [reviewing, setReviewing] = useState<RequiredDocumentItem | null>(
         null,
     );
-    const [rejectionReason, setRejectionReason] = useState("");
+    const [reviewNote, setReviewNote] = useState("");
     const [submittingDecision, setSubmittingDecision] = useState<
         "approved" | "rejected" | null
     >(null);
@@ -112,12 +112,12 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
 
     const openReview = (item: RequiredDocumentItem) => {
         setReviewing(item);
-        setRejectionReason("");
+        setReviewNote("");
     };
 
     const submitDecision = async (decision: "approved" | "rejected") => {
         if (!reviewing?.activeDocument) return;
-        if (decision === "rejected" && !rejectionReason.trim()) {
+        if (decision === "rejected" && !reviewNote.trim()) {
             toast.error("Vui lòng nhập lý do yêu cầu bổ sung");
             return;
         }
@@ -127,7 +127,8 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                 businessId,
                 reviewing.activeDocument._id,
                 decision,
-                decision === "rejected" ? rejectionReason.trim() : undefined,
+                decision === "rejected" ? reviewNote.trim() : undefined,
+                decision === "approved" ? reviewNote.trim() || undefined : undefined,
             );
             toast.success(
                 decision === "approved"
@@ -255,6 +256,14 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                                                     Lý do: {item.activeDocument.rejectionReason}
                                                 </div>
                                             )}
+                                        {item.activeDocument.status ===
+                                            "approved" &&
+                                            item.activeDocument
+                                                .approvalNote && (
+                                                <div className="mt-1 text-xs text-text_2">
+                                                    Ghi chú: {item.activeDocument.approvalNote}
+                                                </div>
+                                            )}
                                     </div>
                                 )}
 
@@ -308,6 +317,8 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                                                         )}
                                                         {h.rejectionReason &&
                                                             ` — ${h.rejectionReason}`}
+                                                        {h.approvalNote &&
+                                                            ` — ${h.approvalNote}`}
                                                     </div>
                                                 ))}
                                             </div>
@@ -333,11 +344,11 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                     </DialogHeader>
                     <div className="space-y-1.5">
                         <Label className="text-sm text-text_2">
-                            Lý do yêu cầu bổ sung (bắt buộc nếu từ chối)
+                            Ghi chú (bắt buộc nếu yêu cầu bổ sung)
                         </Label>
                         <Textarea
-                            value={rejectionReason}
-                            onChange={e => setRejectionReason(e.target.value)}
+                            value={reviewNote}
+                            onChange={e => setReviewNote(e.target.value)}
                             placeholder="VD: Ảnh mờ, thiếu trang, sai thông tin..."
                         />
                     </div>

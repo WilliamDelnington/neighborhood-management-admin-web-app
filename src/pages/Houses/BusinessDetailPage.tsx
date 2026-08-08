@@ -23,8 +23,11 @@ import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
-import { BUSINESS_STATUS_LABEL, BUSINESS_STATUS_TONE } from "@constants/domain";
-import { AppError, Business, BusinessStatus, FileAsset, House } from "@dts";
+import {
+    VERIFICATION_STATUS_LABEL,
+    VERIFICATION_STATUS_TONE,
+} from "@constants/domain";
+import { AppError, Business, VerificationStatus, FileAsset, House } from "@dts";
 import {
     deleteBusiness,
     deleteBusinessAttachment,
@@ -39,11 +42,12 @@ import BusinessForm, {
     toBusinessInput,
 } from "./BusinessForm";
 
-const BUSINESS_STATUS_OPTIONS: BusinessStatus[] = [
+const BUSINESS_STATUS_OPTIONS: VerificationStatus[] = [
     "unverified",
-    "pending_approval",
-    "need_supplement",
+    "pending",
     "verified",
+    "denied",
+    "locked",
 ];
 
 const toFormValues = (b: Business): BusinessFormValues => ({
@@ -82,10 +86,11 @@ const BusinessDetailContent: React.FC = () => {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    const [overrideStatus, setOverrideStatus] = useState<BusinessStatus | "">(
+    const [overrideStatus, setOverrideStatus] = useState<VerificationStatus | "">(
         "",
     );
     const [statusUpdating, setStatusUpdating] = useState(false);
+    const [resubmitting, setResubmitting] = useState(false);
 
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
@@ -189,6 +194,20 @@ const BusinessDetailContent: React.FC = () => {
         }
     };
 
+    const handleResubmit = async () => {
+        if (!businessId) return;
+        try {
+            setResubmitting(true);
+            const updated = await updateBusinessStatus(businessId, "pending");
+            setBusiness(updated);
+            toast.success("Đã gửi lại hộ kinh doanh để duyệt");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setResubmitting(false);
+        }
+    };
+
     const handleDeleteAttachment = async (fileId: string) => {
         if (!businessId) return;
         try {
@@ -228,8 +247,8 @@ const BusinessDetailContent: React.FC = () => {
                             <h2 className="text-lg font-semibold">
                                 {business.name}
                             </h2>
-                            <Badge tone={BUSINESS_STATUS_TONE[business.status]}>
-                                {BUSINESS_STATUS_LABEL[business.status]}
+                            <Badge tone={VERIFICATION_STATUS_TONE[business.status]}>
+                                {VERIFICATION_STATUS_LABEL[business.status]}
                             </Badge>
                         </div>
 
@@ -288,14 +307,17 @@ const BusinessDetailContent: React.FC = () => {
                                 />
 
                                 <div className="mt-4 flex flex-wrap gap-2">
-                                    {canUpdate && (
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => setEditing(true)}
-                                        >
-                                            Chỉnh sửa
-                                        </Button>
-                                    )}
+                                    {canUpdate &&
+                                        ["unverified", "pending"].includes(
+                                            business.status,
+                                        ) && (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => setEditing(true)}
+                                            >
+                                                Chỉnh sửa
+                                            </Button>
+                                        )}
                                     {canDelete && (
                                         <Button
                                             variant="destructive"
@@ -304,6 +326,14 @@ const BusinessDetailContent: React.FC = () => {
                                             }
                                         >
                                             Xóa
+                                        </Button>
+                                    )}
+                                    {canUpdate && business.status === "denied" && (
+                                        <Button
+                                            loading={resubmitting}
+                                            onClick={handleResubmit}
+                                        >
+                                            Gửi lại
                                         </Button>
                                     )}
                                 </div>
@@ -317,7 +347,7 @@ const BusinessDetailContent: React.FC = () => {
                                             value={overrideStatus || undefined}
                                             onValueChange={val =>
                                                 setOverrideStatus(
-                                                    val as BusinessStatus,
+                                                    val as VerificationStatus,
                                                 )
                                             }
                                         >
@@ -332,7 +362,7 @@ const BusinessDetailContent: React.FC = () => {
                                                             value={s}
                                                         >
                                                             {
-                                                                BUSINESS_STATUS_LABEL[
+                                                                VERIFICATION_STATUS_LABEL[
                                                                     s
                                                                 ]
                                                             }

@@ -35,32 +35,38 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import AssigneePicker from "@components/admin/AssigneePicker";
+import SendRequestSheet from "@components/admin/SendRequestSheet";
+import RequestSubSection, {
+    emptyRequestSubSection,
+    isRequestSubSectionValid,
+    RequestSubSectionValue,
+} from "@components/admin/RequestSubSection";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { usePermission } from "@store/authStore";
 import {
     AppError,
-    AssignableStaff,
     MucDoAnNinh,
+    RequestItem,
     SecurityRecord,
     TinhTrangTheoDoiAnNinh,
 } from "@dts";
 import {
-    LOAI_SO_HUU_LABEL,
     MUC_DO_AN_NINH_LABEL,
     MUC_DO_AN_NINH_TONE,
+    REQUEST_STATUS_LABEL,
+    REQUEST_STATUS_TONE,
     SECURITY_AUDIT_ACTION_LABEL,
     TINH_TRANG_THEO_DOI_AN_NINH_LABEL,
     TINH_TRANG_THEO_DOI_AN_NINH_TONE,
 } from "@constants/domain";
 import {
-    assignSecurityRecord,
     createSecurityRecord,
     deleteSecurityRecord,
     fetchSecurityAuditLogs,
     fetchSecurityRecords,
     updateSecurityRecord,
 } from "@service/securityApi";
+import { createRequest, fetchRequests } from "@service/requestApi";
 import SecurityForm, {
     EMPTY_SECURITY_FORM,
     SecurityFormValues,
@@ -83,21 +89,9 @@ const houseIdOf = (h: SecurityRecord["houseId"]) =>
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
 
-const assigneeText = (a: SecurityRecord["assigneeId"]) => {
-    if (!a) return "";
-    if (typeof a === "string") return a;
-    return a.displayName;
-};
-
 const recordToForm = (r: SecurityRecord): SecurityFormValues => ({
     houseId: houseIdOf(r.houseId),
     houseLabel: houseText(r.houseId),
-    houseDeclarationNumber:
-        typeof r.houseId === "object" && r.houseId
-            ? r.houseId.residenceDeclarationNumber || ""
-            : "",
-    ownershipType: r.ownershipType,
-    renterCount: r.renterCount ? String(r.renterCount) : "",
     hasCamera: r.hasCamera,
     hasSecurityComplaint: r.hasSecurityComplaint,
     level: r.level,
@@ -117,7 +111,7 @@ const SecurityListContent: React.FC = () => {
     const [searchParams] = useSearchParams();
     const canCreate = usePermission("security.create");
     const canManage = usePermission("security.update");
-    const canAssign = usePermission("security.assign");
+    const canSendRequest = usePermission("requests.create");
 
     const [level, setLevel] = useState<MucDoAnNinh | "">(
         (searchParams.get("level") as MucDoAnNinh | null) || "",
@@ -145,8 +139,11 @@ const SecurityListContent: React.FC = () => {
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const [assigneeDialogOpen, setAssigneeDialogOpen] = useState(false);
-    const [assigning, setAssigning] = useState(false);
+    const [sendRequestOpen, setSendRequestOpen] = useState(false);
+    const [relatedRequests, setRelatedRequests] = useState<RequestItem[]>([]);
+    const [relatedRequestsLoading, setRelatedRequestsLoading] = useState(false);
+    const [requestSubSection, setRequestSubSection] =
+        useState<RequestSubSectionValue>(emptyRequestSubSection());
 
     const load = (targetPage = 1) => {
         if (targetPage === 1) {
@@ -183,7 +180,16 @@ const SecurityListContent: React.FC = () => {
         setEditingId(null);
         setEditingRecord(null);
         setForm(EMPTY_SECURITY_FORM);
+        setRequestSubSection(emptyRequestSubSection("Xử lý vấn đề an ninh"));
         setFormVisible(true);
+    };
+
+    const loadRelatedRequests = (recordId: string) => {
+        setRelatedRequestsLoading(true);
+        fetchRequests({ relatedModel: "SecurityRecord", relatedId: recordId })
+            .then(res => setRelatedRequests(res.items))
+            .catch(() => setRelatedRequests([]))
+            .finally(() => setRelatedRequestsLoading(false));
     };
 
     const openEdit = (r: SecurityRecord) => {
@@ -191,25 +197,11 @@ const SecurityListContent: React.FC = () => {
         setEditingId(r._id);
         setEditingRecord(r);
         setForm(recordToForm(r));
+        setRequestSubSection(
+            emptyRequestSubSection(`Xử lý vấn đề an ninh — ${houseText(r.houseId)}`),
+        );
         setFormVisible(true);
-    };
-
-    const handleAssign = async (staff: AssignableStaff) => {
-        if (!editingId) return;
-        try {
-            setAssigning(true);
-            const updated = await assignSecurityRecord(editingId, {
-                assigneeId: staff.id,
-            });
-            setEditingRecord(updated);
-            setAssigneeDialogOpen(false);
-            toast.success(`Đã giao cho ${staff.displayName} theo dõi`);
-            load(page);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigning(false);
-        }
+        loadRelatedRequests(r._id);
     };
 
     const handleSubmit = async () => {
@@ -217,15 +209,43 @@ const SecurityListContent: React.FC = () => {
             toast.error("Vui lòng chọn nhà và ngày kiểm tra");
             return;
         }
+        if (!isRequestSubSectionValid(requestSubSection)) {
+            toast.error(
+                "Vui lòng nhập tiêu đề và chọn ít nhất một người nhận cho yêu cầu",
+            );
+            return;
+        }
         try {
             setSubmitting(true);
-            if (editingId) {
-                await updateSecurityRecord(editingId, toSecurityInput(form));
-                toast.success("Đã cập nhật hồ sơ an ninh");
-            } else {
-                await createSecurityRecord(toSecurityInput(form));
-                toast.success("Đã thêm hồ sơ an ninh");
+            const record = editingId
+                ? await updateSecurityRecord(editingId, toSecurityInput(form))
+                : await createSecurityRecord(toSecurityInput(form));
+            toast.success(
+                editingId ? "Đã cập nhật hồ sơ an ninh" : "Đã thêm hồ sơ an ninh",
+            );
+
+            if (requestSubSection.enabled) {
+                try {
+                    await createRequest({
+                        type: "security",
+                        title: requestSubSection.title,
+                        relatedModel: "SecurityRecord",
+                        relatedId: record._id,
+                        houseId: houseIdOf(record.houseId),
+                        dueDate: requestSubSection.dueDate
+                            ? new Date(requestSubSection.dueDate).toISOString()
+                            : undefined,
+                        targetUserIds: requestSubSection.targetUserIds,
+                        targetRoles: requestSubSection.targetRoles,
+                    });
+                    toast.success("Đã gửi yêu cầu xử lý");
+                } catch (err) {
+                    toast.error(
+                        `Đã lưu hồ sơ nhưng gửi yêu cầu thất bại: ${(err as AppError).message}`,
+                    );
+                }
             }
+
             setFormVisible(false);
             load(1);
         } catch (err) {
@@ -254,9 +274,7 @@ const SecurityListContent: React.FC = () => {
     return (
         <div>
             <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">
-                    An ninh & Quản lý cư trú
-                </h1>
+                <h1 className="text-lg font-semibold">An ninh</h1>
                 {canCreate && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" />
@@ -334,11 +352,8 @@ const SecurityListContent: React.FC = () => {
                             <TableRow>
                                 <TableHead>Nhà</TableHead>
                                 <TableHead>Ngày kiểm tra</TableHead>
-                                <TableHead>Số người đang ở thực tế</TableHead>
-                                <TableHead>Hình thức sở hữu</TableHead>
                                 <TableHead>Mức độ</TableHead>
                                 <TableHead>Tình trạng theo dõi</TableHead>
-                                <TableHead>Người phụ trách</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -353,10 +368,6 @@ const SecurityListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell>
                                         {formatDate(r.inspectionDate)}
-                                    </TableCell>
-                                    <TableCell>{r.renterCount || 0}</TableCell>
-                                    <TableCell>
-                                        {LOAI_SO_HUU_LABEL[r.ownershipType]}
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={MUC_DO_AN_NINH_TONE[r.level]}>
@@ -377,13 +388,6 @@ const SecurityListContent: React.FC = () => {
                                                 ]
                                             }
                                         </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {assigneeText(r.assigneeId) || (
-                                            <span className="text-text_2">
-                                                Chưa giao
-                                            </span>
-                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -415,36 +419,82 @@ const SecurityListContent: React.FC = () => {
                         <SecurityForm
                             values={form}
                             onChange={setForm}
+                            afterLevel={
+                                form.level !== "binh_thuong" && (
+                                    <RequestSubSection
+                                        type="security"
+                                        value={requestSubSection}
+                                        onChange={setRequestSubSection}
+                                    />
+                                )
+                            }
                             afterInspectionDate={
                                 editingId && (
                                     <div className="rounded-lg border border-divider_01 p-3">
-                                        <h3 className="mb-3 text-sm font-semibold">
-                                            Phân công theo dõi
-                                        </h3>
-                                        <p className="mb-3 text-sm text-text_2">
-                                            Người phụ trách:{" "}
-                                            <span className="font-medium text-text_1">
-                                                {assigneeText(
-                                                    editingRecord?.assigneeId,
-                                                ) || "Chưa giao"}
-                                            </span>
-                                        </p>
-                                        {canAssign && (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() =>
-                                                    setAssigneeDialogOpen(
-                                                        true,
-                                                    )
-                                                }
-                                            >
-                                                {assigneeText(
-                                                    editingRecord?.assigneeId,
-                                                )
-                                                    ? "Đổi người phụ trách"
-                                                    : "Chọn người phụ trách"}
-                                            </Button>
+                                        <div className="mb-3 flex items-center justify-between">
+                                            <h3 className="text-sm font-semibold">
+                                                Yêu cầu liên quan
+                                            </h3>
+                                            {canSendRequest && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setSendRequestOpen(true)
+                                                    }
+                                                >
+                                                    Gửi yêu cầu
+                                                </Button>
+                                            )}
+                                        </div>
+                                        {relatedRequestsLoading && (
+                                            <LoadingState />
                                         )}
+                                        {!relatedRequestsLoading &&
+                                            relatedRequests.length === 0 && (
+                                                <EmptyState label="Chưa có yêu cầu nào liên quan" />
+                                            )}
+                                        {!relatedRequestsLoading &&
+                                            relatedRequests.map(req => (
+                                                <div
+                                                    key={req._id}
+                                                    className="border-b border-divider_01 py-2 text-sm last:border-0"
+                                                >
+                                                    <div className="font-medium">
+                                                        {req.title}
+                                                    </div>
+                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                        {req.recipients.map(
+                                                            rec => (
+                                                                <Badge
+                                                                    key={
+                                                                        rec._id
+                                                                    }
+                                                                    tone={
+                                                                        rec.isOverdue
+                                                                            ? "red"
+                                                                            : REQUEST_STATUS_TONE[
+                                                                                  rec
+                                                                                      .status
+                                                                              ]
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        rec.displayName
+                                                                    }{" "}
+                                                                    ·{" "}
+                                                                    {
+                                                                        REQUEST_STATUS_LABEL[
+                                                                            rec
+                                                                                .status
+                                                                        ]
+                                                                    }
+                                                                </Badge>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
                                     </div>
                                 )
                             }
@@ -512,13 +562,23 @@ const SecurityListContent: React.FC = () => {
                 </DialogContent>
             </Dialog>
 
-            <AssigneePicker
-                open={assigneeDialogOpen}
-                onOpenChange={setAssigneeDialogOpen}
-                permission="security.assign"
-                onSelect={handleAssign}
-                selecting={assigning}
-            />
+            {editingId && (
+                <SendRequestSheet
+                    open={sendRequestOpen}
+                    onOpenChange={setSendRequestOpen}
+                    lockedType="security"
+                    relatedModel="SecurityRecord"
+                    relatedId={editingId}
+                    defaultTitle="Theo dõi hồ sơ an ninh"
+                    defaultHouseId={
+                        editingRecord ? houseIdOf(editingRecord.houseId) : undefined
+                    }
+                    defaultHouseLabel={
+                        editingRecord ? houseText(editingRecord.houseId) : undefined
+                    }
+                    onCreated={() => loadRelatedRequests(editingId)}
+                />
+            )}
         </div>
     );
 };
