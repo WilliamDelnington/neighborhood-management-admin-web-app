@@ -2,10 +2,18 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
 import StatCard from "@components/admin/StatCard";
+import { Badge } from "@components/ui/badge";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import { useAuthStore } from "@store/authStore";
 import { MODULES } from "@constants/modules";
-import { ROLE_LABEL } from "@constants/domain";
+import {
+    REQUEST_PRIORITY_LABEL,
+    REQUEST_PRIORITY_TONE,
+    REQUEST_STATUS_LABEL,
+    REQUEST_STATUS_TONE,
+    REQUEST_TYPE_LABEL,
+    ROLE_LABEL,
+} from "@constants/domain";
 import { cn } from "@lib/utils";
 import { DashboardSummary } from "@dts";
 import { fetchDashboardSummary } from "@service/dashboardApi";
@@ -156,6 +164,76 @@ const DashboardContent: React.FC = () => {
                                         <div className="text-xs text-text_2">
                                             {formatDateTime(meeting.startTime)}{" "}
                                             · {meeting.location}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {summary.myRequests.length > 0 && (
+                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                            <div className="mb-2 flex items-center justify-between">
+                                <h2 className="text-sm font-semibold">
+                                    Yêu cầu cần xử lý
+                                </h2>
+                                <button
+                                    type="button"
+                                    className="text-xs text-primary hover:underline"
+                                    onClick={() => navigate("/requests/my")}
+                                >
+                                    Xem tất cả
+                                </button>
+                            </div>
+                            <div>
+                                {summary.myRequests.map(r => (
+                                    <button
+                                        key={r._id}
+                                        type="button"
+                                        className="flex w-full items-center justify-between gap-2 border-b border-divider_01 py-2 text-left last:border-0"
+                                        onClick={() =>
+                                            navigate("/requests/my")
+                                        }
+                                    >
+                                        <div className="min-w-0">
+                                            <div className="truncate text-sm font-medium">
+                                                {r.title}
+                                            </div>
+                                            <div className="text-xs text-text_2">
+                                                {REQUEST_TYPE_LABEL[r.type]}
+                                                {r.dueDate &&
+                                                    ` · Hạn: ${formatDateTime(r.dueDate)}`}
+                                            </div>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-1.5">
+                                            <Badge
+                                                tone={
+                                                    REQUEST_PRIORITY_TONE[
+                                                        r.priority
+                                                    ]
+                                                }
+                                            >
+                                                {
+                                                    REQUEST_PRIORITY_LABEL[
+                                                        r.priority
+                                                    ]
+                                                }
+                                            </Badge>
+                                            <Badge
+                                                tone={
+                                                    r.isOverdue
+                                                        ? "red"
+                                                        : REQUEST_STATUS_TONE[
+                                                              r.status
+                                                          ]
+                                                }
+                                            >
+                                                {
+                                                    REQUEST_STATUS_LABEL[
+                                                        r.status
+                                                    ]
+                                                }
+                                            </Badge>
                                         </div>
                                     </button>
                                 ))}

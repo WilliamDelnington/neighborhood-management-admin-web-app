@@ -45,6 +45,12 @@ export type User = {
     neighborhoodId?: string;
     assignedNeighborhoodIds: string[];
     assignedClusters: string[];
+    // Pham vi phuong/xa cho people_committee_official (Can bo UBND) - xem
+    // ghi chu o User.ts (backend).
+    provinceCode?: number;
+    provinceName?: string;
+    wardCode?: number;
+    wardName?: string;
     notificationPermission: boolean;
     createdAt?: string;
     allowedComplaintCategories: NhomPhanAnh[] | null;
@@ -606,6 +612,45 @@ export type Announcement = {
     createdAt: string;
 };
 
+export type CorrespondenceType = {
+    _id: string;
+    name: string;
+    code: string;
+    description?: string;
+    allowedSenderRoles: Role[];
+    allowedReceiverRoles: Role[];
+    requireDocumentNumber: boolean;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type CorrespondenceStatus = "nhap" | "da_gui";
+
+export type Correspondence = {
+    _id: string;
+    correspondenceTypeId: string | Pick<CorrespondenceType, "_id" | "name" | "code">;
+    documentNumber?: string;
+    title: string;
+    content: string;
+    issuedAt: string;
+    status: CorrespondenceStatus;
+    isUrgent: boolean;
+    senderId: string;
+    targetNeighborhoodIds: string[];
+    targetUserIds: string[];
+    sentAt?: string;
+    createdAt: string;
+};
+
+export type CorrespondenceReply = {
+    _id: string;
+    correspondenceId: string;
+    content: string;
+    actorId: { _id: string; displayName: string; roles: Role[] } | string;
+    createdAt: string;
+};
+
 export type DangKyHop = "co" | "khong" | "uy_quyen";
 
 export type Meeting = {
@@ -781,6 +826,9 @@ export const REQUEST_STATUSES = [
 ] as const;
 export type RequestStatus = typeof REQUEST_STATUSES[number];
 
+export const REQUEST_PRIORITIES = ["normal", "high", "urgent"] as const;
+export type RequestPriority = typeof REQUEST_PRIORITIES[number];
+
 export type RequestRecipientItem = {
     _id: string;
     userId: string;
@@ -808,6 +856,7 @@ export type RequestItem = {
     title: string;
     description?: string;
     note?: string;
+    priority: RequestPriority;
     relatedModel?: string;
     relatedId?: string;
     houseId?: string | PopulatedHouse | null;
@@ -825,6 +874,7 @@ export type MyRequestItem = {
     type: RequestType;
     title: string;
     description?: string;
+    priority: RequestPriority;
     houseId?: string | PopulatedHouse | null;
     dueDate?: string;
     createdBy?: string | PopulatedInspector;
@@ -904,6 +954,17 @@ export type Setting = {
 // ---------------------------------------------------------------------------
 export type DashboardTask = { label: string; count: number; link?: string };
 
+export type DashboardRequestItem = {
+    _id: string;
+    requestId: string;
+    type: RequestType;
+    title: string;
+    priority: RequestPriority;
+    status: RequestStatus;
+    dueDate?: string;
+    isOverdue: boolean;
+};
+
 export type DashboardSummary = {
     totalHouseholds: number;
     totalHouses: number;
@@ -931,6 +992,7 @@ export type DashboardSummary = {
         totalResponses: number;
     };
     taskList: DashboardTask[];
+    myRequests: DashboardRequestItem[];
 };
 
 // ---------------------------------------------------------------------------

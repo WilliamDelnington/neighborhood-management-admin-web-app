@@ -6,6 +6,7 @@ import {
     RequestAttachment,
     RequestItem,
     RequestMeta,
+    RequestPriority,
     RequestStatus,
     RequestType,
 } from "@dts";
@@ -15,6 +16,7 @@ export interface CreateRequestInput {
     type: RequestType;
     title: string;
     description?: string;
+    priority?: RequestPriority;
     relatedModel?: string;
     relatedId?: string;
     houseId?: string;
@@ -56,6 +58,7 @@ export const updateRequest = (
         title?: string;
         description?: string;
         note?: string;
+        priority?: RequestPriority;
         dueDate?: string;
         addTargetUserIds?: string[];
         addTargetRoles?: string[];

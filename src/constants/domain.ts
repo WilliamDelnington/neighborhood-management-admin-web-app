@@ -18,6 +18,7 @@ import type {
     MucDoAnNinh,
     MucNguyCoPccc,
     NhomPhanAnh,
+    RequestPriority,
     RequestStatus,
     RequestType,
     Role,
@@ -280,6 +281,18 @@ export const REQUEST_STATUS_TONE: Record<RequestStatus, BadgeTone> = {
     needs_info: "yellow",
     awaiting_confirmation: "blue",
     resolved: "green",
+};
+
+export const REQUEST_PRIORITY_LABEL: Record<RequestPriority, string> = {
+    normal: "Bình thường",
+    high: "Cao",
+    urgent: "Khẩn cấp",
+};
+
+export const REQUEST_PRIORITY_TONE: Record<RequestPriority, BadgeTone> = {
+    normal: "gray",
+    high: "yellow",
+    urgent: "red",
 };
 
 export const REQUEST_AUDIT_ACTION_LABEL: Record<string, string> = {

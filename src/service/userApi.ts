@@ -22,6 +22,22 @@ export const fetchAssignableStaff = (
     });
 
 /**
+ * Bien the theo danh sach vai tro cu the thay vi mot permission - dung khi da
+ * biet chinh xac tap vai tro hop le (vd CorrespondenceType.allowedReceiverRoles),
+ * vi correspondences.* la permission chung cho ca hai chieu gui/nhan nen
+ * khong con dai dien cho "ai duoc nhan LOAI VAN BAN NAY" (xem
+ * app/api/users/assignable-staff/route.ts o backend).
+ */
+export const fetchAssignableStaffByRoles = (
+    roles: Role[],
+): Promise<AssignableStaff[]> =>
+    roles.length === 0
+        ? Promise.resolve([])
+        : request<AssignableStaff[]>("GET", API.USERS_ASSIGNABLE_STAFF, {
+              roles: roles.join(","),
+          });
+
+/**
  * Tim chu ho theo ten/so dien thoai - dung cho man chon "nguoi nhan cu the"
  * khi gui Thong bao.
  */
@@ -69,6 +85,10 @@ export interface UpdateUserParams {
     citizenId?: string | null;
     assignedClusters?: string[];
     primaryRole?: Role;
+    provinceCode?: number | null;
+    provinceName?: string | null;
+    wardCode?: number | null;
+    wardName?: string | null;
 }
 
 export const updateUser = (

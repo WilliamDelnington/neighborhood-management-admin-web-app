@@ -31,12 +31,15 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import {
+    REQUEST_PRIORITY_LABEL,
+    REQUEST_PRIORITY_TONE,
     REQUEST_STATUS_LABEL,
     REQUEST_STATUS_TONE,
     REQUEST_TYPE_LABEL,
 } from "@constants/domain";
 import { AppError, MyRequestItem, RequestStatus, RequestType } from "@dts";
 import { fetchMyRequests, updateMyRequestStatus } from "@service/requestApi";
+import RequestDetailSheet from "./RequestDetailSheet";
 
 const ALL = "all";
 
@@ -76,6 +79,9 @@ const MyRequestsContent: React.FC = () => {
         null,
     );
     const [needsInfoNote, setNeedsInfoNote] = useState("");
+    const [detailRequestId, setDetailRequestId] = useState<string | null>(
+        null,
+    );
 
     const load = (targetPage = 1) => {
         setLoading(true);
@@ -209,22 +215,45 @@ const MyRequestsContent: React.FC = () => {
                             <TableRow>
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Loại</TableHead>
+                                <TableHead>Mức độ</TableHead>
                                 <TableHead>Nhà liên quan</TableHead>
                                 <TableHead>Hạn xử lý</TableHead>
                                 <TableHead>Người gửi</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead />
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {items.map(item => {
                                 const busy = updatingId === item.requestId;
                                 return (
-                                    <TableRow key={item._id}>
+                                    <TableRow
+                                        key={item._id}
+                                        className="cursor-pointer"
+                                        onClick={() =>
+                                            setDetailRequestId(item.requestId)
+                                        }
+                                    >
                                         <TableCell className="font-medium">
                                             {item.title}
                                         </TableCell>
                                         <TableCell>
                                             {REQUEST_TYPE_LABEL[item.type]}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                tone={
+                                                    REQUEST_PRIORITY_TONE[
+                                                        item.priority
+                                                    ]
+                                                }
+                                            >
+                                                {
+                                                    REQUEST_PRIORITY_LABEL[
+                                                        item.priority
+                                                    ]
+                                                }
+                                            </Badge>
                                         </TableCell>
                                         <TableCell>
                                             {houseText(item.houseId)}
@@ -242,7 +271,9 @@ const MyRequestsContent: React.FC = () => {
                                         <TableCell>
                                             {creatorText(item.createdBy)}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell
+                                            onClick={e => e.stopPropagation()}
+                                        >
                                             <div className="flex flex-col items-start gap-1.5">
                                                 <Badge
                                                     tone={
@@ -343,6 +374,21 @@ const MyRequestsContent: React.FC = () => {
                                                 </div>
                                             </div>
                                         </TableCell>
+                                        <TableCell
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setDetailRequestId(
+                                                        item.requestId,
+                                                    )
+                                                }
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 );
                             })}
@@ -393,6 +439,12 @@ const MyRequestsContent: React.FC = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <RequestDetailSheet
+                requestId={detailRequestId}
+                onOpenChange={open => !open && setDetailRequestId(null)}
+                onUpdated={() => load(page)}
+            />
         </div>
     );
 };

@@ -97,6 +97,18 @@ const AnnouncementListPage = React.lazy(
 const AnnouncementFormPage = React.lazy(
     () => import("@pages/Announcements/AnnouncementFormPage"),
 );
+const CorrespondenceTypeListPage = React.lazy(
+    () => import("@pages/CorrespondenceTypes/CorrespondenceTypeListPage"),
+);
+const CorrespondenceListPage = React.lazy(
+    () => import("@pages/Correspondences/CorrespondenceListPage"),
+);
+const CorrespondenceFormPage = React.lazy(
+    () => import("@pages/Correspondences/CorrespondenceFormPage"),
+);
+const CorrespondenceDetailPage = React.lazy(
+    () => import("@pages/Correspondences/CorrespondenceDetailPage"),
+);
 const SurveyListPage = React.lazy(
     () => import("@pages/Surveys/SurveyListPage"),
 );
@@ -281,6 +293,26 @@ const App: React.FC = () => {
                         <Route
                             path="/announcements/:id/edit"
                             element={<AnnouncementFormPage />}
+                        />
+                        <Route
+                            path="/correspondence-types"
+                            element={<CorrespondenceTypeListPage />}
+                        />
+                        <Route
+                            path="/correspondences"
+                            element={<CorrespondenceListPage />}
+                        />
+                        <Route
+                            path="/correspondences/create"
+                            element={<CorrespondenceFormPage />}
+                        />
+                        <Route
+                            path="/correspondences/:id/edit"
+                            element={<CorrespondenceFormPage />}
+                        />
+                        <Route
+                            path="/correspondences/:id"
+                            element={<CorrespondenceDetailPage />}
                         />
                         <Route path="/surveys" element={<SurveyListPage />} />
                         <Route

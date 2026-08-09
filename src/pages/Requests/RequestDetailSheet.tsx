@@ -17,6 +17,8 @@ import RequestRecipientPicker from "@components/admin/RequestRecipientPicker";
 import { usePermission } from "@store/authStore";
 import { resolveAssetUrl } from "@constants/common";
 import {
+    REQUEST_PRIORITY_LABEL,
+    REQUEST_PRIORITY_TONE,
     REQUEST_STATUS_LABEL,
     REQUEST_STATUS_TONE,
     REQUEST_TYPE_LABEL,
@@ -104,10 +106,19 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
         load(requestId);
         setAddUserIds([]);
         setAddRoles([]);
-        fetchRequestMeta()
-            .then(setMeta)
-            .catch(() => setMeta(null));
-    }, [requestId]);
+        // Chi nguoi quan ly moi dung den meta (danh sach loai/vai tro du dieu
+        // kien nhan) de them nguoi nhan - bo qua voi nguoi nhan thuong de
+        // tranh goi API ma ho khong co quyen (/api/requests/meta yeu cau
+        // requests.create).
+        if (canManage) {
+            fetchRequestMeta()
+                .then(setMeta)
+                .catch(() => setMeta(null));
+        } else {
+            setMeta(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [requestId, canManage]);
 
     const handleSaveNote = async () => {
         if (!requestId) return;
@@ -224,6 +235,19 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                     </h2>
                                     <Badge tone="blue">
                                         {REQUEST_TYPE_LABEL[request.type]}
+                                    </Badge>
+                                    <Badge
+                                        tone={
+                                            REQUEST_PRIORITY_TONE[
+                                                request.priority
+                                            ]
+                                        }
+                                    >
+                                        {
+                                            REQUEST_PRIORITY_LABEL[
+                                                request.priority
+                                            ]
+                                        }
                                     </Badge>
                                 </div>
                                 {request.description && (

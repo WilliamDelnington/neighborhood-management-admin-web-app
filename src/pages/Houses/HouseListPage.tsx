@@ -7,6 +7,13 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -29,7 +36,7 @@ import {
     HOUSE_STATUS_LABEL,
     HOUSE_STATUS_TONE,
 } from "@constants/domain";
-import { House, AppError } from "@dts";
+import { House, HouseStatus, AppError } from "@dts";
 import { createHouse, fetchHouses } from "@service/houseApi";
 import HouseForm, {
     EMPTY_HOUSE_FORM,
@@ -44,11 +51,14 @@ const HouseListPage: React.FC = () => (
     </AdminGuard>
 );
 
+const ALL_STATUSES = "all";
+
 const HouseListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("houses.create");
 
     const [search, setSearch] = useState("");
+    const [status, setStatus] = useState<HouseStatus | "">("");
     const [items, setItems] = useState<House[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -59,10 +69,14 @@ const HouseListContent: React.FC = () => {
     const [form, setForm] = useState<HouseFormValues>(EMPTY_HOUSE_FORM);
     const [submitting, setSubmitting] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, statusFilter = status) => {
         setLoading(true);
         setError(false);
-        fetchHouses({ page: targetPage, search: keyword })
+        fetchHouses({
+            page: targetPage,
+            search: keyword,
+            status: statusFilter || undefined,
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -73,10 +87,10 @@ const HouseListContent: React.FC = () => {
     };
 
     useEffect(() => {
-        const timer = setTimeout(() => load(1, search), 300);
+        const timer = setTimeout(() => load(1, search, status), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
+    }, [search, status]);
 
     const openCreate = () => {
         setForm(EMPTY_HOUSE_FORM);
@@ -115,12 +129,39 @@ const HouseListContent: React.FC = () => {
                 )}
             </div>
 
-            <Input
-                className="mb-4 max-w-sm"
-                placeholder="Tìm theo mã nhà, địa chỉ..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+                <Input
+                    className="max-w-sm"
+                    placeholder="Tìm theo mã nhà, địa chỉ..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                <Select
+                    value={status || ALL_STATUSES}
+                    onValueChange={v =>
+                        setStatus(v === ALL_STATUSES ? "" : (v as HouseStatus))
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Lọc theo trạng thái" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_STATUSES}>
+                            Tất cả trạng thái
+                        </SelectItem>
+                        {(
+                            Object.entries(HOUSE_STATUS_LABEL) as [
+                                HouseStatus,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}

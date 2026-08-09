@@ -27,6 +27,7 @@ import {
     Inbox,
     ShieldCheck,
     Users,
+    FileSignature,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -207,6 +208,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: FileText,
                 permission: "files.read",
             },
+            {
+                key: "correspondence_types",
+                label: "Loại văn bản",
+                path: "/correspondence-types",
+                icon: FileSignature,
+                permission: "correspondence_types.read",
+            },
         ],
     },
     {
@@ -227,6 +235,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/announcements",
                 icon: Megaphone,
                 permission: "announcements.read",
+            },
+            {
+                key: "correspondences",
+                label: "Văn bản",
+                path: "/correspondences",
+                icon: FileSignature,
+                permission: "correspondences.read",
             },
             {
                 key: "surveys",

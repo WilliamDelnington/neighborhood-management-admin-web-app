@@ -2,8 +2,11 @@ import { API, BASE_URL } from "@constants/common";
 import { useAuthStore } from "@store/authStore";
 import { request } from "./request";
 
-export const fetchPopulationReport = (): Promise<unknown> =>
-    request("GET", `${API.REPORTS}/population`);
+export const fetchPopulationReport = (
+    fromDate?: string,
+    toDate?: string,
+): Promise<unknown> =>
+    request("GET", `${API.REPORTS}/population`, { fromDate, toDate });
 
 export const fetchComplaintReport = (
     fromDate?: string,
@@ -11,11 +14,17 @@ export const fetchComplaintReport = (
 ): Promise<unknown> =>
     request("GET", `${API.REPORTS}/complaints`, { fromDate, toDate });
 
-export const fetchPcccReport = (): Promise<unknown> =>
-    request("GET", `${API.REPORTS}/pccc`);
+export const fetchPcccReport = (
+    fromDate?: string,
+    toDate?: string,
+): Promise<unknown> =>
+    request("GET", `${API.REPORTS}/pccc`, { fromDate, toDate });
 
-export const fetchSecurityReport = (): Promise<unknown> =>
-    request("GET", `${API.REPORTS}/security`);
+export const fetchSecurityReport = (
+    fromDate?: string,
+    toDate?: string,
+): Promise<unknown> =>
+    request("GET", `${API.REPORTS}/security`, { fromDate, toDate });
 
 export const fetchFinanceReport = (
     fromDate?: string,
@@ -29,11 +38,17 @@ export const fetchMeetingReport = (meetingId: string): Promise<unknown> =>
 export const fetchSurveyReport = (surveyId: string): Promise<unknown> =>
     request("GET", `${API.REPORTS}/surveys`, { surveyId });
 
-export const fetchHouseReport = (): Promise<unknown> =>
-    request("GET", `${API.REPORTS}/houses`);
+export const fetchHouseReport = (
+    fromDate?: string,
+    toDate?: string,
+): Promise<unknown> =>
+    request("GET", `${API.REPORTS}/houses`, { fromDate, toDate });
 
-export const fetchBusinessReport = (): Promise<unknown> =>
-    request("GET", `${API.REPORTS}/business`);
+export const fetchBusinessReport = (
+    fromDate?: string,
+    toDate?: string,
+): Promise<unknown> =>
+    request("GET", `${API.REPORTS}/business`, { fromDate, toDate });
 
 /**
  * Cac bao cao ho tro tai xuong Excel qua query ?format=excel. Vi day la tai file nhi phan

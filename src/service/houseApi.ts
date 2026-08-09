@@ -77,6 +77,7 @@ export const fetchHouses = (params?: {
     streetId?: string;
     neighborhoodId?: string;
     wardCode?: number;
+    status?: string;
 }): Promise<PaginatedData<House>> =>
     request<PaginatedData<House>>("GET", API.HOUSES, params);
 

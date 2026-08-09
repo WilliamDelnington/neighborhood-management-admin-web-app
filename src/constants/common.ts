@@ -42,6 +42,8 @@ export const API = {
     SUPPORT_TICKETS: "/api/support-tickets",
 
     ANNOUNCEMENTS: "/api/announcements",
+    CORRESPONDENCE_TYPES: "/api/correspondence-types",
+    CORRESPONDENCES: "/api/correspondences",
     MEETINGS: "/api/meetings",
     SURVEYS: "/api/surveys",
 

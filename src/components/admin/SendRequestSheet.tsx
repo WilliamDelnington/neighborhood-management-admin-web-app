@@ -20,8 +20,15 @@ import {
 } from "@components/ui/sheet";
 import HousePicker from "@components/admin/HousePicker";
 import RequestRecipientPicker from "@components/admin/RequestRecipientPicker";
-import { REQUEST_TYPE_LABEL } from "@constants/domain";
-import { AppError, House, RequestItem, RequestMeta, RequestType } from "@dts";
+import { REQUEST_PRIORITY_LABEL, REQUEST_TYPE_LABEL } from "@constants/domain";
+import {
+    AppError,
+    House,
+    RequestItem,
+    RequestMeta,
+    RequestPriority,
+    RequestType,
+} from "@dts";
 import { createRequest, fetchRequestMeta } from "@service/requestApi";
 
 export interface SendRequestSheetProps {
@@ -41,6 +48,7 @@ const EMPTY_STATE = {
     type: "" as RequestType | "",
     title: "",
     description: "",
+    priority: "normal" as RequestPriority,
     dueDate: "",
     houseId: "",
     houseLabel: "",
@@ -109,6 +117,7 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                 type: form.type,
                 title: form.title,
                 description: form.description || undefined,
+                priority: form.priority,
                 relatedModel,
                 relatedId,
                 houseId: form.houseId || undefined,
@@ -188,6 +197,35 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                                 }))
                             }
                         />
+                    </div>
+
+                    <div>
+                        <Label>Mức độ ưu tiên</Label>
+                        <Select
+                            value={form.priority}
+                            onValueChange={v =>
+                                setForm(prev => ({
+                                    ...prev,
+                                    priority: v as RequestPriority,
+                                }))
+                            }
+                        >
+                            <SelectTrigger className="mt-1.5">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(
+                                    Object.entries(REQUEST_PRIORITY_LABEL) as [
+                                        RequestPriority,
+                                        string,
+                                    ][]
+                                ).map(([key, label]) => (
+                                    <SelectItem key={key} value={key}>
+                                        {label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div>
