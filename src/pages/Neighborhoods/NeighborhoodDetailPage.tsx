@@ -273,7 +273,7 @@ const NeighborhoodDetailContent: React.FC = () => {
 
                     <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">
-                            Tài khoản tổ trưởng
+                            Thông tin tổ trưởng
                         </h2>
                         {neighborhood.leaderUserId ? (
                             <div className="flex items-center justify-between border-b border-divider_01 py-2">

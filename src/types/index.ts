@@ -612,6 +612,26 @@ export type Announcement = {
     createdAt: string;
 };
 
+export type ChangeRequestTargetModel = "HouseRecord" | "HouseOwnership" | "User";
+export type ChangeRequestType = "update" | "unlink";
+export type ChangeRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export type ChangeRequest = {
+    _id: string;
+    targetModel: ChangeRequestTargetModel;
+    targetId: string;
+    requestedBy: string | { _id: string; displayName: string; phone?: string };
+    changeType: ChangeRequestType;
+    patch?: Record<string, unknown>;
+    previousSnapshot?: Record<string, unknown>;
+    reason?: string;
+    status: ChangeRequestStatus;
+    decidedBy?: string | { _id: string; displayName: string };
+    decidedAt?: string;
+    decisionNote?: string;
+    createdAt: string;
+};
+
 export type CorrespondenceType = {
     _id: string;
     name: string;
@@ -660,7 +680,6 @@ export type Meeting = {
     location: string;
     content: string;
     minutes?: string;
-    attachments: string[];
     published: boolean;
     eligibleAll?: boolean;
     eligibleRoles?: Role[];

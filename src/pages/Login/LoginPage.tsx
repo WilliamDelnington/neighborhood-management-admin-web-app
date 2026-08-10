@@ -6,6 +6,7 @@ import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { useAuthStore } from "@store/authStore";
 import { loginWithPhone } from "@service/authApi";
+import AppBrand from "@components/layout/AppBrand";
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -48,9 +49,12 @@ const LoginPage: React.FC = () => {
                 onSubmit={handleSubmit}
                 className="w-full max-w-sm rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
             >
-                <h1 className="text-center text-lg font-semibold text-main">
-                    Quản lý Tổ dân phố
-                </h1>
+                <div className="flex justify-center">
+                    <AppBrand
+                        imgClassName="h-12 max-w-[240px] object-contain"
+                        textClassName="text-lg font-semibold text-main"
+                    />
+                </div>
                 <p className="mb-6 mt-1 text-center text-sm text-text_2">
                     Đăng nhập bằng số điện thoại cán bộ
                 </p>

@@ -28,6 +28,7 @@ import {
     ShieldCheck,
     Users,
     FileSignature,
+    ClipboardCheck,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -291,6 +292,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/roles",
                 icon: KeyRound,
                 permission: "roles.read",
+            },
+            {
+                key: "change_requests",
+                label: "Yêu cầu thay đổi",
+                path: "/change-requests",
+                icon: ClipboardCheck,
+                permission: "change_requests.read",
             },
             {
                 key: "settings",

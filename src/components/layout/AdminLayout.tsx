@@ -7,6 +7,7 @@ import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
+import AppBrand from "./AppBrand";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -117,9 +118,10 @@ const AdminLayout: React.FC = () => {
                 )}
             >
                 <div className="flex h-14 items-center justify-between border-b border-divider_01 px-4">
-                    <span className="text-base font-semibold text-main">
-                        Quản lý Tổ dân phố
-                    </span>
+                    <AppBrand
+                        imgClassName="h-8 max-w-[160px] object-contain"
+                        textClassName="text-base font-semibold text-main"
+                    />
                     <button
                         type="button"
                         className="rounded-md p-1 text-text_2 hover:bg-ng_10 lg:hidden"

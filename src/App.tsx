@@ -131,6 +131,9 @@ const CreateHouseOwnerPage = React.lazy(
     () => import("@pages/Users/CreateHouseOwnerPage"),
 );
 const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
+const ChangeRequestListPage = React.lazy(
+    () => import("@pages/ChangeRequests/ChangeRequestListPage"),
+);
 const BusinessTypeListPage = React.lazy(
     () => import("@pages/BusinessTypes/BusinessTypeListPage"),
 );
@@ -340,6 +343,10 @@ const App: React.FC = () => {
                             element={<MiniAppFeaturesPage />}
                         />
                         <Route path="/users" element={<UserListPage />} />
+                        <Route
+                            path="/change-requests"
+                            element={<ChangeRequestListPage />}
+                        />
                         <Route
                             path="/users/new-house-owner"
                             element={<CreateHouseOwnerPage />}

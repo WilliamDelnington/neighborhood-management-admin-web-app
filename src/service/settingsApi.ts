@@ -16,3 +16,21 @@ export const upsertSetting = (
     description?: string,
 ): Promise<unknown> =>
     request("POST", API.SETTINGS, { key, value, description });
+
+// Logo ung dung (thay the chu "Quan ly To dan pho" tren header/trang dang
+// nhap neu admin da tai anh len) - luu qua Setting key "app_logo_url", cong
+// khai qua fetchPublicSettings() nen bat ky ai dang nhap (khong chi admin)
+// deu thay duoc logo dung tren header cua ho.
+export interface AppLogoSetting {
+    key: string;
+    value: string | null;
+}
+
+export const uploadAppLogo = (file: File): Promise<AppLogoSetting> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<AppLogoSetting>("POST", `${API.SETTINGS}/logo`, formData);
+};
+
+export const deleteAppLogo = (): Promise<AppLogoSetting> =>
+    request<AppLogoSetting>("DELETE", `${API.SETTINGS}/logo`);

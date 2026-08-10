@@ -218,11 +218,18 @@ const CorrespondenceFormContent: React.FC = () => {
             if (isEdit && id) {
                 await updateCorrespondence(id, input);
                 toast.success("Đã cập nhật văn bản");
+                navigate("/correspondences");
             } else {
-                await createCorrespondence(input);
-                toast.success("Đã tạo văn bản (bản nháp)");
+                const created = await createCorrespondence(input);
+                toast.success(
+                    "Đã tạo văn bản (bản nháp) - bạn có thể đính kèm tệp bên dưới",
+                );
+                // Chuyen sang trang sua (thay vi ve danh sach) de nguoi dung
+                // thay ngay muc "Tep dinh kem" - muc nay chi hien khi isEdit
+                // (can co id de gan file vao), nen o man tao moi se khong
+                // thay gi neu quay ve danh sach.
+                navigate(`/correspondences/${created._id}/edit`);
             }
-            navigate("/correspondences");
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {

@@ -1,13 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import { resolveAssetUrl } from "@constants/common";
 import { AppError } from "@dts";
-import { fetchAllSettings, upsertSetting } from "@service/settingsApi";
+import {
+    deleteAppLogo,
+    fetchAllSettings,
+    upsertSetting,
+    uploadAppLogo,
+} from "@service/settingsApi";
 
 type EditableSetting = {
     key: string;
@@ -78,6 +85,11 @@ const SettingsContent: React.FC = () => {
     const [newDescription, setNewDescription] = useState("");
     const [addingNew, setAddingNew] = useState(false);
 
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [removingLogo, setRemovingLogo] = useState(false);
+    const logoInputRef = useRef<HTMLInputElement>(null);
+
     const load = () => {
         setLoading(true);
         setError(false);
@@ -88,12 +100,47 @@ const SettingsContent: React.FC = () => {
                     mapped[key] = buildEditable(key, value);
                 });
                 setSettings(mapped);
+                const rawLogo = data?.app_logo_url;
+                setLogoUrl(typeof rawLogo === "string" ? rawLogo : null);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
     useEffect(load, []);
+
+    const handleLogoUploadClick = () => logoInputRef.current?.click();
+
+    const handleLogoFileSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        try {
+            setUploadingLogo(true);
+            const setting = await uploadAppLogo(file);
+            setLogoUrl(setting.value);
+            toast.success("Đã cập nhật logo");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
+
+    const handleRemoveLogo = async () => {
+        try {
+            setRemovingLogo(true);
+            await deleteAppLogo();
+            setLogoUrl(null);
+            toast.success("Đã xóa logo, quay về chữ mặc định");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setRemovingLogo(false);
+        }
+    };
 
     const handleTextChange = (key: string, text: string) => {
         setSettings(prev => ({ ...prev, [key]: { ...prev[key], text } }));
@@ -165,6 +212,58 @@ const SettingsContent: React.FC = () => {
 
             {!loading && !error && (
                 <>
+                    <div className="mb-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                        <h2 className="mb-2 text-sm font-semibold">
+                            Logo ứng dụng
+                        </h2>
+                        <p className="mb-3 text-xs text-text_2">
+                            Thay thế chữ &quot;Quản lý Tổ dân phố&quot; trên
+                            header và trang đăng nhập bằng logo riêng. Nếu
+                            không tải ảnh lên, chữ mặc định sẽ được giữ
+                            nguyên.
+                        </p>
+                        <div className="flex items-center gap-4">
+                            {logoUrl ? (
+                                <img
+                                    src={resolveAssetUrl(logoUrl)}
+                                    alt="Logo hiện tại"
+                                    className="h-12 max-w-[200px] rounded-lg border border-divider_01 object-contain p-1"
+                                />
+                            ) : (
+                                <span className="text-sm text-text_2">
+                                    Chưa có logo, đang dùng chữ mặc định
+                                </span>
+                            )}
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                loading={uploadingLogo}
+                                onClick={handleLogoUploadClick}
+                            >
+                                <Upload className="mr-1 h-3.5 w-3.5" />
+                                {logoUrl ? "Đổi logo" : "Tải logo lên"}
+                            </Button>
+                            {logoUrl && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="!text-red-500"
+                                    loading={removingLogo}
+                                    onClick={handleRemoveLogo}
+                                >
+                                    Xóa logo
+                                </Button>
+                            )}
+                            <input
+                                ref={logoInputRef}
+                                type="file"
+                                className="hidden"
+                                accept=".jpg,.jpeg,.png,.svg,.webp"
+                                onChange={handleLogoFileSelected}
+                            />
+                        </div>
+                    </div>
+
                     {entries.length === 0 && !showAddForm && (
                         <EmptyState
                             label={`Chưa có cấu hình nào. Có thể thêm các khóa gợi ý như: ${SEED_KEY_EXAMPLES.join(
