@@ -33,6 +33,7 @@ import {
     addHouseOwnership,
     endHouseOwnership,
     fetchHouseOwnerships,
+    verifyHouseOwnership,
 } from "@service/houseOwnershipApi";
 import { lockUserAccount } from "@service/userApi";
 import { usePermission } from "@store/authStore";
@@ -79,6 +80,16 @@ const HouseOwnershipPanel: React.FC<HouseOwnershipPanelProps> = ({
     const [lockStatus, setLockStatus] = useState<"active" | "locked">("locked");
     const [lockReason, setLockReason] = useState("");
     const [locking, setLocking] = useState(false);
+
+    const canVerifyOwnership = usePermission("houses.verify");
+    const [verifyTarget, setVerifyTarget] = useState<HouseOwnership | null>(
+        null,
+    );
+    const [verifyDecision, setVerifyDecision] = useState<
+        "verified" | "rejected"
+    >("verified");
+    const [verifyNote, setVerifyNote] = useState("");
+    const [verifying, setVerifying] = useState(false);
 
     const load = () => {
         setLoading(true);
@@ -131,6 +142,40 @@ const HouseOwnershipPanel: React.FC<HouseOwnershipPanelProps> = ({
         setLockTarget(o);
         setLockStatus(status);
         setLockReason("");
+    };
+
+    const openVerify = (o: HouseOwnership, decision: "verified" | "rejected") => {
+        setVerifyTarget(o);
+        setVerifyDecision(decision);
+        setVerifyNote("");
+    };
+
+    const handleVerify = async () => {
+        if (!verifyTarget) return;
+        if (verifyDecision === "rejected" && !verifyNote.trim()) {
+            toast.error("Vui lòng nhập lý do từ chối");
+            return;
+        }
+        try {
+            setVerifying(true);
+            await verifyHouseOwnership(
+                houseId,
+                verifyTarget._id,
+                verifyDecision,
+                verifyNote.trim() || undefined,
+            );
+            toast.success(
+                verifyDecision === "verified"
+                    ? "Đã xác thực quan hệ sở hữu"
+                    : "Đã từ chối quan hệ sở hữu",
+            );
+            setVerifyTarget(null);
+            load();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setVerifying(false);
+        }
     };
 
     const handleLock = async () => {
@@ -245,6 +290,31 @@ const HouseOwnershipPanel: React.FC<HouseOwnershipPanelProps> = ({
                                           ]
                                         : "Đã kết thúc"}
                                 </Badge>
+                                {canVerifyOwnership &&
+                                    o.active &&
+                                    o.relationshipType !== "primary_owner" &&
+                                    o.verificationStatus ===
+                                        "waiting_verification" && (
+                                        <>
+                                            <Button
+                                                size="sm"
+                                                onClick={() =>
+                                                    openVerify(o, "verified")
+                                                }
+                                            >
+                                                Xác thực
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    openVerify(o, "rejected")
+                                                }
+                                            >
+                                                Từ chối
+                                            </Button>
+                                        </>
+                                    )}
                                 {canLockOwnerAccount &&
                                     o.active &&
                                     o.ownerType === "user" && (
@@ -486,6 +556,66 @@ const HouseOwnershipPanel: React.FC<HouseOwnershipPanelProps> = ({
                             onClick={handleLock}
                         >
                             {lockStatus === "locked" ? "Khóa" : "Mở khóa"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={!!verifyTarget}
+                onOpenChange={open => !open && setVerifyTarget(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {verifyDecision === "verified"
+                                ? "Xác thực quan hệ sở hữu?"
+                                : "Từ chối quan hệ sở hữu?"}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-text_2">
+                        {verifyTarget &&
+                            `${
+                                HOUSE_OWNERSHIP_RELATIONSHIP_TYPE_LABEL[
+                                    verifyTarget.relationshipType
+                                ]
+                            } — ${verifyTarget.ownerDisplayName || "Không rõ"}`}
+                    </p>
+                    <div className="space-y-1.5">
+                        <Label>
+                            {verifyDecision === "verified"
+                                ? "Ghi chú (không bắt buộc)"
+                                : "Lý do từ chối (bắt buộc)"}
+                        </Label>
+                        <Textarea
+                            value={verifyNote}
+                            onChange={e => setVerifyNote(e.target.value)}
+                            placeholder={
+                                verifyDecision === "verified"
+                                    ? "VD: Đã xác minh trực tiếp với chủ nhà"
+                                    : "VD: Không xác minh được quan hệ với chủ nhà"
+                            }
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setVerifyTarget(null)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant={
+                                verifyDecision === "rejected"
+                                    ? "destructive"
+                                    : "default"
+                            }
+                            loading={verifying}
+                            onClick={handleVerify}
+                        >
+                            {verifyDecision === "verified"
+                                ? "Xác thực"
+                                : "Từ chối"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
