@@ -175,6 +175,7 @@ const NeighborhoodListContent: React.FC = () => {
                                 <TableHead>Phường/Xã</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Tổ trưởng</TableHead>
+                                <TableHead>Số nhà</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -213,6 +214,7 @@ const NeighborhoodListContent: React.FC = () => {
                                                 </span>
                                             )}
                                     </TableCell>
+                                    <TableCell>{n.houseCount}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

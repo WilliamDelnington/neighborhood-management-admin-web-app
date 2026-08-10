@@ -141,6 +141,40 @@ const DashboardContent: React.FC = () => {
                         />
                     </div>
 
+                    <h2 className="mb-2 mt-4 text-sm font-semibold">
+                        Việc của tôi
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+                        <StatCard
+                            label="Yêu cầu đang xử lý"
+                            value={summary.myRequestCounts.inProgress}
+                            onClick={() => navigate("/requests/my")}
+                        />
+                        <StatCard
+                            label="Yêu cầu sắp hết hạn"
+                            value={summary.myRequestCounts.dueSoon}
+                            tone="warning"
+                            onClick={() => navigate("/requests/my")}
+                        />
+                        <StatCard
+                            label="Yêu cầu quá hạn"
+                            value={summary.myRequestCounts.overdue}
+                            tone="danger"
+                            onClick={() => navigate("/requests/my")}
+                        />
+                        <StatCard
+                            label="Phản ánh của tôi - đang xử lý"
+                            value={summary.myComplaintCounts.inProgress}
+                            onClick={() => navigate("/complaints")}
+                        />
+                        <StatCard
+                            label="Phản ánh của tôi - quá hạn"
+                            value={summary.myComplaintCounts.overdue}
+                            tone="danger"
+                            onClick={() => navigate("/complaints")}
+                        />
+                    </div>
+
                     {summary.upcomingMeetings.length > 0 && (
                         <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
                             <h2 className="mb-2 text-sm font-semibold">

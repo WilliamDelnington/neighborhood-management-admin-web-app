@@ -309,6 +309,7 @@ export type Neighborhood = {
         phone?: string;
         status: UserStatus;
     } | null;
+    houseCount: number;
     createdAt: string;
     updatedAt: string;
 };
@@ -1131,6 +1132,15 @@ export type DashboardSummary = {
     };
     taskList: DashboardTask[];
     myRequests: DashboardRequestItem[];
+    myRequestCounts: {
+        inProgress: number;
+        dueSoon: number;
+        overdue: number;
+    };
+    myComplaintCounts: {
+        inProgress: number;
+        overdue: number;
+    };
 };
 
 // ---------------------------------------------------------------------------
