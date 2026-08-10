@@ -209,19 +209,26 @@ const ComplaintListContent: React.FC = () => {
                                         {NHOM_PHAN_ANH_LABEL[c.category]}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            tone={
-                                                TRANG_THAI_PHAN_ANH_TONE[
-                                                    c.status
-                                                ]
-                                            }
-                                        >
-                                            {
-                                                TRANG_THAI_PHAN_ANH_LABEL[
-                                                    c.status
-                                                ]
-                                            }
-                                        </Badge>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            <Badge
+                                                tone={
+                                                    TRANG_THAI_PHAN_ANH_TONE[
+                                                        c.status
+                                                    ]
+                                                }
+                                            >
+                                                {
+                                                    TRANG_THAI_PHAN_ANH_LABEL[
+                                                        c.status
+                                                    ]
+                                                }
+                                            </Badge>
+                                            {!c.neighborhoodId && (
+                                                <Badge tone="red">
+                                                    Chưa xác định tổ dân phố
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

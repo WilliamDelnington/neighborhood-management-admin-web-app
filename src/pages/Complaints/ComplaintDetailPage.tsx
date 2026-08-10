@@ -230,6 +230,11 @@ const ComplaintDetailContent: React.FC = () => {
                                         ]
                                     }
                                 </Badge>
+                                {!complaint.neighborhoodId && (
+                                    <Badge tone="red">
+                                        Chưa xác định tổ dân phố
+                                    </Badge>
+                                )}
                                 {canDelete && (
                                     <Button
                                         variant="destructive"
