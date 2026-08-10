@@ -542,6 +542,7 @@ export type Complaint = {
     status: TrangThaiPhanAnh;
     neighborhoodId?: string;
     wardCode?: number;
+    targetHouseId?: string | { _id: string; code: string; address?: string };
     createdByUserId:
         | string
         | { _id: string; displayName: string; phone?: string };

@@ -192,6 +192,10 @@ const ComplaintDetailContent: React.FC = () => {
         complaint && typeof complaint.createdByUserId === "object"
             ? complaint.createdByUserId
             : undefined;
+    const targetHouse =
+        complaint && typeof complaint.targetHouseId === "object"
+            ? complaint.targetHouseId
+            : undefined;
 
     return (
         <div>
@@ -264,6 +268,16 @@ const ComplaintDetailContent: React.FC = () => {
                                     value={`${creator.displayName}${
                                         creator.phone
                                             ? ` (${creator.phone})`
+                                            : ""
+                                    }`}
+                                />
+                            )}
+                            {targetHouse && (
+                                <InfoRow
+                                    label="Nhà số liên quan"
+                                    value={`${targetHouse.code}${
+                                        targetHouse.address
+                                            ? ` — ${targetHouse.address}`
                                             : ""
                                     }`}
                                 />
