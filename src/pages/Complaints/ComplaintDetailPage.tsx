@@ -349,11 +349,20 @@ const ComplaintDetailContent: React.FC = () => {
                                         Object.entries(
                                             TRANG_THAI_PHAN_ANH_LABEL,
                                         ) as [TrangThaiPhanAnh, string][]
-                                    ).map(([key, label]) => (
-                                        <SelectItem key={key} value={key}>
-                                            {label}
-                                        </SelectItem>
-                                    ))}
+                                    )
+                                        // "hoan_thanh" chi nguoi gui phan anh
+                                        // moi duoc xac nhan (xem
+                                        // confirmComplaintResolution o
+                                        // backend) - nhan vien khong chon
+                                        // duoc trang thai nay o day.
+                                        .filter(
+                                            ([key]) => key !== "hoan_thanh",
+                                        )
+                                        .map(([key, label]) => (
+                                            <SelectItem key={key} value={key}>
+                                                {label}
+                                            </SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                             <Textarea
@@ -400,9 +409,29 @@ const ComplaintDetailContent: React.FC = () => {
                                 className="border-b border-divider_01 py-2 last:border-0"
                             >
                                 <div className="flex items-center justify-between">
-                                    <Badge tone={TRANG_THAI_PHAN_ANH_TONE[t.status]}>
-                                        {TRANG_THAI_PHAN_ANH_LABEL[t.status]}
-                                    </Badge>
+                                    {t.action === "reevaluation_request" ? (
+                                        <Badge tone="yellow">
+                                            Đề nghị xem xét lại
+                                        </Badge>
+                                    ) : t.action === "edited" ? (
+                                        <Badge tone="blue">
+                                            Đã chỉnh sửa phản ánh
+                                        </Badge>
+                                    ) : (
+                                        <Badge
+                                            tone={
+                                                TRANG_THAI_PHAN_ANH_TONE[
+                                                    t.status
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                TRANG_THAI_PHAN_ANH_LABEL[
+                                                    t.status
+                                                ]
+                                            }
+                                        </Badge>
+                                    )}
                                     <span className="text-xs text-text_2">
                                         {formatDateTime(t.createdAt)}
                                     </span>
@@ -410,6 +439,25 @@ const ComplaintDetailContent: React.FC = () => {
                                 {t.note && (
                                     <p className="mt-1 text-sm">{t.note}</p>
                                 )}
+                                {t.action === "edited" &&
+                                    t.patch &&
+                                    Object.entries(t.patch).map(
+                                        ([field, value]) => (
+                                            <p
+                                                key={field}
+                                                className="mt-1 text-xs text-text_2"
+                                            >
+                                                {field}:{" "}
+                                                {String(
+                                                    t.previousSnapshot?.[
+                                                        field
+                                                    ] ?? "",
+                                                )}
+                                                {" → "}
+                                                {String(value)}
+                                            </p>
+                                        ),
+                                    )}
                                 {!t.isPublic && (
                                     <p className="mt-1 text-xs text-text_3">
                                         (Ghi chú nội bộ)

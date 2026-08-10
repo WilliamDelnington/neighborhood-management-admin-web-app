@@ -50,14 +50,24 @@ const BUSINESS_STATUS_OPTIONS: VerificationStatus[] = [
     "locked",
 ];
 
-const toFormValues = (b: Business): BusinessFormValues => ({
-    name: b.name,
-    businessType: b.businessType?._id || "",
-    ownerName: b.ownerName || "",
-    phone: b.phone || "",
-    active: b.active,
-    note: b.note || "",
-});
+const toFormValues = (b: Business): BusinessFormValues => {
+    const rep =
+        b.representativeUserId && typeof b.representativeUserId === "object"
+            ? b.representativeUserId
+            : null;
+    return {
+        name: b.name,
+        businessType: b.businessType?._id || "",
+        ownerName: b.ownerName || "",
+        representativeUserId: rep?._id || "",
+        representativeUserLabel: rep
+            ? `${rep.displayName}${rep.phone ? ` · ${rep.phone}` : ""}`
+            : "",
+        phone: b.phone || "",
+        active: b.active,
+        note: b.note || "",
+    };
+};
 
 const BusinessDetailPage: React.FC = () => (
     <AdminGuard permissions={["businesses.read"]}>

@@ -6,6 +6,7 @@ export interface CompanyInput {
     name: string;
     houseId: string;
     ownerName?: string;
+    representativeUserId?: string | null;
     phone?: string;
     active?: boolean;
     note?: string;

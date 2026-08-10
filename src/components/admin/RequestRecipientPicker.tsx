@@ -3,9 +3,23 @@ import { Search } from "lucide-react";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@components/ui/tabs";
 import { LoadingState, EmptyState } from "@components/admin/DataStates";
-import { AssignableStaff, RequestType, RoleRecord } from "@dts";
+import { REQUEST_HOUSE_ROLE_LABEL } from "@constants/domain";
+import {
+    AssignableStaff,
+    REQUEST_HOUSE_ROLES,
+    RequestHouseRole,
+    RequestType,
+    RoleRecord,
+} from "@dts";
 import { fetchAssignableStaff } from "@service/userApi";
 import { fetchRoles } from "@service/roleApi";
 
@@ -16,6 +30,12 @@ export interface RequestRecipientPickerProps {
     targetRoles: string[];
     onChangeUserIds: (ids: string[]) => void;
     onChangeRoles: (keys: string[]) => void;
+    /** Chi co hieu luc khi type === "task" - xem tab "Theo nhà". */
+    houseId?: string;
+    houseRole?: RequestHouseRole | "";
+    onChangeHouseRole?: (role: RequestHouseRole | "") => void;
+    targetHouseNeighborhoodLeader?: boolean;
+    onChangeTargetHouseNeighborhoodLeader?: (value: boolean) => void;
 }
 
 /**
@@ -31,6 +51,11 @@ const RequestRecipientPicker: React.FC<RequestRecipientPickerProps> = ({
     targetRoles,
     onChangeUserIds,
     onChangeRoles,
+    houseId,
+    houseRole,
+    onChangeHouseRole,
+    targetHouseNeighborhoodLeader,
+    onChangeTargetHouseNeighborhoodLeader,
 }) => {
     const [search, setSearch] = useState("");
     const [staff, setStaff] = useState<AssignableStaff[]>([]);
@@ -82,6 +107,9 @@ const RequestRecipientPicker: React.FC<RequestRecipientPickerProps> = ({
                 <TabsList>
                     <TabsTrigger value="users">Người dùng cụ thể</TabsTrigger>
                     <TabsTrigger value="roles">Loại người dùng</TabsTrigger>
+                    {type === "task" && (
+                        <TabsTrigger value="house">Theo nhà</TabsTrigger>
+                    )}
                 </TabsList>
                 <TabsContent value="users">
                     <div className="relative mb-2">
@@ -134,6 +162,62 @@ const RequestRecipientPicker: React.FC<RequestRecipientPickerProps> = ({
                             ))}
                     </div>
                 </TabsContent>
+                {type === "task" && (
+                    <TabsContent value="house">
+                        {!houseId ? (
+                            <p className="py-2 text-sm text-text_2">
+                                Chọn nhà liên quan ở trên trước khi gửi theo
+                                vai trò trong nhà.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                <div>
+                                    <Label>Gửi cho vai trò trong nhà</Label>
+                                    <Select
+                                        value={houseRole || "__none__"}
+                                        onValueChange={v =>
+                                            onChangeHouseRole?.(
+                                                v === "__none__"
+                                                    ? ""
+                                                    : (v as RequestHouseRole),
+                                            )
+                                        }
+                                    >
+                                        <SelectTrigger className="mt-1.5">
+                                            <SelectValue placeholder="Chọn vai trò" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="__none__">
+                                                Không chọn
+                                            </SelectItem>
+                                            {REQUEST_HOUSE_ROLES.map(r => (
+                                                <SelectItem key={r} value={r}>
+                                                    {REQUEST_HOUSE_ROLE_LABEL[r]}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="mt-1 text-xs text-text_2">
+                                        Chỉ gửi được đến người ĐÃ có tài khoản
+                                        liên kết với vai trò này tại nhà đã
+                                        chọn.
+                                    </p>
+                                </div>
+                                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={!!targetHouseNeighborhoodLeader}
+                                        onCheckedChange={checked =>
+                                            onChangeTargetHouseNeighborhoodLeader?.(
+                                                checked === true,
+                                            )
+                                        }
+                                    />
+                                    Gửi đến Tổ trưởng/Tổ phó của nhà này
+                                </label>
+                            </div>
+                        )}
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     );

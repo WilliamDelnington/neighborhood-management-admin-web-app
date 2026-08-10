@@ -9,7 +9,11 @@ import type {
     HousePhysicalStatus,
     HouseStatus,
     HouseUsageType,
+    InfrastructureAssetCondition,
+    InfrastructureAssetType,
     LoaiCauHoiKhaoSat,
+    PeriodicReportStatus,
+    PeriodicReportType,
     LoaiCuTru,
     LoaiGiaoDichTaiChinh,
     LoaiSoHuu,
@@ -18,6 +22,7 @@ import type {
     MucDoAnNinh,
     MucNguyCoPccc,
     NhomPhanAnh,
+    RequestHouseRole,
     RequestPriority,
     RequestStatus,
     RequestType,
@@ -53,7 +58,66 @@ export const NHOM_PHAN_ANH_LABEL: Record<NhomPhanAnh, string> = {
     tranh_chap_dan_cu: "Tranh chấp dân cư",
     tam_tru_nha_cho_thue: "Tạm trú / nhà cho thuê",
     gop_y_chung: "Góp ý chung",
+    ha_tang: "Hạ tầng (đường, cống, cây, rác...)",
     khac: "Khác",
+};
+
+export const INFRASTRUCTURE_ASSET_TYPE_LABEL: Record<
+    InfrastructureAssetType,
+    string
+> = {
+    den: "Đèn chiếu sáng",
+    duong: "Đường",
+    cong: "Cống",
+    cay: "Cây xanh",
+    diem_rac: "Điểm tập kết rác",
+    nha_sinh_hoat: "Nhà sinh hoạt cộng đồng",
+};
+
+export const INFRASTRUCTURE_ASSET_CONDITION_LABEL: Record<
+    InfrastructureAssetCondition,
+    string
+> = {
+    binh_thuong: "Bình thường",
+    hu_hong: "Hư hỏng",
+    can_kiem_tra: "Cần kiểm tra",
+};
+
+export const INFRASTRUCTURE_ASSET_CONDITION_TONE: Record<
+    InfrastructureAssetCondition,
+    BadgeTone
+> = {
+    binh_thuong: "green",
+    hu_hong: "red",
+    can_kiem_tra: "yellow",
+};
+
+export const PERIODIC_REPORT_TYPE_LABEL: Record<PeriodicReportType, string> = {
+    weekly: "Hàng tuần",
+    monthly: "Hàng tháng",
+    quarterly: "Hàng quý",
+    yearly: "Hàng năm",
+    ad_hoc: "Đột xuất",
+};
+
+export const PERIODIC_REPORT_STATUS_LABEL: Record<
+    PeriodicReportStatus,
+    string
+> = {
+    draft: "Bản nháp",
+    submitted: "Đã nộp",
+    revision_requested: "Yêu cầu bổ sung",
+    resubmitted: "Đã nộp lại",
+};
+
+export const PERIODIC_REPORT_STATUS_TONE: Record<
+    PeriodicReportStatus,
+    BadgeTone
+> = {
+    draft: "gray",
+    submitted: "blue",
+    revision_requested: "red",
+    resubmitted: "green",
 };
 
 export const TRANG_THAI_PHAN_ANH_LABEL: Record<TrangThaiPhanAnh, string> = {
@@ -62,7 +126,9 @@ export const TRANG_THAI_PHAN_ANH_LABEL: Record<TrangThaiPhanAnh, string> = {
     dang_xu_ly: "Đang xử lý",
     da_chuyen_ubnd: "Đã chuyển UBND phường",
     da_xu_ly: "Đã xử lý",
+    hoan_thanh: "Hoàn thành",
     dong: "Đóng",
+    can_bo_sung: "Cần bổ sung thông tin",
 };
 
 export const TRANG_THAI_PHAN_ANH_TONE: Record<TrangThaiPhanAnh, BadgeTone> = {
@@ -71,7 +137,9 @@ export const TRANG_THAI_PHAN_ANH_TONE: Record<TrangThaiPhanAnh, BadgeTone> = {
     dang_xu_ly: "yellow",
     da_chuyen_ubnd: "blue",
     da_xu_ly: "green",
+    hoan_thanh: "green",
     dong: "gray",
+    can_bo_sung: "red",
 };
 
 export const LOAI_YEU_CAU_HO_TRO_LABEL: Record<LoaiYeuCauHoTro, string> = {
@@ -263,6 +331,14 @@ export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
     pccc: "PCCC",
     security: "An ninh",
     other: "Khác",
+    task: "Nhiệm vụ",
+};
+
+export const REQUEST_HOUSE_ROLE_LABEL: Record<RequestHouseRole, string> = {
+    house_owner: "Chủ nhà",
+    household_head: "Chủ hộ",
+    business_head: "Chủ hộ kinh doanh",
+    company_rep: "Người đại diện công ty",
 };
 
 export const REQUEST_STATUS_LABEL: Record<RequestStatus, string> = {

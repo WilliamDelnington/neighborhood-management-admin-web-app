@@ -55,6 +55,7 @@ const ComplaintListContent: React.FC = () => {
         (searchParams.get("category") as NhomPhanAnh | null) || "",
     );
     const [search, setSearch] = useState("");
+    const relatedAssetId = searchParams.get("relatedAssetId") || undefined;
 
     const [items, setItems] = useState<Complaint[]>([]);
     const [page, setPage] = useState(1);
@@ -70,6 +71,7 @@ const ComplaintListContent: React.FC = () => {
             status: status || undefined,
             category: category || undefined,
             search: search || undefined,
+            relatedAssetId,
         })
             .then(res => {
                 setItems(res.items);

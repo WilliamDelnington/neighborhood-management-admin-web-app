@@ -46,13 +46,23 @@ const COMPANY_STATUS_OPTIONS: VerificationStatus[] = [
     "locked",
 ];
 
-const toFormValues = (c: Company): CompanyFormValues => ({
-    name: c.name,
-    ownerName: c.ownerName || "",
-    phone: c.phone || "",
-    active: c.active,
-    note: c.note || "",
-});
+const toFormValues = (c: Company): CompanyFormValues => {
+    const rep =
+        c.representativeUserId && typeof c.representativeUserId === "object"
+            ? c.representativeUserId
+            : null;
+    return {
+        name: c.name,
+        ownerName: c.ownerName || "",
+        representativeUserId: rep?._id || "",
+        representativeUserLabel: rep
+            ? `${rep.displayName}${rep.phone ? ` · ${rep.phone}` : ""}`
+            : "",
+        phone: c.phone || "",
+        active: c.active,
+        note: c.note || "",
+    };
+};
 
 const CompanyDetailPage: React.FC = () => (
     <AdminGuard permissions={["companies.read"]}>

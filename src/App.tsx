@@ -27,6 +27,12 @@ const StreetDetailPage = React.lazy(
 const OrganizationListPage = React.lazy(
     () => import("@pages/Organizations/OrganizationListPage"),
 );
+const InfrastructureAssetListPage = React.lazy(
+    () => import("@pages/InfrastructureAssets/InfrastructureAssetListPage"),
+);
+const PeriodicReportListPage = React.lazy(
+    () => import("@pages/PeriodicReports/PeriodicReportListPage"),
+);
 const HouseListPage = React.lazy(
     () => import("@pages/Houses/HouseListPage"),
 );
@@ -206,6 +212,14 @@ const App: React.FC = () => {
                         <Route
                             path="/streets/:id"
                             element={<StreetDetailPage />}
+                        />
+                        <Route
+                            path="/infrastructure-assets"
+                            element={<InfrastructureAssetListPage />}
+                        />
+                        <Route
+                            path="/periodic-reports"
+                            element={<PeriodicReportListPage />}
                         />
                         <Route
                             path="/organizations"

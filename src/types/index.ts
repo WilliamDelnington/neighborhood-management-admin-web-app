@@ -353,6 +353,17 @@ export type NeighborhoodLeaderAssignment = {
     note?: string;
 };
 
+export type NeighborhoodColeaderAssignment = {
+    _id: string;
+    neighborhoodId: string;
+    coleaderUserId?: { _id: string; displayName: string; phone?: string } | null;
+    assignedBy?: { _id: string; displayName: string } | null;
+    assignedAt: string;
+    unassignedAt?: string;
+    unassignedBy?: { _id: string; displayName: string } | null;
+    note?: string;
+};
+
 export type Household = {
     _id: string;
     code: string;
@@ -381,6 +392,7 @@ export type Business = {
     cluster: string;
     businessType?: { _id: string; name: string } | null;
     ownerName?: string;
+    representativeUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     phone?: string;
     active: boolean;
     status: VerificationStatus;
@@ -408,6 +420,7 @@ export type Company = {
     houseId: string | House | null;
     cluster: string;
     ownerName?: string;
+    representativeUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     phone?: string;
     active: boolean;
     status: VerificationStatus;
@@ -500,6 +513,7 @@ export type NhomPhanAnh =
     | "tranh_chap_dan_cu"
     | "tam_tru_nha_cho_thue"
     | "gop_y_chung"
+    | "ha_tang"
     | "khac";
 
 export type TrangThaiPhanAnh =
@@ -508,7 +522,14 @@ export type TrangThaiPhanAnh =
     | "dang_xu_ly"
     | "da_chuyen_ubnd"
     | "da_xu_ly"
-    | "dong";
+    | "hoan_thanh"
+    | "dong"
+    | "can_bo_sung";
+
+export type ComplaintTimelineAction =
+    | "status_update"
+    | "edited"
+    | "reevaluation_request";
 
 export type Complaint = {
     _id: string;
@@ -534,7 +555,10 @@ export type ComplaintTimelineEntry = {
     _id: string;
     complaintId: string;
     status: TrangThaiPhanAnh;
+    action: ComplaintTimelineAction;
     note?: string;
+    patch?: Record<string, unknown>;
+    previousSnapshot?: Record<string, unknown>;
     isPublic: boolean;
     actorId: string;
     createdAt: string;
@@ -613,7 +637,7 @@ export type Announcement = {
 };
 
 export type ChangeRequestTargetModel = "HouseRecord" | "HouseOwnership" | "User";
-export type ChangeRequestType = "update" | "unlink";
+export type ChangeRequestType = "update" | "unlink" | "transfer_neighborhood";
 export type ChangeRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
 
 export type ChangeRequest = {
@@ -728,6 +752,7 @@ export type Survey = {
     eligibleBusinessTypeIds?: (string | { _id: string; name: string })[];
     openDate?: string;
     closeDate?: string;
+    resultSummary?: string;
     createdAt: string;
 };
 
@@ -832,8 +857,16 @@ export type ResidentRecord = {
 // PCCC/An ninh. Mo rong duoc cho cac loai yeu cau khac sau nay chi bang cach
 // them gia tri vao REQUEST_TYPES.
 // ---------------------------------------------------------------------------
-export const REQUEST_TYPES = ["pccc", "security", "other"] as const;
+export const REQUEST_TYPES = ["pccc", "security", "other", "task"] as const;
 export type RequestType = typeof REQUEST_TYPES[number];
+
+export const REQUEST_HOUSE_ROLES = [
+    "house_owner",
+    "household_head",
+    "business_head",
+    "company_rep",
+] as const;
+export type RequestHouseRole = typeof REQUEST_HOUSE_ROLES[number];
 
 export const REQUEST_STATUSES = [
     "pending",
@@ -910,6 +943,15 @@ export type RequestMeta = {
     eligibleRolesByType: Record<string, string[]>;
 };
 
+export type RequestComment = {
+    _id: string;
+    entityType: "Request";
+    entityId: string;
+    authorId: string | { _id: string; displayName: string };
+    content: string;
+    createdAt: string;
+};
+
 // ---------------------------------------------------------------------------
 // Tai chinh
 // ---------------------------------------------------------------------------
@@ -965,6 +1007,83 @@ export type Setting = {
     key: string;
     value: unknown;
     description?: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// So ha tang To dan pho (InfrastructureAsset - B11)
+// ---------------------------------------------------------------------------
+export const INFRASTRUCTURE_ASSET_TYPES = [
+    "den",
+    "duong",
+    "cong",
+    "cay",
+    "diem_rac",
+    "nha_sinh_hoat",
+] as const;
+export type InfrastructureAssetType =
+    typeof INFRASTRUCTURE_ASSET_TYPES[number];
+
+export const INFRASTRUCTURE_ASSET_CONDITIONS = [
+    "binh_thuong",
+    "hu_hong",
+    "can_kiem_tra",
+] as const;
+export type InfrastructureAssetCondition =
+    typeof INFRASTRUCTURE_ASSET_CONDITIONS[number];
+
+export type InfrastructureAsset = {
+    _id: string;
+    name: string;
+    type: InfrastructureAssetType;
+    neighborhoodId: string | { _id: string; code: string; name: string };
+    location?: string;
+    condition: InfrastructureAssetCondition;
+    note?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Bao cao dinh ky To/nhan vien nop len Phuong (PeriodicReport - B12)
+// ---------------------------------------------------------------------------
+export const PERIODIC_REPORT_TYPES = [
+    "weekly",
+    "monthly",
+    "quarterly",
+    "yearly",
+    "ad_hoc",
+] as const;
+export type PeriodicReportType = typeof PERIODIC_REPORT_TYPES[number];
+
+export const PERIODIC_REPORT_STATUS = [
+    "draft",
+    "submitted",
+    "revision_requested",
+    "resubmitted",
+] as const;
+export type PeriodicReportStatus = typeof PERIODIC_REPORT_STATUS[number];
+
+export type PeriodicReportSections = {
+    generalSituation?: string;
+    highlights?: string;
+    recommendations?: string;
+    proposals?: string;
+};
+
+export type PeriodicReport = {
+    _id: string;
+    type: PeriodicReportType;
+    periodStart: string;
+    periodEnd: string;
+    authorUserId: string | { _id: string; displayName: string; phone?: string };
+    neighborhoodId?: string | { _id: string; code: string; name: string } | null;
+    sections: PeriodicReportSections;
+    status: PeriodicReportStatus;
+    submittedToUserId?: string | { _id: string; displayName: string } | null;
+    submittedAt?: string;
+    revisionNote?: string;
+    createdAt: string;
     updatedAt: string;
 };
 

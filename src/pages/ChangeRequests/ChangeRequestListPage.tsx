@@ -44,6 +44,7 @@ const TARGET_MODEL_LABEL: Record<ChangeRequestTargetModel, string> = {
 const CHANGE_TYPE_LABEL: Record<ChangeRequestType, string> = {
     update: "Cập nhật thông tin",
     unlink: "Hủy liên kết",
+    transfer_neighborhood: "Chuyển tổ dân phố",
 };
 
 const STATUS_LABEL: Record<ChangeRequestStatus, string> = {
@@ -274,7 +275,9 @@ const ChangeRequestListContent: React.FC = () => {
                                     )}
                                 </div>
 
-                                {selected.changeType === "update" && (
+                                {(selected.changeType === "update" ||
+                                    selected.changeType ===
+                                        "transfer_neighborhood") && (
                                     <div>
                                         <Label className="mb-1.5 block">
                                             Nội dung đề nghị thay đổi

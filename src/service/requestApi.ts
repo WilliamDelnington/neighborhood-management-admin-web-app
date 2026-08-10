@@ -4,6 +4,8 @@ import {
     MyRequestItem,
     PaginatedData,
     RequestAttachment,
+    RequestComment,
+    RequestHouseRole,
     RequestItem,
     RequestMeta,
     RequestPriority,
@@ -23,6 +25,8 @@ export interface CreateRequestInput {
     dueDate?: string;
     targetUserIds?: string[];
     targetRoles?: string[];
+    houseRole?: RequestHouseRole;
+    targetHouseNeighborhoodLeader?: boolean;
 }
 
 export const fetchRequestMeta = (): Promise<RequestMeta> =>
@@ -138,3 +142,18 @@ export const deleteRequestAttachment = (
     fileId: string,
 ): Promise<null> =>
     request<null>("DELETE", `${API.REQUESTS}/${id}/attachments/${fileId}`);
+
+export const fetchRequestComments = (
+    id: string,
+): Promise<RequestComment[]> =>
+    request<RequestComment[]>("GET", `${API.REQUESTS}/${id}/comments`);
+
+export const createRequestComment = (
+    id: string,
+    content: string,
+): Promise<RequestComment> =>
+    request<RequestComment>(
+        "POST",
+        `${API.REQUESTS}/${id}/comments`,
+        { content },
+    );

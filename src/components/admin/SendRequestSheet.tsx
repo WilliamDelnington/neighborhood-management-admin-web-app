@@ -24,6 +24,7 @@ import { REQUEST_PRIORITY_LABEL, REQUEST_TYPE_LABEL } from "@constants/domain";
 import {
     AppError,
     House,
+    RequestHouseRole,
     RequestItem,
     RequestMeta,
     RequestPriority,
@@ -54,6 +55,8 @@ const EMPTY_STATE = {
     houseLabel: "",
     targetUserIds: [] as string[],
     targetRoles: [] as string[],
+    houseRole: "" as RequestHouseRole | "",
+    targetHouseNeighborhoodLeader: false,
 };
 
 /**
@@ -99,10 +102,15 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
         }));
     };
 
+    const hasHouseRecipient =
+        !!form.houseId &&
+        (!!form.houseRole || form.targetHouseNeighborhoodLeader);
     const isValid =
         !!form.type &&
         form.title.trim().length > 0 &&
-        (form.targetUserIds.length > 0 || form.targetRoles.length > 0);
+        (form.targetUserIds.length > 0 ||
+            form.targetRoles.length > 0 ||
+            hasHouseRecipient);
 
     const handleSubmit = async () => {
         if (!isValid || !form.type) {
@@ -126,6 +134,9 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                     : undefined,
                 targetUserIds: form.targetUserIds,
                 targetRoles: form.targetRoles,
+                houseRole: form.houseRole || undefined,
+                targetHouseNeighborhoodLeader:
+                    form.targetHouseNeighborhoodLeader || undefined,
             });
             toast.success("Đã gửi yêu cầu");
             onCreated?.(created);
@@ -270,6 +281,20 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                                 setForm(prev => ({
                                     ...prev,
                                     targetRoles: roles,
+                                }))
+                            }
+                            houseId={form.houseId}
+                            houseRole={form.houseRole}
+                            onChangeHouseRole={role =>
+                                setForm(prev => ({ ...prev, houseRole: role }))
+                            }
+                            targetHouseNeighborhoodLeader={
+                                form.targetHouseNeighborhoodLeader
+                            }
+                            onChangeTargetHouseNeighborhoodLeader={value =>
+                                setForm(prev => ({
+                                    ...prev,
+                                    targetHouseNeighborhoodLeader: value,
                                 }))
                             }
                         />

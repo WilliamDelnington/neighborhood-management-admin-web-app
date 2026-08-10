@@ -38,6 +38,7 @@ import HouseholdPicker from "@components/admin/HouseholdPicker";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import HouseOwnershipPanel from "@components/admin/HouseOwnershipPanel";
+import TransferNeighborhoodDialog from "@components/admin/TransferNeighborhoodDialog";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
     VERIFICATION_STATUS_LABEL,
@@ -167,6 +168,7 @@ const HouseDetailContent: React.FC = () => {
     const canCreateCompany = usePermission("companies.create");
     const canCreateUsageUnit = usePermission("usage_units.create");
     const canDeleteUsageUnit = usePermission("usage_units.delete");
+    const canRequestTransfer = usePermission("change_requests.create");
     const canManageAttachments = canUpdate || canVerify;
 
     const [house, setHouse] = useState<House | null>(null);
@@ -181,6 +183,7 @@ const HouseDetailContent: React.FC = () => {
     const [statusDialogTarget, setStatusDialogTarget] =
         useState<HouseStatus | null>(null);
     const [statusNote, setStatusNote] = useState("");
+    const [transferDialogOpen, setTransferDialogOpen] = useState(false);
 
     const [households, setHouseholds] = useState<Household[]>([]);
     const [householdsLoading, setHouseholdsLoading] = useState(true);
@@ -754,6 +757,16 @@ const HouseDetailContent: React.FC = () => {
                                             Xóa
                                         </Button>
                                     )}
+                                    {canRequestTransfer && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                                setTransferDialogOpen(true)
+                                            }
+                                        >
+                                            Chuyển tổ dân phố
+                                        </Button>
+                                    )}
                                     {isOwner &&
                                         (house.status === "unverified" ||
                                             house.status === "denied" ||
@@ -1113,6 +1126,20 @@ const HouseDetailContent: React.FC = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {house && (
+                <TransferNeighborhoodDialog
+                    open={transferDialogOpen}
+                    onOpenChange={setTransferDialogOpen}
+                    houseId={house._id}
+                    currentNeighborhoodId={
+                        house.neighborhoodId && typeof house.neighborhoodId !== "string"
+                            ? house.neighborhoodId._id
+                            : house.neighborhoodId || undefined
+                    }
+                    onCreated={load}
+                />
+            )}
 
             <Dialog
                 open={!!statusDialogTarget}

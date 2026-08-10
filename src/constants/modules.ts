@@ -29,6 +29,7 @@ import {
     Users,
     FileSignature,
     ClipboardCheck,
+    Construction,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -79,6 +80,20 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/streets",
                 icon: MapPinned,
                 permission: "streets.read",
+            },
+            {
+                key: "infrastructure-assets",
+                label: "Sổ hạ tầng",
+                path: "/infrastructure-assets",
+                icon: Construction,
+                permission: "infrastructure.read",
+            },
+            {
+                key: "periodic-reports",
+                label: "Báo cáo định kỳ",
+                path: "/periodic-reports",
+                icon: ClipboardList,
+                permission: "reports.author",
             },
             {
                 key: "houses",

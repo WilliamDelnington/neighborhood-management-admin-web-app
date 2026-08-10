@@ -3,11 +3,15 @@ import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
+import RepresentativeUserPicker from "@components/admin/RepresentativeUserPicker";
+import { User } from "@dts";
 import { CompanyInput } from "@service/companyApi";
 
 export interface CompanyFormValues {
     name: string;
     ownerName: string;
+    representativeUserId: string;
+    representativeUserLabel: string;
     phone: string;
     active: boolean;
     note: string;
@@ -16,6 +20,8 @@ export interface CompanyFormValues {
 export const EMPTY_COMPANY_FORM: CompanyFormValues = {
     name: "",
     ownerName: "",
+    representativeUserId: "",
+    representativeUserLabel: "",
     phone: "",
     active: true,
     note: "",
@@ -29,6 +35,7 @@ export function toCompanyInput(
         name: values.name.trim(),
         houseId,
         ownerName: values.ownerName.trim() || undefined,
+        representativeUserId: values.representativeUserId || null,
         phone: values.phone.trim() || undefined,
         active: values.active,
         note: values.note.trim() || undefined,
@@ -71,6 +78,19 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
                     onChange={e => set("ownerName", e.target.value)}
                 />
             </div>
+            <RepresentativeUserPicker
+                value={values.representativeUserId}
+                valueLabel={values.representativeUserLabel}
+                onChange={(userId, user: User | undefined) => {
+                    onChange({
+                        ...values,
+                        representativeUserId: userId || "",
+                        representativeUserLabel: user
+                            ? `${user.displayName}${user.phone ? ` · ${user.phone}` : ""}`
+                            : "",
+                    });
+                }}
+            />
             <div className="space-y-1.5">
                 <Label>Số điện thoại</Label>
                 <Input

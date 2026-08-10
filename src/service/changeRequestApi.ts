@@ -1,6 +1,19 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { ChangeRequest, PaginatedData } from "@dts";
+import { ChangeRequest, ChangeRequestTargetModel, ChangeRequestType, PaginatedData } from "@dts";
 import { request } from "./request";
+
+export interface CreateChangeRequestInput {
+    targetModel: ChangeRequestTargetModel;
+    targetId: string;
+    changeType: ChangeRequestType;
+    patch?: Record<string, unknown>;
+    reason?: string;
+}
+
+export const createChangeRequest = (
+    input: CreateChangeRequestInput,
+): Promise<ChangeRequest> =>
+    request<ChangeRequest>("POST", API.CHANGE_REQUESTS, input);
 
 export const fetchChangeRequests = (
     page = 1,

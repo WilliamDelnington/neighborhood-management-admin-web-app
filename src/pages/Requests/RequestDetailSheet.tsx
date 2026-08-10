@@ -23,11 +23,19 @@ import {
     REQUEST_STATUS_TONE,
     REQUEST_TYPE_LABEL,
 } from "@constants/domain";
-import { AppError, RequestAttachment, RequestItem, RequestMeta } from "@dts";
+import {
+    AppError,
+    RequestAttachment,
+    RequestComment,
+    RequestItem,
+    RequestMeta,
+} from "@dts";
 import {
     confirmRequestRecipient,
+    createRequestComment,
     fetchRequestAttachments,
     fetchRequestById,
+    fetchRequestComments,
     fetchRequestMeta,
     deleteRequestAttachment,
     updateRequest,
@@ -84,6 +92,19 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
     >(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [comments, setComments] = useState<RequestComment[]>([]);
+    const [commentsLoading, setCommentsLoading] = useState(false);
+    const [newComment, setNewComment] = useState("");
+    const [postingComment, setPostingComment] = useState(false);
+
+    const loadComments = (id: string) => {
+        setCommentsLoading(true);
+        fetchRequestComments(id)
+            .then(setComments)
+            .catch(() => setComments([]))
+            .finally(() => setCommentsLoading(false));
+    };
+
     const load = (id: string) => {
         setLoading(true);
         fetchRequestById(id)
@@ -99,6 +120,8 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
             .then(setAttachments)
             .catch(() => setAttachments([]))
             .finally(() => setAttachmentsLoading(false));
+
+        loadComments(id);
     };
 
     useEffect(() => {
@@ -198,6 +221,20 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
             toast.error((err as AppError).message);
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handlePostComment = async () => {
+        if (!requestId || !newComment.trim()) return;
+        try {
+            setPostingComment(true);
+            await createRequestComment(requestId, newComment.trim());
+            setNewComment("");
+            loadComments(requestId);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setPostingComment(false);
         }
     };
 
@@ -464,6 +501,55 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                             )}
                                         </div>
                                     ))}
+                            </div>
+
+                            <div className="border-t border-divider_01 pt-4">
+                                <h3 className="mb-3 text-sm font-semibold">
+                                    Trao đổi
+                                </h3>
+                                {commentsLoading && <LoadingState />}
+                                {!commentsLoading && comments.length === 0 && (
+                                    <EmptyState label="Chưa có trao đổi nào" />
+                                )}
+                                {!commentsLoading &&
+                                    comments.map(c => (
+                                        <div
+                                            key={c._id}
+                                            className="border-b border-divider_01 py-2 text-sm last:border-0"
+                                        >
+                                            <div className="font-medium">
+                                                {typeof c.authorId === "string"
+                                                    ? c.authorId
+                                                    : c.authorId.displayName}
+                                            </div>
+                                            <p className="mt-0.5 whitespace-pre-line">
+                                                {c.content}
+                                            </p>
+                                            <div className="mt-0.5 text-xs text-text_2">
+                                                {new Date(
+                                                    c.createdAt,
+                                                ).toLocaleString("vi-VN")}
+                                            </div>
+                                        </div>
+                                    ))}
+                                <div className="mt-3 flex flex-col gap-2">
+                                    <Textarea
+                                        placeholder="Nhập nội dung trao đổi..."
+                                        value={newComment}
+                                        onChange={e =>
+                                            setNewComment(e.target.value)
+                                        }
+                                    />
+                                    <Button
+                                        size="sm"
+                                        className="self-end"
+                                        loading={postingComment}
+                                        disabled={!newComment.trim()}
+                                        onClick={handlePostComment}
+                                    >
+                                        Gửi
+                                    </Button>
+                                </div>
                             </div>
                         </>
                     )}

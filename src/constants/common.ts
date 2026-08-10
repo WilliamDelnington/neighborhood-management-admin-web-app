@@ -31,6 +31,8 @@ export const API = {
     HOUSEHOLDS: "/api/households",
     NEIGHBORHOODS: "/api/neighborhoods",
     STREETS: "/api/streets",
+    INFRASTRUCTURE_ASSETS: "/api/infrastructure-assets",
+    PERIODIC_REPORTS: "/api/periodic-reports",
     CITIZENS: "/api/citizens",
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",

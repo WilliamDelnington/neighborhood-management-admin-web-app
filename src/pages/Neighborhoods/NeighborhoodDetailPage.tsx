@@ -19,11 +19,20 @@ import {
     ErrorState,
 } from "@components/admin/DataStates";
 import { usePermission } from "@store/authStore";
-import { AppError, Neighborhood, NeighborhoodLeaderAssignment, User } from "@dts";
 import {
+    AppError,
+    Neighborhood,
+    NeighborhoodLeaderAssignment,
+    NeighborhoodColeaderAssignment,
+    User,
+} from "@dts";
+import {
+    assignNeighborhoodColeader,
     assignNeighborhoodLeader,
     fetchNeighborhoodById,
+    fetchNeighborhoodColeaders,
     fetchNeighborhoodLeaderHistory,
+    unassignNeighborhoodColeader,
     updateNeighborhood,
 } from "@service/neighborhoodApi";
 import { fetchUsers } from "@service/userApi";
@@ -81,6 +90,17 @@ const NeighborhoodDetailContent: React.FC = () => {
     const [history, setHistory] = useState<NeighborhoodLeaderAssignment[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
 
+    const [candidateColeaders, setCandidateColeaders] = useState<User[]>([]);
+    const [coleaders, setColeaders] = useState<NeighborhoodColeaderAssignment[]>(
+        [],
+    );
+    const [coleadersLoading, setColeadersLoading] = useState(true);
+    const [coleaderToAssign, setColeaderToAssign] = useState("");
+    const [assigningColeader, setAssigningColeader] = useState(false);
+    const [unassigningColeaderId, setUnassigningColeaderId] = useState<
+        string | null
+    >(null);
+
     const load = () => {
         if (!id) return;
         setLoading(true);
@@ -113,10 +133,31 @@ const NeighborhoodDetailContent: React.FC = () => {
             .finally(() => setHistoryLoading(false));
     };
 
+    const loadCandidateColeaders = () => {
+        fetchUsers(1, 50, undefined, "neighborhood_coleader")
+            .then(res =>
+                setCandidateColeaders(
+                    res.items.filter(u => u.status === "active"),
+                ),
+            )
+            .catch(() => setCandidateColeaders([]));
+    };
+
+    const loadColeaders = () => {
+        if (!id) return;
+        setColeadersLoading(true);
+        fetchNeighborhoodColeaders(id)
+            .then(setColeaders)
+            .catch(() => setColeaders([]))
+            .finally(() => setColeadersLoading(false));
+    };
+
     useEffect(() => {
         load();
         loadCandidateLeaders();
         loadHistory();
+        loadCandidateColeaders();
+        loadColeaders();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
@@ -174,8 +215,40 @@ const NeighborhoodDetailContent: React.FC = () => {
         }
     };
 
+    const handleAssignColeader = async () => {
+        if (!id || !coleaderToAssign) return;
+        try {
+            setAssigningColeader(true);
+            await assignNeighborhoodColeader(id, coleaderToAssign);
+            setColeaderToAssign("");
+            loadColeaders();
+            toast.success("Đã gán tổ phó");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setAssigningColeader(false);
+        }
+    };
+
+    const handleUnassignColeader = async (coleaderUserId: string) => {
+        if (!id) return;
+        try {
+            setUnassigningColeaderId(coleaderUserId);
+            await unassignNeighborhoodColeader(id, coleaderUserId);
+            loadColeaders();
+            toast.success("Đã bỏ gán tổ phó");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUnassigningColeaderId(null);
+        }
+    };
+
     const otherCandidates = candidateLeaders.filter(
         u => u.id !== neighborhood?.leaderUserId?._id,
+    );
+    const otherCandidateColeaders = candidateColeaders.filter(
+        u => !coleaders.some(c => c.coleaderUserId?._id === u.id),
     );
 
     return (
@@ -343,6 +416,96 @@ const NeighborhoodDetailContent: React.FC = () => {
                                     loading={assigningLeader}
                                     disabled={!leaderToAssign}
                                     onClick={handleAssignLeader}
+                                >
+                                    Gán
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                        <h2 className="mb-2 text-base font-semibold">
+                            Tổ phó
+                        </h2>
+                        {coleadersLoading && <LoadingState />}
+                        {!coleadersLoading && coleaders.length === 0 && (
+                            <div className="mb-2 text-xs text-text_2">
+                                Chưa có tổ phó
+                            </div>
+                        )}
+                        {!coleadersLoading &&
+                            coleaders.map(c => (
+                                <div
+                                    key={c._id}
+                                    className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
+                                >
+                                    <div className="text-sm">
+                                        <div className="font-medium">
+                                            {c.coleaderUserId?.displayName ||
+                                                "(tài khoản đã xóa)"}
+                                        </div>
+                                        {c.coleaderUserId?.phone && (
+                                            <div className="text-xs text-text_2">
+                                                {c.coleaderUserId.phone}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {canManage && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            loading={
+                                                unassigningColeaderId ===
+                                                c.coleaderUserId?._id
+                                            }
+                                            onClick={() =>
+                                                c.coleaderUserId &&
+                                                handleUnassignColeader(
+                                                    c.coleaderUserId._id,
+                                                )
+                                            }
+                                        >
+                                            Bỏ gán
+                                        </Button>
+                                    )}
+                                </div>
+                            ))}
+
+                        {canManage && (
+                            <div className="mt-3 flex items-end gap-2">
+                                <div className="flex-1 space-y-1.5">
+                                    <Label>Thêm tổ phó</Label>
+                                    <Select
+                                        value={coleaderToAssign}
+                                        onValueChange={setColeaderToAssign}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Chọn tài khoản tổ phó" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {otherCandidateColeaders.map(u => (
+                                                <SelectItem
+                                                    key={u.id}
+                                                    value={u.id}
+                                                >
+                                                    {u.displayName}
+                                                    {u.phone
+                                                        ? ` · ${u.phone}`
+                                                        : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-text_2">
+                                        Một tổ dân phố có thể có nhiều tổ phó,
+                                        nhưng một người chỉ có thể là tổ phó
+                                        của một tổ tại một thời điểm.
+                                    </p>
+                                </div>
+                                <Button
+                                    loading={assigningColeader}
+                                    disabled={!coleaderToAssign}
+                                    onClick={handleAssignColeader}
                                 >
                                     Gán
                                 </Button>

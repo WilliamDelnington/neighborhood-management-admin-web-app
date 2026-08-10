@@ -1,5 +1,10 @@
 import { API } from "@constants/common";
-import { Neighborhood, NeighborhoodLeaderAssignment, PaginatedData } from "@dts";
+import {
+    Neighborhood,
+    NeighborhoodLeaderAssignment,
+    NeighborhoodColeaderAssignment,
+    PaginatedData,
+} from "@dts";
 import { request } from "./request";
 
 export interface FetchNeighborhoodsParams {
@@ -72,4 +77,41 @@ export const fetchNeighborhoodLeaderHistory = (
     request<NeighborhoodLeaderAssignment[]>(
         "GET",
         `${API.NEIGHBORHOODS}/${id}/leader-history`,
+    );
+
+export const fetchNeighborhoodColeaders = (
+    id: string,
+): Promise<NeighborhoodColeaderAssignment[]> =>
+    request<NeighborhoodColeaderAssignment[]>(
+        "GET",
+        `${API.NEIGHBORHOODS}/${id}/coleaders`,
+    );
+
+export const assignNeighborhoodColeader = (
+    neighborhoodId: string,
+    coleaderUserId: string,
+    note?: string,
+): Promise<void> =>
+    request<void>(
+        "POST",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/coleaders`,
+        { coleaderUserId, note },
+    );
+
+export const unassignNeighborhoodColeader = (
+    neighborhoodId: string,
+    coleaderUserId: string,
+): Promise<void> =>
+    request<void>(
+        "DELETE",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/coleaders`,
+        { coleaderUserId },
+    );
+
+export const fetchNeighborhoodColeaderHistory = (
+    id: string,
+): Promise<NeighborhoodColeaderAssignment[]> =>
+    request<NeighborhoodColeaderAssignment[]>(
+        "GET",
+        `${API.NEIGHBORHOODS}/${id}/coleader-history`,
     );

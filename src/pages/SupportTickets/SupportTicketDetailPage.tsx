@@ -15,6 +15,7 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
+import SendRequestSheet from "@components/admin/SendRequestSheet";
 import { AppError, SupportTicket, TrangThaiYeuCauHoTro } from "@dts";
 import {
     LOAI_YEU_CAU_HO_TRO_LABEL,
@@ -39,6 +40,8 @@ const SupportTicketDetailContent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const canUpdateStatus = usePermission("support_tickets.update_status");
+    const canForward = usePermission("requests.create");
+    const [forwardOpen, setForwardOpen] = useState(false);
 
     const [ticket, setTicket] = useState<SupportTicket | null>(null);
     const [loading, setLoading] = useState(true);
@@ -154,6 +157,17 @@ const SupportTicketDetailContent: React.FC = () => {
                                 />
                             )}
                         </div>
+
+                        {canForward && (
+                            <div className="mt-3 border-t border-divider_01 pt-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setForwardOpen(true)}
+                                >
+                                    Chuyển tiếp
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
                     {canUpdateStatus && (
@@ -199,6 +213,15 @@ const SupportTicketDetailContent: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    <SendRequestSheet
+                        open={forwardOpen}
+                        onOpenChange={setForwardOpen}
+                        lockedType="task"
+                        relatedModel="SupportTicket"
+                        relatedId={ticket._id}
+                        defaultTitle={`Chuyển tiếp yêu cầu hỗ trợ: ${ticket.title}`}
+                    />
                 </>
             )}
         </div>
