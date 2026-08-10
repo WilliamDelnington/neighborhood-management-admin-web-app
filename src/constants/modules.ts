@@ -197,6 +197,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "dashboard.read",
             },
             {
+                key: "change_requests",
+                label: "Yêu cầu thay đổi thông tin",
+                path: "/change-requests",
+                icon: ClipboardCheck,
+                permission: "change_requests.read",
+            },
+            {
                 key: "reports",
                 label: "Báo cáo",
                 path: "/reports",
@@ -307,13 +314,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/roles",
                 icon: KeyRound,
                 permission: "roles.read",
-            },
-            {
-                key: "change_requests",
-                label: "Yêu cầu thay đổi",
-                path: "/change-requests",
-                icon: ClipboardCheck,
-                permission: "change_requests.read",
             },
             {
                 key: "settings",

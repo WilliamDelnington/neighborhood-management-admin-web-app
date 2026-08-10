@@ -162,7 +162,7 @@ const ChangeRequestListContent: React.FC = () => {
     return (
         <div>
             <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Yêu cầu thay đổi</h1>
+                <h1 className="text-lg font-semibold">Yêu cầu thay đổi thông tin</h1>
             </div>
 
             <Tabs
@@ -241,7 +241,7 @@ const ChangeRequestListContent: React.FC = () => {
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetContent>
                     <SheetHeader>
-                        <SheetTitle>Chi tiết yêu cầu thay đổi</SheetTitle>
+                        <SheetTitle>Chi tiết yêu cầu thay đổi thông tin</SheetTitle>
                     </SheetHeader>
                     {selected && (
                         <div className="flex-1 overflow-y-auto py-4">
