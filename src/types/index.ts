@@ -1126,6 +1126,117 @@ export type PeriodicReport = {
 };
 
 // ---------------------------------------------------------------------------
+// Rà soát / chiến dịch (B07)
+// ---------------------------------------------------------------------------
+export type InspectionCampaignStatus = "DRAFT" | "ACTIVE" | "LOCKED" | "CLOSED";
+export type InspectionSelfDeclarationStatus = "NOT_SENT" | "SENT" | "SUBMITTED";
+export type InspectionResultStatus =
+    | "PENDING"
+    | "DRAFT"
+    | "SUBMITTED"
+    | "VERIFIED"
+    | "REQUEST_REVISION"
+    | "FIELD_CHECK_REQUIRED";
+export type InspectionOutcome = "PASS" | "FAIL" | "NEEDS_SUPPLEMENT";
+export type InspectionChecklistInputType =
+    | "BOOLEAN"
+    | "TEXT"
+    | "NUMBER"
+    | "SINGLE_SELECT"
+    | "MULTI_SELECT";
+
+export type InspectionChecklistItem = {
+    itemId: string;
+    label: string;
+    inputType: InspectionChecklistInputType;
+    required: boolean;
+    options?: string[];
+};
+
+export type InspectionSummary = {
+    totalHouses: number;
+    pass: number;
+    fail: number;
+    unchecked: number;
+    needsSupplement: number;
+    pending: number;
+    draft: number;
+    submitted: number;
+    verified: number;
+};
+
+export type InspectionCampaign = {
+    _id: string;
+    name: string;
+    purpose: string;
+    checklistTemplate: InspectionChecklistItem[];
+    allowSelfDeclaration: boolean;
+    requiredEvidence: boolean;
+    startAt: string;
+    dueAt: string;
+    status: InspectionCampaignStatus;
+    createdByWardUserId: string | { _id: string; displayName: string };
+    neighborhoodSubmissions?: Array<{
+        neighborhoodId: string;
+        submittedByUserId: string;
+        submittedAt: string;
+        summary: InspectionSummary;
+    }>;
+    summary?: InspectionSummary;
+    availableNeighborhoods?: Array<{ _id: string; code: string; name: string }>;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type InspectionHouseRef = {
+    _id: string;
+    code: string;
+    address: string;
+    cluster?: string;
+    neighborhoodId?: string;
+};
+
+export type InspectionTarget = {
+    _id: string;
+    campaignId: string;
+    houseId: string | InspectionHouseRef;
+    neighborhoodId: string;
+    assignedCollaboratorUserId?: string | { _id: string; displayName: string; phone?: string };
+    selfDeclarationStatus: InspectionSelfDeclarationStatus;
+    resultStatus: InspectionResultStatus;
+    selfDeclarationSentAt?: string;
+    openedAt?: string;
+    result?: { _id: string; status: InspectionResultStatus; outcome?: InspectionOutcome } | null;
+    campaign?: InspectionCampaign;
+};
+
+export type InspectionAnswer = {
+    _id: string;
+    checklistItemId: string;
+    value: unknown;
+};
+
+export type InspectionResult = {
+    _id: string;
+    targetId: string;
+    submittedBy: "HOUSE" | "NEIGHBORHOOD";
+    submittedByUserId: string | { _id: string; displayName: string };
+    gpsLat?: number;
+    gpsLng?: number;
+    note?: string;
+    outcome?: InspectionOutcome;
+    verifiedByUserId?: string | { _id: string; displayName: string };
+    verifiedAt?: string;
+    reviewNote?: string;
+    status: InspectionResultStatus;
+    submittedAt?: string;
+    target: InspectionTarget;
+    campaign: InspectionCampaign;
+    answers: InspectionAnswer[];
+    attachments: FileAsset[];
+};
+
+// ---------------------------------------------------------------------------
 // Bao cao tong quan (dashboard)
 // ---------------------------------------------------------------------------
 export type DashboardTask = { label: string; count: number; link?: string };

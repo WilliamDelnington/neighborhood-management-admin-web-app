@@ -91,6 +91,15 @@ const MyRequestsPage = React.lazy(
 const RequestHistoryPage = React.lazy(
     () => import("@pages/Requests/RequestHistoryPage"),
 );
+const InspectionCampaignListPage = React.lazy(
+    () => import("@pages/Inspections/InspectionCampaignListPage"),
+);
+const InspectionCampaignDetailPage = React.lazy(
+    () => import("@pages/Inspections/InspectionCampaignDetailPage"),
+);
+const InspectionFieldCheckPage = React.lazy(
+    () => import("@pages/Inspections/InspectionFieldCheckPage"),
+);
 const MeetingListPage = React.lazy(
     () => import("@pages/Meetings/MeetingListPage"),
 );
@@ -289,6 +298,18 @@ const App: React.FC = () => {
                         <Route
                             path="/requests/:id/history"
                             element={<RequestHistoryPage />}
+                        />
+                        <Route
+                            path="/inspections"
+                            element={<InspectionCampaignListPage />}
+                        />
+                        <Route
+                            path="/inspections/:id"
+                            element={<InspectionCampaignDetailPage />}
+                        />
+                        <Route
+                            path="/inspections/targets/:targetId"
+                            element={<InspectionFieldCheckPage />}
                         />
                         <Route path="/meetings" element={<MeetingListPage />} />
                         <Route

@@ -195,6 +195,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "requests.read",
             },
             {
+                key: "inspections",
+                label: "Rà soát – chiến dịch",
+                path: "/inspections",
+                icon: ClipboardCheck,
+                permission: "inspections.read",
+            },
+            {
                 key: "my_requests",
                 label: "Yêu cầu của tôi",
                 path: "/requests/my",

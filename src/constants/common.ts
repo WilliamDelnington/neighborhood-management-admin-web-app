@@ -57,6 +57,8 @@ export const API = {
     REQUESTS: "/api/requests",
     REQUESTS_META: "/api/requests/meta",
     REQUESTS_MY: "/api/requests/my",
+    INSPECTION_CAMPAIGNS: "/api/v1/neighborhood/inspection-campaigns",
+    INSPECTIONS_V1: "/api/v1",
 
     FINANCE: "/api/finance",
     FILES: "/api/files",
