@@ -7,6 +7,9 @@ export interface CompanyInput {
     houseId: string;
     ownerName?: string;
     representativeUserId?: string | null;
+    // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
+    // ghi chu tren models/Company.ts o backend.
+    organizationId?: string | null;
     phone?: string;
     active?: boolean;
     note?: string;

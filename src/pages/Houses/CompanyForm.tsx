@@ -4,7 +4,8 @@ import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import RepresentativeUserPicker from "@components/admin/RepresentativeUserPicker";
-import { User } from "@dts";
+import OrganizationPicker from "@components/admin/OrganizationPicker";
+import { Organization, User } from "@dts";
 import { CompanyInput } from "@service/companyApi";
 
 export interface CompanyFormValues {
@@ -12,6 +13,10 @@ export interface CompanyFormValues {
     ownerName: string;
     representativeUserId: string;
     representativeUserLabel: string;
+    // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
+    // ghi chu tren models/Company.ts o backend.
+    organizationId: string;
+    organizationLabel: string;
     phone: string;
     active: boolean;
     note: string;
@@ -22,6 +27,8 @@ export const EMPTY_COMPANY_FORM: CompanyFormValues = {
     ownerName: "",
     representativeUserId: "",
     representativeUserLabel: "",
+    organizationId: "",
+    organizationLabel: "",
     phone: "",
     active: true,
     note: "",
@@ -36,6 +43,7 @@ export function toCompanyInput(
         houseId,
         ownerName: values.ownerName.trim() || undefined,
         representativeUserId: values.representativeUserId || null,
+        organizationId: values.organizationId || null,
         phone: values.phone.trim() || undefined,
         active: values.active,
         note: values.note.trim() || undefined,
@@ -91,6 +99,20 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
                     });
                 }}
             />
+            <div className="space-y-1.5">
+                <Label>Tổ chức liên kết (nếu có)</Label>
+                <OrganizationPicker
+                    value={values.organizationId}
+                    valueLabel={values.organizationLabel}
+                    onChange={(organizationId, organization?: Organization) => {
+                        onChange({
+                            ...values,
+                            organizationId: organizationId || "",
+                            organizationLabel: organization?.name || "",
+                        });
+                    }}
+                />
+            </div>
             <div className="space-y-1.5">
                 <Label>Số điện thoại</Label>
                 <Input

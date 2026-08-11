@@ -74,6 +74,9 @@ export const fetchUsers = (
 export const fetchUserById = (id: string): Promise<User> =>
     request<User>("GET", `${API.USERS}/${id}`);
 
+export const fetchWardManagers = (): Promise<User[]> =>
+    request<User[]>("GET", API.WARD_MANAGERS);
+
 export interface UpdateUserParams {
     displayName?: string;
     phone?: string;
@@ -115,7 +118,6 @@ export const lockUserAccount = (
 
 export interface CreateHouseOwnerParams {
     phone: string;
-    password: string;
     displayName: string;
     address?: string;
 }

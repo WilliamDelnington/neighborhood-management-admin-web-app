@@ -30,6 +30,7 @@ import {
     FileSignature,
     ClipboardCheck,
     Construction,
+    Landmark,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -67,6 +68,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         label: "Quản lý khu vực",
         icon: MapPinned,
         items: [
+            {
+                key: "wards",
+                label: "Phường / xã",
+                path: "/wards",
+                icon: Landmark,
+                permission: "wards.manage",
+            },
             {
                 key: "neighborhoods",
                 label: "Tổ dân phố",

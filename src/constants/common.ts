@@ -27,6 +27,7 @@ export const API = {
     HOUSES_CHECK_OWNER_PHONE: "/api/houses/check-owner-phone",
     ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
     ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
+    WARD_MANAGERS: "/api/wards/managers",
     ORGANIZATIONS: "/api/organizations",
     HOUSEHOLDS: "/api/households",
     NEIGHBORHOODS: "/api/neighborhoods",

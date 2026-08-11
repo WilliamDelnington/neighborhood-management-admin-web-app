@@ -22,6 +22,7 @@ import type {
     MucDoAnNinh,
     MucNguyCoPccc,
     NhomPhanAnh,
+    OrganizationRepresentativeRole,
     RequestHouseRole,
     RequestPriority,
     RequestStatus,
@@ -242,6 +243,15 @@ export const HOUSE_OWNERSHIP_VERIFICATION_STATUS_TONE: Record<
     waiting_verification: "yellow",
     verified: "green",
     rejected: "red",
+};
+
+export const ORGANIZATION_REPRESENTATIVE_ROLE_LABEL: Record<
+    OrganizationRepresentativeRole,
+    string
+> = {
+    legal_representative: "Người đại diện pháp luật",
+    authorized_manager: "Người được ủy quyền quản lý",
+    contact_person: "Người liên hệ",
 };
 
 // Household/Business/Company dung chung bo trang thai xac thuc 5-gia-tri goc

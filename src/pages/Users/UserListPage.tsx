@@ -54,6 +54,11 @@ import { usePermission } from "@store/authStore";
 
 const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
 const PEOPLE_COMMITTEE_OFFICIAL_ROLE = "people_committee_official";
+const SECRETARY_ROLE = "secretary";
+const WARD_SCOPED_ROLES: Role[] = [
+    PEOPLE_COMMITTEE_OFFICIAL_ROLE,
+    SECRETARY_ROLE,
+];
 
 const UserListPage: React.FC = () => (
     <AdminGuard permissions={["users.read"]}>
@@ -116,9 +121,8 @@ const UserListContent: React.FC = () => {
         string | null
     >(null);
 
-    // Pham vi phuong/xa cho can bo UBND (people_committee_official) - dung de
-    // loc To dan pho/To truong khi soan Cong Van (xem wardScopeFilter o
-    // backend). Cung mau Tinh/Thanh -> Phuong/Xa nhu NeighborhoodForm.tsx.
+    // Pham vi phuong/xa cho can bo UBND va bi thu. `wardCode` la ma dinh danh
+    // on dinh tu danh muc hanh chinh, dung kem ten de hien thi.
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [wards, setWards] = useState<Ward[]>([]);
     const [wardProvinceCode, setWardProvinceCode] = useState("");
@@ -742,16 +746,16 @@ const UserListContent: React.FC = () => {
                             )}
 
                             {canFullUpdate &&
-                                selectedUser.roles.includes(
-                                    PEOPLE_COMMITTEE_OFFICIAL_ROLE,
+                                selectedUser.roles.some(role =>
+                                    WARD_SCOPED_ROLES.includes(role),
                                 ) && (
                                 <div className="mt-5 border-t border-divider_01 pt-4">
                                     <h3 className="mb-2 text-sm font-semibold">
                                         Phường/xã phụ trách
                                     </h3>
                                     <p className="mb-3 text-xs text-text_2">
-                                        Xác định phạm vi Tổ dân phố/Tổ trưởng
-                                        mà cán bộ này có thể gửi Công văn tới.
+                                        Xác định phường/xã thuộc phạm vi quản
+                                        lý của cán bộ hoặc bí thư này.
                                     </p>
                                     <div className="flex flex-col gap-3">
                                         <FilterableSelect

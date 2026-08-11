@@ -15,6 +15,12 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@components/ui/dialog";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -32,6 +38,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import HeadOfHouseholdUserPicker from "@components/admin/HeadOfHouseholdUserPicker";
+import OrganizationRepresentativePanel from "@components/admin/OrganizationRepresentativePanel";
 import { AppError, Organization, ORGANIZATION_TYPE_LABEL, OrganizationType } from "@dts";
 import {
     createOrganization,
@@ -48,9 +55,12 @@ type FormState = {
     name: string;
     taxCode: string;
     organizationType: OrganizationType;
+    // Chi dung khi TAO moi - sau khi to chuc da ton tai, doi nguoi dai dien
+    // phai qua OrganizationRepresentativePanel (dialog "Người đại diện"),
+    // khong con sua duoc qua form nay nua.
     representativeUserId: string;
     representativeUserLabel: string;
-    representativeRole: string;
+    representativeTitle: string;
     phone: string;
     email: string;
     address: string;
@@ -63,7 +73,7 @@ const EMPTY_FORM: FormState = {
     organizationType: "khac",
     representativeUserId: "",
     representativeUserLabel: "",
-    representativeRole: "",
+    representativeTitle: "",
     phone: "",
     email: "",
     address: "",
@@ -96,6 +106,10 @@ const OrganizationListContent: React.FC = () => {
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
 
+    const [repDialogTarget, setRepDialogTarget] = useState<Organization | null>(
+        null,
+    );
+
     const load = (targetPage = 1) => {
         setLoading(true);
         setError(false);
@@ -127,21 +141,11 @@ const OrganizationListContent: React.FC = () => {
 
     const openEditSheet = (organization: Organization) => {
         setEditing(organization);
-        const representative = !organization.representativeUserId
-            ? { id: "", label: "" }
-            : typeof organization.representativeUserId === "string"
-                ? { id: organization.representativeUserId, label: "" }
-                : {
-                      id: organization.representativeUserId._id,
-                      label: organization.representativeUserId.displayName,
-                  };
         setForm({
+            ...EMPTY_FORM,
             name: organization.name,
             taxCode: organization.taxCode || "",
             organizationType: organization.organizationType,
-            representativeUserId: representative.id,
-            representativeUserLabel: representative.label,
-            representativeRole: organization.representativeRole || "",
             phone: organization.phone || "",
             email: organization.email || "",
             address: organization.address || "",
@@ -161,8 +165,6 @@ const OrganizationListContent: React.FC = () => {
                 await updateOrganization(editing._id, {
                     name: form.name.trim(),
                     organizationType: form.organizationType,
-                    representativeUserId: form.representativeUserId || undefined,
-                    representativeRole: form.representativeRole.trim() || undefined,
                     phone: form.phone.trim() || undefined,
                     email: form.email.trim() || undefined,
                     address: form.address.trim() || undefined,
@@ -175,7 +177,8 @@ const OrganizationListContent: React.FC = () => {
                     taxCode: form.taxCode.trim() || undefined,
                     organizationType: form.organizationType,
                     representativeUserId: form.representativeUserId || undefined,
-                    representativeRole: form.representativeRole.trim() || undefined,
+                    representativeTitle:
+                        form.representativeTitle.trim() || undefined,
                     phone: form.phone.trim() || undefined,
                     email: form.email.trim() || undefined,
                     address: form.address.trim() || undefined,
@@ -340,7 +343,7 @@ const OrganizationListContent: React.FC = () => {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            {canPickRepresentative && (
+                            {!editing && canPickRepresentative && (
                                 <HeadOfHouseholdUserPicker
                                     value={form.representativeUserId}
                                     valueLabel={form.representativeUserLabel}
@@ -354,19 +357,48 @@ const OrganizationListContent: React.FC = () => {
                                     }
                                 />
                             )}
-                            <div className="space-y-1.5">
-                                <Label>Chức vụ người đại diện</Label>
-                                <Input
-                                    placeholder="VD: Giám đốc"
-                                    value={form.representativeRole}
-                                    onChange={e =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            representativeRole: e.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
+                            {!editing && (
+                                <div className="space-y-1.5">
+                                    <Label>Chức vụ người đại diện</Label>
+                                    <Input
+                                        placeholder="VD: Giám đốc"
+                                        value={form.representativeTitle}
+                                        onChange={e =>
+                                            setForm(prev => ({
+                                                ...prev,
+                                                representativeTitle:
+                                                    e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            )}
+                            {editing && (
+                                <div className="space-y-1.5">
+                                    <Label>Người đại diện</Label>
+                                    <p className="text-xs text-text_2">
+                                        {!editing.representativeUserId
+                                            ? "Chưa có người đại diện"
+                                            : typeof editing.representativeUserId ===
+                                                "string"
+                                                ? editing.representativeUserId
+                                                : editing.representativeUserId
+                                                      .displayName}
+                                        {editing.representativeRole &&
+                                            ` (${editing.representativeRole})`}
+                                    </p>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            setRepDialogTarget(editing)
+                                        }
+                                    >
+                                        Quản lý người đại diện
+                                    </Button>
+                                </div>
+                            )}
                             <div className="space-y-1.5">
                                 <Label>Số điện thoại</Label>
                                 <Input
@@ -422,6 +454,30 @@ const OrganizationListContent: React.FC = () => {
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
+
+            <Dialog
+                open={!!repDialogTarget}
+                onOpenChange={open => {
+                    if (!open) {
+                        setRepDialogTarget(null);
+                        load(page);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>
+                            Người đại diện — {repDialogTarget?.name}
+                        </DialogTitle>
+                    </DialogHeader>
+                    {repDialogTarget && (
+                        <OrganizationRepresentativePanel
+                            organizationId={repDialogTarget._id}
+                            canManage={canUpdate}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

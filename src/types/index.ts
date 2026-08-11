@@ -287,6 +287,28 @@ export type HouseOwnership = {
     updatedAt: string;
 };
 
+export type OrganizationRepresentativeRole =
+    | "legal_representative"
+    | "authorized_manager"
+    | "contact_person";
+
+// userId luon la User (khong da hinh nhu HouseOwnership.ownerId), nen backend
+// populate truc tiep duoc thanh object khi tra ve.
+export type OrganizationRepresentative = {
+    _id: string;
+    organizationId: string;
+    userId: string | { _id: string; displayName: string; phone?: string };
+    role: OrganizationRepresentativeRole;
+    title?: string;
+    startDate: string;
+    endDate?: string | null;
+    active: boolean;
+    verificationStatus: HouseOwnershipVerificationStatus;
+    reason?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type Neighborhood = {
     _id: string;
     name: string;
@@ -422,6 +444,9 @@ export type Company = {
     cluster: string;
     ownerName?: string;
     representativeUserId?: { _id: string; displayName: string; phone?: string } | string | null;
+    // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
+    // ghi chu tren models/Company.ts o backend.
+    organizationId?: { _id: string; name: string } | string | null;
     phone?: string;
     active: boolean;
     status: VerificationStatus;

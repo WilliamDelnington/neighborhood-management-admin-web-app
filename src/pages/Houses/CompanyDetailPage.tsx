@@ -51,6 +51,10 @@ const toFormValues = (c: Company): CompanyFormValues => {
         c.representativeUserId && typeof c.representativeUserId === "object"
             ? c.representativeUserId
             : null;
+    const organization =
+        c.organizationId && typeof c.organizationId === "object"
+            ? c.organizationId
+            : null;
     return {
         name: c.name,
         ownerName: c.ownerName || "",
@@ -58,6 +62,8 @@ const toFormValues = (c: Company): CompanyFormValues => {
         representativeUserLabel: rep
             ? `${rep.displayName}${rep.phone ? ` · ${rep.phone}` : ""}`
             : "",
+        organizationId: organization?._id || "",
+        organizationLabel: organization?.name || "",
         phone: c.phone || "",
         active: c.active,
         note: c.note || "",
@@ -249,6 +255,15 @@ const CompanyDetailContent: React.FC = () => {
                                 <InfoRow
                                     label="Người đại diện"
                                     value={company.ownerName || "Không có"}
+                                />
+                                <InfoRow
+                                    label="Tổ chức liên kết"
+                                    value={
+                                        company.organizationId &&
+                                        typeof company.organizationId === "object"
+                                            ? company.organizationId.name
+                                            : "Không có"
+                                    }
                                 />
                                 <InfoRow
                                     label="Số điện thoại"
