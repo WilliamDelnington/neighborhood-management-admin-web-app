@@ -267,6 +267,46 @@ const InspectionCampaignDetailContent: React.FC = () => {
                 </div>
             </div>
 
+            {canSubmitWard && (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                    <div className="text-sm font-semibold text-blue-900">
+                        Nơi nhận báo cáo tổng hợp
+                    </div>
+                    <div className="mt-1 text-sm text-blue-800">
+                        {campaign.submissionDestination?.wardName || campaign.wardName || "Phường/xã phát hành chiến dịch"}
+                    </div>
+                    <div className="mt-1 text-xs text-blue-700">
+                        Người tiếp nhận: {campaign.submissionDestination?.recipients
+                            .map(recipient => recipient.displayName)
+                            .join(", ") || (
+                            typeof campaign.createdByWardUserId === "string"
+                                ? "Tài khoản tạo chiến dịch"
+                                : campaign.createdByWardUserId.displayName
+                        )}
+                    </div>
+                    <div className="mt-2 text-xs text-blue-700">
+                        Nút “Gửi Phường” sẽ gửi cố định tới nơi nhận trên; Tổ dân phố không cần chọn lại người nhận.
+                    </div>
+                    {(campaign.neighborhoodSubmissions?.length || 0) > 0 && (
+                        <div className="mt-3 border-t border-blue-200 pt-2 text-xs text-blue-800">
+                            {campaign.neighborhoodSubmissions?.map(submission => {
+                                const neighborhood = campaign.availableNeighborhoods?.find(
+                                    item => item._id === submission.neighborhoodId,
+                                );
+                                const submitter = typeof submission.submittedByUserId === "string"
+                                    ? "Người gửi"
+                                    : submission.submittedByUserId.displayName;
+                                return (
+                                    <div key={submission.neighborhoodId} className="mt-1">
+                                        Đã gửi {neighborhood?.name || "tổng hợp của Tổ"} lúc {new Date(submission.submittedAt).toLocaleString("vi-VN")} · {submitter}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {summary && (
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                     {[

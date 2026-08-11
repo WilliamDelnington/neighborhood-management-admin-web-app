@@ -25,6 +25,8 @@ import {
     fetchFinanceReport,
     fetchHouseReport,
     fetchBusinessReport,
+    fetchHouseholdReport,
+    fetchRequestReport,
     downloadReportExcel,
 } from "@service/reportApi";
 
@@ -40,7 +42,9 @@ type ReportTabKey =
     | "security"
     | "finance"
     | "houses"
-    | "business";
+    | "business"
+    | "households"
+    | "requests";
 
 type ReportTab = {
     key: ReportTabKey;
@@ -100,6 +104,22 @@ const KEY_LABEL: Record<string, string> = {
     count: "Số lượng",
     total: "Tổng số",
     totalCompanies: "Tổng số công ty",
+    totalMembers: "Tổng số thành viên hộ",
+    averageMembers: "Số thành viên trung bình/hộ",
+    needsSupportCount: "Số hộ cần hỗ trợ",
+    linkedToHouseCount: "Số hộ đã gắn Nhà số",
+    withoutHouseCount: "Số hộ chưa gắn Nhà số",
+    byOwnershipType: "Theo hình thức sở hữu",
+    ownershipType: "Hình thức sở hữu",
+    totalRequests: "Tổng số yêu cầu",
+    totalRecipientAssignments: "Tổng lượt giao việc",
+    resolvedAssignments: "Lượt đã hoàn thành",
+    overdueAssignments: "Lượt quá hạn",
+    requestsWithoutRecipients: "Yêu cầu chưa có người nhận",
+    byType: "Theo loại yêu cầu",
+    type: "Loại yêu cầu",
+    byPriority: "Theo mức ưu tiên",
+    priority: "Mức ưu tiên",
     byUsageType: "Theo mục đích sử dụng",
     usageType: "Mục đích sử dụng",
     byBusinessType: "Theo loại hình kinh doanh",
@@ -128,6 +148,46 @@ type ChartSpec = {
 // "diem mat" nhung mang phu hop de ve them bieu do ben canh bang so lieu hien
 // co (renderValue ben duoi).
 const CHART_SPECS: Partial<Record<ReportTabKey, ChartSpec[]>> = {
+    households: [
+        {
+            dataKey: "byStatus",
+            title: "Hộ dân theo trạng thái",
+            labelKey: "label",
+            series: [{ key: "count", name: "Số hộ", color: CHART_COLOR_1 }],
+        },
+        {
+            dataKey: "byOwnershipType",
+            title: "Hộ dân theo hình thức sở hữu",
+            labelKey: "label",
+            series: [{ key: "count", name: "Số hộ", color: CHART_COLOR_1 }],
+        },
+        {
+            dataKey: "byCluster",
+            title: "Hộ dân theo cụm dân cư",
+            labelKey: "cluster",
+            series: [{ key: "count", name: "Số hộ", color: CHART_COLOR_1 }],
+        },
+    ],
+    requests: [
+        {
+            dataKey: "byType",
+            title: "Yêu cầu theo loại",
+            labelKey: "label",
+            series: [{ key: "count", name: "Số yêu cầu", color: CHART_COLOR_1 }],
+        },
+        {
+            dataKey: "byPriority",
+            title: "Yêu cầu theo mức ưu tiên",
+            labelKey: "label",
+            series: [{ key: "count", name: "Số yêu cầu", color: CHART_COLOR_1 }],
+        },
+        {
+            dataKey: "byStatus",
+            title: "Lượt giao việc theo trạng thái",
+            labelKey: "label",
+            series: [{ key: "count", name: "Số lượt", color: CHART_COLOR_1 }],
+        },
+    ],
     population: [
         {
             dataKey: "byCluster",
@@ -261,9 +321,9 @@ const renderValue = (value: unknown): React.ReactNode => {
         }
         return (
             <div className="border-l border-divider_01 pl-2">
-                {value.map((item, idx) => (
+                {value.map(item => (
                     <div
-                        key={idx}
+                        key={typeof item === "object" ? JSON.stringify(item) : String(item)}
                         className="mb-2 border-b border-divider_01 pb-2 last:mb-0 last:border-0 last:pb-0"
                     >
                         {renderValue(item)}
@@ -346,10 +406,22 @@ const ReportsContent: React.FC = () => {
                       excelFileName: "bao-cao-dan-cu.xlsx",
                   },
                   {
+                      key: "households" as ReportTabKey,
+                      label: "Hộ dân",
+                      fetch: fetchHouseholdReport,
+                      excelFileName: "bao-cao-ho-dan.xlsx",
+                  },
+                  {
                       key: "complaints" as ReportTabKey,
                       label: "Phản ánh",
                       fetch: fetchComplaintReport,
                       excelFileName: "bao-cao-phan-anh.xlsx",
+                  },
+                  {
+                      key: "requests" as ReportTabKey,
+                      label: "Yêu cầu công việc",
+                      fetch: fetchRequestReport,
+                      excelFileName: "bao-cao-yeu-cau-cong-viec.xlsx",
                   },
                   {
                       key: "houses" as ReportTabKey,
@@ -601,7 +673,7 @@ const ReportsContent: React.FC = () => {
                 value={activeKey}
                 onValueChange={value => setActiveKey(value as ReportTabKey)}
             >
-                <TabsList>
+                <TabsList className="h-auto flex-wrap">
                     {tabs.map(tab => (
                         <TabsTrigger key={tab.key} value={tab.key}>
                             {tab.label}

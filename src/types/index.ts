@@ -1180,10 +1180,21 @@ export type InspectionCampaign = {
     createdByWardUserId: string | { _id: string; displayName: string };
     neighborhoodSubmissions?: Array<{
         neighborhoodId: string;
-        submittedByUserId: string;
+        submittedByUserId: string | { _id: string; displayName: string };
         submittedAt: string;
         summary: InspectionSummary;
     }>;
+    submissionDestination?: {
+        wardCode?: number;
+        wardName?: string;
+        recipients: Array<{
+            _id: string;
+            displayName: string;
+            roles: string[];
+            wardCode?: number;
+            wardName?: string;
+        }>;
+    };
     summary?: InspectionSummary;
     availableNeighborhoods?: Array<{ _id: string; code: string; name: string }>;
     createdAt: string;
