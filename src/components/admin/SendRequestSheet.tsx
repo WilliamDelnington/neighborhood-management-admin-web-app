@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Paperclip, Trash2, Upload } from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -30,7 +31,11 @@ import {
     RequestPriority,
     RequestType,
 } from "@dts";
-import { createRequest, fetchRequestMeta } from "@service/requestApi";
+import {
+    createRequest,
+    fetchRequestMeta,
+    uploadRequestAttachment,
+} from "@service/requestApi";
 
 export interface SendRequestSheetProps {
     open: boolean;
@@ -78,6 +83,7 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
     const [meta, setMeta] = useState<RequestMeta | null>(null);
     const [form, setForm] = useState(EMPTY_STATE);
     const [submitting, setSubmitting] = useState(false);
+    const [attachments, setAttachments] = useState<File[]>([]);
 
     useEffect(() => {
         if (!open) return;
@@ -91,6 +97,7 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
             houseId: defaultHouseId || "",
             houseLabel: defaultHouseLabel || "",
         });
+        setAttachments([]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
@@ -100,6 +107,14 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
             houseId,
             houseLabel: `${house.code} — ${house.address}`,
         }));
+    };
+
+    const handleAttachmentSelection = (
+        event: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const files = Array.from(event.target.files || []);
+        setAttachments(current => [...current, ...files]);
+        event.target.value = "";
     };
 
     const hasHouseRecipient =
@@ -138,7 +153,19 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                 targetHouseNeighborhoodLeader:
                     form.targetHouseNeighborhoodLeader || undefined,
             });
-            toast.success("Đã gửi yêu cầu");
+            const uploadResults = await Promise.allSettled(
+                attachments.map(file => uploadRequestAttachment(created._id, file)),
+            );
+            const failedUploads = uploadResults.filter(
+                result => result.status === "rejected",
+            ).length;
+            if (failedUploads > 0) {
+                toast.warning(
+                    `${failedUploads} tệp không tải lên được. Bạn có thể tải lại trong chi tiết yêu cầu.`,
+                );
+            } else {
+                toast.success("Đã gửi yêu cầu");
+            }
             onCreated?.(created);
             onOpenChange(false);
         } catch (err) {
@@ -208,6 +235,52 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                                 }))
                             }
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Tài liệu đính kèm (tùy chọn)</Label>
+                        <p className="text-xs text-muted-foreground">
+                            Hỗ trợ JPG, PNG, PDF, DOC, DOCX; tối đa 10 MB mỗi tệp.
+                        </p>
+                        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm hover:bg-muted/50">
+                            <Upload className="h-4 w-4" />
+                            Chọn tệp
+                            <input
+                                className="sr-only"
+                                type="file"
+                                multiple
+                                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                onChange={handleAttachmentSelection}
+                            />
+                        </label>
+                        {attachments.length > 0 && (
+                            <div className="space-y-2">
+                                {attachments.map((file, index) => (
+                                    <div
+                                        key={`${file.name}-${file.lastModified}-${index}`}
+                                        className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                                    >
+                                        <span className="flex min-w-0 items-center gap-2 truncate">
+                                            <Paperclip className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">{file.name}</span>
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={`Bỏ ${file.name}`}
+                                            onClick={() =>
+                                                setAttachments(current =>
+                                                    current.filter((_, i) => i !== index),
+                                                )
+                                            }
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div>
