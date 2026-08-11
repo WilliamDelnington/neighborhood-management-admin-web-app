@@ -286,6 +286,18 @@ const ComplaintDetailContent: React.FC = () => {
                                 label="Người phụ trách"
                                 value={assigneeName || "Chưa phân công"}
                             />
+                            {complaint.rating !== undefined && (
+                                <InfoRow
+                                    label="Đánh giá của người gửi"
+                                    value={`${"★".repeat(
+                                        complaint.rating,
+                                    )}${"☆".repeat(5 - complaint.rating)}${
+                                        complaint.ratingNote
+                                            ? ` — ${complaint.ratingNote}`
+                                            : ""
+                                    }`}
+                                />
+                            )}
                             {complaint.expectedCompletionDate && (
                                 <InfoRow
                                     label="Dự kiến hoàn thành"

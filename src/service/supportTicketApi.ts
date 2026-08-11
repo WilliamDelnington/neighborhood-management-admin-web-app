@@ -2,6 +2,7 @@ import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     LoaiYeuCauHoTro,
     PaginatedData,
+    RequestComment,
     SupportTicket,
     TrangThaiYeuCauHoTro,
 } from "@dts";
@@ -49,4 +50,19 @@ export const updateSupportTicketStatus = (
         "PATCH",
         `${API.SUPPORT_TICKETS}/${id}/status`,
         input,
+    );
+
+export const fetchSupportTicketComments = (
+    id: string,
+): Promise<RequestComment[]> =>
+    request<RequestComment[]>("GET", `${API.SUPPORT_TICKETS}/${id}/comments`);
+
+export const createSupportTicketComment = (
+    id: string,
+    content: string,
+): Promise<RequestComment> =>
+    request<RequestComment>(
+        "POST",
+        `${API.SUPPORT_TICKETS}/${id}/comments`,
+        { content },
     );

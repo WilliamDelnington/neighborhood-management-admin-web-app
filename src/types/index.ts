@@ -576,6 +576,8 @@ export type Complaint = {
     actualCompletionDate?: string;
     escalatedToCommittee: boolean;
     internalNotes?: string;
+    rating?: number;
+    ratingNote?: string;
     createdAt: string;
     updatedAt: string;
 };
@@ -601,9 +603,14 @@ export type ComplaintDetail = {
 // ---------------------------------------------------------------------------
 // Ho tro (Mini App - Ho so ca nhan)
 // ---------------------------------------------------------------------------
-export type LoaiYeuCauHoTro = "bao_loi" | "gop_y";
+export type LoaiYeuCauHoTro = "bao_loi" | "gop_y" | "ho_tro_ho_dan";
 
-export type TrangThaiYeuCauHoTro = "moi" | "dang_xu_ly" | "da_xu_ly" | "dong";
+export type TrangThaiYeuCauHoTro =
+    | "moi"
+    | "dang_xu_ly"
+    | "can_bo_sung"
+    | "da_xu_ly"
+    | "dong";
 
 export type SupportTicket = {
     _id: string;
@@ -972,9 +979,11 @@ export type RequestMeta = {
     eligibleRolesByType: Record<string, string[]>;
 };
 
+// Dung chung cho trao doi tren Request VA SupportTicket (C12) - cung mo hinh
+// Comment o backend, chi khac entityType.
 export type RequestComment = {
     _id: string;
-    entityType: "Request";
+    entityType: "Request" | "SupportTicket";
     entityId: string;
     authorId: string | { _id: string; displayName: string };
     content: string;

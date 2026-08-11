@@ -144,8 +144,9 @@ export const TRANG_THAI_PHAN_ANH_TONE: Record<TrangThaiPhanAnh, BadgeTone> = {
 };
 
 export const LOAI_YEU_CAU_HO_TRO_LABEL: Record<LoaiYeuCauHoTro, string> = {
-    bao_loi: "Báo lỗi",
-    gop_y: "Góp ý",
+    bao_loi: "Báo lỗi ứng dụng",
+    gop_y: "Góp ý ứng dụng",
+    ho_tro_ho_dan: "Hỗ trợ hộ dân",
 };
 
 export const TRANG_THAI_YEU_CAU_HO_TRO_LABEL: Record<
@@ -154,6 +155,7 @@ export const TRANG_THAI_YEU_CAU_HO_TRO_LABEL: Record<
 > = {
     moi: "Mới",
     dang_xu_ly: "Đang xử lý",
+    can_bo_sung: "Cần bổ sung thông tin",
     da_xu_ly: "Đã xử lý",
     dong: "Đóng",
 };
@@ -164,6 +166,7 @@ export const TRANG_THAI_YEU_CAU_HO_TRO_TONE: Record<
 > = {
     moi: "gray",
     dang_xu_ly: "yellow",
+    can_bo_sung: "red",
     da_xu_ly: "green",
     dong: "gray",
 };
