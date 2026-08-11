@@ -27,6 +27,7 @@ export interface CreateRequestInput {
     targetRoles?: string[];
     houseRole?: RequestHouseRole;
     targetHouseNeighborhoodLeader?: boolean;
+    formData?: Record<string, unknown>;
 }
 
 export const fetchRequestMeta = (): Promise<RequestMeta> =>
@@ -97,6 +98,14 @@ export const updateMyRequestStatus = (
         `${API.REQUESTS}/${requestId}/recipients/me`,
         input,
     );
+
+export const updateRequestFormData = (
+    requestId: string,
+    formData: Record<string, unknown>,
+): Promise<RequestItem> =>
+    request<RequestItem>("PATCH", `${API.REQUESTS}/${requestId}/form-data`, {
+        formData,
+    });
 
 export const confirmRequestRecipient = (
     requestId: string,

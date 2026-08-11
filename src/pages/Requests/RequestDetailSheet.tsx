@@ -6,6 +6,15 @@ import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Label } from "@components/ui/label";
 import { Textarea } from "@components/ui/textarea";
+import { Input } from "@components/ui/input";
+import { Checkbox } from "@components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import {
     Sheet,
     SheetContent,
@@ -14,7 +23,7 @@ import {
 } from "@components/ui/sheet";
 import { LoadingState, EmptyState } from "@components/admin/DataStates";
 import RequestRecipientPicker from "@components/admin/RequestRecipientPicker";
-import { usePermission } from "@store/authStore";
+import { useAuthStore, usePermission } from "@store/authStore";
 import { resolveAssetUrl } from "@constants/common";
 import {
     REQUEST_PRIORITY_LABEL,
@@ -39,6 +48,7 @@ import {
     fetchRequestMeta,
     deleteRequestAttachment,
     updateRequest,
+    updateRequestFormData,
     uploadRequestAttachment,
 } from "@service/requestApi";
 
@@ -69,6 +79,7 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
     onUpdated,
 }) => {
     const canManage = usePermission("requests.update");
+    const currentUserId = useAuthStore(state => state.user?.id);
 
     const [request, setRequest] = useState<RequestItem | null>(null);
     const [loading, setLoading] = useState(false);
@@ -76,6 +87,8 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
 
     const [note, setNote] = useState("");
     const [savingNote, setSavingNote] = useState(false);
+    const [formData, setFormData] = useState<Record<string, unknown>>({});
+    const [savingFormData, setSavingFormData] = useState(false);
 
     const [addUserIds, setAddUserIds] = useState<string[]>([]);
     const [addRoles, setAddRoles] = useState<string[]>([]);
@@ -111,6 +124,7 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
             .then(r => {
                 setRequest(r);
                 setNote(r.note || "");
+                setFormData(r.formData || {});
             })
             .catch(() => setRequest(null))
             .finally(() => setLoading(false));
@@ -155,6 +169,22 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
             toast.error((err as AppError).message);
         } finally {
             setSavingNote(false);
+        }
+    };
+
+    const handleSaveFormData = async () => {
+        if (!requestId) return;
+        try {
+            setSavingFormData(true);
+            const updated = await updateRequestFormData(requestId, formData);
+            setRequest(updated);
+            setFormData(updated.formData || {});
+            toast.success("Đã lưu dữ liệu nghiệp vụ");
+            onUpdated?.();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSavingFormData(false);
         }
     };
 
@@ -252,6 +282,26 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
         }
     };
 
+    const formDefinition = request?.formDefinitionSnapshot;
+    const creatorId =
+        request?.createdBy && typeof request.createdBy !== "string"
+            ? request.createdBy._id
+            : request?.createdBy;
+    const isCreator = Boolean(currentUserId && creatorId === currentUserId);
+    const isRecipient = Boolean(
+        currentUserId &&
+            request?.recipients.some(recipient => recipient.userId === currentUserId),
+    );
+    const canEditForm = Boolean(
+        formDefinition &&
+            (formDefinition.dataEntryMode === "sender"
+                ? canManage || isCreator
+                : canManage || isCreator || isRecipient),
+    );
+
+    const setDynamicField = (key: string, value: unknown) =>
+        setFormData(current => ({ ...current, [key]: value }));
+
     return (
         <Sheet open={!!requestId} onOpenChange={onOpenChange}>
             <SheetContent>
@@ -271,7 +321,9 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                         {request.title}
                                     </h2>
                                     <Badge tone="blue">
-                                        {REQUEST_TYPE_LABEL[request.type]}
+                                        {request.formDefinitionSnapshot?.name ||
+                                            REQUEST_TYPE_LABEL[request.type] ||
+                                            request.type}
                                     </Badge>
                                     <Badge
                                         tone={
@@ -416,6 +468,140 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                     </div>
                                 )}
                             </div>
+
+                            {formDefinition && formDefinition.fields.length > 0 && (
+                                <div className="rounded-xl border border-divider_01 p-3">
+                                    <div className="mb-3">
+                                        <h3 className="text-sm font-semibold">
+                                            Dữ liệu nghiệp vụ · v{request.formSchemaVersion || 1}
+                                        </h3>
+                                        <p className="text-xs text-muted-foreground">
+                                            Dữ liệu được mã hóa khi lưu. Phân loại dữ liệu hiển thị
+                                            theo cấu hình tại thời điểm giao việc.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {formDefinition.fields.map(field => (
+                                            <div key={field.key}>
+                                                <div className="mb-1 flex items-center gap-2">
+                                                    <Label>
+                                                        {field.label}{field.required ? " *" : ""}
+                                                    </Label>
+                                                    <Badge
+                                                        tone={
+                                                            field.classification === "sensitive"
+                                                                ? "red"
+                                                                : field.classification === "personal"
+                                                                  ? "yellow"
+                                                                  : "gray"
+                                                        }
+                                                    >
+                                                        {field.classification === "sensitive"
+                                                            ? "Nhạy cảm"
+                                                            : field.classification === "personal"
+                                                              ? "Cá nhân"
+                                                              : "Nội bộ"}
+                                                    </Badge>
+                                                </div>
+                                                {field.type === "long_text" ? (
+                                                    <Textarea
+                                                        value={String(formData[field.key] || "")}
+                                                        disabled={!canEditForm}
+                                                        onChange={event =>
+                                                            setDynamicField(field.key, event.target.value)
+                                                        }
+                                                    />
+                                                ) : field.type === "boolean" ? (
+                                                    <label className="flex items-center gap-2 text-sm">
+                                                        <Checkbox
+                                                            checked={formData[field.key] === true}
+                                                            disabled={!canEditForm}
+                                                            onCheckedChange={checked =>
+                                                                setDynamicField(field.key, checked === true)
+                                                            }
+                                                        />
+                                                        Có
+                                                    </label>
+                                                ) : field.type === "single_select" ? (
+                                                    <Select
+                                                        value={String(formData[field.key] || "")}
+                                                        disabled={!canEditForm}
+                                                        onValueChange={value =>
+                                                            setDynamicField(field.key, value)
+                                                        }
+                                                    >
+                                                        <SelectTrigger><SelectValue placeholder="Chọn giá trị" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {field.options.map(option => (
+                                                                <SelectItem key={option} value={option}>
+                                                                    {option}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : field.type === "multi_select" ? (
+                                                    <div className="space-y-2">
+                                                        {field.options.map(option => {
+                                                            const selected = Array.isArray(formData[field.key])
+                                                                ? (formData[field.key] as string[])
+                                                                : [];
+                                                            return (
+                                                                <label key={option} className="flex items-center gap-2 text-sm">
+                                                                    <Checkbox
+                                                                        checked={selected.includes(option)}
+                                                                        disabled={!canEditForm}
+                                                                        onCheckedChange={checked =>
+                                                                            setDynamicField(
+                                                                                field.key,
+                                                                                checked === true
+                                                                                    ? [...selected, option]
+                                                                                    : selected.filter(value => value !== option),
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    {option}
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <Input
+                                                        type={
+                                                            field.type === "number"
+                                                                ? "number"
+                                                                : field.type === "date"
+                                                                  ? "date"
+                                                                  : "text"
+                                                        }
+                                                        value={String(formData[field.key] ?? "")}
+                                                        disabled={!canEditForm}
+                                                        onChange={event =>
+                                                            setDynamicField(
+                                                                field.key,
+                                                                field.type === "number"
+                                                                    ? event.target.value === ""
+                                                                        ? undefined
+                                                                        : Number(event.target.value)
+                                                                    : event.target.value,
+                                                            )
+                                                        }
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {canEditForm && (
+                                        <Button
+                                            className="mt-3"
+                                            size="sm"
+                                            loading={savingFormData}
+                                            onClick={() => void handleSaveFormData()}
+                                        >
+                                            Lưu dữ liệu nghiệp vụ
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
 
                             <div>
                                 <Label>Ghi chú</Label>

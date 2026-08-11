@@ -195,6 +195,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "requests.read",
             },
             {
+                key: "request_types",
+                label: "Loại nhiệm vụ & biểu mẫu",
+                path: "/request-types",
+                icon: ClipboardList,
+                permission: "request_types.read",
+            },
+            {
                 key: "inspections",
                 label: "Rà soát – chiến dịch",
                 path: "/inspections",
@@ -224,6 +231,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/reports",
                 icon: BarChart3,
                 permission: "reports.read",
+            },
+            {
+                key: "kpis",
+                label: "KPI Phường",
+                path: "/kpis",
+                icon: BarChart3,
+                permission: "reports.kpi_read",
             },
         ],
     },
@@ -335,6 +349,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 label: "Cài đặt",
                 path: "/settings",
                 icon: Settings,
+                permission: "settings.read",
+            },
+            {
+                key: "digital_readiness",
+                label: "Sẵn sàng tích hợp",
+                path: "/digital-readiness",
+                icon: ShieldCheck,
                 permission: "settings.read",
             },
             {

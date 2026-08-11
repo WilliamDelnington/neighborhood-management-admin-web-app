@@ -47,6 +47,7 @@ import {
     fetchRoles,
     updateRole,
 } from "@service/roleApi";
+import { fetchRequestTypeDefinitions } from "@service/requestTypeApi";
 
 const RoleListPage: React.FC = () => (
     <AdminGuard permissions={["roles.read"]}>
@@ -82,8 +83,6 @@ const ALL_NHOM_PHAN_ANH = Object.keys(
     NHOM_PHAN_ANH_LABEL,
 ) as NhomPhanAnh[];
 
-const ALL_REQUEST_TYPES = Object.keys(REQUEST_TYPE_LABEL) as RequestType[];
-
 const RoleListContent: React.FC = () => {
     const canCreate = usePermission("roles.create");
     const canUpdate = usePermission("roles.update");
@@ -91,6 +90,11 @@ const RoleListContent: React.FC = () => {
     const canManagePermissions = usePermission("roles.manage");
     const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
+    const [requestTypeOptions, setRequestTypeOptions] = useState<
+        Array<{ key: RequestType; name: string }>
+    >(
+        Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({ key, name })),
+    );
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -110,12 +114,23 @@ const RoleListContent: React.FC = () => {
         Promise.all([
             fetchRoles({ page: targetPage }),
             fetchRolePermissionRegistry(),
+            fetchRequestTypeDefinitions({ active: true, limit: 200 }),
         ])
-            .then(([roleList, permissionRegistry]) => {
+            .then(([roleList, permissionRegistry, customTypes]) => {
                 setRoles(roleList.items);
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
+                setRequestTypeOptions([
+                    ...Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({
+                        key,
+                        name,
+                    })),
+                    ...customTypes.items.map(type => ({
+                        key: type.key,
+                        name: type.name,
+                    })),
+                ]);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -547,22 +562,22 @@ const RoleListContent: React.FC = () => {
                             </div>
                             {form.allowedRequestTypes !== null && (
                                 <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2">
-                                    {ALL_REQUEST_TYPES.map(type => (
+                                    {requestTypeOptions.map(type => (
                                         <div
-                                            key={type}
+                                            key={type.key}
                                             className="flex items-center gap-2"
                                         >
                                             <Checkbox
                                                 checked={(
                                                     form.allowedRequestTypes || []
-                                                ).includes(type)}
+                                                ).includes(type.key)}
                                                 disabled={!canEditCurrentRole}
                                                 onCheckedChange={() =>
-                                                    toggleRequestType(type)
+                                                    toggleRequestType(type.key)
                                                 }
                                             />
                                             <Label className="text-sm font-normal">
-                                                {REQUEST_TYPE_LABEL[type]}
+                                                {type.name}
                                             </Label>
                                         </div>
                                     ))}

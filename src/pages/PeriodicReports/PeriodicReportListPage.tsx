@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { Download, Paperclip, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
-import { Button } from "@components/ui/button";
-import { Label } from "@components/ui/label";
-import { Input } from "@components/ui/input";
-import { Textarea } from "@components/ui/textarea";
+import { EmptyState, ErrorState, LoadingState } from "@components/admin/DataStates";
 import { Badge } from "@components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs";
+import { Button } from "@components/ui/button";
+import { Input } from "@components/ui/input";
+import { Label } from "@components/ui/label";
 import {
     Select,
     SelectContent,
@@ -18,9 +17,9 @@ import {
 import {
     Sheet,
     SheetContent,
+    SheetFooter,
     SheetHeader,
     SheetTitle,
-    SheetFooter,
 } from "@components/ui/sheet";
 import {
     Table,
@@ -30,10 +29,9 @@ import {
     TableHeader,
     TableRow,
 } from "@components/ui/table";
-import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import Pagination from "@components/admin/Pagination";
-import RepresentativeUserPicker from "@components/admin/RepresentativeUserPicker";
-import { usePermission, useAuthStore } from "@store/authStore";
+import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs";
+import { Textarea } from "@components/ui/textarea";
+import { resolveAssetUrl } from "@constants/common";
 import {
     PERIODIC_REPORT_STATUS_LABEL,
     PERIODIC_REPORT_STATUS_TONE,
@@ -43,44 +41,72 @@ import {
     AppError,
     PERIODIC_REPORT_TYPES,
     PeriodicReport,
+    PeriodicReportAutoSummary,
     PeriodicReportSections,
     PeriodicReportType,
-    User,
 } from "@dts";
+import { useAuthStore, usePermission } from "@store/authStore";
 import {
+    acceptPeriodicReport,
     createPeriodicReport,
+    deletePeriodicReportAttachment,
+    downloadPeriodicReportPdf,
+    fetchPeriodicReportById,
+    fetchPeriodicReportContext,
     fetchPeriodicReports,
+    PeriodicReportContext,
+    receivePeriodicReport,
+    recallPeriodicReport,
+    refreshPeriodicReportSummary,
     requestPeriodicReportRevision,
     submitPeriodicReport,
     updatePeriodicReport,
+    uploadPeriodicReportAttachment,
 } from "@service/periodicReportApi";
 
-const displayNameOf = (
-    ref: string | { displayName: string } | null | undefined,
-): string => (ref && typeof ref !== "string" ? ref.displayName : "—");
-
 const toDateInput = (iso?: string) => (iso ? iso.slice(0, 10) : "");
+const refId = (value: string | { _id: string } | null | undefined) =>
+    value && typeof value !== "string" ? value._id : value || "";
+const refName = (
+    value: string | { displayName?: string; name?: string; code?: string } | null | undefined,
+) =>
+    value && typeof value !== "string"
+        ? value.displayName || value.name || value.code || "—"
+        : "—";
 
-interface FormState {
+type FormState = {
     type: PeriodicReportType | "";
     periodStart: string;
     periodEnd: string;
+    neighborhoodId: string;
     submittedToUserId: string;
-    submittedToLabel: string;
     sections: PeriodicReportSections;
-}
+};
 
 const EMPTY_FORM: FormState = {
     type: "",
     periodStart: "",
     periodEnd: "",
+    neighborhoodId: "",
     submittedToUserId: "",
-    submittedToLabel: "",
     sections: {},
 };
 
+const EDITABLE = ["draft", "revision_required", "revision_requested", "recalled"];
+
+const SUMMARY_GROUPS: Array<{
+    key: keyof Omit<PeriodicReportAutoSummary, "generatedAt">;
+    title: string;
+    labels: Record<string, string>;
+}> = [
+    { key: "tasks", title: "Nhiệm vụ", labels: { received: "Tiếp nhận", completed: "Hoàn thành", overdue: "Quá hạn" } },
+    { key: "feedback", title: "Phản ánh", labels: { received: "Tiếp nhận", verified: "Đã xử lý/xác minh", forwarded: "Chuyển Phường", pending: "Đang chờ" } },
+    { key: "inspections", title: "Rà soát", labels: { total: "Tổng Nhà", completed: "Đã xác minh", passed: "Đạt", failed: "Chưa đạt", pending: "Chờ xử lý", revisionRequired: "Cần bổ sung", fieldCheckRequired: "Cần kiểm tra thực địa" } },
+    { key: "cases", title: "Vụ việc an ninh", labels: { total: "Tổng vụ", open: "Đang xử lý", resolved: "Đã kết thúc" } },
+];
+
 const PeriodicReportListPage: React.FC = () => (
-    <AdminGuard permissions={["reports.author"]}>
+    <AdminGuard permissions={["reports.author", "reports.receive", "reports.review"]}>
         <PeriodicReportListContent />
     </AdminGuard>
 );
@@ -88,380 +114,197 @@ const PeriodicReportListPage: React.FC = () => (
 const PeriodicReportListContent: React.FC = () => {
     const currentUserId = useAuthStore(state => state.user?.id);
     const canAuthor = usePermission("reports.author");
-
+    const canReceive = usePermission("reports.receive");
+    const canReview = usePermission("reports.review");
+    const canExport = usePermission("reports.export");
     const [view, setView] = useState<"mine" | "received">("mine");
     const [items, setItems] = useState<PeriodicReport[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
-
-    const [sheetOpen, setSheetOpen] = useState(false);
+    const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<PeriodicReport | null>(null);
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
-    const [submitting, setSubmitting] = useState(false);
+    const [context, setContext] = useState<PeriodicReportContext>({ neighborhoods: [], recipients: [] });
+    const [saving, setSaving] = useState(false);
     const [revisionNote, setRevisionNote] = useState("");
-    const [requestingRevision, setRequestingRevision] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     const load = (targetPage = 1) => {
         setLoading(true);
         setError(false);
         fetchPeriodicReports({ page: targetPage, view })
-            .then(res => {
-                setItems(res.items);
-                setPage(res.page);
-                setTotalPages(res.totalPages);
+            .then(result => {
+                setItems(result.items);
+                setPage(result.page);
+                setTotalPages(result.totalPages);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
-    useEffect(() => {
-        load(1);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [view]);
+    useEffect(() => load(1), [view]);
 
-    const isAuthor =
-        selected &&
-        (typeof selected.authorUserId === "string"
-            ? selected.authorUserId
-            : selected.authorUserId._id) === currentUserId;
-    const isReceiver =
-        selected &&
-        selected.submittedToUserId &&
-        (typeof selected.submittedToUserId === "string"
-            ? selected.submittedToUserId
-            : selected.submittedToUserId._id) === currentUserId;
-    const canEdit =
-        !!isAuthor &&
-        (selected!.status === "draft" ||
-            selected!.status === "revision_requested");
+    const loadContext = (neighborhoodId?: string) =>
+        fetchPeriodicReportContext(neighborhoodId).then(setContext);
 
-    const openCreate = () => {
+    const openCreate = async () => {
         setSelected(null);
         setForm(EMPTY_FORM);
-        setSheetOpen(true);
-    };
-
-    const openDetail = (report: PeriodicReport) => {
-        setSelected(report);
-        setForm({
-            type: report.type,
-            periodStart: toDateInput(report.periodStart),
-            periodEnd: toDateInput(report.periodEnd),
-            submittedToUserId:
-                report.submittedToUserId && typeof report.submittedToUserId !== "string"
-                    ? report.submittedToUserId._id
-                    : "",
-            submittedToLabel:
-                report.submittedToUserId && typeof report.submittedToUserId !== "string"
-                    ? report.submittedToUserId.displayName
-                    : "",
-            sections: report.sections || {},
-        });
         setRevisionNote("");
-        setSheetOpen(true);
-    };
-
-    const handleSaveOrCreate = async () => {
-        if (!form.type || !form.periodStart || !form.periodEnd) {
-            toast.error("Vui lòng chọn loại báo cáo và khoảng thời gian");
-            return;
-        }
+        setOpen(true);
         try {
-            setSubmitting(true);
-            const payload = {
-                type: form.type,
-                periodStart: new Date(form.periodStart).toISOString(),
-                periodEnd: new Date(form.periodEnd).toISOString(),
-                submittedToUserId: form.submittedToUserId || undefined,
-                sections: form.sections,
-            };
-            if (selected) {
-                await updatePeriodicReport(selected._id, payload);
-                toast.success("Đã lưu báo cáo");
-            } else {
-                await createPeriodicReport(payload);
-                toast.success("Đã tạo báo cáo (bản nháp)");
+            const nextContext = await fetchPeriodicReportContext();
+            setContext(nextContext);
+            if (nextContext.neighborhoods.length === 1) {
+                const neighborhoodId = nextContext.neighborhoods[0]._id;
+                setForm(current => ({ ...current, neighborhoodId }));
+                await loadContext(neighborhoodId);
             }
-            setSheetOpen(false);
-            load(page);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setSubmitting(false);
+        } catch {
+            toast.error("Không tải được địa bàn lập báo cáo");
         }
     };
 
-    const handleSubmitReport = async () => {
-        if (!selected) return;
+    const openDetail = async (row: PeriodicReport) => {
+        setOpen(true);
+        setSaving(true);
         try {
-            setSubmitting(true);
-            await submitPeriodicReport(selected._id);
-            toast.success("Đã nộp báo cáo");
-            setSheetOpen(false);
-            load(page);
+            const report = await fetchPeriodicReportById(row._id);
+            setSelected(report);
+            setRevisionNote("");
+            setForm({
+                type: report.type,
+                periodStart: toDateInput(report.periodStart),
+                periodEnd: toDateInput(report.periodEnd),
+                neighborhoodId: refId(report.neighborhoodId),
+                submittedToUserId: refId(report.submittedToUserId),
+                sections: report.sections || {},
+            });
+            if (canAuthor) await loadContext(refId(report.neighborhoodId));
         } catch (err) {
             toast.error((err as AppError).message);
+            setOpen(false);
         } finally {
-            setSubmitting(false);
+            setSaving(false);
         }
     };
 
-    const handleRequestRevision = async () => {
-        if (!selected || !revisionNote.trim()) {
-            toast.error("Vui lòng nhập lý do yêu cầu bổ sung");
+    const isAuthor = selected && refId(selected.authorUserId) === currentUserId;
+    const isReceiver = selected && refId(selected.submittedToUserId) === currentUserId;
+    const canEdit = Boolean(isAuthor && selected && EDITABLE.includes(selected.status));
+
+    const reloadSelected = async () => {
+        if (!selected) return;
+        const report = await fetchPeriodicReportById(selected._id);
+        setSelected(report);
+        load(page);
+    };
+
+    const save = async () => {
+        if (!form.type || !form.periodStart || !form.periodEnd || !form.neighborhoodId || !form.submittedToUserId) {
+            toast.error("Vui lòng nhập kỳ, Tổ dân phố và nơi nhận cấp Phường");
             return;
         }
+        const payload = {
+            type: form.type,
+            periodStart: new Date(`${form.periodStart}T00:00:00`).toISOString(),
+            periodEnd: new Date(`${form.periodEnd}T23:59:59`).toISOString(),
+            neighborhoodId: form.neighborhoodId,
+            submittedToUserId: form.submittedToUserId,
+            sections: form.sections,
+        };
         try {
-            setRequestingRevision(true);
-            await requestPeriodicReportRevision(selected._id, revisionNote.trim());
-            toast.success("Đã gửi yêu cầu bổ sung");
-            setSheetOpen(false);
+            setSaving(true);
+            if (selected) await updatePeriodicReport(selected._id, payload);
+            else await createPeriodicReport(payload);
+            toast.success("Đã lưu bản nháp và tổng hợp số liệu tự động");
+            setOpen(false);
             load(page);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
-            setRequestingRevision(false);
+            setSaving(false);
+        }
+    };
+
+    const action = async (operation: () => Promise<unknown>, success: string) => {
+        try {
+            setSaving(true);
+            await operation();
+            toast.success(success);
+            await reloadSelected();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const upload = async (file?: File) => {
+        if (!selected || !file) return;
+        try {
+            setUploading(true);
+            await uploadPeriodicReportAttachment(selected._id, file);
+            await reloadSelected();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploading(false);
         }
     };
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Báo cáo định kỳ</h1>
-                {canAuthor && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Soạn báo cáo
-                    </Button>
-                )}
+            <div className="mb-4 flex items-center justify-between gap-3">
+                <div><h1 className="text-lg font-semibold">Báo cáo Tổ dân phố</h1><p className="text-sm text-text_2">Số liệu nghiệp vụ được tổng hợp tự động; mỗi lần nộp tạo một phiên bản bất biến.</p></div>
+                {canAuthor && <Button onClick={() => void openCreate()}><Plus className="mr-1 h-4 w-4" /> Soạn báo cáo</Button>}
             </div>
-
-            <Tabs
-                className="mb-4"
-                value={view}
-                onValueChange={v => setView(v as "mine" | "received")}
-            >
-                <TabsList>
-                    <TabsTrigger value="mine">Của tôi</TabsTrigger>
-                    <TabsTrigger value="received">Gửi cho tôi</TabsTrigger>
-                </TabsList>
+            <Tabs className="mb-4" value={view} onValueChange={value => setView(value as "mine" | "received")}>
+                <TabsList><TabsTrigger value="mine">Của tôi</TabsTrigger><TabsTrigger value="received">Phường nhận</TabsTrigger></TabsList>
             </Tabs>
-
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-2xl border bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
-                {!loading && !error && items.length === 0 && (
-                    <EmptyState label="Chưa có báo cáo nào" />
-                )}
+                {!loading && !error && items.length === 0 && <EmptyState label="Chưa có báo cáo" />}
                 {!loading && !error && items.length > 0 && (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Loại</TableHead>
-                                <TableHead>Kỳ báo cáo</TableHead>
-                                <TableHead>
-                                    {view === "mine" ? "Gửi đến" : "Tác giả"}
-                                </TableHead>
-                                <TableHead>Trạng thái</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {items.map(r => (
-                                <TableRow
-                                    key={r._id}
-                                    className="cursor-pointer"
-                                    onClick={() => openDetail(r)}
-                                >
-                                    <TableCell className="font-medium">
-                                        {PERIODIC_REPORT_TYPE_LABEL[r.type]}
-                                    </TableCell>
-                                    <TableCell>
-                                        {toDateInput(r.periodStart)} →{" "}
-                                        {toDateInput(r.periodEnd)}
-                                    </TableCell>
-                                    <TableCell>
-                                        {view === "mine"
-                                            ? displayNameOf(r.submittedToUserId)
-                                            : displayNameOf(r.authorUserId)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge tone={PERIODIC_REPORT_STATUS_TONE[r.status]}>
-                                            {PERIODIC_REPORT_STATUS_LABEL[r.status]}
-                                        </Badge>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
+                    <Table><TableHeader><TableRow><TableHead>Loại</TableHead><TableHead>Tổ dân phố</TableHead><TableHead>Kỳ</TableHead><TableHead>{view === "mine" ? "Nơi nhận" : "Tác giả"}</TableHead><TableHead>Phiên bản</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
+                        <TableBody>{items.map(report => <TableRow key={report._id} className="cursor-pointer" onClick={() => void openDetail(report)}><TableCell className="font-medium">{PERIODIC_REPORT_TYPE_LABEL[report.type]}</TableCell><TableCell>{refName(report.neighborhoodId)}</TableCell><TableCell>{toDateInput(report.periodStart)} → {toDateInput(report.periodEnd)}</TableCell><TableCell>{view === "mine" ? refName(report.submittedToUserId) : refName(report.authorUserId)}</TableCell><TableCell>v{report.currentVersion || 0}</TableCell><TableCell><Badge tone={PERIODIC_REPORT_STATUS_TONE[report.status]}>{PERIODIC_REPORT_STATUS_LABEL[report.status]}</Badge></TableCell></TableRow>)}</TableBody>
                     </Table>
                 )}
             </div>
+            {totalPages > 1 && <div className="mt-3 flex justify-end gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => load(page - 1)}>Trước</Button><span className="py-2 text-sm">{page}/{totalPages}</span><Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => load(page + 1)}>Sau</Button></div>}
 
-            {!loading && !error && (
-                <Pagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={load}
-                    disabled={loading}
-                />
-            )}
-
-            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetContent>
-                    <SheetHeader>
-                        <SheetTitle>
-                            {selected ? "Chi tiết báo cáo" : "Soạn báo cáo mới"}
-                        </SheetTitle>
-                    </SheetHeader>
-                    <div className="flex-1 space-y-4 overflow-y-auto py-4">
-                        {selected && (
-                            <Badge tone={PERIODIC_REPORT_STATUS_TONE[selected.status]}>
-                                {PERIODIC_REPORT_STATUS_LABEL[selected.status]}
-                            </Badge>
-                        )}
-                        {selected?.revisionNote && (
-                            <p className="text-sm text-red-500">
-                                Lý do yêu cầu bổ sung: {selected.revisionNote}
-                            </p>
-                        )}
-
-                        <div className="space-y-1.5">
-                            <Label>Loại báo cáo</Label>
-                            <Select
-                                value={form.type}
-                                onValueChange={v =>
-                                    setForm(prev => ({
-                                        ...prev,
-                                        type: v as PeriodicReportType,
-                                    }))
-                                }
-                                disabled={!!selected && !canEdit}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Chọn loại" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {PERIODIC_REPORT_TYPES.map(t => (
-                                        <SelectItem key={t} value={t}>
-                                            {PERIODIC_REPORT_TYPE_LABEL[t]}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+            <Sheet open={open} onOpenChange={setOpen}>
+                <SheetContent className="sm:max-w-3xl">
+                    <SheetHeader><SheetTitle>{selected ? `Chi tiết báo cáo v${selected.currentVersion || 0}` : "Soạn báo cáo mới"}</SheetTitle></SheetHeader>
+                    <div className="flex-1 space-y-5 overflow-y-auto py-4">
+                        {selected && <div className="flex flex-wrap items-center gap-2"><Badge tone={PERIODIC_REPORT_STATUS_TONE[selected.status]}>{PERIODIC_REPORT_STATUS_LABEL[selected.status]}</Badge>{selected.revisionNote && <span className="text-sm text-red-500">Yêu cầu: {selected.revisionNote}</span>}</div>}
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div><Label>Loại báo cáo</Label><Select disabled={!!selected && !canEdit} value={form.type} onValueChange={value => setForm(current => ({ ...current, type: value as PeriodicReportType }))}><SelectTrigger className="mt-1"><SelectValue placeholder="Chọn loại" /></SelectTrigger><SelectContent>{PERIODIC_REPORT_TYPES.map(type => <SelectItem key={type} value={type}>{PERIODIC_REPORT_TYPE_LABEL[type]}</SelectItem>)}</SelectContent></Select></div>
+                            <div><Label>Tổ dân phố lập báo cáo</Label><Select disabled={!!selected && !canEdit} value={form.neighborhoodId} onValueChange={value => { setForm(current => ({ ...current, neighborhoodId: value, submittedToUserId: "" })); void loadContext(value); }}><SelectTrigger className="mt-1"><SelectValue placeholder="Chọn Tổ" /></SelectTrigger><SelectContent>{context.neighborhoods.map(item => <SelectItem key={item._id} value={item._id}>{item.code} - {item.name}</SelectItem>)}</SelectContent></Select></div>
+                            <div><Label>Từ ngày</Label><Input className="mt-1" type="date" disabled={!!selected && !canEdit} value={form.periodStart} onChange={event => setForm(current => ({ ...current, periodStart: event.target.value }))} /></div>
+                            <div><Label>Đến ngày</Label><Input className="mt-1" type="date" disabled={!!selected && !canEdit} value={form.periodEnd} onChange={event => setForm(current => ({ ...current, periodEnd: event.target.value }))} /></div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label>Từ ngày</Label>
-                                <Input
-                                    type="date"
-                                    value={form.periodStart}
-                                    disabled={!!selected && !canEdit}
-                                    onChange={e =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            periodStart: e.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label>Đến ngày</Label>
-                                <Input
-                                    type="date"
-                                    value={form.periodEnd}
-                                    disabled={!!selected && !canEdit}
-                                    onChange={e =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            periodEnd: e.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
-                        </div>
-                        {(!selected || canEdit) && (
-                            <RepresentativeUserPicker
-                                label="Gửi đến"
-                                value={form.submittedToUserId}
-                                valueLabel={form.submittedToLabel}
-                                onChange={(userId, user: User | undefined) =>
-                                    setForm(prev => ({
-                                        ...prev,
-                                        submittedToUserId: userId || "",
-                                        submittedToLabel: user?.displayName || "",
-                                    }))
-                                }
-                            />
-                        )}
-                        {(
-                            [
-                                ["generalSituation", "Tình hình chung"],
-                                ["highlights", "Vấn đề nổi bật"],
-                                ["recommendations", "Kiến nghị"],
-                                ["proposals", "Đề xuất"],
-                            ] as [keyof PeriodicReportSections, string][]
-                        ).map(([key, label]) => (
-                            <div className="space-y-1.5" key={key}>
-                                <Label>{label}</Label>
-                                <Textarea
-                                    value={form.sections[key] || ""}
-                                    disabled={!!selected && !canEdit}
-                                    onChange={e =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            sections: {
-                                                ...prev.sections,
-                                                [key]: e.target.value,
-                                            },
-                                        }))
-                                    }
-                                />
-                            </div>
-                        ))}
+                        <div><Label>Nơi nhận cấp Phường</Label><Select disabled={!!selected && !canEdit} value={form.submittedToUserId} onValueChange={value => setForm(current => ({ ...current, submittedToUserId: value }))}><SelectTrigger className="mt-1"><SelectValue placeholder="Chọn cán bộ Phường có quyền nhận báo cáo" /></SelectTrigger><SelectContent>{context.recipients.map(item => <SelectItem key={item.id} value={item.id}>{item.displayName}{item.wardName ? ` - ${item.wardName}` : ""}</SelectItem>)}</SelectContent></Select></div>
 
-                        {isReceiver &&
-                            (selected!.status === "submitted" ||
-                                selected!.status === "resubmitted") && (
-                                <div className="space-y-1.5 rounded-lg border border-divider_01 p-3">
-                                    <Label>Yêu cầu bổ sung (nếu cần)</Label>
-                                    <Textarea
-                                        value={revisionNote}
-                                        onChange={e =>
-                                            setRevisionNote(e.target.value)
-                                        }
-                                        placeholder="Nêu rõ phần cần bổ sung..."
-                                    />
-                                    <Button
-                                        variant="outline"
-                                        loading={requestingRevision}
-                                        onClick={handleRequestRevision}
-                                    >
-                                        Gửi yêu cầu bổ sung
-                                    </Button>
-                                </div>
-                            )}
+                        {selected?.autoSummary && <section><div className="mb-2 flex items-center justify-between"><div><h3 className="font-semibold">Số liệu tự tổng hợp</h3><p className="text-xs text-text_2">Được chốt lại khi nộp phiên bản mới.</p></div>{canEdit && <Button size="sm" variant="outline" loading={saving} onClick={() => void action(() => refreshPeriodicReportSummary(selected._id), "Đã cập nhật số liệu")}><RefreshCw className="mr-1 h-4 w-4" /> Làm mới</Button>}</div><div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{SUMMARY_GROUPS.map(group => { const values = selected.autoSummary[group.key] as Record<string, number>; return <div key={group.key} className="rounded-lg border p-3"><p className="mb-2 font-medium">{group.title}</p><div className="grid grid-cols-2 gap-2">{Object.entries(group.labels).map(([key, label]) => <div key={key}><p className="text-xs text-text_2">{label}</p><p className="text-lg font-semibold text-main">{values[key] || 0}</p></div>)}</div></div>; })}</div></section>}
+
+                        {([['generalSituation', 'Tình hình chung'], ['highlights', 'Vấn đề nổi bật'], ['recommendations', 'Kiến nghị'], ['proposals', 'Đề xuất']] as [keyof PeriodicReportSections, string][]).map(([key, label]) => <div key={key}><Label>{label}</Label><Textarea className="mt-1" disabled={!!selected && !canEdit} value={form.sections[key] || ""} onChange={event => setForm(current => ({ ...current, sections: { ...current.sections, [key]: event.target.value } }))} /></div>)}
+
+                        {selected && <section className="rounded-lg border p-3"><div className="mb-2 flex items-center justify-between"><h3 className="font-medium">Tệp đính kèm</h3>{canEdit && <label className="cursor-pointer"><input type="file" className="hidden" disabled={uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /><span className="inline-flex items-center text-sm text-main"><Upload className="mr-1 h-4 w-4" /> {uploading ? "Đang tải..." : "Tải lên"}</span></label>}</div>{!selected.attachments?.length ? <p className="text-sm text-text_2">Chưa có tệp</p> : selected.attachments.map(file => <div key={file._id} className="flex items-center justify-between border-t py-2 text-sm"><a className="flex items-center gap-2 text-main hover:underline" href={resolveAssetUrl(file.url)} target="_blank" rel="noreferrer"><Paperclip className="h-4 w-4" />{file.name}</a>{canEdit && <Button size="icon" variant="ghost" onClick={() => void action(() => deletePeriodicReportAttachment(selected._id, file._id), "Đã xóa tệp")}><Trash2 className="h-4 w-4" /></Button>}</div>)}</section>}
+
+                        {selected?.versions && selected.versions.length > 0 && <section><h3 className="mb-2 font-medium">Lịch sử phiên bản đã nộp</h3>{selected.versions.map(version => <div key={version._id} className="flex items-center justify-between border-b py-2 text-sm"><span>v{version.version} - {new Date(version.submittedAt).toLocaleString("vi-VN")}</span>{canExport && <Button size="sm" variant="outline" onClick={() => void downloadPeriodicReportPdf(selected._id, version.version)}><Download className="mr-1 h-4 w-4" /> PDF</Button>}</div>)}</section>}
+
+                        {isReceiver && canReview && selected && ["submitted", "resubmitted", "received"].includes(selected.status) && <div className="rounded-lg border border-red-200 p-3"><Label>Yêu cầu bổ sung</Label><Textarea className="mt-1" value={revisionNote} onChange={event => setRevisionNote(event.target.value)} placeholder="Nêu rõ nội dung cần bổ sung" /><Button className="mt-2" variant="outline" disabled={!revisionNote.trim()} onClick={() => void action(() => requestPeriodicReportRevision(selected._id, revisionNote.trim()), "Đã yêu cầu bổ sung")}>Gửi yêu cầu bổ sung</Button></div>}
                     </div>
                     <SheetFooter className="flex-col gap-2 sm:flex-col">
-                        {(!selected || canEdit) && (
-                            <Button
-                                loading={submitting}
-                                onClick={handleSaveOrCreate}
-                            >
-                                {selected ? "Lưu" : "Tạo bản nháp"}
-                            </Button>
-                        )}
-                        {canEdit && (
-                            <Button
-                                variant="outline"
-                                loading={submitting}
-                                onClick={handleSubmitReport}
-                            >
-                                {selected!.status === "draft"
-                                    ? "Nộp báo cáo"
-                                    : "Nộp lại"}
-                            </Button>
-                        )}
+                        {(!selected || canEdit) && <Button loading={saving} onClick={() => void save()}>{selected ? "Lưu thay đổi" : "Tạo bản nháp"}</Button>}
+                        {selected && canEdit && <Button variant="outline" loading={saving} onClick={() => void action(() => submitPeriodicReport(selected._id), "Đã nộp và tạo phiên bản mới")}>Nộp báo cáo lên Phường</Button>}
+                        {selected && isAuthor && ["submitted", "resubmitted"].includes(selected.status) && <Button variant="outline" loading={saving} onClick={() => void action(() => recallPeriodicReport(selected._id), "Đã thu hồi báo cáo")}>Thu hồi trước khi Phường tiếp nhận</Button>}
+                        {selected && isReceiver && canReceive && ["submitted", "resubmitted"].includes(selected.status) && <Button loading={saving} onClick={() => void action(() => receivePeriodicReport(selected._id), "Đã tiếp nhận báo cáo")}>Xác nhận tiếp nhận</Button>}
+                        {selected && isReceiver && canReview && selected.status === "received" && <Button loading={saving} onClick={() => void action(() => acceptPeriodicReport(selected._id), "Đã chấp nhận báo cáo")}>Chấp nhận báo cáo</Button>}
                     </SheetFooter>
                 </SheetContent>
             </Sheet>

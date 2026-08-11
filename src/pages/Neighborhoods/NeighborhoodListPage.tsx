@@ -31,8 +31,10 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { usePermission } from "@store/authStore";
-import { AppError, Neighborhood } from "@dts";
+import { AppError, Neighborhood, NeighborhoodStatus, Street, User } from "@dts";
 import { createNeighborhood, fetchNeighborhoods } from "@service/neighborhoodApi";
+import { fetchStreets } from "@service/streetApi";
+import { fetchUsers } from "@service/userApi";
 import NeighborhoodForm, {
     EMPTY_NEIGHBORHOOD_FORM,
     NeighborhoodFormValues,
@@ -40,7 +42,16 @@ import NeighborhoodForm, {
     toNeighborhoodInput,
 } from "./NeighborhoodForm";
 
-const ACTIVE_ALL = "all";
+const STATUS_ALL = "all";
+const LEADER_ALL = "all";
+const STREET_ALL = "all";
+
+const STATUS_LABEL: Record<NeighborhoodStatus, string> = {
+    ACTIVE: "Đang hoạt động",
+    INACTIVE: "Ngừng hoạt động",
+    MERGED: "Đã sáp nhập",
+    CLOSED: "Đã giải thể",
+};
 
 const NeighborhoodListPage: React.FC = () => (
     <AdminGuard permissions={["neighborhoods.read"]}>
@@ -53,7 +64,11 @@ const NeighborhoodListContent: React.FC = () => {
     const canCreate = usePermission("neighborhoods.manage");
 
     const [search, setSearch] = useState("");
-    const [active, setActive] = useState<"" | "true" | "false">("");
+    const [status, setStatus] = useState<NeighborhoodStatus | "">("");
+    const [streetId, setStreetId] = useState("");
+    const [leaderId, setLeaderId] = useState("");
+    const [streets, setStreets] = useState<Street[]>([]);
+    const [leaders, setLeaders] = useState<User[]>([]);
     const [items, setItems] = useState<Neighborhood[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -74,7 +89,9 @@ const NeighborhoodListContent: React.FC = () => {
             page: targetPage,
             search: keyword,
             limit: 30,
-            active: active === "" ? undefined : active === "true",
+            status: status || undefined,
+            streetId: streetId || undefined,
+            filterLeaderUserId: leaderId || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -90,7 +107,16 @@ const NeighborhoodListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, active]);
+    }, [search, status, streetId, leaderId]);
+
+    useEffect(() => {
+        fetchStreets({ active: true, limit: 200 })
+            .then(result => setStreets(result.items))
+            .catch(() => setStreets([]));
+        fetchUsers(1, 200, undefined, "neighborhood_leader")
+            .then(result => setLeaders(result.items))
+            .catch(() => setLeaders([]));
+    }, []);
 
     const openCreate = () => {
         setForm(EMPTY_NEIGHBORHOOD_FORM);
@@ -127,27 +153,51 @@ const NeighborhoodListContent: React.FC = () => {
                 )}
             </div>
 
-            <div className="mb-3 grid max-w-xl grid-cols-2 gap-3">
+            <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <Input
                     placeholder="Tìm theo tên hoặc mã tổ dân phố..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
                 <Select
-                    value={active || ACTIVE_ALL}
-                    onValueChange={v =>
-                        setActive(v === ACTIVE_ALL ? "" : (v as "true" | "false"))
-                    }
+                    value={status || STATUS_ALL}
+                    onValueChange={v => setStatus(v === STATUS_ALL ? "" : v as NeighborhoodStatus)}
                 >
                     <SelectTrigger>
                         <SelectValue placeholder="Tất cả trạng thái" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={ACTIVE_ALL}>
+                        <SelectItem value={STATUS_ALL}>
                             Tất cả trạng thái
                         </SelectItem>
-                        <SelectItem value="true">Đang hoạt động</SelectItem>
-                        <SelectItem value="false">Ngừng hoạt động</SelectItem>
+                        <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
+                        <SelectItem value="INACTIVE">Ngừng hoạt động</SelectItem>
+                        <SelectItem value="MERGED">Đã sáp nhập</SelectItem>
+                        <SelectItem value="CLOSED">Đã giải thể</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={streetId || STREET_ALL}
+                    onValueChange={value => setStreetId(value === STREET_ALL ? "" : value)}
+                >
+                    <SelectTrigger><SelectValue placeholder="Tất cả tuyến đường" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={STREET_ALL}>Tất cả tuyến đường</SelectItem>
+                        {streets.map(street => (
+                            <SelectItem key={street._id} value={street._id}>{street.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={leaderId || LEADER_ALL}
+                    onValueChange={value => setLeaderId(value === LEADER_ALL ? "" : value)}
+                >
+                    <SelectTrigger><SelectValue placeholder="Tất cả tổ trưởng" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={LEADER_ALL}>Tất cả tổ trưởng</SelectItem>
+                        {leaders.map(leader => (
+                            <SelectItem key={leader.id} value={leader.id}>{leader.displayName}</SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -158,7 +208,7 @@ const NeighborhoodListContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -173,9 +223,13 @@ const NeighborhoodListContent: React.FC = () => {
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Phường/Xã</TableHead>
+                                <TableHead>Tuyến đường</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Tổ trưởng</TableHead>
+                                <TableHead>Tổ phó</TableHead>
+                                <TableHead>Nhiệm kỳ</TableHead>
                                 <TableHead>Số nhà</TableHead>
+                                <TableHead>Hồ sơ</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -198,11 +252,12 @@ const NeighborhoodListContent: React.FC = () => {
                                             </span>
                                         )}
                                     </TableCell>
+                                    <TableCell className="min-w-40">
+                                        {n.streetIds?.map(street => street.name).join(", ") || "Chưa gán"}
+                                    </TableCell>
                                     <TableCell>
-                                        <Badge tone={n.active ? "green" : "gray"}>
-                                            {n.active
-                                                ? "Đang hoạt động"
-                                                : "Ngừng hoạt động"}
+                                        <Badge tone={n.status === "ACTIVE" ? "green" : "gray"}>
+                                            {STATUS_LABEL[n.status]}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
@@ -214,7 +269,21 @@ const NeighborhoodListContent: React.FC = () => {
                                                 </span>
                                             )}
                                     </TableCell>
+                                    <TableCell>
+                                        {n.coleaders?.map(user => user.displayName).join(", ") || "Chưa có"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {n.currentTerm?.name || "Chưa có"}
+                                        {n.termRemainingDays !== null &&
+                                            n.termRemainingDays !== undefined &&
+                                            n.termRemainingDays <= 30 && (
+                                                <span className="block text-xs text-orange-500">
+                                                    Còn {Math.max(0, n.termRemainingDays)} ngày
+                                                </span>
+                                            )}
+                                    </TableCell>
                                     <TableCell>{n.houseCount}</TableCell>
+                                    <TableCell>{n.attachmentCount || 0}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

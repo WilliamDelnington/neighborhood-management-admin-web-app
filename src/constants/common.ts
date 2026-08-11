@@ -34,6 +34,8 @@ export const API = {
     STREETS: "/api/streets",
     INFRASTRUCTURE_ASSETS: "/api/infrastructure-assets",
     PERIODIC_REPORTS: "/api/periodic-reports",
+    KPI_DEFINITIONS: "/api/kpi-definitions",
+    KPIS: "/api/kpis",
     CITIZENS: "/api/citizens",
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",
@@ -57,12 +59,14 @@ export const API = {
     REQUESTS: "/api/requests",
     REQUESTS_META: "/api/requests/meta",
     REQUESTS_MY: "/api/requests/my",
+    REQUEST_TYPES: "/api/request-types",
     INSPECTION_CAMPAIGNS: "/api/v1/neighborhood/inspection-campaigns",
     INSPECTIONS_V1: "/api/v1",
 
     FINANCE: "/api/finance",
     FILES: "/api/files",
     SETTINGS: "/api/settings",
+    INTEGRATION_READINESS: "/api/integrations/readiness",
 
     REPORTS: "/api/reports",
     IMPORT: "/api/import",

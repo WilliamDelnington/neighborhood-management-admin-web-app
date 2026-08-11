@@ -85,6 +85,9 @@ const ResidentHistoryPage = React.lazy(
 const RequestListPage = React.lazy(
     () => import("@pages/Requests/RequestListPage"),
 );
+const RequestTypeListPage = React.lazy(
+    () => import("@pages/RequestTypes/RequestTypeListPage"),
+);
 const MyRequestsPage = React.lazy(
     () => import("@pages/Requests/MyRequestsPage"),
 );
@@ -146,7 +149,11 @@ const FinanceListPage = React.lazy(
     () => import("@pages/Finance/FinanceListPage"),
 );
 const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
+const KpiDashboardPage = React.lazy(() => import("@pages/Kpis/KpiDashboardPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
+const DigitalReadinessPage = React.lazy(
+    () => import("@pages/DigitalReadiness/DigitalReadinessPage"),
+);
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
 const CreateHouseOwnerPage = React.lazy(
     () => import("@pages/Users/CreateHouseOwnerPage"),
@@ -297,6 +304,10 @@ const App: React.FC = () => {
                             element={<ResidentHistoryPage />}
                         />
                         <Route path="/requests" element={<RequestListPage />} />
+                        <Route
+                            path="/request-types"
+                            element={<RequestTypeListPage />}
+                        />
                         <Route path="/requests/my" element={<MyRequestsPage />} />
                         <Route
                             path="/requests/:id/history"
@@ -383,7 +394,12 @@ const App: React.FC = () => {
                         <Route path="/files" element={<FileListPage />} />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
+                        <Route path="/kpis" element={<KpiDashboardPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route
+                            path="/digital-readiness"
+                            element={<DigitalReadinessPage />}
+                        />
                         <Route
                             path="/mini-app-features"
                             element={<MiniAppFeaturesPage />}

@@ -5,6 +5,7 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Textarea } from "@components/ui/textarea";
+import { Checkbox } from "@components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -62,6 +63,7 @@ const EMPTY_STATE = {
     targetRoles: [] as string[],
     houseRole: "" as RequestHouseRole | "",
     targetHouseNeighborhoodLeader: false,
+    formData: {} as Record<string, unknown>,
 };
 
 /**
@@ -120,12 +122,36 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
     const hasHouseRecipient =
         !!form.houseId &&
         (!!form.houseRole || form.targetHouseNeighborhoodLeader);
+    const selectedDefinition = meta?.typeDefinitions.find(
+        definition => definition.key === form.type,
+    );
+    const senderFields =
+        selectedDefinition?.dataEntryMode === "sender"
+            ? selectedDefinition.fields
+            : [];
+    const hasRequiredFormData = senderFields.every(field => {
+        if (!field.required) return true;
+        const value = form.formData[field.key];
+        return !(
+            value === undefined ||
+            value === null ||
+            value === "" ||
+            (Array.isArray(value) && value.length === 0)
+        );
+    });
     const isValid =
         !!form.type &&
         form.title.trim().length > 0 &&
         (form.targetUserIds.length > 0 ||
             form.targetRoles.length > 0 ||
-            hasHouseRecipient);
+            hasHouseRecipient) &&
+        hasRequiredFormData;
+
+    const setFormField = (key: string, value: unknown) =>
+        setForm(prev => ({
+            ...prev,
+            formData: { ...prev.formData, [key]: value },
+        }));
 
     const handleSubmit = async () => {
         if (!isValid || !form.type) {
@@ -152,6 +178,10 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                 houseRole: form.houseRole || undefined,
                 targetHouseNeighborhoodLeader:
                     form.targetHouseNeighborhoodLeader || undefined,
+                formData:
+                    selectedDefinition && !selectedDefinition.builtIn
+                        ? form.formData
+                        : undefined,
             });
             const uploadResults = await Promise.allSettled(
                 attachments.map(file => uploadRequestAttachment(created._id, file)),
@@ -192,6 +222,7 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                                     type: v as RequestType,
                                     targetUserIds: [],
                                     targetRoles: [],
+                                    formData: {},
                                 }))
                             }
                             disabled={!!lockedType}
@@ -202,7 +233,9 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                             <SelectContent>
                                 {(meta?.allowedTypes || []).map(t => (
                                     <SelectItem key={t} value={t}>
-                                        {REQUEST_TYPE_LABEL[t]}
+                                        {meta?.typeDefinitions.find(
+                                            definition => definition.key === t,
+                                        )?.name || REQUEST_TYPE_LABEL[t] || t}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -236,6 +269,112 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                             }
                         />
                     </div>
+
+                    {senderFields.length > 0 && (
+                        <div className="space-y-3 rounded-xl border border-divider_01 p-3">
+                            <div>
+                                <Label>Thông tin nghiệp vụ</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Dữ liệu biểu mẫu được mã hóa khi lưu.
+                                </p>
+                            </div>
+                            {senderFields.map(field => (
+                                <div key={field.key}>
+                                    <Label>
+                                        {field.label}{field.required ? " *" : ""}
+                                    </Label>
+                                    {field.type === "long_text" ? (
+                                        <Textarea
+                                            className="mt-1"
+                                            value={String(form.formData[field.key] || "")}
+                                            onChange={event =>
+                                                setFormField(field.key, event.target.value)
+                                            }
+                                        />
+                                    ) : field.type === "boolean" ? (
+                                        <label className="mt-2 flex items-center gap-2 text-sm">
+                                            <Checkbox
+                                                checked={form.formData[field.key] === true}
+                                                onCheckedChange={checked =>
+                                                    setFormField(field.key, checked === true)
+                                                }
+                                            />
+                                            Có
+                                        </label>
+                                    ) : field.type === "single_select" ? (
+                                        <Select
+                                            value={String(form.formData[field.key] || "")}
+                                            onValueChange={value => setFormField(field.key, value)}
+                                        >
+                                            <SelectTrigger className="mt-1">
+                                                <SelectValue placeholder="Chọn giá trị" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {field.options.map(option => (
+                                                    <SelectItem key={option} value={option}>
+                                                        {option}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : field.type === "multi_select" ? (
+                                        <div className="mt-2 space-y-2">
+                                            {field.options.map(option => {
+                                                const selected = Array.isArray(
+                                                    form.formData[field.key],
+                                                )
+                                                    ? (form.formData[field.key] as string[])
+                                                    : [];
+                                                return (
+                                                    <label
+                                                        key={option}
+                                                        className="flex items-center gap-2 text-sm"
+                                                    >
+                                                        <Checkbox
+                                                            checked={selected.includes(option)}
+                                                            onCheckedChange={checked =>
+                                                                setFormField(
+                                                                    field.key,
+                                                                    checked === true
+                                                                        ? [...selected, option]
+                                                                        : selected.filter(
+                                                                              value => value !== option,
+                                                                          ),
+                                                                )
+                                                            }
+                                                        />
+                                                        {option}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <Input
+                                            className="mt-1"
+                                            type={
+                                                field.type === "number"
+                                                    ? "number"
+                                                    : field.type === "date"
+                                                      ? "date"
+                                                      : "text"
+                                            }
+                                            value={String(form.formData[field.key] ?? "")}
+                                            onChange={event =>
+                                                setFormField(
+                                                    field.key,
+                                                    field.type === "number"
+                                                        ? event.target.value === ""
+                                                            ? undefined
+                                                            : Number(event.target.value)
+                                                        : event.target.value,
+                                                )
+                                            }
+                                        />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <Label>Tài liệu đính kèm (tùy chọn)</Label>

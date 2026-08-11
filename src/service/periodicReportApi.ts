@@ -1,11 +1,13 @@
-import { API } from "@constants/common";
+import { API, BASE_URL } from "@constants/common";
 import {
     PaginatedData,
     PeriodicReport,
     PeriodicReportSections,
     PeriodicReportStatus,
     PeriodicReportType,
+    FileAsset,
 } from "@dts";
+import { useAuthStore } from "@store/authStore";
 import { request } from "./request";
 
 export interface FetchPeriodicReportsParams {
@@ -37,6 +39,30 @@ export interface PeriodicReportInput {
     submittedToUserId?: string;
 }
 
+export type PeriodicReportContext = {
+    neighborhoods: Array<{
+        _id: string;
+        code: string;
+        name: string;
+        wardCode?: number;
+        wardName?: string;
+    }>;
+    recipients: Array<{
+        id: string;
+        displayName: string;
+        roles: string[];
+        wardCode?: number;
+        wardName?: string;
+    }>;
+};
+
+export const fetchPeriodicReportContext = (
+    neighborhoodId?: string,
+): Promise<PeriodicReportContext> =>
+    request<PeriodicReportContext>("GET", `${API.PERIODIC_REPORTS}/context`, {
+        neighborhoodId,
+    });
+
 export const createPeriodicReport = (
     input: PeriodicReportInput,
 ): Promise<PeriodicReport> =>
@@ -67,3 +93,57 @@ export const requestPeriodicReportRevision = (
         `${API.PERIODIC_REPORTS}/${id}/request-revision`,
         { note },
     );
+
+export const receivePeriodicReport = (id: string): Promise<PeriodicReport> =>
+    request<PeriodicReport>("POST", `${API.PERIODIC_REPORTS}/${id}/receive`);
+
+export const acceptPeriodicReport = (id: string): Promise<PeriodicReport> =>
+    request<PeriodicReport>("POST", `${API.PERIODIC_REPORTS}/${id}/accept`);
+
+export const recallPeriodicReport = (id: string): Promise<PeriodicReport> =>
+    request<PeriodicReport>("POST", `${API.PERIODIC_REPORTS}/${id}/recall`);
+
+export const refreshPeriodicReportSummary = (id: string): Promise<PeriodicReport> =>
+    request<PeriodicReport>("POST", `${API.PERIODIC_REPORTS}/${id}/refresh-summary`);
+
+export const fetchPeriodicReportAttachments = (id: string): Promise<FileAsset[]> =>
+    request<FileAsset[]>("GET", `${API.PERIODIC_REPORTS}/${id}/attachments`);
+
+export const uploadPeriodicReportAttachment = (
+    id: string,
+    file: File,
+): Promise<FileAsset> => {
+    const data = new FormData();
+    data.append("file", file);
+    return request<FileAsset>("POST", `${API.PERIODIC_REPORTS}/${id}/attachments`, data);
+};
+
+export const deletePeriodicReportAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>(
+        "DELETE",
+        `${API.PERIODIC_REPORTS}/${id}/attachments/${fileId}`,
+    );
+
+export const downloadPeriodicReportPdf = async (
+    id: string,
+    version?: number,
+): Promise<void> => {
+    const { token } = useAuthStore.getState();
+    const url = new URL(`${API.PERIODIC_REPORTS}/${id}/export`, BASE_URL);
+    if (version) url.searchParams.set("version", String(version));
+    const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!response.ok) throw new Error("Không thể xuất báo cáo PDF");
+    const objectUrl = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `bao-cao-to-dan-pho-v${version || "moi-nhat"}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+};

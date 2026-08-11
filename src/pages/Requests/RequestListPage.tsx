@@ -151,7 +151,9 @@ const RequestListContent: React.FC = () => {
                                         {r.title}
                                     </TableCell>
                                     <TableCell>
-                                        {REQUEST_TYPE_LABEL[r.type]}
+                                        {r.formDefinitionSnapshot?.name ||
+                                            REQUEST_TYPE_LABEL[r.type] ||
+                                            r.type}
                                     </TableCell>
                                     <TableCell>
                                         <Badge

@@ -28,6 +28,7 @@ import {
     fetchHouseholdReport,
     fetchRequestReport,
     downloadReportExcel,
+    downloadReportPdf,
 } from "@service/reportApi";
 
 /**
@@ -395,6 +396,7 @@ const ReportsContent: React.FC = () => {
     // loc theo quyen (usePermission) de nhat quan voi cach backend gate.
     const canReadReports = usePermission("reports.read");
     const canReadFinance = usePermission("finance.read");
+    const canExport = usePermission("reports.export");
 
     const tabs: ReportTab[] = [
         ...(canReadReports
@@ -567,15 +569,23 @@ const ReportsContent: React.FC = () => {
         );
     };
 
-    const handleExport = async () => {
+    const handleExport = async (format: "excel" | "pdf") => {
         if (!activeTab) return;
         try {
             setExporting(true);
             const { fromDate, toDate } = computeRange();
-            await downloadReportExcel(activeTab.key, activeTab.excelFileName, {
-                fromDate,
-                toDate,
-            });
+            if (format === "excel") {
+                await downloadReportExcel(activeTab.key, activeTab.excelFileName, {
+                    fromDate,
+                    toDate,
+                });
+            } else {
+                await downloadReportPdf(
+                    activeTab.key,
+                    activeTab.excelFileName.replace(/\.xlsx$/i, ".pdf"),
+                    { fromDate, toDate },
+                );
+            }
         } catch (err) {
             toast.error(
                 err instanceof Error ? err.message : "Không thể xuất báo cáo",
@@ -688,14 +698,26 @@ const ReportsContent: React.FC = () => {
                                 <h2 className="text-base font-semibold">
                                     {tab.label}
                                 </h2>
-                                <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    loading={exporting}
-                                    onClick={handleExport}
-                                >
-                                    Xuất Excel
-                                </Button>
+                                {canExport && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            loading={exporting}
+                                            onClick={() => void handleExport("excel")}
+                                        >
+                                            Xuất Excel
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            loading={exporting}
+                                            onClick={() => void handleExport("pdf")}
+                                        >
+                                            Xuất PDF
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
 
                             {loading && <LoadingState />}

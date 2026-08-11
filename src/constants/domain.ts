@@ -107,6 +107,10 @@ export const PERIODIC_REPORT_STATUS_LABEL: Record<
 > = {
     draft: "Bản nháp",
     submitted: "Đã nộp",
+    received: "Phường đã tiếp nhận",
+    accepted: "Phường đã chấp nhận",
+    revision_required: "Yêu cầu bổ sung",
+    recalled: "Đã thu hồi",
     revision_requested: "Yêu cầu bổ sung",
     resubmitted: "Đã nộp lại",
 };
@@ -117,6 +121,10 @@ export const PERIODIC_REPORT_STATUS_TONE: Record<
 > = {
     draft: "gray",
     submitted: "blue",
+    received: "yellow",
+    accepted: "green",
+    revision_required: "red",
+    recalled: "gray",
     revision_requested: "red",
     resubmitted: "green",
 };
@@ -340,7 +348,7 @@ export const RESIDENT_AUDIT_ACTION_LABEL: Record<string, string> = {
     "resident.delete": "Xóa hồ sơ cư trú",
 };
 
-export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
+export const REQUEST_TYPE_LABEL: Record<string, string> = {
     pccc: "PCCC",
     security: "An ninh",
     other: "Khác",

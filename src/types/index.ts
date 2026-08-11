@@ -26,6 +26,17 @@ export type AppError = {
 export type Role = string;
 
 export type UserStatus = "active" | "pending" | "locked";
+export type IdentityProvider =
+    | "phone_temporary"
+    | "manual_declaration"
+    | "vneid"
+    | "national_population_db";
+export type IdentityVerificationStatus =
+    | "unverified"
+    | "pending"
+    | "verified"
+    | "failed"
+    | "revoked";
 
 export type User = {
     id: string;
@@ -40,6 +51,9 @@ export type User = {
     permissions: string[];
     roleLabels: Record<string, string>;
     status: UserStatus;
+    identityProvider: IdentityProvider;
+    identityVerificationStatus: IdentityVerificationStatus;
+    identityVerifiedAt?: string;
     householdId?: string;
     citizenId?: string;
     neighborhoodId?: string;
@@ -171,6 +185,12 @@ export type HousePhysicalStatus =
     | "vacant"
     | "damaged";
 
+export type HouseGisSource =
+    | "unavailable"
+    | "device_gps"
+    | "manual"
+    | "external_gis";
+
 // ---------------------------------------------------------------------------
 // Chu so huu (nha so co the thuoc ca nhan hoac to chuc)
 // ---------------------------------------------------------------------------
@@ -251,6 +271,12 @@ export type House = {
     denialReason?: string;
     needsUpdateNote?: string;
     residenceDeclarationNumber?: string;
+    gisLatitude?: number | null;
+    gisLongitude?: number | null;
+    gisAccuracyMeters?: number | null;
+    gisSource: HouseGisSource;
+    gisCapturedAt?: string | null;
+    location?: { type: "Point"; coordinates: [number, number] };
     createdAt: string;
     updatedAt: string;
 };
@@ -315,6 +341,9 @@ export type Neighborhood = {
     code: string;
     sequence: number;
     active: boolean;
+    status: NeighborhoodStatus;
+    effectiveFrom?: string;
+    effectiveTo?: string;
     // Bat buoc luc tao (xem NeighborhoodForm.tsx) nhung optional o day vi to
     // dan pho tao truoc khi co truong nay se khong co gia tri (khong backfill).
     provinceCode?: number;
@@ -325,6 +354,13 @@ export type Neighborhood = {
     description?: string;
     contactPhone?: string;
     notes?: string;
+    streetIds?: Street[];
+    alleyDescriptions?: string[];
+    boundaryType?: "NONE" | "DOCUMENT" | "GEOJSON";
+    geometry?: {
+        type: "Polygon" | "MultiPolygon";
+        coordinates: unknown[];
+    };
     leaderUserId?: {
         _id: string;
         displayName: string;
@@ -332,8 +368,77 @@ export type Neighborhood = {
         status: UserStatus;
     } | null;
     houseCount: number;
+    coleaders?: Array<{
+        _id: string;
+        displayName: string;
+        phone?: string;
+        status?: UserStatus;
+    }>;
+    currentTerm?: NeighborhoodTerm | null;
+    termRemainingDays?: number | null;
+    attachmentCount?: number;
     createdAt: string;
     updatedAt: string;
+};
+
+export type NeighborhoodStatus = "ACTIVE" | "INACTIVE" | "MERGED" | "CLOSED";
+export type NeighborhoodTermStatus =
+    | "PLANNED"
+    | "ACTIVE"
+    | "ENDED"
+    | "CANCELLED";
+
+export type NeighborhoodTerm = {
+    _id: string;
+    neighborhoodId: string;
+    name: string;
+    startAt: string;
+    endAt: string;
+    status: NeighborhoodTermStatus;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type NeighborhoodHistory = {
+    _id: string;
+    neighborhoodId: string;
+    action: string;
+    actorId?: { _id: string; displayName: string } | null;
+    before?: Record<string, unknown>;
+    after?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+};
+
+export type NeighborhoodCollaboratorScope =
+    | "WHOLE_NEIGHBORHOOD"
+    | "STREET"
+    | "HOUSE_GROUP"
+    | "CAMPAIGN";
+
+export type NeighborhoodCollaboratorAssignment = {
+    _id: string;
+    neighborhoodId: string;
+    collaboratorUserId?: {
+        _id: string;
+        displayName: string;
+        phone?: string;
+        status?: UserStatus;
+    } | null;
+    scopeType: NeighborhoodCollaboratorScope;
+    streetId?: { _id: string; name: string; code: string } | null;
+    houseIds: Array<{ _id: string; code: string; address: string }>;
+    campaignId?: {
+        _id: string;
+        name: string;
+        status: InspectionCampaignStatus;
+        dueAt: string;
+    } | null;
+    startAt: string;
+    endAt?: string;
+    assignedBy?: { _id: string; displayName: string } | null;
+    note?: string;
 };
 
 export type Street = {
@@ -371,6 +476,8 @@ export type NeighborhoodLeaderAssignment = {
     leaderUserId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
+    termId?: NeighborhoodTerm | null;
+    endAt?: string;
     unassignedAt?: string;
     unassignedBy?: { _id: string; displayName: string } | null;
     note?: string;
@@ -382,6 +489,8 @@ export type NeighborhoodColeaderAssignment = {
     coleaderUserId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
+    termId?: NeighborhoodTerm | null;
+    endAt?: string;
     unassignedAt?: string;
     unassignedBy?: { _id: string; displayName: string } | null;
     note?: string;
@@ -894,7 +1003,41 @@ export type ResidentRecord = {
 // them gia tri vao REQUEST_TYPES.
 // ---------------------------------------------------------------------------
 export const REQUEST_TYPES = ["pccc", "security", "other", "task"] as const;
-export type RequestType = typeof REQUEST_TYPES[number];
+export type RequestType = string;
+
+export type RequestFormField = {
+    key: string;
+    label: string;
+    type:
+        | "text"
+        | "long_text"
+        | "number"
+        | "date"
+        | "boolean"
+        | "single_select"
+        | "multi_select";
+    required: boolean;
+    options: string[];
+    classification: "internal" | "personal" | "sensitive";
+};
+
+export type RequestTypeDefinition = {
+    _id?: string;
+    key: string;
+    name: string;
+    description?: string;
+    builtIn?: boolean;
+    fields: RequestFormField[];
+    allowedSenderRoles?: string[];
+    allowedReceiverRoles?: string[];
+    dataEntryMode: "sender" | "recipient";
+    version: number;
+    active?: boolean;
+    wardCode?: number;
+    wardName?: string;
+    createdAt?: string;
+    updatedAt?: string;
+};
 
 export const REQUEST_HOUSE_ROLES = [
     "house_owner",
@@ -951,6 +1094,15 @@ export type RequestItem = {
     dueDate?: string;
     targetRoles: string[];
     recipients: RequestRecipientItem[];
+    typeDefinitionId?: string;
+    formSchemaVersion?: number;
+    formDefinitionSnapshot?: {
+        name: string;
+        dataEntryMode: "sender" | "recipient";
+        fields: RequestFormField[];
+    };
+    formData?: Record<string, unknown>;
+    formDataUpdatedAt?: string;
     createdBy?: string | PopulatedInspector;
     createdAt: string;
     updatedAt: string;
@@ -962,6 +1114,13 @@ export type MyRequestItem = {
     type: RequestType;
     title: string;
     description?: string;
+    formDefinitionSnapshot?: {
+        name: string;
+        dataEntryMode: "sender" | "recipient";
+        fields: RequestFormField[];
+    };
+    formSchemaVersion?: number;
+    formData?: Record<string, unknown>;
     priority: RequestPriority;
     houseId?: string | PopulatedHouse | null;
     dueDate?: string;
@@ -977,6 +1136,7 @@ export type MyRequestItem = {
 export type RequestMeta = {
     allowedTypes: RequestType[];
     eligibleRolesByType: Record<string, string[]>;
+    typeDefinitions: RequestTypeDefinition[];
 };
 
 // Dung chung cho trao doi tren Request VA SupportTicket (C12) - cung mo hinh
@@ -1097,6 +1257,10 @@ export type PeriodicReportType = typeof PERIODIC_REPORT_TYPES[number];
 export const PERIODIC_REPORT_STATUS = [
     "draft",
     "submitted",
+    "received",
+    "accepted",
+    "revision_required",
+    "recalled",
     "revision_requested",
     "resubmitted",
 ] as const;
@@ -1109,20 +1273,101 @@ export type PeriodicReportSections = {
     proposals?: string;
 };
 
+export type PeriodicReportAutoSummary = {
+    tasks: { received: number; completed: number; overdue: number };
+    feedback: { received: number; verified: number; forwarded: number; pending: number };
+    inspections: {
+        total: number;
+        completed: number;
+        passed: number;
+        failed: number;
+        pending: number;
+        revisionRequired: number;
+        fieldCheckRequired: number;
+    };
+    cases: { total: number; open: number; resolved: number };
+    generatedAt: string;
+};
+
+export type PeriodicReportVersionSummary = {
+    _id: string;
+    version: number;
+    submittedAt: string;
+    submittedByUserId?: string | { _id: string; displayName: string };
+};
+
 export type PeriodicReport = {
     _id: string;
     type: PeriodicReportType;
     periodStart: string;
     periodEnd: string;
     authorUserId: string | { _id: string; displayName: string; phone?: string };
-    neighborhoodId?: string | { _id: string; code: string; name: string } | null;
+    neighborhoodId?: string | {
+        _id: string;
+        code: string;
+        name: string;
+        wardCode?: number;
+        wardName?: string;
+    } | null;
     sections: PeriodicReportSections;
+    autoSummary: PeriodicReportAutoSummary;
     status: PeriodicReportStatus;
-    submittedToUserId?: string | { _id: string; displayName: string } | null;
+    submittedToUserId?: string | {
+        _id: string;
+        displayName: string;
+        roles?: string[];
+        wardCode?: number;
+        wardName?: string;
+    } | null;
     submittedAt?: string;
+    currentVersion: number;
+    receivedAt?: string;
+    acceptedAt?: string;
+    recalledAt?: string;
     revisionNote?: string;
+    attachments?: FileAsset[];
+    versions?: PeriodicReportVersionSummary[];
     createdAt: string;
     updatedAt: string;
+};
+
+export type KpiFormulaType = "ratio" | "count" | "average";
+export type KpiDataSource =
+    | "task_completion"
+    | "task_on_time"
+    | "feedback_sla"
+    | "inspection_completion"
+    | "house_response"
+    | "notification_read";
+export type KpiPeriod = "weekly" | "monthly" | "quarterly" | "yearly";
+
+export type KpiDefinition = {
+    _id: string;
+    code: string;
+    name: string;
+    description?: string;
+    formulaType: KpiFormulaType;
+    dataSource: KpiDataSource;
+    targetValue: number;
+    targetDirection: "gte" | "lte";
+    unit: string;
+    period: KpiPeriod;
+    wardCode?: number;
+    active: boolean;
+    version: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type KpiEvaluationItem = {
+    definition: KpiDefinition;
+    fromDate: string;
+    toDate: string;
+    value: number | null;
+    targetMet: boolean | null;
+    numerator: number;
+    denominator: number;
+    detail: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -1371,6 +1616,23 @@ export type DashboardSummary = {
             income: number;
             expense: number;
         }[];
+    };
+    gisOverview: {
+        provider: "internal_coordinates";
+        totalHouses: number;
+        housesWithCoordinates: number;
+        points: Array<{
+            houseId: string;
+            code: string;
+            address: string;
+            latitude: number;
+            longitude: number;
+            accuracyMeters?: number | null;
+            citizenCount: number;
+            openComplaintCount: number;
+            highRiskPccc: boolean;
+            urgentSecurity: boolean;
+        }>;
     };
     taskList: DashboardTask[];
     myRequests: DashboardRequestItem[];

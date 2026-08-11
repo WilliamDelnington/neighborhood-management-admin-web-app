@@ -106,3 +106,37 @@ export const downloadReportExcel = async (
     link.remove();
     window.URL.revokeObjectURL(objectUrl);
 };
+
+export const downloadReportPdf = async (
+    reportPath:
+        | "population"
+        | "complaints"
+        | "pccc"
+        | "security"
+        | "finance"
+        | "houses"
+        | "business"
+        | "households"
+        | "requests",
+    fileName: string,
+    extraParams: Record<string, string | undefined> = {},
+): Promise<void> => {
+    const { token } = useAuthStore.getState();
+    const url = new URL(`${API.REPORTS}/pdf`, BASE_URL);
+    url.searchParams.set("report", reportPath);
+    Object.entries(extraParams).forEach(([key, value]) => {
+        if (value) url.searchParams.set(key, value);
+    });
+    const response = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!response.ok) throw new Error("Không thể xuất báo cáo PDF");
+    const objectUrl = window.URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+};

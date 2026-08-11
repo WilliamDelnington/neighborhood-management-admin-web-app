@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -55,6 +55,8 @@ const ALL_STATUSES = "all";
 
 const HouseListContent: React.FC = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const neighborhoodId = searchParams.get("neighborhoodId") || undefined;
     const canCreate = usePermission("houses.create");
 
     const [search, setSearch] = useState("");
@@ -76,6 +78,7 @@ const HouseListContent: React.FC = () => {
             page: targetPage,
             search: keyword,
             status: statusFilter || undefined,
+            neighborhoodId,
         })
             .then(res => {
                 setItems(res.items);
@@ -90,7 +93,7 @@ const HouseListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search, status), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status]);
+    }, [search, status, neighborhoodId]);
 
     const openCreate = () => {
         setForm(EMPTY_HOUSE_FORM);
@@ -128,6 +131,14 @@ const HouseListContent: React.FC = () => {
                     </Button>
                 )}
             </div>
+            {neighborhoodId && (
+                <div className="mb-3 flex items-center justify-between rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                    <span>Đang lọc Nhà số theo Tổ dân phố đã chọn</span>
+                    <Button size="sm" variant="outline" onClick={() => navigate("/houses")}>
+                        Bỏ lọc
+                    </Button>
+                </div>
+            )}
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
                 <Input
@@ -178,6 +189,7 @@ const HouseListContent: React.FC = () => {
                                 <TableHead>Mã nhà</TableHead>
                                 <TableHead>Địa chỉ</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
+                                <TableHead>GIS</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -197,6 +209,19 @@ const HouseListContent: React.FC = () => {
                                         typeof h.neighborhoodId !== "string"
                                             ? h.neighborhoodId.name
                                             : "Chưa gán"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            tone={
+                                                h.gisLatitude && h.gisLongitude
+                                                    ? "green"
+                                                    : "gray"
+                                            }
+                                        >
+                                            {h.gisLatitude && h.gisLongitude
+                                                ? "Đã gắn"
+                                                : "Chưa có"}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={HOUSE_STATUS_TONE[h.status]}>

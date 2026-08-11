@@ -238,7 +238,9 @@ const MyRequestsContent: React.FC = () => {
                                             {item.title}
                                         </TableCell>
                                         <TableCell>
-                                            {REQUEST_TYPE_LABEL[item.type]}
+                                            {item.formDefinitionSnapshot?.name ||
+                                                REQUEST_TYPE_LABEL[item.type] ||
+                                                item.type}
                                         </TableCell>
                                         <TableCell>
                                             <Badge

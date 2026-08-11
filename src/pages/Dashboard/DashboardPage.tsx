@@ -1,8 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, Clock3, MapPin, RefreshCw } from "lucide-react";
+import {
+    ArrowRight,
+    CheckCircle2,
+    Clock3,
+    MapPin,
+    RefreshCw,
+    ShieldAlert,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
 import StatCard from "@components/admin/StatCard";
+import GisOverviewMap from "@components/admin/GisOverviewMap";
 import ReportBarChart, {
     ReportBarChartSeries,
 } from "@components/admin/ReportBarChart";
@@ -727,6 +735,20 @@ const DashboardContent: React.FC = () => {
                 </button>
             </header>
 
+            {user?.identityVerificationStatus !== "verified" && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                        <p className="font-medium">Danh tính quốc gia chưa được xác minh</p>
+                        <p className="mt-0.5 text-xs">
+                            Tài khoản hiện đăng nhập tạm thời bằng số điện thoại.
+                            Hệ thống chỉ chuyển sang “đã xác minh” sau khi kết nối
+                            và đối chiếu thành công với VNeID/CSDL Quốc gia về Dân cư.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {attentionItems.length > 0 && (
                 <section>
                     <div className="mb-2 flex items-center justify-between">
@@ -887,6 +909,16 @@ const DashboardContent: React.FC = () => {
                 </section>
             )}
 
+            {summary.capabilities.population &&
+                ["system_admin", "ward", "neighborhood", "police"].includes(
+                    summary.audience,
+                ) && (
+                    <GisOverviewMap
+                        data={summary.gisOverview}
+                        onOpenHouse={houseId => navigate(`/houses/${houseId}`)}
+                    />
+                )}
+
             {hasChartCapability && (
                 <section>
                     <div className="mb-2">
@@ -943,7 +975,7 @@ const DashboardContent: React.FC = () => {
                                         {request.title}
                                     </div>
                                     <div className="text-xs text-text_2">
-                                        {REQUEST_TYPE_LABEL[request.type]}
+                                        {REQUEST_TYPE_LABEL[request.type] || request.type}
                                         {request.dueDate &&
                                             ` · Hạn: ${formatDateTime(
                                                 request.dueDate,
