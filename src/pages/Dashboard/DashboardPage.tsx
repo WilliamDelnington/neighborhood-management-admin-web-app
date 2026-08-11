@@ -6,6 +6,8 @@ import StatCard from "@components/admin/StatCard";
 import ReportBarChart, {
     ReportBarChartSeries,
 } from "@components/admin/ReportBarChart";
+import ReportDonutChart from "@components/admin/ReportDonutChart";
+import ReportLineChart from "@components/admin/ReportLineChart";
 import { Badge } from "@components/ui/badge";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import { useAuthStore } from "@store/authStore";
@@ -88,6 +90,34 @@ const QUICK_MODULE_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "houses",
     ],
     staff: ["my_requests", "requests", "houses", "reports"],
+};
+
+const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
+    system_admin: [
+        "inspections",
+        "complaints",
+        "requests",
+        "risks",
+        "finance",
+        "population",
+    ],
+    ward: [
+        "inspections",
+        "requests",
+        "complaints",
+        "population",
+        "risks",
+        "finance",
+    ],
+    neighborhood: [
+        "inspections",
+        "requests",
+        "complaints",
+        "risks",
+        "population",
+    ],
+    police: ["risks", "complaints", "requests", "population"],
+    staff: ["requests", "population", "complaints", "inspections"],
 };
 
 const inferDashboardAudience = (
@@ -229,7 +259,37 @@ type DashboardChartSpec = {
     data: Array<Record<string, unknown>>;
     series: ReportBarChartSeries[];
     orientation?: "categories-y" | "categories-x";
+    variant?: "bar" | "donut" | "line";
     link: string;
+};
+
+const renderDashboardChart = (chart: DashboardChartSpec) => {
+    if (chart.variant === "donut") {
+        return (
+            <ReportDonutChart
+                data={chart.data}
+                labelKey="label"
+                valueKey={chart.series[0].key}
+            />
+        );
+    }
+    if (chart.variant === "line") {
+        return (
+            <ReportLineChart
+                data={chart.data}
+                labelKey="label"
+                series={chart.series}
+            />
+        );
+    }
+    return (
+        <ReportBarChart
+            data={chart.data}
+            labelKey="label"
+            series={chart.series}
+            orientation={chart.orientation}
+        />
+    );
 };
 
 const DashboardChartCard: React.FC<{
@@ -253,12 +313,7 @@ const DashboardChartCard: React.FC<{
                 <ArrowRight className="h-3.5 w-3.5" />
             </button>
         </div>
-        <ReportBarChart
-            data={chart.data}
-            labelKey="label"
-            series={chart.series}
-            orientation={chart.orientation}
-        />
+        {renderDashboardChart(chart)}
     </section>
 );
 
@@ -366,6 +421,89 @@ const DashboardContent: React.FC = () => {
             : null,
     ].filter((item): item is NonNullable<typeof item> => Boolean(item));
 
+    // Payload API moi co breakdown day du. Khi frontend duoc deploy truoc
+    // backend (rolling deploy), dung KPI cu lam mot dong tong hop de vai tro
+    // van co bieu do hop le thay vi mat ca khu "Theo doi dieu hanh".
+    let populationChartData = summary.charts.populationByArea;
+    if (
+        populationChartData.length === 0 &&
+        summary.totalHouseholds + summary.totalCitizens > 0
+    ) {
+        populationChartData = [
+            {
+                label: summary.scopeLabel,
+                households: summary.totalHouseholds,
+                citizens: summary.totalCitizens,
+            },
+        ];
+    }
+    let complaintChartData = summary.charts.complaintStatus;
+    if (complaintChartData.length === 0) {
+        complaintChartData = [
+            {
+                status: "moi_tiep_nhan",
+                label: "Mới tiếp nhận",
+                count: summary.newComplaints,
+            },
+            {
+                status: "dang_xu_ly",
+                label: "Đang xử lý",
+                count: summary.inProgressComplaints,
+            },
+        ].filter(row => row.count > 0);
+    }
+    const hasAreaRequestBreakdown = summary.charts.requestStatus.length > 0;
+    const requestChartData = hasAreaRequestBreakdown
+        ? summary.charts.requestStatus
+        : [
+              {
+                  status: "in_progress",
+                  label: "Đang xử lý",
+                  count: summary.myRequestCounts.inProgress,
+              },
+              {
+                  status: "due_soon",
+                  label: "Sắp hết hạn",
+                  count: summary.myRequestCounts.dueSoon,
+              },
+              {
+                  status: "overdue",
+                  label: "Quá hạn",
+                  count: summary.myRequestCounts.overdue,
+              },
+          ].filter(row => row.count > 0);
+    let riskChartData = summary.charts.riskByArea;
+    if (
+        riskChartData.length === 0 &&
+        summary.highRiskPcccCount + summary.householdsNeedingSupport > 0
+    ) {
+        riskChartData = [
+            {
+                label: summary.scopeLabel,
+                highRiskPccc: summary.highRiskPcccCount,
+                urgentSecurity: 0,
+                needsSupport: summary.householdsNeedingSupport,
+            },
+        ];
+    }
+    let financeChartData = summary.charts.financeByMonth;
+    const hasFinanceHistory = financeChartData.some(
+        row => row.income > 0 || row.expense > 0,
+    );
+    if (
+        !hasFinanceHistory &&
+        summary.financeSummary.monthIncome + summary.financeSummary.monthExpense >
+            0
+    ) {
+        financeChartData = [
+            {
+                label: "Tháng hiện tại",
+                income: summary.financeSummary.monthIncome,
+                expense: summary.financeSummary.monthExpense,
+            },
+        ];
+    }
+
     const riskSeries: ReportBarChartSeries[] = [
         ...(summary.capabilities.pccc
             ? [
@@ -402,14 +540,7 @@ const DashboardContent: React.FC = () => {
 
     const chartSpecs: DashboardChartSpec[] = [
         ...(summary.capabilities.inspections &&
-        summary.charts.inspectionProgress.some(
-            row =>
-                row.verified +
-                    row.submitted +
-                    row.requiresAction +
-                    row.pending >
-                0,
-        )
+        summary.charts.inspectionProgress.length > 0
             ? [
                   {
                       key: "inspections",
@@ -445,28 +576,31 @@ const DashboardContent: React.FC = () => {
                   },
               ]
             : []),
-        ...(riskSeries.length > 0 && summary.charts.riskByArea.length > 0
+        ...(riskSeries.length > 0 && riskChartData.length > 0
             ? [
                   {
                       key: "risks",
                       title: "Điểm cần chú ý theo địa bàn",
                       description:
                           "Chỉ hiển thị khu vực đang có rủi ro hoặc hộ cần hỗ trợ.",
-                      data: summary.charts.riskByArea.map(row => ({ ...row })),
+                      data: riskChartData.map(row => ({ ...row })),
                       series: riskSeries,
                       link: riskDetailLink,
                   },
               ]
             : []),
         ...(summary.capabilities.requests &&
-        summary.charts.requestStatus.some(row => row.count > 0)
+        requestChartData.length > 0
             ? [
                   {
                       key: "requests",
-                      title: "Yêu cầu công việc theo trạng thái",
-                      description:
-                          "Số lượt giao việc trong phạm vi Phường/Tổ đang phụ trách.",
-                      data: summary.charts.requestStatus.map(row => ({ ...row })),
+                      title: hasAreaRequestBreakdown
+                          ? "Yêu cầu công việc theo trạng thái"
+                          : "Công việc của tôi theo trạng thái",
+                      description: hasAreaRequestBreakdown
+                          ? "Số lượt giao việc trong phạm vi Phường/Tổ đang phụ trách."
+                          : "Các yêu cầu cá nhân đang xử lý, sắp hết hạn hoặc quá hạn.",
+                      data: requestChartData.map(row => ({ ...row })),
                       series: [
                           {
                               key: "count",
@@ -474,19 +608,20 @@ const DashboardContent: React.FC = () => {
                               color: "#2563eb",
                           },
                       ],
+                      variant: "donut" as const,
                       link: "/requests",
                   },
               ]
             : []),
         ...(summary.capabilities.complaints &&
-        summary.charts.complaintStatus.some(row => row.count > 0)
+        complaintChartData.length > 0
             ? [
                   {
                       key: "complaints",
                       title: "Phản ánh theo trạng thái",
                       description:
                           "Tình hình tiếp nhận và xử lý phản ánh trong phạm vi quản lý.",
-                      data: summary.charts.complaintStatus.map(row => ({ ...row })),
+                      data: complaintChartData.map(row => ({ ...row })),
                       series: [
                           {
                               key: "count",
@@ -494,19 +629,20 @@ const DashboardContent: React.FC = () => {
                               color: "#2563eb",
                           },
                       ],
+                      variant: "donut" as const,
                       link: "/complaints",
                   },
               ]
             : []),
         ...(summary.capabilities.population &&
-        summary.charts.populationByArea.some(row => row.households > 0)
+        populationChartData.length > 0
             ? [
                   {
                       key: "population",
                       title: "Hộ dân và nhân khẩu theo địa bàn",
                       description:
                           "Quy mô dân cư đã được khai báo tại từng Tổ/khu vực.",
-                      data: summary.charts.populationByArea.map(row => ({
+                      data: populationChartData.map(row => ({
                           ...row,
                       })),
                       series: [
@@ -526,48 +662,36 @@ const DashboardContent: React.FC = () => {
               ]
             : []),
         ...(summary.capabilities.finance &&
-        summary.charts.financeByMonth.some(
-            row => row.income > 0 || row.expense > 0,
-        )
+        financeChartData.some(row => row.income > 0 || row.expense > 0)
             ? [
                   {
                       key: "finance",
                       title: "Thu – Chi 6 tháng gần nhất",
                       description:
                           "Không tính các giao dịch đã hủy; đơn vị hiển thị là đồng.",
-                      data: summary.charts.financeByMonth.map(row => ({ ...row })),
+                      data: financeChartData.map(row => ({ ...row })),
                       series: [
                           { key: "income", name: "Thu", color: "#16a34a" },
                           { key: "expense", name: "Chi", color: "#f97316" },
                       ],
-                      orientation: "categories-x" as const,
+                      variant: "line" as const,
                       link: "/finance",
                   },
               ]
             : []),
     ];
-    let chartPriority = [
-        "inspections",
-        "complaints",
-        "requests",
-        "risks",
-        "finance",
-        "population",
-    ];
-    if (summary.audience === "police") {
-        chartPriority = ["risks", "complaints", "requests", "population"];
-    } else if (summary.audience === "neighborhood") {
-        chartPriority = [
-            "inspections",
-            "requests",
-            "complaints",
-            "risks",
-            "population",
-        ];
-    }
+    const chartPriority = CHART_PRIORITY[summary.audience] || CHART_PRIORITY.staff;
     chartSpecs.sort(
         (a, b) => chartPriority.indexOf(a.key) - chartPriority.indexOf(b.key),
     );
+    const hasChartCapability =
+        summary.capabilities.inspections ||
+        summary.capabilities.requests ||
+        summary.capabilities.complaints ||
+        summary.capabilities.population ||
+        summary.capabilities.pccc ||
+        summary.capabilities.security ||
+        summary.capabilities.finance;
 
     return (
         <div className="space-y-5">
@@ -763,20 +887,32 @@ const DashboardContent: React.FC = () => {
                 </section>
             )}
 
-            {chartSpecs.length > 0 && (
+            {hasChartCapability && (
                 <section>
-                    <h2 className="mb-2 text-sm font-semibold">
-                        Theo dõi điều hành
-                    </h2>
-                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                        {chartSpecs.map(chart => (
-                            <DashboardChartCard
-                                key={chart.key}
-                                chart={chart}
-                                onOpen={() => navigate(chart.link)}
-                            />
-                        ))}
+                    <div className="mb-2">
+                        <h2 className="text-sm font-semibold">
+                            Theo dõi điều hành
+                        </h2>
+                        <p className="mt-0.5 text-xs text-text_2">
+                            Biểu đồ được chọn theo vai trò và phạm vi dữ liệu
+                            được phân công.
+                        </p>
                     </div>
+                    {chartSpecs.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                            {chartSpecs.map(chart => (
+                                <DashboardChartCard
+                                    key={chart.key}
+                                    chart={chart}
+                                    onOpen={() => navigate(chart.link)}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-2xl border border-dashed border-divider_01 bg-white px-4 py-8 text-center text-sm text-text_2">
+                            Chưa có dữ liệu đủ để vẽ biểu đồ trong phạm vi này.
+                        </div>
+                    )}
                 </section>
             )}
 
