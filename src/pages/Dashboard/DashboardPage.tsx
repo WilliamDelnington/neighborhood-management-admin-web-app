@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, Clock3, MapPin, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -18,7 +18,7 @@ import {
     REQUEST_TYPE_LABEL,
     ROLE_LABEL,
 } from "@constants/domain";
-import { DashboardSummary } from "@dts";
+import { DashboardSummary, User } from "@dts";
 import { fetchDashboardSummary } from "@service/dashboardApi";
 
 const AUDIENCE_COPY: Record<
@@ -88,6 +88,121 @@ const QUICK_MODULE_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "houses",
     ],
     staff: ["my_requests", "requests", "houses", "reports"],
+};
+
+const inferDashboardAudience = (
+    user?: User,
+): DashboardSummary["audience"] => {
+    const roles = user?.roles || [];
+    if (roles.includes("admin")) return "system_admin";
+    if (
+        roles.includes("secretary") ||
+        roles.includes("people_committee_official")
+    ) {
+        return "ward";
+    }
+    if (
+        roles.includes("neighborhood_leader") ||
+        roles.includes("neighborhood_coleader")
+    ) {
+        return "neighborhood";
+    }
+    if (roles.includes("regional_police")) return "police";
+    return "staff";
+};
+
+/**
+ * Giu frontend tuong thich trong luc deploy rolling: file JS moi co the duoc
+ * phuc vu truoc khi process backend moi khoi dong xong. Payload dashboard cu
+ * khong co audience/capabilities/attention/charts, nen can bo sung gia tri an
+ * toan tu permission cua phien dang nhap thay vi de trang bi crash.
+ */
+const normalizeDashboardSummary = (
+    raw: DashboardSummary,
+    user?: User,
+): DashboardSummary => {
+    const payload = raw as Partial<DashboardSummary>;
+    const permissionSet = new Set(user?.permissions || []);
+    const fallbackCapabilities: DashboardSummary["capabilities"] = {
+        population:
+            permissionSet.has("houses.read") ||
+            permissionSet.has("households.read") ||
+            permissionSet.has("citizens.read"),
+        complaints: permissionSet.has("complaints.read"),
+        pccc: permissionSet.has("pccc.read"),
+        security: permissionSet.has("security.read"),
+        requests: permissionSet.has("requests.read"),
+        inspections: permissionSet.has("inspections.read"),
+        finance: permissionSet.has("finance.read"),
+        surveys: permissionSet.has("surveys.read"),
+        meetings: permissionSet.has("meetings.read"),
+    };
+    const audience = payload.audience || inferDashboardAudience(user);
+
+    return {
+        ...raw,
+        audience,
+        scopeLabel:
+            payload.scopeLabel ||
+            user?.wardName ||
+            (payload.scopedToCluster
+                ? "Khu vực được phân công"
+                : "Toàn hệ thống"),
+        generatedAt: payload.generatedAt || new Date().toISOString(),
+        capabilities: {
+            ...fallbackCapabilities,
+            ...(payload.capabilities || {}),
+        },
+        totalHouseholds: payload.totalHouseholds ?? 0,
+        totalHouses: payload.totalHouses ?? 0,
+        totalCitizens: payload.totalCitizens ?? 0,
+        rentalHouseholds: payload.rentalHouseholds ?? 0,
+        householdsNeedingSupport: payload.householdsNeedingSupport ?? 0,
+        scopedToCluster: payload.scopedToCluster ?? false,
+        newComplaints: payload.newComplaints ?? 0,
+        inProgressComplaints: payload.inProgressComplaints ?? 0,
+        highRiskPcccCount: payload.highRiskPcccCount ?? 0,
+        upcomingMeetings: payload.upcomingMeetings || [],
+        financeSummary: payload.financeSummary || {
+            monthIncome: 0,
+            monthExpense: 0,
+            monthNet: 0,
+            allTimeNet: 0,
+        },
+        surveyParticipation: payload.surveyParticipation || {
+            openSurveys: 0,
+            totalResponses: 0,
+        },
+        attention: {
+            newComplaints: payload.newComplaints ?? 0,
+            overdueRequests: 0,
+            highRiskPccc: payload.highRiskPcccCount ?? 0,
+            urgentSecurity: 0,
+            activeInspectionCampaigns: 0,
+            overdueInspectionTargets: 0,
+            ...(payload.attention || {}),
+        },
+        charts: {
+            populationByArea: [],
+            complaintStatus: [],
+            requestStatus: [],
+            inspectionProgress: [],
+            riskByArea: [],
+            financeByMonth: [],
+            ...(payload.charts || {}),
+        },
+        taskList: payload.taskList || [],
+        myRequests: payload.myRequests || [],
+        myRequestCounts: payload.myRequestCounts || {
+            inProgress: 0,
+            dueSoon: 0,
+            overdue: 0,
+        },
+        myComplaintCounts: payload.myComplaintCounts || {
+            inProgress: 0,
+            overdue: 0,
+        },
+    };
 };
 
 const formatDateTime = (iso?: string) => {
@@ -160,20 +275,22 @@ const DashboardContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = () => {
+    const load = useCallback(() => {
         setLoading(true);
         setError(false);
         fetchDashboardSummary()
-            .then(setSummary)
+            .then(data => setSummary(normalizeDashboardSummary(data, user)))
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    };
+    }, [user]);
 
-    useEffect(load, []);
+    useEffect(load, [load]);
 
     const quickModules = useMemo(() => {
         if (!summary) return [];
-        const priority = QUICK_MODULE_PRIORITY[summary.audience];
+        const priority =
+            QUICK_MODULE_PRIORITY[summary.audience] ||
+            QUICK_MODULE_PRIORITY.staff;
         return MODULES.filter(
             module =>
                 module.key !== "dashboard" &&
