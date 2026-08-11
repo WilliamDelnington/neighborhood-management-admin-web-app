@@ -1284,6 +1284,25 @@ export type DashboardRequestItem = {
 };
 
 export type DashboardSummary = {
+    audience:
+        | "system_admin"
+        | "ward"
+        | "neighborhood"
+        | "police"
+        | "staff";
+    scopeLabel: string;
+    generatedAt: string;
+    capabilities: {
+        population: boolean;
+        complaints: boolean;
+        pccc: boolean;
+        security: boolean;
+        requests: boolean;
+        inspections: boolean;
+        finance: boolean;
+        surveys: boolean;
+        meetings: boolean;
+    };
     totalHouseholds: number;
     totalHouses: number;
     totalCitizens: number;
@@ -1308,6 +1327,50 @@ export type DashboardSummary = {
     surveyParticipation: {
         openSurveys: number;
         totalResponses: number;
+    };
+    attention: {
+        newComplaints: number;
+        overdueRequests: number;
+        highRiskPccc: number;
+        urgentSecurity: number;
+        activeInspectionCampaigns: number;
+        overdueInspectionTargets: number;
+    };
+    charts: {
+        populationByArea: {
+            label: string;
+            households: number;
+            citizens: number;
+        }[];
+        complaintStatus: {
+            status: string;
+            label: string;
+            count: number;
+        }[];
+        requestStatus: {
+            status: string;
+            label: string;
+            count: number;
+        }[];
+        inspectionProgress: {
+            campaignId: string;
+            label: string;
+            verified: number;
+            submitted: number;
+            requiresAction: number;
+            pending: number;
+        }[];
+        riskByArea: {
+            label: string;
+            highRiskPccc: number;
+            urgentSecurity: number;
+            needsSupport: number;
+        }[];
+        financeByMonth: {
+            label: string;
+            income: number;
+            expense: number;
+        }[];
     };
     taskList: DashboardTask[];
     myRequests: DashboardRequestItem[];
