@@ -1175,6 +1175,8 @@ export type InspectionCampaign = {
     startAt: string;
     dueAt: string;
     status: InspectionCampaignStatus;
+    wardCode?: number;
+    wardName?: string;
     createdByWardUserId: string | { _id: string; displayName: string };
     neighborhoodSubmissions?: Array<{
         neighborhoodId: string;
@@ -1186,6 +1188,24 @@ export type InspectionCampaign = {
     availableNeighborhoods?: Array<{ _id: string; code: string; name: string }>;
     createdAt: string;
     updatedAt: string;
+};
+
+export type InspectionCreationOptions = {
+    neighborhoods: Array<{
+        _id: string;
+        code: string;
+        name: string;
+        sequence: number;
+        wardCode?: number;
+        wardName?: string;
+    }>;
+    houses: Array<{
+        _id: string;
+        code: string;
+        address: string;
+        cluster?: string;
+        neighborhoodId: string;
+    }>;
 };
 
 export type InspectionHouseRef = {

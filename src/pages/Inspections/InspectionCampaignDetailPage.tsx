@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Bell, Send, UserRoundCheck } from "lucide-react";
+import {
+    ArrowLeft,
+    Bell,
+    Lock,
+    Play,
+    RotateCcw,
+    Send,
+    UserRoundCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
@@ -39,6 +47,7 @@ import {
     remindInspection,
     sendInspectionForm,
     submitInspectionToWard,
+    transitionInspectionCampaign,
 } from "@service/inspectionApi";
 
 const RESULT_STATUS: Record<InspectionResultStatus, { label: string; tone: BadgeTone }> = {
@@ -65,6 +74,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
     const canAssign = usePermission("inspections.assign");
     const canExecute = usePermission("inspections.execute");
     const canSubmitWard = usePermission("inspections.submit_to_ward");
+    const canManage = usePermission("inspections.manage");
     const [campaign, setCampaign] = useState<InspectionCampaign | null>(null);
     const [targets, setTargets] = useState<InspectionTarget[]>([]);
     const [page, setPage] = useState(1);
@@ -169,6 +179,52 @@ const InspectionCampaignDetailContent: React.FC = () => {
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        {canManage && campaign.status === "DRAFT" && (
+                            <Button
+                                loading={working}
+                                onClick={() => run(
+                                    () => transitionInspectionCampaign(id, "publish"),
+                                    "Đã triển khai chiến dịch tới Tổ dân phố",
+                                )}
+                            >
+                                <Play className="h-4 w-4" /> Triển khai
+                            </Button>
+                        )}
+                        {canManage && campaign.status === "ACTIVE" && (
+                            <Button
+                                variant="outline"
+                                loading={working}
+                                onClick={() => run(
+                                    () => transitionInspectionCampaign(id, "lock"),
+                                    "Đã khóa chiến dịch",
+                                )}
+                            >
+                                <Lock className="h-4 w-4" /> Khóa
+                            </Button>
+                        )}
+                        {canManage && campaign.status === "LOCKED" && (
+                            <Button
+                                loading={working}
+                                onClick={() => run(
+                                    () => transitionInspectionCampaign(id, "reopen"),
+                                    "Đã mở lại chiến dịch",
+                                )}
+                            >
+                                <RotateCcw className="h-4 w-4" /> Mở lại
+                            </Button>
+                        )}
+                        {canManage && ["ACTIVE", "LOCKED"].includes(campaign.status) && (
+                            <Button
+                                variant="outline"
+                                loading={working}
+                                onClick={() => run(
+                                    () => transitionInspectionCampaign(id, "close"),
+                                    "Đã kết thúc chiến dịch",
+                                )}
+                            >
+                                Kết thúc
+                            </Button>
+                        )}
                         {canSubmitWard && (campaign.availableNeighborhoods?.length || 0) > 1 && (
                             <Select
                                 value={submissionNeighborhoodId}

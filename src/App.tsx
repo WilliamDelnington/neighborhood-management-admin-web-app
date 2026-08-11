@@ -97,6 +97,9 @@ const InspectionCampaignListPage = React.lazy(
 const InspectionCampaignDetailPage = React.lazy(
     () => import("@pages/Inspections/InspectionCampaignDetailPage"),
 );
+const InspectionCampaignFormPage = React.lazy(
+    () => import("@pages/Inspections/InspectionCampaignFormPage"),
+);
 const InspectionFieldCheckPage = React.lazy(
     () => import("@pages/Inspections/InspectionFieldCheckPage"),
 );
@@ -306,6 +309,10 @@ const App: React.FC = () => {
                         <Route
                             path="/inspections/:id"
                             element={<InspectionCampaignDetailPage />}
+                        />
+                        <Route
+                            path="/inspections/create"
+                            element={<InspectionCampaignFormPage />}
                         />
                         <Route
                             path="/inspections/targets/:targetId"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarClock, ClipboardCheck } from "lucide-react";
+import { CalendarClock, ClipboardCheck, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
@@ -15,6 +15,7 @@ import {
 } from "@components/ui/select";
 import type { InspectionCampaign, InspectionCampaignStatus } from "@dts";
 import { fetchInspectionCampaigns } from "@service/inspectionApi";
+import { usePermission } from "@store/authStore";
 
 const STATUS: Record<InspectionCampaignStatus, { label: string; tone: BadgeTone }> = {
     DRAFT: { label: "Nháp", tone: "gray" },
@@ -33,6 +34,7 @@ const InspectionCampaignListPage: React.FC = () => (
 
 const InspectionCampaignListContent: React.FC = () => {
     const navigate = useNavigate();
+    const canCreate = usePermission("inspections.create");
     const [items, setItems] = useState<InspectionCampaign[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -70,17 +72,24 @@ const InspectionCampaignListContent: React.FC = () => {
                         Các đợt rà soát do Phường giao cho Tổ dân phố.
                     </p>
                 </div>
-                <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="w-full sm:w-48">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                        {Object.entries(STATUS).map(([value, meta]) => (
-                            <SelectItem key={value} value={value}>{meta.label}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger className="w-full sm:w-48">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+                            {Object.entries(STATUS).map(([value, meta]) => (
+                                <SelectItem key={value} value={value}>{meta.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {canCreate && (
+                        <Button onClick={() => navigate("/inspections/create")}>
+                            <Plus className="h-4 w-4" /> Tạo chiến dịch
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {loading && <LoadingState label="Đang tải chiến dịch..." />}

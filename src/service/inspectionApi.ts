@@ -1,6 +1,8 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import type {
     InspectionCampaign,
+    InspectionChecklistItem,
+    InspectionCreationOptions,
     InspectionOutcome,
     InspectionResult,
     InspectionSummary,
@@ -21,6 +23,18 @@ export type InspectionResultInput = {
     outcome?: InspectionOutcome;
 };
 
+export type CreateInspectionCampaignInput = {
+    name: string;
+    purpose: string;
+    checklistTemplate: InspectionChecklistItem[];
+    allowSelfDeclaration: boolean;
+    requiredEvidence: boolean;
+    startAt: string;
+    dueAt: string;
+    targetNeighborhoodIds: string[];
+    targetHouseIds?: string[];
+};
+
 export const fetchInspectionCampaigns = (params?: { page?: number; status?: string }) =>
     request<PaginatedData<InspectionCampaign>>("GET", API.INSPECTION_CAMPAIGNS, {
         page: params?.page || 1,
@@ -30,6 +44,24 @@ export const fetchInspectionCampaigns = (params?: { page?: number; status?: stri
 
 export const fetchInspectionCampaign = (id: string) =>
     request<InspectionCampaign>("GET", `${v1}/inspection-campaigns/${id}`);
+
+export const fetchInspectionCreationOptions = (neighborhoodIds: string[] = []) =>
+    request<InspectionCreationOptions>(
+        "GET",
+        `${v1}/inspection-campaigns/creation-options`,
+        { neighborhoodIds: neighborhoodIds.length ? neighborhoodIds.join(",") : undefined },
+    );
+
+export const createInspectionCampaign = (input: CreateInspectionCampaignInput) =>
+    request<InspectionCampaign>("POST", `${v1}/inspection-campaigns`, input);
+
+export const transitionInspectionCampaign = (
+    id: string,
+    action: "publish" | "lock" | "reopen" | "close",
+) => request<InspectionCampaign>(
+    "POST",
+    `${v1}/inspection-campaigns/${id}/${action}`,
+);
 
 export const fetchInspectionTargets = (
     campaignId: string,
