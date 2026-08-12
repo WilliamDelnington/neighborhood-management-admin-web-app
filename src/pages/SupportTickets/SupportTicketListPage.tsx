@@ -26,6 +26,7 @@ import {
     TRANG_THAI_YEU_CAU_HO_TRO_LABEL,
     TRANG_THAI_YEU_CAU_HO_TRO_TONE,
 } from "@constants/domain";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { fetchSupportTickets } from "@service/supportTicketApi";
 
 const ALL_STATUS = "all";
@@ -177,13 +178,14 @@ const SupportTicketListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã — Tiêu đề</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(t => (
+                            {items.map((t, index) => (
                                 <TableRow
                                     key={t._id}
                                     className="cursor-pointer"
@@ -191,6 +193,9 @@ const SupportTicketListContent: React.FC = () => {
                                         navigate(`/support-tickets/${t._id}`)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {t.code} — {t.title}
                                     </TableCell>

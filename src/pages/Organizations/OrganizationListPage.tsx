@@ -237,6 +237,7 @@ const OrganizationListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên tổ chức</TableHead>
                                 <TableHead>Mã số thuế</TableHead>
                                 <TableHead>Người đại diện</TableHead>
@@ -244,12 +245,15 @@ const OrganizationListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(o => (
+                            {items.map((o, index) => (
                                 <TableRow
                                     key={o._id}
                                     className={canUpdate ? "cursor-pointer" : ""}
                                     onClick={() => canUpdate && openEditSheet(o)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * 20 + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {o.name}
                                     </TableCell>

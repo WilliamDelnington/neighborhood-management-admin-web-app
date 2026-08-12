@@ -246,6 +246,7 @@ const RequestTypeListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên nghiệp vụ</TableHead>
                                 <TableHead>Thu thập bởi</TableHead>
@@ -256,8 +257,9 @@ const RequestTypeListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(item => (
+                            {items.map((item, index) => (
                                 <TableRow key={item._id || item.key}>
+                                    <TableCell className="text-center text-text_2">{index + 1}</TableCell>
                                     <TableCell className="font-mono text-xs">{item.key}</TableCell>
                                     <TableCell>
                                         <button

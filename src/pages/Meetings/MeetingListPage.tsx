@@ -74,13 +74,14 @@ const MeetingListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên cuộc họp</TableHead>
                                 <TableHead>Thời gian / Địa điểm</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(m => (
+                            {items.map((m, index) => (
                                 <TableRow
                                     key={m._id}
                                     className="cursor-pointer"
@@ -88,6 +89,9 @@ const MeetingListContent: React.FC = () => {
                                         navigate(`/meetings/${m._id}/edit`)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {m.title}
                                     </TableCell>

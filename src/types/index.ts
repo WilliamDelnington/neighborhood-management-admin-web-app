@@ -1658,6 +1658,11 @@ export type AuditLogRecord = {
     targetId?: string;
     metadata?: Record<string, unknown>;
     ipAddress?: string;
+    userAgent?: string;
+    device?: string;
+    browser?: string;
+    os?: string;
+    sessionId?: string;
     createdAt: string;
 };
 

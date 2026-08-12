@@ -436,18 +436,22 @@ const UserListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên/SĐT</TableHead>
                                 <TableHead>Vai trò</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(u => (
+                            {items.map((u, index) => (
                                 <TableRow
                                     key={u.id}
                                     className="cursor-pointer"
                                     onClick={() => openManageSheet(u)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {u.displayName}
                                         {u.phone ? ` · ${u.phone}` : ""}

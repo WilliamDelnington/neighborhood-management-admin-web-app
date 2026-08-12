@@ -143,6 +143,7 @@ const AnnouncementListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Trạng thái</TableHead>
@@ -151,7 +152,7 @@ const AnnouncementListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(a => (
+                            {items.map((a, index) => (
                                 <TableRow
                                     key={a._id}
                                     className="cursor-pointer"
@@ -159,6 +160,9 @@ const AnnouncementListContent: React.FC = () => {
                                         navigate(`/announcements/${a._id}/edit`)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         <div className="flex items-center gap-2">
                                             {a.pinned ? "📌 " : ""}

@@ -42,6 +42,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, FileAsset, FileAssetCategory, RoleRecord } from "@dts";
 import {
     FILE_ASSET_CATEGORY_LABEL,
@@ -285,6 +286,7 @@ const FileListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên tệp</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Người tải lên</TableHead>
@@ -294,7 +296,7 @@ const FileListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(file => (
+                            {items.map((file, index) => (
                                 <TableRow
                                     key={file._id}
                                     className={canUpdate ? "cursor-pointer" : ""}
@@ -302,6 +304,9 @@ const FileListContent: React.FC = () => {
                                         canUpdate && openEditSheet(file)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         <div className="flex items-center gap-1.5">
                                             {file.name}

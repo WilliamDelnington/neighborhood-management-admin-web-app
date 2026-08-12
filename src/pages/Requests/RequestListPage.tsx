@@ -33,6 +33,7 @@ import {
     REQUEST_TYPE_LABEL,
 } from "@constants/domain";
 import { fetchRequests } from "@service/requestApi";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 
 const ALL_TYPES = "all";
 
@@ -130,6 +131,7 @@ const RequestListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Mức độ</TableHead>
@@ -141,12 +143,15 @@ const RequestListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(r => (
+                            {items.map((r, index) => (
                                 <TableRow
                                     key={r._id}
                                     className="cursor-pointer"
                                     onClick={() => setDetailId(r._id)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {r.title}
                                     </TableCell>

@@ -39,6 +39,7 @@ import {
 } from "@constants/domain";
 import { AppError, MyRequestItem, RequestStatus, RequestType } from "@dts";
 import { fetchMyRequests, updateMyRequestStatus } from "@service/requestApi";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import RequestDetailSheet from "./RequestDetailSheet";
 
 const ALL = "all";
@@ -213,6 +214,7 @@ const MyRequestsContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Mức độ</TableHead>
@@ -224,7 +226,7 @@ const MyRequestsContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(item => {
+                            {items.map((item, index) => {
                                 const busy = updatingId === item.requestId;
                                 return (
                                     <TableRow
@@ -234,6 +236,9 @@ const MyRequestsContent: React.FC = () => {
                                             setDetailRequestId(item.requestId)
                                         }
                                     >
+                                        <TableCell className="text-center text-text_2">
+                                            {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        </TableCell>
                                         <TableCell className="font-medium">
                                             {item.title}
                                         </TableCell>

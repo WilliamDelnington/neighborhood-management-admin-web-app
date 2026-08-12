@@ -105,14 +105,18 @@ const MiniAppFeaturesContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tính năng</TableHead>
                                 <TableHead>Hiển thị trên Mini App</TableHead>
                                 <TableHead>Thứ tự</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sortedRows.map(row => (
+                            {sortedRows.map((row, index) => (
                                 <TableRow key={row.key}>
+                                    <TableCell className="text-center text-text_2">
+                                        {index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {labelOf(row.key)}
                                     </TableCell>

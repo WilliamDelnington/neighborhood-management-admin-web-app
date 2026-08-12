@@ -318,6 +318,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead className="w-12 text-center">STT</TableHead>
                                             <TableHead>Tên</TableHead>
                                             <TableHead>Mã</TableHead>
                                             <TableHead>Trạng thái</TableHead>
@@ -327,6 +328,9 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                                         {job.previewData.map((row, idx) => (
                                             // eslint-disable-next-line react/no-array-index-key
                                             <TableRow key={`${row.code}-${idx}`}>
+                                                <TableCell className="text-center text-text_2">
+                                                    {idx + 1}
+                                                </TableCell>
                                                 <TableCell>
                                                     {row.name}
                                                 </TableCell>

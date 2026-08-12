@@ -159,6 +159,7 @@ const CorrespondenceListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Số/ký hiệu</TableHead>
                                 <TableHead>Tiêu đề</TableHead>
@@ -167,12 +168,15 @@ const CorrespondenceListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(doc => (
+                            {items.map((doc, index) => (
                                 <TableRow
                                     key={doc._id}
                                     className="cursor-pointer"
                                     onClick={() => openCorrespondence(doc)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {index + 1}
+                                    </TableCell>
                                     <TableCell>{typeLabel(doc)}</TableCell>
                                     <TableCell className="font-medium">
                                         {doc.documentNumber || "—"}

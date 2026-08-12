@@ -295,6 +295,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
@@ -302,12 +303,15 @@ const InfrastructureAssetListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(a => (
+                            {items.map((a, index) => (
                                 <TableRow
                                     key={a._id}
                                     className="cursor-pointer"
                                     onClick={() => openEdit(a)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * 30 + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {a.name}
                                         {a.location && (

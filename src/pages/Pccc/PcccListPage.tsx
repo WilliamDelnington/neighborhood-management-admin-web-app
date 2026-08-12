@@ -53,7 +53,7 @@ import {
     REQUEST_STATUS_LABEL,
     REQUEST_STATUS_TONE,
 } from "@constants/domain";
-import { resolveAssetUrl } from "@constants/common";
+import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import {
     createPcccCheck,
     deletePcccAttachment,
@@ -382,13 +382,14 @@ const PcccListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Nhà</TableHead>
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Mức nguy cơ</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(c => (
+                            {items.map((c, index) => (
                                 <TableRow
                                     key={c._id}
                                     className={canManage ? "cursor-pointer" : ""}
@@ -396,6 +397,9 @@ const PcccListContent: React.FC = () => {
                                         canManage ? () => openEdit(c) : undefined
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {houseText(c.houseId)}
                                     </TableCell>
