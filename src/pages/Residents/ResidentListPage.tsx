@@ -31,6 +31,7 @@ import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { usePermission } from "@store/authStore";
 import { AppError, ResidentRecord } from "@dts";
 import { LOAI_SO_HUU_LABEL, RESIDENT_AUDIT_ACTION_LABEL } from "@constants/domain";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     createResidentRecord,
     deleteResidentRecord,
@@ -184,6 +185,7 @@ const ResidentListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Nhà</TableHead>
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Hình thức sở hữu</TableHead>
@@ -191,7 +193,7 @@ const ResidentListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(r => (
+                            {items.map((r, index) => (
                                 <TableRow
                                     key={r._id}
                                     className={canManage ? "cursor-pointer" : ""}
@@ -199,6 +201,9 @@ const ResidentListContent: React.FC = () => {
                                         canManage ? () => openEdit(r) : undefined
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {houseText(r.houseId)}
                                     </TableCell>

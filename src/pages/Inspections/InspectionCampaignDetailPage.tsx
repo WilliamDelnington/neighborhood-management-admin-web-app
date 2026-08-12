@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { Badge, type BadgeTone } from "@components/ui/badge";
@@ -366,6 +367,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-12 text-center">STT</TableHead>
                                     {canAssign && <TableHead className="w-10">
                                         <Checkbox
                                             checked={allSelected}
@@ -380,11 +382,14 @@ const InspectionCampaignDetailContent: React.FC = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {targets.map(target => {
+                                {targets.map((target, index) => {
                                     const house = houseOf(target);
                                     const assignee = target.assignedCollaboratorUserId;
                                     return (
                                         <TableRow key={target._id}>
+                                            <TableCell className="text-center text-text_2">
+                                                {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                            </TableCell>
                                             {canAssign && <TableCell>
                                                 <Checkbox
                                                     checked={selected.includes(target._id)}

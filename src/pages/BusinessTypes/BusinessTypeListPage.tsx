@@ -40,6 +40,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, BusinessType, DocumentType, RoleRecord } from "@dts";
 import {
     createBusinessType,
@@ -322,6 +323,7 @@ const BusinessTypeListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên loại hình</TableHead>
                                 <TableHead>Mô tả</TableHead>
                                 <TableHead>Trạng thái</TableHead>
@@ -329,7 +331,7 @@ const BusinessTypeListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(bt => (
+                            {items.map((bt, index) => (
                                 <TableRow
                                     key={bt._id}
                                     className={canUpdate ? "cursor-pointer" : ""}
@@ -337,6 +339,9 @@ const BusinessTypeListContent: React.FC = () => {
                                         canUpdate && openEditSheet(bt)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {bt.name}
                                     </TableCell>

@@ -91,6 +91,7 @@ const SurveyListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên khảo sát</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Số câu hỏi</TableHead>
@@ -98,7 +99,7 @@ const SurveyListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(s => (
+                            {items.map((s, index) => (
                                 <TableRow
                                     key={s._id}
                                     className={canEdit ? "cursor-pointer" : ""}
@@ -111,6 +112,9 @@ const SurveyListContent: React.FC = () => {
                                             : undefined
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {s.title}
                                     </TableCell>

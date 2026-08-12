@@ -33,6 +33,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, CorrespondenceType, Role, RoleRecord } from "@dts";
 import {
     createCorrespondenceType,
@@ -231,6 +232,7 @@ const CorrespondenceTypeListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên loại văn bản</TableHead>
                                 <TableHead>Người gửi</TableHead>
                                 <TableHead>Người nhận</TableHead>
@@ -239,12 +241,15 @@ const CorrespondenceTypeListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(ct => (
+                            {items.map((ct, index) => (
                                 <TableRow
                                     key={ct._id}
                                     className={canUpdate ? "cursor-pointer" : ""}
                                     onClick={() => canUpdate && openEditSheet(ct)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {ct.name}
                                         {ct.description && (

@@ -28,6 +28,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import { AuditLogRecord } from "@dts";
 import { fetchAuditLogs } from "@service/auditLogApi";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 
 const TARGET_MODELS = [
     "User",
@@ -178,6 +179,7 @@ const AuditLogListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Thời gian</TableHead>
                                 <TableHead>Người thực hiện</TableHead>
                                 <TableHead>Hành động</TableHead>
@@ -187,8 +189,11 @@ const AuditLogListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(log => (
+                            {items.map((log, index) => (
                                 <TableRow key={log._id}>
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="whitespace-nowrap text-sm">
                                         {formatDateTime(log.createdAt)}
                                     </TableCell>

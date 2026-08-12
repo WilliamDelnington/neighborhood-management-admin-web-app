@@ -4,20 +4,43 @@ import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import { useAuthStore } from "@store/authStore";
+import { ROLE_LABEL } from "@constants/domain";
 import { AppError } from "@dts";
-import { createHouseOwner } from "@service/userApi";
+import { createHouseOwner, CreatableStaffRole } from "@service/userApi";
 
 type FormState = {
     phone: string;
     displayName: string;
     address: string;
+    password: string;
+    role: CreatableStaffRole;
 };
 
 const EMPTY_FORM: FormState = {
     phone: "",
     displayName: "",
     address: "",
+    password: "",
+    role: "house_owner",
 };
+
+// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai chi
+// hien voi admin (backend cung tu choi neu khong phai admin - xem
+// userService.createHouseOwnerByStaff) - day la cac vai tro pham vi rong (to
+// truong/to pho) hoac can gan vao mot To dan pho cu the sau khi tao.
+const STAFF_ONLY_ROLES: CreatableStaffRole[] = [
+    "neighborhood_leader",
+    "neighborhood_coleader",
+    "neighborhood_collaborator",
+];
 
 const CreateHouseOwnerPage: React.FC = () => (
     <AdminGuard permissions={["users.create"]}>
@@ -28,11 +51,21 @@ const CreateHouseOwnerPage: React.FC = () => (
 /**
  * Man rieng (khong dung chung UserListPage - trang do doi hoi quyen
  * "users.read", von liet ke TOAN BO tai khoan he thong khong loc theo to dan
- * pho) de to truong tao tai khoan chu ho ma khong bi cap them quyen xem het
- * moi nguoi dung. Chu ho mo Mini App va cho phep Zalo chia se so dien thoai;
- * backend se lien ket Zalo identity voi tai khoan duoc tao truoc o day.
+ * pho) de to truong/admin tao tai khoan chu ho (hoac to truong/to pho/cong
+ * tac vien To dan pho, admin-only) ma khong bi cap them quyen xem het moi
+ * nguoi dung.
+ *
+ * Tai khoan dang nhap bang chinh so dien thoai + mat khau duoc dat o day (TAM
+ * THOI dung phone+password thay OTP/Zalo - dang nhap Zalo da bi go khoi
+ * LoginPage.tsx theo yeu cau kiem duyet Zalo Mini App, con OTP dang cho duyet
+ * mau tin eSMS/ZNS - xem LoginPage.tsx o mini app).
+ *
+ * Voi vai tro to truong/to pho/cong tac vien: tai khoan tao ra o day CHUA
+ * duoc gan vao To dan pho nao - can lien ket rieng qua man "Gan to truong/to
+ * pho/cong tac vien" tren trang chi tiet To dan pho sau khi tao.
  */
 const CreateHouseOwnerContent: React.FC = () => {
+    const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
     const [lastCreatedPhone, setLastCreatedPhone] = useState<string | null>(null);
@@ -42,12 +75,13 @@ const CreateHouseOwnerContent: React.FC = () => {
 
     const isValid =
         form.phone.trim().length > 0 &&
-        form.displayName.trim().length > 0;
+        form.displayName.trim().length > 0 &&
+        form.password.trim().length >= 6;
 
     const handleCreate = async () => {
         if (!isValid) {
             toast.error(
-                "Vui lòng nhập đầy đủ số điện thoại và họ tên",
+                "Vui lòng nhập đầy đủ số điện thoại, họ tên và mật khẩu (ít nhất 6 ký tự)",
             );
             return;
         }
@@ -57,8 +91,10 @@ const CreateHouseOwnerContent: React.FC = () => {
                 phone: form.phone.trim(),
                 displayName: form.displayName.trim(),
                 address: form.address.trim() || undefined,
+                role: form.role,
+                password: form.password.trim(),
             });
-            toast.success("Đã tạo tài khoản chủ hộ mới");
+            toast.success(`Đã tạo tài khoản ${ROLE_LABEL[form.role]} mới`);
             setLastCreatedPhone(form.phone.trim());
             setForm(EMPTY_FORM);
         } catch (err) {
@@ -70,18 +106,50 @@ const CreateHouseOwnerContent: React.FC = () => {
 
     return (
         <div className="max-w-lg">
-            <h1 className="mb-4 text-lg font-semibold">Tạo tài khoản chủ hộ</h1>
+            <h1 className="mb-4 text-lg font-semibold">Tạo tài khoản</h1>
 
             {lastCreatedPhone && (
                 <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
                     Đã tạo tài khoản với số điện thoại <strong>{lastCreatedPhone}</strong>.
-                    Chủ hộ có thể mở Mini App và cho phép Zalo chia sẻ số điện thoại
-                    này để đăng nhập; không cần mật khẩu.
+                    Đăng nhập trong Mini App bằng số điện thoại và mật khẩu
+                    vừa đặt.
+                    {STAFF_ONLY_ROLES.includes(form.role) && (
+                        <>
+                            {" "}
+                            Vào trang chi tiết Tổ dân phố để gán tài khoản này
+                            làm {ROLE_LABEL[form.role]} của một tổ cụ thể.
+                        </>
+                    )}
                 </div>
             )}
 
             <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                 <div className="flex flex-col gap-4">
+                    {isAdmin && (
+                        <div className="space-y-1.5">
+                            <Label>Vai trò</Label>
+                            <Select
+                                value={form.role}
+                                onValueChange={v =>
+                                    set("role", v as CreatableStaffRole)
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="house_owner">
+                                        {ROLE_LABEL.house_owner}
+                                    </SelectItem>
+                                    {STAFF_ONLY_ROLES.map(role => (
+                                        <SelectItem key={role} value={role}>
+                                            {ROLE_LABEL[role]}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                     <div className="space-y-1.5">
                         <Label>Số điện thoại</Label>
                         <Input
@@ -91,7 +159,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label>Họ tên chủ hộ</Label>
+                        <Label>Họ tên</Label>
                         <Input
                             placeholder="VD: Nguyễn Văn A"
                             value={form.displayName}
@@ -104,6 +172,18 @@ const CreateHouseOwnerContent: React.FC = () => {
                             value={form.address}
                             onChange={e => set("address", e.target.value)}
                         />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label>Mật khẩu</Label>
+                        <Input
+                            type="password"
+                            placeholder="Ít nhất 6 ký tự"
+                            value={form.password}
+                            onChange={e => set("password", e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Sẽ đăng nhập bằng số điện thoại + mật khẩu này.
+                        </p>
                     </div>
                 </div>
                 <Button

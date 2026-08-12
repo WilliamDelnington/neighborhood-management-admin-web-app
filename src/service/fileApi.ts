@@ -29,6 +29,30 @@ export const createFileAsset = (
     params: CreateFileAssetParams,
 ): Promise<FileAsset> => request<FileAsset>("POST", API.FILES, params);
 
+export interface UploadFileAssetParams {
+    file: File;
+    name?: string;
+    description?: string;
+    category: FileAssetCategory;
+    isPublic: boolean;
+    targetRoles: string[];
+    audienceAll: boolean;
+}
+
+export const uploadFileAsset = (
+    params: UploadFileAssetParams,
+): Promise<FileAsset> => {
+    const formData = new FormData();
+    formData.append("file", params.file);
+    if (params.name) formData.append("name", params.name);
+    if (params.description) formData.append("description", params.description);
+    formData.append("category", params.category);
+    formData.append("isPublic", String(params.isPublic));
+    formData.append("audienceAll", String(params.audienceAll));
+    params.targetRoles.forEach(role => formData.append("targetRoles", role));
+    return request<FileAsset>("POST", API.FILES, formData);
+};
+
 export interface UpdateFileAssetParams {
     name?: string;
     url?: string;

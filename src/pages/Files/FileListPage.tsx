@@ -42,6 +42,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import { AppError, FileAsset, FileAssetCategory, RoleRecord } from "@dts";
 import {
     FILE_ASSET_CATEGORY_LABEL,
@@ -52,6 +53,7 @@ import {
     deleteFileAsset,
     fetchFileAssets,
     updateFileAsset,
+    uploadFileAsset,
 } from "@service/fileApi";
 import { fetchRoles } from "@service/roleApi";
 
@@ -112,6 +114,8 @@ const FileListContent: React.FC = () => {
     const [editing, setEditing] = useState<FileAsset | null>(null);
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
+    const [uploadMode, setUploadMode] = useState<"link" | "upload">("link");
+    const [file, setFile] = useState<File | null>(null);
 
     const [toDelete, setToDelete] = useState<FileAsset | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -159,21 +163,33 @@ const FileListContent: React.FC = () => {
     const openCreateSheet = () => {
         setEditing(null);
         setForm(EMPTY_FORM);
+        setUploadMode("link");
+        setFile(null);
         setSheetOpen(true);
     };
 
-    const openEditSheet = (file: FileAsset) => {
-        setEditing(file);
+    const openEditSheet = (fileAsset: FileAsset) => {
+        setEditing(fileAsset);
         setForm({
-            name: file.name,
-            url: file.url,
-            description: file.description || "",
-            category: file.category,
-            isPublic: file.isPublic,
-            audienceAll: file.audienceAll,
-            targetRoles: file.targetRoles || [],
+            name: fileAsset.name,
+            url: fileAsset.url,
+            description: fileAsset.description || "",
+            category: fileAsset.category,
+            isPublic: fileAsset.isPublic,
+            audienceAll: fileAsset.audienceAll,
+            targetRoles: fileAsset.targetRoles || [],
         });
+        setUploadMode("link");
+        setFile(null);
         setSheetOpen(true);
+    };
+
+    const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selected = e.target.files?.[0] || null;
+        setFile(selected);
+        if (selected && !form.name.trim()) {
+            setForm(prev => ({ ...prev, name: selected.name }));
+        }
     };
 
     const toggleTargetRole = (key: string, checked: boolean) => {
@@ -200,6 +216,18 @@ const FileListContent: React.FC = () => {
                 });
                 toast.success("Đã cập nhật tệp");
                 load(page);
+            } else if (uploadMode === "upload" && file) {
+                await uploadFileAsset({
+                    file,
+                    name: form.name.trim(),
+                    description: form.description.trim() || undefined,
+                    category: form.category,
+                    isPublic: form.isPublic,
+                    audienceAll: form.audienceAll,
+                    targetRoles: form.audienceAll ? [] : form.targetRoles,
+                });
+                toast.success("Đã tải lên tệp mới");
+                load(1);
             } else {
                 await createFileAsset({
                     name: form.name.trim(),
@@ -238,7 +266,7 @@ const FileListContent: React.FC = () => {
 
     const isFormValid =
         form.name.trim() &&
-        form.url.trim() &&
+        (!editing && uploadMode === "upload" ? !!file : form.url.trim()) &&
         (form.audienceAll || form.targetRoles.length > 0);
 
     return (
@@ -285,6 +313,7 @@ const FileListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên tệp</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Người tải lên</TableHead>
@@ -294,7 +323,7 @@ const FileListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(file => (
+                            {items.map((file, index) => (
                                 <TableRow
                                     key={file._id}
                                     className={canUpdate ? "cursor-pointer" : ""}
@@ -302,11 +331,14 @@ const FileListContent: React.FC = () => {
                                         canUpdate && openEditSheet(file)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         <div className="flex items-center gap-1.5">
                                             {file.name}
                                             <a
-                                                href={file.url}
+                                                href={resolveAssetUrl(file.url)}
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 onClick={e => e.stopPropagation()}
@@ -413,19 +445,73 @@ const FileListContent: React.FC = () => {
                                     }
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <Label>Đường dẫn (URL)</Label>
-                                <Input
-                                    placeholder="https://drive.google.com/..."
-                                    value={form.url}
-                                    onChange={e =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            url: e.target.value,
-                                        }))
-                                    }
-                                />
-                            </div>
+                            {!editing && (
+                                <div className="space-y-1.5">
+                                    <Label>Nguồn tệp</Label>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant={
+                                                uploadMode === "link"
+                                                    ? "default"
+                                                    : "outline"
+                                            }
+                                            onClick={() =>
+                                                setUploadMode("link")
+                                            }
+                                        >
+                                            Liên kết (URL)
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant={
+                                                uploadMode === "upload"
+                                                    ? "default"
+                                                    : "outline"
+                                            }
+                                            onClick={() =>
+                                                setUploadMode("upload")
+                                            }
+                                        >
+                                            Tải tệp lên
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                            {(editing || uploadMode === "link") && (
+                                <div className="space-y-1.5">
+                                    <Label>Đường dẫn (URL)</Label>
+                                    <Input
+                                        placeholder="https://drive.google.com/..."
+                                        value={form.url}
+                                        onChange={e =>
+                                            setForm(prev => ({
+                                                ...prev,
+                                                url: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                            )}
+                            {!editing && uploadMode === "upload" && (
+                                <div className="space-y-1.5">
+                                    <Label>Tệp đính kèm</Label>
+                                    <input
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
+                                        onChange={handleFileSelected}
+                                        className="block w-full text-sm text-text_2"
+                                    />
+                                    {file && (
+                                        <p className="text-xs text-text_2">
+                                            {file.name} (
+                                            {(file.size / 1024).toFixed(0)} KB)
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                             <div className="space-y-1.5">
                                 <Label>Loại tệp</Label>
                                 <Select

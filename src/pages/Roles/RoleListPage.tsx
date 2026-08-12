@@ -40,6 +40,7 @@ import {
     RoleRecord,
 } from "@dts";
 import { NHOM_PHAN_ANH_LABEL, REQUEST_TYPE_LABEL } from "@constants/domain";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     createRole,
     deleteRole,
@@ -303,6 +304,7 @@ const RoleListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Vai trò</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Số quyền</TableHead>
@@ -312,12 +314,15 @@ const RoleListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {roles.map(role => (
+                            {roles.map((role, index) => (
                                 <TableRow
                                     key={role._id}
                                     className="cursor-pointer"
                                     onClick={() => openEditSheet(role)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {role.name}
                                         <div className="text-xs text-text_2">

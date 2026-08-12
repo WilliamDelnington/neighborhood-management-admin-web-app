@@ -158,10 +158,10 @@ const WardManagementContent: React.FC = () => {
                         </div>
                         {loading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
                             <div className="max-h-[560px] overflow-auto rounded-md border">
-                                <Table><TableHeader><TableRow><TableHead>Phường / xã</TableHead><TableHead>Mã</TableHead><TableHead>Người quản lý</TableHead></TableRow></TableHeader>
-                                    <TableBody>{filteredWards.map(ward => {
+                                <Table><TableHeader><TableRow><TableHead className="w-12 text-center">STT</TableHead><TableHead>Phường / xã</TableHead><TableHead>Mã</TableHead><TableHead>Người quản lý</TableHead></TableRow></TableHeader>
+                                    <TableBody>{filteredWards.map((ward, index) => {
                                         const count = staff.filter(user => user.wardCode === ward.code).length;
-                                        return <TableRow key={ward.code} className={`cursor-pointer ${ward.code === selectedWardCode ? "bg-muted" : ""}`} onClick={() => setSelectedWardCode(ward.code)}><TableCell className="font-medium">{ward.name}</TableCell><TableCell>{ward.code}</TableCell><TableCell><Badge tone={count ? "green" : "gray"}>{count}</Badge></TableCell></TableRow>;
+                                        return <TableRow key={ward.code} className={`cursor-pointer ${ward.code === selectedWardCode ? "bg-muted" : ""}`} onClick={() => setSelectedWardCode(ward.code)}><TableCell className="text-center text-text_2">{index + 1}</TableCell><TableCell className="font-medium">{ward.name}</TableCell><TableCell>{ward.code}</TableCell><TableCell><Badge tone={count ? "green" : "gray"}>{count}</Badge></TableCell></TableRow>;
                                     })}</TableBody>
                                 </Table>
                             </div>

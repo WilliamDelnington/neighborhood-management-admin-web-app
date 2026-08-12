@@ -1,11 +1,27 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+    Activity,
+    AlertTriangle,
     ArrowRight,
+    BarChart3,
+    Building2,
+    CalendarClock,
     CheckCircle2,
+    ClipboardCheck,
+    ClipboardList,
     Clock3,
+    Flame,
+    Heart,
+    Home,
+    ListChecks,
     MapPin,
+    MessageSquare,
+    MessagesSquare,
     RefreshCw,
     ShieldAlert,
+    Users,
+    Wallet,
+    Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -393,6 +409,7 @@ const DashboardContent: React.FC = () => {
                   label: "Phản ánh mới cần tiếp nhận",
                   value: summary.attention.newComplaints,
                   link: "/complaints?status=moi_tiep_nhan",
+                  icon: MessageSquare,
               }
             : null,
         summary.capabilities.requests
@@ -401,6 +418,7 @@ const DashboardContent: React.FC = () => {
                   label: "Yêu cầu công việc quá hạn",
                   value: summary.attention.overdueRequests,
                   link: "/requests",
+                  icon: ClipboardList,
               }
             : null,
         summary.capabilities.inspections
@@ -409,6 +427,7 @@ const DashboardContent: React.FC = () => {
                   label: "Nhà quá hạn rà soát",
                   value: summary.attention.overdueInspectionTargets,
                   link: "/inspections",
+                  icon: ClipboardCheck,
               }
             : null,
         summary.capabilities.pccc
@@ -417,6 +436,7 @@ const DashboardContent: React.FC = () => {
                   label: "Nguy cơ PCCC mức Đỏ",
                   value: summary.attention.highRiskPccc,
                   link: "/pccc?riskLevel=do",
+                  icon: Flame,
               }
             : null,
         summary.capabilities.security
@@ -425,6 +445,7 @@ const DashboardContent: React.FC = () => {
                   label: "An ninh mức Khẩn cấp",
                   value: summary.attention.urgentSecurity,
                   link: "/security?level=khan_cap",
+                  icon: ShieldAlert,
               }
             : null,
     ].filter((item): item is NonNullable<typeof item> => Boolean(item));
@@ -703,226 +724,45 @@ const DashboardContent: React.FC = () => {
 
     return (
         <div className="space-y-5">
-            <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <h1 className="text-xl font-semibold">
-                            Xin chào, {user?.displayName}
-                        </h1>
-                        <Badge tone="blue">{audienceCopy.label}</Badge>
-                    </div>
-                    <p className="mt-1 text-sm text-text_2">
-                        {audienceCopy.description}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text_2">
-                        <span className="flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5" />
-                            Phạm vi: {summary.scopeLabel}
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <Clock3 className="h-3.5 w-3.5" />
-                            Cập nhật {formatDateTime(summary.generatedAt)}
-                        </span>
-                    </div>
-                </div>
-                <button
-                    type="button"
-                    className="flex items-center justify-center gap-2 rounded-xl border border-divider_01 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-ng_10"
-                    onClick={load}
-                >
-                    <RefreshCw className="h-4 w-4" />
-                    Làm mới
-                </button>
-            </header>
-
-            {user?.identityVerificationStatus !== "verified" && (
-                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                    <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <header className="relative overflow-hidden rounded-2xl border border-divider_01 bg-gradient-to-br from-blue_10 via-white to-white p-5 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p className="font-medium">Danh tính quốc gia chưa được xác minh</p>
-                        <p className="mt-0.5 text-xs">
-                            Tài khoản hiện đăng nhập tạm thời bằng số điện thoại.
-                            Hệ thống chỉ chuyển sang “đã xác minh” sau khi kết nối
-                            và đối chiếu thành công với VNeID/CSDL Quốc gia về Dân cư.
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h1 className="text-xl font-semibold text-text_1">
+                                Xin chào, {user?.displayName}
+                            </h1>
+                            <Badge tone="blue">{audienceCopy.label}</Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-text_2">
+                            {audienceCopy.description}
                         </p>
-                    </div>
-                </div>
-            )}
-
-            {attentionItems.length > 0 && (
-                <section>
-                    <div className="mb-2 flex items-center justify-between">
-                        <h2 className="text-sm font-semibold">
-                            Cần xử lý ngay
-                        </h2>
-                        {attentionItems.every(item => item.value === 0) && (
-                            <span className="flex items-center gap-1 text-xs font-medium text-green-600">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Không có việc tồn khẩn cấp
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text_2">
+                            <span className="flex items-center gap-1">
+                                <MapPin className="h-3.5 w-3.5" />
+                                Phạm vi: {summary.scopeLabel}
                             </span>
-                        )}
+                            <span className="flex items-center gap-1">
+                                <Clock3 className="h-3.5 w-3.5" />
+                                Cập nhật {formatDateTime(summary.generatedAt)}
+                            </span>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-                        {attentionItems.map(item => (
-                            <StatCard
-                                key={item.key}
-                                label={item.label}
-                                value={item.value}
-                                tone={item.value > 0 ? "danger" : "success"}
-                                onClick={() => navigate(item.link)}
-                            />
-                        ))}
-                    </div>
-                </section>
-            )}
-
-            {summary.capabilities.population && (
-                <section>
-                    <h2 className="mb-2 text-sm font-semibold">
-                        Quy mô địa bàn
-                    </h2>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-                        <StatCard
-                            label="Hộ dân"
-                            value={summary.totalHouseholds}
-                            onClick={() => navigate("/houses")}
-                        />
-                        <StatCard
-                            label="Nhà số"
-                            value={summary.totalHouses}
-                            onClick={() => navigate("/houses")}
-                        />
-                        <StatCard
-                            label="Nhân khẩu"
-                            value={summary.totalCitizens}
-                            onClick={() => navigate("/residents")}
-                        />
-                        <StatCard
-                            label="Hộ thuê nhà"
-                            value={summary.rentalHouseholds}
-                        />
-                        <StatCard
-                            label="Hộ cần hỗ trợ"
-                            value={summary.householdsNeedingSupport}
-                            tone={
-                                summary.householdsNeedingSupport > 0
-                                    ? "warning"
-                                    : "default"
-                            }
-                        />
-                    </div>
-                </section>
-            )}
-
-            {(summary.capabilities.inspections ||
-                summary.capabilities.surveys ||
-                summary.capabilities.finance) && (
-                <section>
-                    <h2 className="mb-2 text-sm font-semibold">
-                        Nhịp hoạt động
-                    </h2>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                        {summary.capabilities.inspections && (
-                            <StatCard
-                                label="Chiến dịch đang triển khai"
-                                value={
-                                    summary.attention.activeInspectionCampaigns
-                                }
-                                onClick={() => navigate("/inspections")}
-                            />
-                        )}
-                        {summary.capabilities.surveys && (
-                            <>
-                                <StatCard
-                                    label="Khảo sát đang mở"
-                                    value={
-                                        summary.surveyParticipation.openSurveys
-                                    }
-                                    onClick={() => navigate("/surveys")}
-                                />
-                                <StatCard
-                                    label="Lượt phản hồi khảo sát đang mở"
-                                    value={
-                                        summary.surveyParticipation.totalResponses
-                                    }
-                                    onClick={() => navigate("/surveys")}
-                                />
-                            </>
-                        )}
-                        {summary.capabilities.finance && (
-                            <StatCard
-                                label="Chênh lệch Thu – Chi tháng"
-                                value={formatMoney(
-                                    summary.financeSummary.monthNet,
-                                )}
-                                tone={
-                                    summary.financeSummary.monthNet >= 0
-                                        ? "success"
-                                        : "danger"
-                                }
-                                onClick={() => navigate("/finance")}
-                            />
-                        )}
-                    </div>
-                </section>
-            )}
-
-            {hasPersonalWork && (
-                <section>
-                    <h2 className="mb-2 text-sm font-semibold">Việc của tôi</h2>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-                        <StatCard
-                            label="Yêu cầu đang xử lý"
-                            value={summary.myRequestCounts.inProgress}
-                            onClick={() => navigate("/requests/my")}
-                        />
-                        <StatCard
-                            label="Yêu cầu sắp hết hạn"
-                            value={summary.myRequestCounts.dueSoon}
-                            tone="warning"
-                            onClick={() => navigate("/requests/my")}
-                        />
-                        <StatCard
-                            label="Yêu cầu quá hạn"
-                            value={summary.myRequestCounts.overdue}
-                            tone="danger"
-                            onClick={() => navigate("/requests/my")}
-                        />
-                        {summary.capabilities.complaints && (
-                            <>
-                                <StatCard
-                                    label="Phản ánh tôi đang xử lý"
-                                    value={
-                                        summary.myComplaintCounts.inProgress
-                                    }
-                                    onClick={() => navigate("/complaints")}
-                                />
-                                <StatCard
-                                    label="Phản ánh của tôi quá hạn"
-                                    value={summary.myComplaintCounts.overdue}
-                                    tone="danger"
-                                    onClick={() => navigate("/complaints")}
-                                />
-                            </>
-                        )}
-                    </div>
-                </section>
-            )}
-
-            {summary.capabilities.population &&
-                ["system_admin", "ward", "neighborhood", "police"].includes(
-                    summary.audience,
-                ) && (
-                    <GisOverviewMap
-                        data={summary.gisOverview}
-                        onOpenHouse={houseId => navigate(`/houses/${houseId}`)}
-                    />
-                )}
+                    <button
+                        type="button"
+                        className="flex items-center justify-center gap-2 rounded-xl border border-divider_01 bg-white px-3 py-2 text-sm font-medium shadow-sm transition hover:bg-ng_10"
+                        onClick={load}
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                        Làm mới
+                    </button>
+                </div>
+            </header>
 
             {hasChartCapability && (
                 <section>
                     <div className="mb-2">
-                        <h2 className="text-sm font-semibold">
+                        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                            <BarChart3 className="h-4 w-4 text-main" />
                             Theo dõi điều hành
                         </h2>
                         <p className="mt-0.5 text-xs text-text_2">
@@ -948,11 +788,205 @@ const DashboardContent: React.FC = () => {
                 </section>
             )}
 
+            {attentionItems.length > 0 && (
+                <section>
+                    <div className="mb-2 flex items-center justify-between">
+                        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                            Cần xử lý ngay
+                        </h2>
+                        {attentionItems.every(item => item.value === 0) && (
+                            <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                                <CheckCircle2 className="h-4 w-4" />
+                                Không có việc tồn khẩn cấp
+                            </span>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+                        {attentionItems.map(item => (
+                            <StatCard
+                                key={item.key}
+                                label={item.label}
+                                value={item.value}
+                                icon={item.icon}
+                                tone={item.value > 0 ? "danger" : "success"}
+                                onClick={() => navigate(item.link)}
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {summary.capabilities.population && (
+                <section>
+                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                        <Home className="h-4 w-4 text-main" />
+                        Quy mô địa bàn
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+                        <StatCard
+                            label="Hộ dân"
+                            value={summary.totalHouseholds}
+                            icon={Home}
+                            onClick={() => navigate("/houses")}
+                        />
+                        <StatCard
+                            label="Nhà số"
+                            value={summary.totalHouses}
+                            icon={Building2}
+                            onClick={() => navigate("/houses")}
+                        />
+                        <StatCard
+                            label="Nhân khẩu"
+                            value={summary.totalCitizens}
+                            icon={Users}
+                            onClick={() => navigate("/residents")}
+                        />
+                        <StatCard
+                            label="Hộ thuê nhà"
+                            value={summary.rentalHouseholds}
+                            icon={ClipboardList}
+                        />
+                        <StatCard
+                            label="Hộ cần hỗ trợ"
+                            value={summary.householdsNeedingSupport}
+                            icon={Heart}
+                            tone={
+                                summary.householdsNeedingSupport > 0
+                                    ? "warning"
+                                    : "default"
+                            }
+                        />
+                    </div>
+                </section>
+            )}
+
+            {(summary.capabilities.inspections ||
+                summary.capabilities.surveys ||
+                summary.capabilities.finance) && (
+                <section>
+                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                        <Activity className="h-4 w-4 text-main" />
+                        Nhịp hoạt động
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        {summary.capabilities.inspections && (
+                            <StatCard
+                                label="Chiến dịch đang triển khai"
+                                value={
+                                    summary.attention.activeInspectionCampaigns
+                                }
+                                icon={ClipboardCheck}
+                                onClick={() => navigate("/inspections")}
+                            />
+                        )}
+                        {summary.capabilities.surveys && (
+                            <>
+                                <StatCard
+                                    label="Khảo sát đang mở"
+                                    value={
+                                        summary.surveyParticipation.openSurveys
+                                    }
+                                    icon={ListChecks}
+                                    onClick={() => navigate("/surveys")}
+                                />
+                                <StatCard
+                                    label="Lượt phản hồi khảo sát đang mở"
+                                    value={
+                                        summary.surveyParticipation.totalResponses
+                                    }
+                                    icon={MessagesSquare}
+                                    onClick={() => navigate("/surveys")}
+                                />
+                            </>
+                        )}
+                        {summary.capabilities.finance && (
+                            <StatCard
+                                label="Chênh lệch Thu – Chi tháng"
+                                value={formatMoney(
+                                    summary.financeSummary.monthNet,
+                                )}
+                                icon={Wallet}
+                                tone={
+                                    summary.financeSummary.monthNet >= 0
+                                        ? "success"
+                                        : "danger"
+                                }
+                                onClick={() => navigate("/finance")}
+                            />
+                        )}
+                    </div>
+                </section>
+            )}
+
+            {hasPersonalWork && (
+                <section>
+                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                        <ClipboardList className="h-4 w-4 text-main" />
+                        Việc của tôi
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+                        <StatCard
+                            label="Yêu cầu đang xử lý"
+                            value={summary.myRequestCounts.inProgress}
+                            icon={ClipboardList}
+                            onClick={() => navigate("/requests/my")}
+                        />
+                        <StatCard
+                            label="Yêu cầu sắp hết hạn"
+                            value={summary.myRequestCounts.dueSoon}
+                            icon={CalendarClock}
+                            tone="warning"
+                            onClick={() => navigate("/requests/my")}
+                        />
+                        <StatCard
+                            label="Yêu cầu quá hạn"
+                            value={summary.myRequestCounts.overdue}
+                            icon={AlertTriangle}
+                            tone="danger"
+                            onClick={() => navigate("/requests/my")}
+                        />
+                        {summary.capabilities.complaints && (
+                            <>
+                                <StatCard
+                                    label="Phản ánh tôi đang xử lý"
+                                    value={
+                                        summary.myComplaintCounts.inProgress
+                                    }
+                                    icon={MessageSquare}
+                                    onClick={() => navigate("/complaints")}
+                                />
+                                <StatCard
+                                    label="Phản ánh của tôi quá hạn"
+                                    value={summary.myComplaintCounts.overdue}
+                                    icon={AlertTriangle}
+                                    tone="danger"
+                                    onClick={() => navigate("/complaints")}
+                                />
+                            </>
+                        )}
+                    </div>
+                </section>
+            )}
+
+            {/* Tạm ẩn Bản đồ tọa độ Nhà số
+            {summary.capabilities.population &&
+                ["system_admin", "ward", "neighborhood", "police"].includes(
+                    summary.audience,
+                ) && (
+                    <GisOverviewMap
+                        data={summary.gisOverview}
+                        onOpenHouse={houseId => navigate(`/houses/${houseId}`)}
+                    />
+                )}
+            */}
+
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {summary.myRequests.length > 0 && (
                     <section className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-sm font-semibold">
+                            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                                <CalendarClock className="h-4 w-4 text-main" />
                                 Yêu cầu gần hạn cần xử lý
                             </h2>
                             <button
@@ -967,7 +1001,7 @@ const DashboardContent: React.FC = () => {
                             <button
                                 key={request._id}
                                 type="button"
-                                className="flex w-full items-center justify-between gap-2 border-b border-divider_01 py-2 text-left last:border-0"
+                                className="flex w-full items-center justify-between gap-2 rounded-lg border-b border-divider_01 px-2 py-2 text-left transition last:border-0 hover:bg-ng_10"
                                 onClick={() => navigate("/requests/my")}
                             >
                                 <div className="min-w-0">
@@ -1016,7 +1050,8 @@ const DashboardContent: React.FC = () => {
                 {summary.upcomingMeetings.length > 0 && (
                     <section className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-sm font-semibold">
+                            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                                <CalendarClock className="h-4 w-4 text-main" />
                                 Cuộc họp sắp tới
                             </h2>
                             <button
@@ -1031,7 +1066,7 @@ const DashboardContent: React.FC = () => {
                             <button
                                 key={meeting.id}
                                 type="button"
-                                className="block w-full border-b border-divider_01 py-2 text-left last:border-0"
+                                className="block w-full rounded-lg border-b border-divider_01 px-2 py-2 text-left transition last:border-0 hover:bg-ng_10"
                                 onClick={() =>
                                     navigate(`/meetings/${meeting.id}/edit`)
                                 }
@@ -1051,7 +1086,8 @@ const DashboardContent: React.FC = () => {
 
             {quickModules.length > 0 && (
                 <section>
-                    <h2 className="mb-2 text-sm font-semibold">
+                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                        <Zap className="h-4 w-4 text-main" />
                         Truy cập nhanh
                     </h2>
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -1059,11 +1095,13 @@ const DashboardContent: React.FC = () => {
                             <button
                                 key={module.key}
                                 type="button"
-                                className="flex items-center gap-2 rounded-2xl border border-divider_01 bg-white p-4 text-left shadow-sm transition hover:shadow-md"
+                                className="flex items-center gap-3 rounded-2xl border border-divider_01 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                                 onClick={() => navigate(module.path)}
                             >
-                                <module.icon className="h-4 w-4 text-main" />
-                                <span className="text-sm font-medium">
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue_10">
+                                    <module.icon className="h-4 w-4 text-main" />
+                                </span>
+                                <span className="truncate text-sm font-medium text-text_1">
                                     {module.label}
                                 </span>
                             </button>

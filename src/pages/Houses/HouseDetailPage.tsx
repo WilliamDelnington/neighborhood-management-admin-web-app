@@ -138,6 +138,7 @@ const toFormValues = (h: House): HouseFormValues => ({
     ownerName: "",
     ownerPhone: "",
     ownerEmail: "",
+    ownerPassword: "",
     createOwnerAccount: false,
     orgName: "",
     orgTaxCode: "",
@@ -148,6 +149,7 @@ const toFormValues = (h: House): HouseFormValues => ({
     repName: "",
     repPhone: "",
     repEmail: "",
+    repPassword: "",
 });
 
 const HouseDetailPage: React.FC = () => (

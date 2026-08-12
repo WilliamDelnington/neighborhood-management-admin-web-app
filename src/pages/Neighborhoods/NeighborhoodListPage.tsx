@@ -220,6 +220,7 @@ const NeighborhoodListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Phường/Xã</TableHead>
@@ -233,7 +234,7 @@ const NeighborhoodListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(n => (
+                            {items.map((n, index) => (
                                 <TableRow
                                     key={n._id}
                                     className="cursor-pointer"
@@ -241,6 +242,9 @@ const NeighborhoodListContent: React.FC = () => {
                                         navigate(`/neighborhoods/${n._id}`)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * 30 + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {n.code}
                                     </TableCell>
