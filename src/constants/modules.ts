@@ -27,6 +27,10 @@ import {
     Inbox,
     ShieldCheck,
     Users,
+    FileSignature,
+    ClipboardCheck,
+    Construction,
+    Landmark,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -65,6 +69,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         icon: MapPinned,
         items: [
             {
+                key: "wards",
+                label: "Phường / xã",
+                path: "/wards",
+                icon: Landmark,
+                permission: "wards.manage",
+            },
+            {
                 key: "neighborhoods",
                 label: "Tổ dân phố",
                 path: "/neighborhoods",
@@ -77,6 +88,20 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/streets",
                 icon: MapPinned,
                 permission: "streets.read",
+            },
+            {
+                key: "infrastructure-assets",
+                label: "Sổ hạ tầng",
+                path: "/infrastructure-assets",
+                icon: Construction,
+                permission: "infrastructure.read",
+            },
+            {
+                key: "periodic-reports",
+                label: "Báo cáo định kỳ",
+                path: "/periodic-reports",
+                icon: ClipboardList,
+                permission: "reports.author",
             },
             {
                 key: "houses",
@@ -170,6 +195,20 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "requests.read",
             },
             {
+                key: "request_types",
+                label: "Loại nhiệm vụ & biểu mẫu",
+                path: "/request-types",
+                icon: ClipboardList,
+                permission: "request_types.read",
+            },
+            {
+                key: "inspections",
+                label: "Rà soát – chiến dịch",
+                path: "/inspections",
+                icon: ClipboardCheck,
+                permission: "inspections.read",
+            },
+            {
                 key: "my_requests",
                 label: "Yêu cầu của tôi",
                 path: "/requests/my",
@@ -180,11 +219,25 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "dashboard.read",
             },
             {
+                key: "change_requests",
+                label: "Yêu cầu thay đổi thông tin",
+                path: "/change-requests",
+                icon: ClipboardCheck,
+                permission: "change_requests.read",
+            },
+            {
                 key: "reports",
                 label: "Báo cáo",
                 path: "/reports",
                 icon: BarChart3,
                 permission: "reports.read",
+            },
+            {
+                key: "kpis",
+                label: "KPI Phường",
+                path: "/kpis",
+                icon: BarChart3,
+                permission: "reports.kpi_read",
             },
         ],
     },
@@ -207,6 +260,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: FileText,
                 permission: "files.read",
             },
+            {
+                key: "correspondence_types",
+                label: "Loại văn bản",
+                path: "/correspondence-types",
+                icon: FileSignature,
+                permission: "correspondence_types.read",
+            },
         ],
     },
     {
@@ -227,6 +287,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/announcements",
                 icon: Megaphone,
                 permission: "announcements.read",
+            },
+            {
+                key: "correspondences",
+                label: "Văn bản",
+                path: "/correspondences",
+                icon: FileSignature,
+                permission: "correspondences.read",
             },
             {
                 key: "surveys",
@@ -282,6 +349,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 label: "Cài đặt",
                 path: "/settings",
                 icon: Settings,
+                permission: "settings.read",
+            },
+            {
+                key: "digital_readiness",
+                label: "Sẵn sàng tích hợp",
+                path: "/digital-readiness",
+                icon: ShieldCheck,
                 permission: "settings.read",
             },
             {

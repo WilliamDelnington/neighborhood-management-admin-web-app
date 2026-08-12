@@ -38,6 +38,8 @@ import HouseholdPicker from "@components/admin/HouseholdPicker";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import HouseOwnershipPanel from "@components/admin/HouseOwnershipPanel";
+import TransferNeighborhoodDialog from "@components/admin/TransferNeighborhoodDialog";
+import HouseGisPanel from "@components/admin/HouseGisPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
     VERIFICATION_STATUS_LABEL,
@@ -167,6 +169,7 @@ const HouseDetailContent: React.FC = () => {
     const canCreateCompany = usePermission("companies.create");
     const canCreateUsageUnit = usePermission("usage_units.create");
     const canDeleteUsageUnit = usePermission("usage_units.delete");
+    const canRequestTransfer = usePermission("change_requests.create");
     const canManageAttachments = canUpdate || canVerify;
 
     const [house, setHouse] = useState<House | null>(null);
@@ -181,6 +184,7 @@ const HouseDetailContent: React.FC = () => {
     const [statusDialogTarget, setStatusDialogTarget] =
         useState<HouseStatus | null>(null);
     const [statusNote, setStatusNote] = useState("");
+    const [transferDialogOpen, setTransferDialogOpen] = useState(false);
 
     const [households, setHouseholds] = useState<Household[]>([]);
     const [householdsLoading, setHouseholdsLoading] = useState(true);
@@ -399,6 +403,10 @@ const HouseDetailContent: React.FC = () => {
         if (!statusDialogTarget) return;
         if (statusDialogTarget === "denied" && !statusNote.trim()) {
             toast.error("Vui lòng nhập lý do từ chối");
+            return;
+        }
+        if (statusDialogTarget === "needs_update" && !statusNote.trim()) {
+            toast.error("Vui lòng nhập chi tiết cần cập nhật");
             return;
         }
         await handleStatusChange(statusDialogTarget, statusNote.trim() || undefined);
@@ -723,6 +731,13 @@ const HouseDetailContent: React.FC = () => {
                                             value={house.denialReason}
                                         />
                                     )}
+                                {house.status === "needs_update" &&
+                                    house.needsUpdateNote && (
+                                        <InfoRow
+                                            label="Cần cập nhật"
+                                            value={house.needsUpdateNote}
+                                        />
+                                    )}
 
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {canUpdate && (
@@ -743,9 +758,21 @@ const HouseDetailContent: React.FC = () => {
                                             Xóa
                                         </Button>
                                     )}
+                                    {canRequestTransfer && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                                setTransferDialogOpen(true)
+                                            }
+                                        >
+                                            Chuyển tổ dân phố
+                                        </Button>
+                                    )}
                                     {isOwner &&
                                         (house.status === "unverified" ||
-                                            house.status === "denied") && (
+                                            house.status === "denied" ||
+                                            house.status ===
+                                                "needs_update") && (
                                             <Button
                                                 loading={statusUpdating}
                                                 onClick={() =>
@@ -768,6 +795,17 @@ const HouseDetailContent: React.FC = () => {
                                                 }
                                             >
                                                 Duyệt
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                loading={statusUpdating}
+                                                onClick={() =>
+                                                    openStatusDialog(
+                                                        "needs_update",
+                                                    )
+                                                }
+                                            >
+                                                Yêu cầu cập nhật
                                             </Button>
                                             <Button
                                                 variant="destructive"
@@ -807,6 +845,10 @@ const HouseDetailContent: React.FC = () => {
                                 </div>
                             </>
                         )}
+                    </div>
+
+                    <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
+                        <HouseGisPanel house={house} onUpdated={setHouse} />
                     </div>
 
                     {houseId && (
@@ -1090,6 +1132,20 @@ const HouseDetailContent: React.FC = () => {
                 </DialogContent>
             </Dialog>
 
+            {house && (
+                <TransferNeighborhoodDialog
+                    open={transferDialogOpen}
+                    onOpenChange={setTransferDialogOpen}
+                    houseId={house._id}
+                    currentNeighborhoodId={
+                        house.neighborhoodId && typeof house.neighborhoodId !== "string"
+                            ? house.neighborhoodId._id
+                            : house.neighborhoodId || undefined
+                    }
+                    onCreated={load}
+                />
+            )}
+
             <Dialog
                 open={!!statusDialogTarget}
                 onOpenChange={open => !open && setStatusDialogTarget(null)}
@@ -1099,14 +1155,18 @@ const HouseDetailContent: React.FC = () => {
                         <DialogTitle>
                             {statusDialogTarget === "denied"
                                 ? "Từ chối nhà số"
-                                : "Duyệt nhà số"}
+                                : statusDialogTarget === "needs_update"
+                                  ? "Yêu cầu cập nhật nhà số"
+                                  : "Duyệt nhà số"}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-1.5">
                         <Label className="text-sm text-text_2">
                             {statusDialogTarget === "denied"
                                 ? "Lý do từ chối (bắt buộc)"
-                                : "Ghi chú duyệt (không bắt buộc)"}
+                                : statusDialogTarget === "needs_update"
+                                  ? "Chi tiết cần cập nhật (bắt buộc)"
+                                  : "Ghi chú duyệt (không bắt buộc)"}
                         </Label>
                         <Textarea
                             value={statusNote}
@@ -1114,7 +1174,9 @@ const HouseDetailContent: React.FC = () => {
                             placeholder={
                                 statusDialogTarget === "denied"
                                     ? "VD: Thiếu giấy tờ, sai địa chỉ..."
-                                    : "Ghi chú thêm (nếu có)"
+                                    : statusDialogTarget === "needs_update"
+                                      ? "VD: Bổ sung ảnh mặt tiền, cập nhật số điện thoại liên hệ..."
+                                      : "Ghi chú thêm (nếu có)"
                             }
                         />
                     </div>
@@ -1136,7 +1198,9 @@ const HouseDetailContent: React.FC = () => {
                         >
                             {statusDialogTarget === "denied"
                                 ? "Từ chối"
-                                : "Duyệt"}
+                                : statusDialogTarget === "needs_update"
+                                  ? "Gửi yêu cầu cập nhật"
+                                  : "Duyệt"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

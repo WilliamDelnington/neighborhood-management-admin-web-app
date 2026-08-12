@@ -18,6 +18,9 @@ const NeighborhoodListPage = React.lazy(
 const NeighborhoodDetailPage = React.lazy(
     () => import("@pages/Neighborhoods/NeighborhoodDetailPage"),
 );
+const WardManagementPage = React.lazy(
+    () => import("@pages/Wards/WardManagementPage"),
+);
 const StreetListPage = React.lazy(
     () => import("@pages/Streets/StreetListPage"),
 );
@@ -26,6 +29,12 @@ const StreetDetailPage = React.lazy(
 );
 const OrganizationListPage = React.lazy(
     () => import("@pages/Organizations/OrganizationListPage"),
+);
+const InfrastructureAssetListPage = React.lazy(
+    () => import("@pages/InfrastructureAssets/InfrastructureAssetListPage"),
+);
+const PeriodicReportListPage = React.lazy(
+    () => import("@pages/PeriodicReports/PeriodicReportListPage"),
 );
 const HouseListPage = React.lazy(
     () => import("@pages/Houses/HouseListPage"),
@@ -76,11 +85,26 @@ const ResidentHistoryPage = React.lazy(
 const RequestListPage = React.lazy(
     () => import("@pages/Requests/RequestListPage"),
 );
+const RequestTypeListPage = React.lazy(
+    () => import("@pages/RequestTypes/RequestTypeListPage"),
+);
 const MyRequestsPage = React.lazy(
     () => import("@pages/Requests/MyRequestsPage"),
 );
 const RequestHistoryPage = React.lazy(
     () => import("@pages/Requests/RequestHistoryPage"),
+);
+const InspectionCampaignListPage = React.lazy(
+    () => import("@pages/Inspections/InspectionCampaignListPage"),
+);
+const InspectionCampaignDetailPage = React.lazy(
+    () => import("@pages/Inspections/InspectionCampaignDetailPage"),
+);
+const InspectionCampaignFormPage = React.lazy(
+    () => import("@pages/Inspections/InspectionCampaignFormPage"),
+);
+const InspectionFieldCheckPage = React.lazy(
+    () => import("@pages/Inspections/InspectionFieldCheckPage"),
 );
 const MeetingListPage = React.lazy(
     () => import("@pages/Meetings/MeetingListPage"),
@@ -96,6 +120,18 @@ const AnnouncementListPage = React.lazy(
 );
 const AnnouncementFormPage = React.lazy(
     () => import("@pages/Announcements/AnnouncementFormPage"),
+);
+const CorrespondenceTypeListPage = React.lazy(
+    () => import("@pages/CorrespondenceTypes/CorrespondenceTypeListPage"),
+);
+const CorrespondenceListPage = React.lazy(
+    () => import("@pages/Correspondences/CorrespondenceListPage"),
+);
+const CorrespondenceFormPage = React.lazy(
+    () => import("@pages/Correspondences/CorrespondenceFormPage"),
+);
+const CorrespondenceDetailPage = React.lazy(
+    () => import("@pages/Correspondences/CorrespondenceDetailPage"),
 );
 const SurveyListPage = React.lazy(
     () => import("@pages/Surveys/SurveyListPage"),
@@ -113,12 +149,19 @@ const FinanceListPage = React.lazy(
     () => import("@pages/Finance/FinanceListPage"),
 );
 const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
+const KpiDashboardPage = React.lazy(() => import("@pages/Kpis/KpiDashboardPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
+const DigitalReadinessPage = React.lazy(
+    () => import("@pages/DigitalReadiness/DigitalReadinessPage"),
+);
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
 const CreateHouseOwnerPage = React.lazy(
     () => import("@pages/Users/CreateHouseOwnerPage"),
 );
 const RoleListPage = React.lazy(() => import("@pages/Roles/RoleListPage"));
+const ChangeRequestListPage = React.lazy(
+    () => import("@pages/ChangeRequests/ChangeRequestListPage"),
+);
 const BusinessTypeListPage = React.lazy(
     () => import("@pages/BusinessTypes/BusinessTypeListPage"),
 );
@@ -187,10 +230,19 @@ const App: React.FC = () => {
                             path="/neighborhoods/:id"
                             element={<NeighborhoodDetailPage />}
                         />
+                        <Route path="/wards" element={<WardManagementPage />} />
                         <Route path="/streets" element={<StreetListPage />} />
                         <Route
                             path="/streets/:id"
                             element={<StreetDetailPage />}
+                        />
+                        <Route
+                            path="/infrastructure-assets"
+                            element={<InfrastructureAssetListPage />}
+                        />
+                        <Route
+                            path="/periodic-reports"
+                            element={<PeriodicReportListPage />}
                         />
                         <Route
                             path="/organizations"
@@ -252,10 +304,30 @@ const App: React.FC = () => {
                             element={<ResidentHistoryPage />}
                         />
                         <Route path="/requests" element={<RequestListPage />} />
+                        <Route
+                            path="/request-types"
+                            element={<RequestTypeListPage />}
+                        />
                         <Route path="/requests/my" element={<MyRequestsPage />} />
                         <Route
                             path="/requests/:id/history"
                             element={<RequestHistoryPage />}
+                        />
+                        <Route
+                            path="/inspections"
+                            element={<InspectionCampaignListPage />}
+                        />
+                        <Route
+                            path="/inspections/:id"
+                            element={<InspectionCampaignDetailPage />}
+                        />
+                        <Route
+                            path="/inspections/create"
+                            element={<InspectionCampaignFormPage />}
+                        />
+                        <Route
+                            path="/inspections/targets/:targetId"
+                            element={<InspectionFieldCheckPage />}
                         />
                         <Route path="/meetings" element={<MeetingListPage />} />
                         <Route
@@ -282,6 +354,26 @@ const App: React.FC = () => {
                             path="/announcements/:id/edit"
                             element={<AnnouncementFormPage />}
                         />
+                        <Route
+                            path="/correspondence-types"
+                            element={<CorrespondenceTypeListPage />}
+                        />
+                        <Route
+                            path="/correspondences"
+                            element={<CorrespondenceListPage />}
+                        />
+                        <Route
+                            path="/correspondences/create"
+                            element={<CorrespondenceFormPage />}
+                        />
+                        <Route
+                            path="/correspondences/:id/edit"
+                            element={<CorrespondenceFormPage />}
+                        />
+                        <Route
+                            path="/correspondences/:id"
+                            element={<CorrespondenceDetailPage />}
+                        />
                         <Route path="/surveys" element={<SurveyListPage />} />
                         <Route
                             path="/surveys/create"
@@ -302,12 +394,21 @@ const App: React.FC = () => {
                         <Route path="/files" element={<FileListPage />} />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
+                        <Route path="/kpis" element={<KpiDashboardPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route
+                            path="/digital-readiness"
+                            element={<DigitalReadinessPage />}
+                        />
                         <Route
                             path="/mini-app-features"
                             element={<MiniAppFeaturesPage />}
                         />
                         <Route path="/users" element={<UserListPage />} />
+                        <Route
+                            path="/change-requests"
+                            element={<ChangeRequestListPage />}
+                        />
                         <Route
                             path="/users/new-house-owner"
                             element={<CreateHouseOwnerPage />}

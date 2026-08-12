@@ -192,6 +192,10 @@ const ComplaintDetailContent: React.FC = () => {
         complaint && typeof complaint.createdByUserId === "object"
             ? complaint.createdByUserId
             : undefined;
+    const targetHouse =
+        complaint && typeof complaint.targetHouseId === "object"
+            ? complaint.targetHouseId
+            : undefined;
 
     return (
         <div>
@@ -230,6 +234,11 @@ const ComplaintDetailContent: React.FC = () => {
                                         ]
                                     }
                                 </Badge>
+                                {!complaint.neighborhoodId && (
+                                    <Badge tone="red">
+                                        Chưa xác định tổ dân phố
+                                    </Badge>
+                                )}
                                 {canDelete && (
                                     <Button
                                         variant="destructive"
@@ -263,10 +272,32 @@ const ComplaintDetailContent: React.FC = () => {
                                     }`}
                                 />
                             )}
+                            {targetHouse && (
+                                <InfoRow
+                                    label="Nhà số liên quan"
+                                    value={`${targetHouse.code}${
+                                        targetHouse.address
+                                            ? ` — ${targetHouse.address}`
+                                            : ""
+                                    }`}
+                                />
+                            )}
                             <InfoRow
                                 label="Người phụ trách"
                                 value={assigneeName || "Chưa phân công"}
                             />
+                            {complaint.rating !== undefined && (
+                                <InfoRow
+                                    label="Đánh giá của người gửi"
+                                    value={`${"★".repeat(
+                                        complaint.rating,
+                                    )}${"☆".repeat(5 - complaint.rating)}${
+                                        complaint.ratingNote
+                                            ? ` — ${complaint.ratingNote}`
+                                            : ""
+                                    }`}
+                                />
+                            )}
                             {complaint.expectedCompletionDate && (
                                 <InfoRow
                                     label="Dự kiến hoàn thành"
@@ -349,11 +380,20 @@ const ComplaintDetailContent: React.FC = () => {
                                         Object.entries(
                                             TRANG_THAI_PHAN_ANH_LABEL,
                                         ) as [TrangThaiPhanAnh, string][]
-                                    ).map(([key, label]) => (
-                                        <SelectItem key={key} value={key}>
-                                            {label}
-                                        </SelectItem>
-                                    ))}
+                                    )
+                                        // "hoan_thanh" chi nguoi gui phan anh
+                                        // moi duoc xac nhan (xem
+                                        // confirmComplaintResolution o
+                                        // backend) - nhan vien khong chon
+                                        // duoc trang thai nay o day.
+                                        .filter(
+                                            ([key]) => key !== "hoan_thanh",
+                                        )
+                                        .map(([key, label]) => (
+                                            <SelectItem key={key} value={key}>
+                                                {label}
+                                            </SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                             <Textarea
@@ -400,9 +440,29 @@ const ComplaintDetailContent: React.FC = () => {
                                 className="border-b border-divider_01 py-2 last:border-0"
                             >
                                 <div className="flex items-center justify-between">
-                                    <Badge tone={TRANG_THAI_PHAN_ANH_TONE[t.status]}>
-                                        {TRANG_THAI_PHAN_ANH_LABEL[t.status]}
-                                    </Badge>
+                                    {t.action === "reevaluation_request" ? (
+                                        <Badge tone="yellow">
+                                            Đề nghị xem xét lại
+                                        </Badge>
+                                    ) : t.action === "edited" ? (
+                                        <Badge tone="blue">
+                                            Đã chỉnh sửa phản ánh
+                                        </Badge>
+                                    ) : (
+                                        <Badge
+                                            tone={
+                                                TRANG_THAI_PHAN_ANH_TONE[
+                                                    t.status
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                TRANG_THAI_PHAN_ANH_LABEL[
+                                                    t.status
+                                                ]
+                                            }
+                                        </Badge>
+                                    )}
                                     <span className="text-xs text-text_2">
                                         {formatDateTime(t.createdAt)}
                                     </span>
@@ -410,6 +470,25 @@ const ComplaintDetailContent: React.FC = () => {
                                 {t.note && (
                                     <p className="mt-1 text-sm">{t.note}</p>
                                 )}
+                                {t.action === "edited" &&
+                                    t.patch &&
+                                    Object.entries(t.patch).map(
+                                        ([field, value]) => (
+                                            <p
+                                                key={field}
+                                                className="mt-1 text-xs text-text_2"
+                                            >
+                                                {field}:{" "}
+                                                {String(
+                                                    t.previousSnapshot?.[
+                                                        field
+                                                    ] ?? "",
+                                                )}
+                                                {" → "}
+                                                {String(value)}
+                                            </p>
+                                        ),
+                                    )}
                                 {!t.isPublic && (
                                     <p className="mt-1 text-xs text-text_3">
                                         (Ghi chú nội bộ)

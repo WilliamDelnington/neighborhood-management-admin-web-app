@@ -3,6 +3,13 @@ import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import {
     NeighborhoodInput,
@@ -12,13 +19,17 @@ import {
     fetchProvinces,
     fetchWardsByProvince,
 } from "@service/administrativeDivisionApi";
-import { Province, Ward } from "@dts";
+import { NeighborhoodStatus, Province, Street, Ward } from "@dts";
+import { fetchStreets } from "@service/streetApi";
 
 export interface NeighborhoodFormValues {
     name: string;
     code: string;
     sequence: string;
     active: boolean;
+    status: NeighborhoodStatus;
+    effectiveFrom: string;
+    effectiveTo: string;
     // Bat buoc luc tao (moi to dan pho phai thuoc mot phuong/xa) - xem
     // validators/neighborhood.ts o backend.
     provinceCode: string;
@@ -29,6 +40,9 @@ export interface NeighborhoodFormValues {
     description: string;
     contactPhone: string;
     notes: string;
+    streetIds: string[];
+    alleyDescriptions: string;
+    boundaryType: "NONE" | "DOCUMENT" | "GEOJSON";
 }
 
 export const EMPTY_NEIGHBORHOOD_FORM: NeighborhoodFormValues = {
@@ -36,6 +50,9 @@ export const EMPTY_NEIGHBORHOOD_FORM: NeighborhoodFormValues = {
     code: "",
     sequence: "",
     active: true,
+    status: "ACTIVE",
+    effectiveFrom: "",
+    effectiveTo: "",
     provinceCode: "",
     provinceName: "",
     wardCode: "",
@@ -44,6 +61,9 @@ export const EMPTY_NEIGHBORHOOD_FORM: NeighborhoodFormValues = {
     description: "",
     contactPhone: "",
     notes: "",
+    streetIds: [],
+    alleyDescriptions: "",
+    boundaryType: "NONE",
 };
 
 export function toNeighborhoodInput(
@@ -53,7 +73,10 @@ export function toNeighborhoodInput(
         name: values.name.trim(),
         code: values.code.trim(),
         sequence: Number(values.sequence),
-        active: values.active,
+        active: values.status === "ACTIVE",
+        status: values.status,
+        effectiveFrom: values.effectiveFrom || undefined,
+        effectiveTo: values.effectiveTo || undefined,
         provinceCode: values.provinceCode
             ? Number(values.provinceCode)
             : undefined,
@@ -64,6 +87,12 @@ export function toNeighborhoodInput(
         description: values.description.trim() || undefined,
         contactPhone: values.contactPhone.trim() || undefined,
         notes: values.notes.trim() || undefined,
+        streetIds: values.streetIds,
+        alleyDescriptions: values.alleyDescriptions
+            .split("\n")
+            .map(value => value.trim())
+            .filter(Boolean),
+        boundaryType: values.boundaryType,
     };
 }
 
@@ -74,7 +103,10 @@ export function toUpdateNeighborhoodInput(
 ): UpdateNeighborhoodInput {
     return {
         name: values.name.trim(),
-        active: values.active,
+        active: values.status === "ACTIVE",
+        status: values.status,
+        effectiveFrom: values.effectiveFrom || undefined,
+        effectiveTo: values.effectiveTo || undefined,
         provinceCode: values.provinceCode
             ? Number(values.provinceCode)
             : undefined,
@@ -85,6 +117,12 @@ export function toUpdateNeighborhoodInput(
         description: values.description.trim() || undefined,
         contactPhone: values.contactPhone.trim() || undefined,
         notes: values.notes.trim() || undefined,
+        streetIds: values.streetIds,
+        alleyDescriptions: values.alleyDescriptions
+            .split("\n")
+            .map(value => value.trim())
+            .filter(Boolean),
+        boundaryType: values.boundaryType,
     };
 }
 
@@ -127,11 +165,18 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
 
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [wards, setWards] = useState<Ward[]>([]);
+    const [streets, setStreets] = useState<Street[]>([]);
 
     useEffect(() => {
         fetchProvinces()
             .then(setProvinces)
             .catch(() => setProvinces([]));
+    }, []);
+
+    useEffect(() => {
+        fetchStreets({ active: true, limit: 200 })
+            .then(result => setStreets(result.items))
+            .catch(() => setStreets([]));
     }, []);
 
     useEffect(() => {
@@ -231,6 +276,97 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
                     onChange={e => set("address", e.target.value)}
                 />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <Label>Hiệu lực từ</Label>
+                    <Input
+                        type="date"
+                        value={values.effectiveFrom}
+                        onChange={e => set("effectiveFrom", e.target.value)}
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label>Hiệu lực đến</Label>
+                    <Input
+                        type="date"
+                        value={values.effectiveTo}
+                        onChange={e => set("effectiveTo", e.target.value)}
+                    />
+                </div>
+            </div>
+            <div className="space-y-1.5">
+                <Label>Trạng thái</Label>
+                <Select
+                    value={values.status}
+                    onValueChange={value =>
+                        set("status", value as NeighborhoodStatus)
+                    }
+                >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
+                        <SelectItem value="INACTIVE">Ngừng hoạt động</SelectItem>
+                        <SelectItem value="MERGED">Đã sáp nhập</SelectItem>
+                        <SelectItem value="CLOSED">Đã giải thể</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="space-y-2">
+                <Label>Tuyến đường phụ trách</Label>
+                <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-divider_01 p-3">
+                    {streets.length === 0 && (
+                        <p className="text-xs text-text_2">Chưa có tuyến đường để chọn</p>
+                    )}
+                    {streets.map(street => (
+                        <label key={street._id} className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                                checked={values.streetIds.includes(street._id)}
+                                onCheckedChange={checked =>
+                                    set(
+                                        "streetIds",
+                                        checked === true
+                                            ? [...values.streetIds, street._id]
+                                            : values.streetIds.filter(id => id !== street._id),
+                                    )
+                                }
+                            />
+                            {street.name} ({street.code})
+                        </label>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-1.5">
+                <Label>Hẻm/ngõ phụ trách</Label>
+                <Textarea
+                    placeholder="Mỗi hẻm/ngõ một dòng"
+                    value={values.alleyDescriptions}
+                    onChange={e => set("alleyDescriptions", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Dữ liệu ranh giới</Label>
+                <Select
+                    value={values.boundaryType}
+                    onValueChange={value =>
+                        set(
+                            "boundaryType",
+                            value as NeighborhoodFormValues["boundaryType"],
+                        )
+                    }
+                >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="NONE">Chưa có</SelectItem>
+                        <SelectItem value="DOCUMENT">Theo hồ sơ đính kèm</SelectItem>
+                        {values.boundaryType === "GEOJSON" && (
+                            <SelectItem value="GEOJSON">Đã có dữ liệu GIS</SelectItem>
+                        )}
+                    </SelectContent>
+                </Select>
+                <p className="text-xs text-text_2">
+                    Hiện chưa cần GIS: có thể dùng danh sách tuyến, hẻm/ngõ và hồ sơ ranh giới đính kèm.
+                </p>
+            </div>
             <div className="space-y-1.5">
                 <Label>Số điện thoại liên hệ</Label>
                 <Input
@@ -252,15 +388,6 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
                     onChange={e => set("notes", e.target.value)}
                 />
             </div>
-            <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                    checked={values.active}
-                    onCheckedChange={checked =>
-                        set("active", checked === true)
-                    }
-                />
-                Đang hoạt động
-            </label>
         </div>
     );
 };

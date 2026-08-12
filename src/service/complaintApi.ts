@@ -18,6 +18,7 @@ export const fetchComplaints = (params?: {
     status?: TrangThaiPhanAnh;
     category?: NhomPhanAnh;
     search?: string;
+    relatedAssetId?: string;
 }): Promise<PaginatedData<Complaint>> =>
     request<PaginatedData<Complaint>>("GET", API.COMPLAINTS, {
         page: params?.page || 1,
@@ -25,6 +26,7 @@ export const fetchComplaints = (params?: {
         status: params?.status,
         category: params?.category,
         search: params?.search,
+        relatedAssetId: params?.relatedAssetId,
     });
 
 export const fetchComplaintDetail = (id: string): Promise<ComplaintDetail> =>

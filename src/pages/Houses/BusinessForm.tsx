@@ -10,7 +10,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import { BusinessType } from "@dts";
+import RepresentativeUserPicker from "@components/admin/RepresentativeUserPicker";
+import { BusinessType, User } from "@dts";
 import { BusinessInput } from "@service/businessApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
 
@@ -20,6 +21,8 @@ export interface BusinessFormValues {
     name: string;
     businessType: string;
     ownerName: string;
+    representativeUserId: string;
+    representativeUserLabel: string;
     phone: string;
     active: boolean;
     note: string;
@@ -29,6 +32,8 @@ export const EMPTY_BUSINESS_FORM: BusinessFormValues = {
     name: "",
     businessType: "",
     ownerName: "",
+    representativeUserId: "",
+    representativeUserLabel: "",
     phone: "",
     active: true,
     note: "",
@@ -43,6 +48,7 @@ export function toBusinessInput(
         houseId,
         businessType: values.businessType || null,
         ownerName: values.ownerName.trim() || undefined,
+        representativeUserId: values.representativeUserId || null,
         phone: values.phone.trim() || undefined,
         active: values.active,
         note: values.note.trim() || undefined,
@@ -118,6 +124,19 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ values, onChange }) => {
                     onChange={e => set("ownerName", e.target.value)}
                 />
             </div>
+            <RepresentativeUserPicker
+                value={values.representativeUserId}
+                valueLabel={values.representativeUserLabel}
+                onChange={(userId, user: User | undefined) => {
+                    onChange({
+                        ...values,
+                        representativeUserId: userId || "",
+                        representativeUserLabel: user
+                            ? `${user.displayName}${user.phone ? ` · ${user.phone}` : ""}`
+                            : "",
+                    });
+                }}
+            />
             <div className="space-y-1.5">
                 <Label>Số điện thoại</Label>
                 <Input

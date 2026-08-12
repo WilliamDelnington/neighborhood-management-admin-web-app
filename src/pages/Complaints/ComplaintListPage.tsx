@@ -55,6 +55,7 @@ const ComplaintListContent: React.FC = () => {
         (searchParams.get("category") as NhomPhanAnh | null) || "",
     );
     const [search, setSearch] = useState("");
+    const relatedAssetId = searchParams.get("relatedAssetId") || undefined;
 
     const [items, setItems] = useState<Complaint[]>([]);
     const [page, setPage] = useState(1);
@@ -70,6 +71,7 @@ const ComplaintListContent: React.FC = () => {
             status: status || undefined,
             category: category || undefined,
             search: search || undefined,
+            relatedAssetId,
         })
             .then(res => {
                 setItems(res.items);
@@ -207,19 +209,26 @@ const ComplaintListContent: React.FC = () => {
                                         {NHOM_PHAN_ANH_LABEL[c.category]}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge
-                                            tone={
-                                                TRANG_THAI_PHAN_ANH_TONE[
-                                                    c.status
-                                                ]
-                                            }
-                                        >
-                                            {
-                                                TRANG_THAI_PHAN_ANH_LABEL[
-                                                    c.status
-                                                ]
-                                            }
-                                        </Badge>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            <Badge
+                                                tone={
+                                                    TRANG_THAI_PHAN_ANH_TONE[
+                                                        c.status
+                                                    ]
+                                                }
+                                            >
+                                                {
+                                                    TRANG_THAI_PHAN_ANH_LABEL[
+                                                        c.status
+                                                    ]
+                                                }
+                                            </Badge>
+                                            {!c.neighborhoodId && (
+                                                <Badge tone="red">
+                                                    Chưa xác định tổ dân phố
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

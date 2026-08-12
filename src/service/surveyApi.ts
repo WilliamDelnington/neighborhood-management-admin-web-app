@@ -17,6 +17,7 @@ export interface SurveyInput {
     eligibleStreetIds?: string[];
     eligibleNeighborhoodIds?: string[];
     eligibleBusinessTypeIds?: string[];
+    resultSummary?: string;
 }
 
 export const fetchSurveys = (

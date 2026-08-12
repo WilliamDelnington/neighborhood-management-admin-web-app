@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
+import { Label } from "@components/ui/label";
+import { Textarea } from "@components/ui/textarea";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { SurveyResults } from "@dts";
-import { fetchSurveyResults } from "@service/surveyApi";
+import SendRequestSheet from "@components/admin/SendRequestSheet";
+import { usePermission } from "@store/authStore";
+import { AppError, SurveyResults } from "@dts";
+import {
+    fetchSurveyDetail,
+    fetchSurveyResults,
+    updateSurvey,
+} from "@service/surveyApi";
 
 const BarRow: React.FC<{ label: string; count: number; max: number }> = ({
     label,
@@ -37,21 +46,42 @@ const SurveyResultsPage: React.FC = () => (
 const SurveyResultsContent: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const canUpdate = usePermission("surveys.update");
+    const canSendRequest = usePermission("requests.create");
     const [results, setResults] = useState<SurveyResults | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [summary, setSummary] = useState("");
+    const [savingSummary, setSavingSummary] = useState(false);
+    const [sendSheetOpen, setSendSheetOpen] = useState(false);
 
     const load = () => {
         if (!id) return;
         setLoading(true);
         setError(false);
-        fetchSurveyResults(id)
-            .then(setResults)
+        Promise.all([fetchSurveyResults(id), fetchSurveyDetail(id)])
+            .then(([res, survey]) => {
+                setResults(res);
+                setSummary(survey.resultSummary || "");
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
     useEffect(load, [id]);
+
+    const handleSaveSummary = async () => {
+        if (!id) return;
+        try {
+            setSavingSummary(true);
+            await updateSurvey(id, { resultSummary: summary.trim() || undefined });
+            toast.success("Đã lưu nhận xét");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSavingSummary(false);
+        }
+    };
 
     return (
         <div>
@@ -141,7 +171,56 @@ const SurveyResultsContent: React.FC = () => {
                             )}
                         </div>
                     ))}
+
+                    {(canUpdate || summary) && (
+                        <div className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                            <Label className="mb-1.5 block">
+                                Nhận xét / tổng hợp ý kiến
+                            </Label>
+                            {canUpdate ? (
+                                <>
+                                    <Textarea
+                                        value={summary}
+                                        onChange={e =>
+                                            setSummary(e.target.value)
+                                        }
+                                        placeholder="Nhận xét thêm của Tổ về kết quả khảo sát này..."
+                                    />
+                                    <Button
+                                        className="mt-2"
+                                        size="sm"
+                                        loading={savingSummary}
+                                        onClick={handleSaveSummary}
+                                    >
+                                        Lưu nhận xét
+                                    </Button>
+                                </>
+                            ) : (
+                                <p className="text-sm">{summary}</p>
+                            )}
+                        </div>
+                    )}
+
+                    {canSendRequest && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setSendSheetOpen(true)}
+                        >
+                            Gửi báo cáo
+                        </Button>
+                    )}
                 </div>
+            )}
+
+            {id && results && (
+                <SendRequestSheet
+                    open={sendSheetOpen}
+                    onOpenChange={setSendSheetOpen}
+                    lockedType="task"
+                    relatedModel="Survey"
+                    relatedId={id}
+                    defaultTitle={`Báo cáo khảo sát: ${results.title}`}
+                />
             )}
         </div>
     );

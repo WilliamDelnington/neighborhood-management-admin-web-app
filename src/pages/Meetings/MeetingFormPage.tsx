@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Paperclip, Trash2, Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
@@ -13,14 +13,27 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import StatCard from "@components/admin/StatCard";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { DANG_KY_HOP_LABEL, MEETING_AUDIT_ACTION_LABEL } from "@constants/domain";
-import { AppError, BusinessType, DangKyHop, MeetingRegistration, Neighborhood, RoleRecord, Street } from "@dts";
+import { resolveAssetUrl } from "@constants/common";
+import {
+    AnnouncementAttachment,
+    AppError,
+    BusinessType,
+    DangKyHop,
+    MeetingRegistration,
+    Neighborhood,
+    RoleRecord,
+    Street,
+} from "@dts";
 import {
     MeetingInput,
     createMeeting,
+    deleteMeetingAttachment,
+    fetchMeetingAttachments,
     fetchMeetingAuditLogs,
     fetchMeetingDetail,
     fetchMeetingRegistrations,
     updateMeeting,
+    uploadMeetingAttachment,
 } from "@service/meetingApi";
 import { fetchStreets } from "@service/streetApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
@@ -89,6 +102,16 @@ const MeetingFormContent: React.FC = () => {
     );
     const [regLoading, setRegLoading] = useState(false);
 
+    const [attachments, setAttachments] = useState<AnnouncementAttachment[]>(
+        [],
+    );
+    const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [deletingAttachmentId, setDeletingAttachmentId] = useState<
+        string | null
+    >(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const loadDetail = () => {
         if (!id) return;
         setLoading(true);
@@ -113,6 +136,12 @@ const MeetingFormContent: React.FC = () => {
             })
             .catch(() => setLoadError(true))
             .finally(() => setLoading(false));
+
+        setAttachmentsLoading(true);
+        fetchMeetingAttachments(id)
+            .then(setAttachments)
+            .catch(() => setAttachments([]))
+            .finally(() => setAttachmentsLoading(false));
     };
 
     const loadRegistrations = () => {
@@ -158,6 +187,40 @@ const MeetingFormContent: React.FC = () => {
     const countByAnswer = (answer: DangKyHop) =>
         registrations.filter(r => r.answer === answer).length;
 
+    const handleUploadClick = () => fileInputRef.current?.click();
+
+    const handleFileSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file || !id) return;
+        try {
+            setUploading(true);
+            const asset = await uploadMeetingAttachment(id, file);
+            setAttachments(prev => [asset, ...prev]);
+            toast.success("Đã tải lên file đính kèm");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDeleteAttachment = async (fileId: string) => {
+        if (!id) return;
+        try {
+            setDeletingAttachmentId(fileId);
+            await deleteMeetingAttachment(id, fileId);
+            setAttachments(prev => prev.filter(a => a._id !== fileId));
+            toast.success("Đã xóa file đính kèm");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingAttachmentId(null);
+        }
+    };
+
     const handleSubmit = async () => {
         if (
             !title.trim() ||
@@ -186,11 +249,14 @@ const MeetingFormContent: React.FC = () => {
             if (isEdit && id) {
                 await updateMeeting(id, input);
                 toast.success("Đã cập nhật cuộc họp");
+                navigate("/meetings");
             } else {
-                await createMeeting(input);
-                toast.success("Đã tạo cuộc họp");
+                const created = await createMeeting(input);
+                toast.success(
+                    "Đã tạo cuộc họp - bạn có thể đính kèm tệp bên dưới",
+                );
+                navigate(`/meetings/${created._id}/edit`);
             }
-            navigate("/meetings");
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -451,6 +517,70 @@ const MeetingFormContent: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            {isEdit && (
+                <div className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between">
+                        <h2 className="text-sm font-semibold">
+                            Tệp đính kèm
+                        </h2>
+                        {canManage && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                loading={uploading}
+                                onClick={handleUploadClick}
+                            >
+                                <Upload className="mr-1 h-3.5 w-3.5" />
+                                Tải lên
+                            </Button>
+                        )}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                            onChange={handleFileSelected}
+                        />
+                    </div>
+                    {attachmentsLoading && <LoadingState />}
+                    {!attachmentsLoading && attachments.length === 0 && (
+                        <EmptyState label="Chưa có file đính kèm" />
+                    )}
+                    {!attachmentsLoading &&
+                        attachments.map(a => (
+                            <div
+                                key={a._id}
+                                className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
+                            >
+                                <a
+                                    href={resolveAssetUrl(a.url)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 text-primary hover:underline"
+                                >
+                                    <Paperclip className="h-3.5 w-3.5" />
+                                    {a.name}
+                                </a>
+                                {canManage && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="!text-red-500"
+                                        loading={
+                                            deletingAttachmentId === a._id
+                                        }
+                                        onClick={() =>
+                                            handleDeleteAttachment(a._id)
+                                        }
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                )}
+                            </div>
+                        ))}
+                </div>
+            )}
 
             {isEdit && (
                 <div className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">

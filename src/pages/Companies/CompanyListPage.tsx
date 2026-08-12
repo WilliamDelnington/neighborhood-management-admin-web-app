@@ -135,6 +135,7 @@ const CompanyListContent: React.FC = () => {
                                 <TableHead>Tên công ty</TableHead>
                                 <TableHead>Nhà số</TableHead>
                                 <TableHead>Cụm</TableHead>
+                                <TableHead>Tổ chức liên kết</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -154,6 +155,12 @@ const CompanyListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell>{houseLabelOf(c)}</TableCell>
                                     <TableCell>{c.cluster}</TableCell>
+                                    <TableCell>
+                                        {c.organizationId &&
+                                        typeof c.organizationId === "object"
+                                            ? c.organizationId.name
+                                            : "—"}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>
                                             {VERIFICATION_STATUS_LABEL[c.status]}

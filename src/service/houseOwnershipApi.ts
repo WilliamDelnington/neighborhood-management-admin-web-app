@@ -45,3 +45,17 @@ export const endHouseOwnership = (
         `${API.HOUSES}/${houseId}/ownerships/${ownershipId}`,
         { reason },
     );
+
+// note bat buoc khi decision="rejected" (backend tu choi neu thieu) - xem
+// verifyHouseOwnershipSchema.
+export const verifyHouseOwnership = (
+    houseId: string,
+    ownershipId: string,
+    decision: "verified" | "rejected",
+    note?: string,
+): Promise<HouseOwnership> =>
+    request<HouseOwnership>(
+        "POST",
+        `${API.HOUSES}/${houseId}/ownerships/${ownershipId}/verify`,
+        { decision, note },
+    );

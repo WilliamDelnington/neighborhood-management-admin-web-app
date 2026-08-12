@@ -1,5 +1,17 @@
 import { API } from "@constants/common";
-import { Neighborhood, NeighborhoodLeaderAssignment, PaginatedData } from "@dts";
+import {
+    FileAsset,
+    Neighborhood,
+    NeighborhoodHistory,
+    NeighborhoodCollaboratorAssignment,
+    NeighborhoodCollaboratorScope,
+    NeighborhoodLeaderAssignment,
+    NeighborhoodColeaderAssignment,
+    NeighborhoodStatus,
+    NeighborhoodTerm,
+    NeighborhoodTermStatus,
+    PaginatedData,
+} from "@dts";
 import { request } from "./request";
 
 export interface FetchNeighborhoodsParams {
@@ -7,7 +19,10 @@ export interface FetchNeighborhoodsParams {
     limit?: number;
     search?: string;
     active?: boolean;
+    status?: NeighborhoodStatus;
+    streetId?: string;
     leaderUserId?: string;
+    filterLeaderUserId?: string;
 }
 
 export const fetchNeighborhoods = (
@@ -18,7 +33,10 @@ export const fetchNeighborhoods = (
         limit: params.limit ?? 20,
         search: params.search,
         active: params.active,
+        status: params.status,
+        streetId: params.streetId,
         leaderUserId: params.leaderUserId,
+        filterLeaderUserId: params.filterLeaderUserId,
     });
 
 export const fetchNeighborhoodById = (id: string): Promise<Neighborhood> =>
@@ -29,6 +47,9 @@ export interface NeighborhoodInput {
     code: string;
     sequence: number;
     active?: boolean;
+    status?: NeighborhoodStatus;
+    effectiveFrom?: string;
+    effectiveTo?: string;
     provinceCode?: number;
     provinceName?: string;
     wardCode?: number;
@@ -37,6 +58,9 @@ export interface NeighborhoodInput {
     description?: string;
     contactPhone?: string;
     notes?: string;
+    streetIds?: string[];
+    alleyDescriptions?: string[];
+    boundaryType?: "NONE" | "DOCUMENT" | "GEOJSON";
 }
 
 export const createNeighborhood = (
@@ -59,11 +83,12 @@ export const assignNeighborhoodLeader = (
     neighborhoodId: string,
     leaderUserId: string | null,
     note?: string,
+    options?: { termId?: string; endAt?: string },
 ): Promise<Neighborhood> =>
     request<Neighborhood>(
         "PUT",
         `${API.NEIGHBORHOODS}/${neighborhoodId}/leader`,
-        { leaderUserId, note },
+        { leaderUserId, note, ...options },
     );
 
 export const fetchNeighborhoodLeaderHistory = (
@@ -72,4 +97,132 @@ export const fetchNeighborhoodLeaderHistory = (
     request<NeighborhoodLeaderAssignment[]>(
         "GET",
         `${API.NEIGHBORHOODS}/${id}/leader-history`,
+    );
+
+export const fetchNeighborhoodColeaders = (
+    id: string,
+): Promise<NeighborhoodColeaderAssignment[]> =>
+    request<NeighborhoodColeaderAssignment[]>(
+        "GET",
+        `${API.NEIGHBORHOODS}/${id}/coleaders`,
+    );
+
+export const assignNeighborhoodColeader = (
+    neighborhoodId: string,
+    coleaderUserId: string,
+    note?: string,
+    options?: { termId?: string; endAt?: string },
+): Promise<void> =>
+    request<void>(
+        "POST",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/coleaders`,
+        { coleaderUserId, note, ...options },
+    );
+
+export const unassignNeighborhoodColeader = (
+    neighborhoodId: string,
+    coleaderUserId: string,
+): Promise<void> =>
+    request<void>(
+        "DELETE",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/coleaders`,
+        { coleaderUserId },
+    );
+
+export const fetchNeighborhoodColeaderHistory = (
+    id: string,
+): Promise<NeighborhoodColeaderAssignment[]> =>
+    request<NeighborhoodColeaderAssignment[]>(
+        "GET",
+        `${API.NEIGHBORHOODS}/${id}/coleader-history`,
+    );
+
+export interface NeighborhoodTermInput {
+    name: string;
+    startAt: string;
+    endAt: string;
+    status: NeighborhoodTermStatus;
+    notes?: string;
+}
+
+export const fetchNeighborhoodTerms = (id: string): Promise<NeighborhoodTerm[]> =>
+    request<NeighborhoodTerm[]>("GET", `${API.NEIGHBORHOODS}/${id}/terms`);
+
+export const createNeighborhoodTerm = (
+    id: string,
+    input: NeighborhoodTermInput,
+): Promise<NeighborhoodTerm> =>
+    request<NeighborhoodTerm>("POST", `${API.NEIGHBORHOODS}/${id}/terms`, input);
+
+export const updateNeighborhoodTerm = (
+    neighborhoodId: string,
+    termId: string,
+    input: Partial<NeighborhoodTermInput>,
+): Promise<NeighborhoodTerm> =>
+    request<NeighborhoodTerm>(
+        "PATCH",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/terms/${termId}`,
+        input,
+    );
+
+export const fetchNeighborhoodHistory = (
+    id: string,
+): Promise<NeighborhoodHistory[]> =>
+    request<NeighborhoodHistory[]>("GET", `${API.NEIGHBORHOODS}/${id}/history`);
+
+export const fetchNeighborhoodAttachments = (id: string): Promise<FileAsset[]> =>
+    request<FileAsset[]>("GET", `${API.NEIGHBORHOODS}/${id}/attachments`);
+
+export const createNeighborhoodAttachment = (
+    id: string,
+    input: { name: string; url: string; description?: string },
+): Promise<FileAsset> =>
+    request<FileAsset>("POST", `${API.NEIGHBORHOODS}/${id}/attachments`, input);
+
+export const deleteNeighborhoodAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>(
+        "DELETE",
+        `${API.NEIGHBORHOODS}/${id}/attachments/${fileId}`,
+    );
+
+export interface AssignNeighborhoodCollaboratorInput {
+    collaboratorUserId: string;
+    scopeType: NeighborhoodCollaboratorScope;
+    streetId?: string;
+    houseIds?: string[];
+    campaignId?: string;
+    startAt?: string;
+    endAt?: string;
+    note?: string;
+}
+
+export const fetchNeighborhoodCollaborators = (
+    id: string,
+): Promise<NeighborhoodCollaboratorAssignment[]> =>
+    request<NeighborhoodCollaboratorAssignment[]>(
+        "GET",
+        `${API.NEIGHBORHOODS}/${id}/collaborators`,
+    );
+
+export const assignNeighborhoodCollaborator = (
+    id: string,
+    input: AssignNeighborhoodCollaboratorInput,
+): Promise<NeighborhoodCollaboratorAssignment> =>
+    request<NeighborhoodCollaboratorAssignment>(
+        "POST",
+        `${API.NEIGHBORHOODS}/${id}/collaborators`,
+        input,
+    );
+
+export const unassignNeighborhoodCollaborator = (
+    id: string,
+    assignmentId: string,
+): Promise<null> =>
+    request<null>(
+        "DELETE",
+        `${API.NEIGHBORHOODS}/${id}/collaborators`,
+        { assignmentId },
     );

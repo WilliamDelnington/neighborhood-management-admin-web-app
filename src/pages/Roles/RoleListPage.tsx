@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -46,6 +47,7 @@ import {
     fetchRoles,
     updateRole,
 } from "@service/roleApi";
+import { fetchRequestTypeDefinitions } from "@service/requestTypeApi";
 
 const RoleListPage: React.FC = () => (
     <AdminGuard permissions={["roles.read"]}>
@@ -81,11 +83,18 @@ const ALL_NHOM_PHAN_ANH = Object.keys(
     NHOM_PHAN_ANH_LABEL,
 ) as NhomPhanAnh[];
 
-const ALL_REQUEST_TYPES = Object.keys(REQUEST_TYPE_LABEL) as RequestType[];
-
 const RoleListContent: React.FC = () => {
+    const canCreate = usePermission("roles.create");
+    const canUpdate = usePermission("roles.update");
+    const canDelete = usePermission("roles.delete");
+    const canManagePermissions = usePermission("roles.manage");
     const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
+    const [requestTypeOptions, setRequestTypeOptions] = useState<
+        Array<{ key: RequestType; name: string }>
+    >(
+        Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({ key, name })),
+    );
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -105,12 +114,23 @@ const RoleListContent: React.FC = () => {
         Promise.all([
             fetchRoles({ page: targetPage }),
             fetchRolePermissionRegistry(),
+            fetchRequestTypeDefinitions({ active: true, limit: 200 }),
         ])
-            .then(([roleList, permissionRegistry]) => {
+            .then(([roleList, permissionRegistry, customTypes]) => {
                 setRoles(roleList.items);
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
+                setRequestTypeOptions([
+                    ...Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({
+                        key,
+                        name,
+                    })),
+                    ...customTypes.items.map(type => ({
+                        key: type.key,
+                        name: type.name,
+                    })),
+                ]);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -200,6 +220,8 @@ const RoleListContent: React.FC = () => {
     };
 
     const handleSave = async () => {
+        const canSave = editingRole ? canUpdate : canCreate;
+        if (!canSave) return;
         try {
             setSaving(true);
             if (editingRole) {
@@ -208,7 +230,9 @@ const RoleListContent: React.FC = () => {
                     description: form.description.trim() || undefined,
                     active: form.active,
                     sortOrder: form.sortOrder,
-                    permissions: form.permissions,
+                    ...(canManagePermissions
+                        ? { permissions: form.permissions }
+                        : {}),
                     allowedComplaintCategories: form.allowedComplaintCategories,
                     allowedRequestTypes: form.allowedRequestTypes,
                 });
@@ -238,7 +262,7 @@ const RoleListContent: React.FC = () => {
     };
 
     const handleDelete = async () => {
-        if (!roleToDelete) return;
+        if (!roleToDelete || !canDelete) return;
         try {
             setDeleting(true);
             await deleteRole(roleToDelete._id);
@@ -252,11 +276,21 @@ const RoleListContent: React.FC = () => {
         }
     };
 
+    const canEditCurrentRole = editingRole ? canUpdate : canCreate;
+    const canEditCurrentPermissions =
+        canEditCurrentRole && canManagePermissions;
+    let sheetTitle = "Tạo vai trò";
+    if (editingRole) {
+        sheetTitle = canUpdate ? "Cập nhật vai trò" : "Chi tiết vai trò";
+    }
+
     return (
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Vai trò & phân quyền</h1>
-                <Button onClick={openCreateSheet}>Tạo vai trò</Button>
+                {canCreate && (
+                    <Button onClick={openCreateSheet}>Tạo vai trò</Button>
+                )}
             </div>
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
@@ -303,7 +337,7 @@ const RoleListContent: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        {!role.system && (
+                                        {canDelete && !role.system && (
                                             <Button
                                                 size="sm"
                                                 variant="outline"
@@ -336,9 +370,7 @@ const RoleListContent: React.FC = () => {
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetContent className="flex flex-col sm:max-w-lg">
                     <SheetHeader>
-                        <SheetTitle>
-                            {editingRole ? "Cập nhật vai trò" : "Tạo vai trò"}
-                        </SheetTitle>
+                        <SheetTitle>{sheetTitle}</SheetTitle>
                     </SheetHeader>
 
                     <div className="flex-1 overflow-y-auto py-4">
@@ -349,6 +381,7 @@ const RoleListContent: React.FC = () => {
                                     <Input
                                         placeholder="vd: cluster_lead"
                                         value={form.key}
+                                        disabled={!canCreate}
                                         onChange={e =>
                                             setForm(prev => ({
                                                 ...prev,
@@ -362,6 +395,7 @@ const RoleListContent: React.FC = () => {
                                 <Label>Tên vai trò</Label>
                                 <Input
                                     value={form.name}
+                                    disabled={!!editingRole && !canUpdate}
                                     onChange={e =>
                                         setForm(prev => ({
                                             ...prev,
@@ -374,6 +408,7 @@ const RoleListContent: React.FC = () => {
                                 <Label>Mô tả</Label>
                                 <Textarea
                                     value={form.description}
+                                    disabled={!!editingRole && !canUpdate}
                                     onChange={e =>
                                         setForm(prev => ({
                                             ...prev,
@@ -385,6 +420,7 @@ const RoleListContent: React.FC = () => {
                             <div className="flex items-center gap-2">
                                 <Checkbox
                                     checked={form.active}
+                                    disabled={!!editingRole && !canUpdate}
                                     onCheckedChange={checked =>
                                         setForm(prev => ({
                                             ...prev,
@@ -416,6 +452,9 @@ const RoleListContent: React.FC = () => {
                                             <div className="mb-2 flex items-center gap-2">
                                                 <Checkbox
                                                     checked={allChecked}
+                                                    disabled={
+                                                        !canEditCurrentPermissions
+                                                    }
                                                     onCheckedChange={() =>
                                                         toggleModule(group)
                                                     }
@@ -434,6 +473,9 @@ const RoleListContent: React.FC = () => {
                                                             checked={form.permissions.includes(
                                                                 perm.key,
                                                             )}
+                                                            disabled={
+                                                                !canEditCurrentPermissions
+                                                            }
                                                             onCheckedChange={() =>
                                                                 togglePermission(
                                                                     perm.key,
@@ -461,6 +503,7 @@ const RoleListContent: React.FC = () => {
                                     checked={
                                         form.allowedComplaintCategories === null
                                     }
+                                    disabled={!canEditCurrentRole}
                                     onCheckedChange={checked =>
                                         toggleComplaintCategoryRestriction(
                                             !checked,
@@ -480,9 +523,11 @@ const RoleListContent: React.FC = () => {
                                             className="flex items-center gap-2"
                                         >
                                             <Checkbox
-                                                checked={form.allowedComplaintCategories!.includes(
-                                                    category,
-                                                )}
+                                                checked={(
+                                                    form.allowedComplaintCategories ||
+                                                    []
+                                                ).includes(category)}
+                                                disabled={!canEditCurrentRole}
                                                 onCheckedChange={() =>
                                                     toggleComplaintCategory(
                                                         category,
@@ -505,6 +550,7 @@ const RoleListContent: React.FC = () => {
                             <div className="mb-2 flex items-center gap-2">
                                 <Checkbox
                                     checked={form.allowedRequestTypes === null}
+                                    disabled={!canEditCurrentRole}
                                     onCheckedChange={checked =>
                                         toggleRequestTypeRestriction(!checked)
                                     }
@@ -516,21 +562,22 @@ const RoleListContent: React.FC = () => {
                             </div>
                             {form.allowedRequestTypes !== null && (
                                 <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2">
-                                    {ALL_REQUEST_TYPES.map(type => (
+                                    {requestTypeOptions.map(type => (
                                         <div
-                                            key={type}
+                                            key={type.key}
                                             className="flex items-center gap-2"
                                         >
                                             <Checkbox
-                                                checked={form.allowedRequestTypes!.includes(
-                                                    type,
-                                                )}
+                                                checked={(
+                                                    form.allowedRequestTypes || []
+                                                ).includes(type.key)}
+                                                disabled={!canEditCurrentRole}
                                                 onCheckedChange={() =>
-                                                    toggleRequestType(type)
+                                                    toggleRequestType(type.key)
                                                 }
                                             />
                                             <Label className="text-sm font-normal">
-                                                {REQUEST_TYPE_LABEL[type]}
+                                                {type.name}
                                             </Label>
                                         </div>
                                     ))}
@@ -538,14 +585,19 @@ const RoleListContent: React.FC = () => {
                             )}
                         </div>
 
-                        <Button
-                            className="mt-5 w-full"
-                            loading={saving}
-                            disabled={!form.name.trim() || (!editingRole && !form.key.trim())}
-                            onClick={handleSave}
-                        >
-                            {editingRole ? "Lưu thay đổi" : "Tạo vai trò"}
-                        </Button>
+                        {(editingRole ? canUpdate : canCreate) && (
+                            <Button
+                                className="mt-5 w-full"
+                                loading={saving}
+                                disabled={
+                                    !form.name.trim() ||
+                                    (!editingRole && !form.key.trim())
+                                }
+                                onClick={handleSave}
+                            >
+                                {editingRole ? "Lưu thay đổi" : "Tạo vai trò"}
+                            </Button>
+                        )}
                     </div>
                 </SheetContent>
             </Sheet>

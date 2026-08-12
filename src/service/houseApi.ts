@@ -3,6 +3,7 @@ import {
     AuditLogRecord,
     FileAsset,
     House,
+    HouseGisSource,
     HousePhysicalStatus,
     HouseStatus,
     HouseUsageType,
@@ -40,6 +41,11 @@ export interface HouseInput {
     usageTypes?: HouseUsageType[];
     otherUsageNote?: string;
     note?: string;
+    gisLatitude?: number | null;
+    gisLongitude?: number | null;
+    gisAccuracyMeters?: number | null;
+    gisSource?: HouseGisSource;
+    gisCapturedAt?: string | null;
     // Loai chu nha duoc khai bao luc tao nha so - xem HouseForm.tsx. "none" =
     // chua khai bao (hanh vi cu khi khong nhap gi ca).
     ownerKind?: "individual" | "organization" | "none";
@@ -77,6 +83,7 @@ export const fetchHouses = (params?: {
     streetId?: string;
     neighborhoodId?: string;
     wardCode?: number;
+    status?: string;
 }): Promise<PaginatedData<House>> =>
     request<PaginatedData<House>>("GET", API.HOUSES, params);
 
@@ -105,6 +112,18 @@ export const updateHouse = (
     id: string,
     input: Partial<HouseInput>,
 ): Promise<House> => request<House>("PATCH", `${API.HOUSES}/${id}`, input);
+
+export const updateHouseGis = (
+    id: string,
+    input: {
+        gisLatitude: number | null;
+        gisLongitude: number | null;
+        gisAccuracyMeters?: number | null;
+        gisSource?: HouseGisSource;
+        gisCapturedAt?: string | null;
+    },
+): Promise<House> =>
+    request<House>("PATCH", `${API.HOUSES}/${id}/gis`, input);
 
 export const deleteHouse = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.HOUSES}/${id}`);

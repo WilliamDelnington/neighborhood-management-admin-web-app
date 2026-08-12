@@ -30,7 +30,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import FilterableSelect from "@components/admin/FilterableSelect";
-import { AppError, Neighborhood, Role, RoleRecord, User, UserStatus } from "@dts";
+import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
 import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -46,9 +46,19 @@ import {
     assignNeighborhoodLeader,
     fetchNeighborhoods,
 } from "@service/neighborhoodApi";
+import {
+    fetchProvinces,
+    fetchWardsByProvince,
+} from "@service/administrativeDivisionApi";
 import { usePermission } from "@store/authStore";
 
 const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
+const PEOPLE_COMMITTEE_OFFICIAL_ROLE = "people_committee_official";
+const SECRETARY_ROLE = "secretary";
+const WARD_SCOPED_ROLES: Role[] = [
+    PEOPLE_COMMITTEE_OFFICIAL_ROLE,
+    SECRETARY_ROLE,
+];
 
 const UserListPage: React.FC = () => (
     <AdminGuard permissions={["users.read"]}>
@@ -111,6 +121,16 @@ const UserListContent: React.FC = () => {
         string | null
     >(null);
 
+    // Pham vi phuong/xa cho can bo UBND va bi thu. `wardCode` la ma dinh danh
+    // on dinh tu danh muc hanh chinh, dung kem ten de hien thi.
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+    const [wardProvinceCode, setWardProvinceCode] = useState("");
+    const [wardProvinceName, setWardProvinceName] = useState("");
+    const [wardCode, setWardCode] = useState("");
+    const [wardName, setWardName] = useState("");
+    const [savingWard, setSavingWard] = useState(false);
+
     const load = (targetPage = 1, keyword = search) => {
         setLoading(true);
         setError(false);
@@ -144,6 +164,25 @@ const UserListContent: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canReadRoles]);
 
+    useEffect(() => {
+        if (!canFullUpdate) return;
+        fetchProvinces()
+            .then(setProvinces)
+            .catch(() => setProvinces([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canFullUpdate]);
+
+    useEffect(() => {
+        if (!wardProvinceCode) {
+            setWards([]);
+            return;
+        }
+        fetchWardsByProvince(Number(wardProvinceCode))
+            .then(setWards)
+            .catch(() => setWards([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [wardProvinceCode]);
+
     const loadNeighborhoodSections = (user: User) => {
         if (!user.roles.includes(NEIGHBORHOOD_LEADER_ROLE)) {
             setManagedNeighborhoods([]);
@@ -168,6 +207,10 @@ const UserListContent: React.FC = () => {
         setRoleToAssign("resident");
         setNeighborhoodToAssign("");
         loadNeighborhoodSections(user);
+        setWardProvinceCode(user.provinceCode ? String(user.provinceCode) : "");
+        setWardProvinceName(user.provinceName || "");
+        setWardCode(user.wardCode ? String(user.wardCode) : "");
+        setWardName(user.wardName || "");
         setSheetOpen(true);
     };
 
@@ -306,6 +349,25 @@ const UserListContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setUnassigningNeighborhoodId(null);
+        }
+    };
+
+    const handleSaveWard = async () => {
+        if (!selectedUser) return;
+        try {
+            setSavingWard(true);
+            const updated = await updateUser(selectedUser.id, {
+                provinceCode: wardProvinceCode ? Number(wardProvinceCode) : null,
+                provinceName: wardProvinceName || null,
+                wardCode: wardCode ? Number(wardCode) : null,
+                wardName: wardName || null,
+            });
+            refreshSelected(updated);
+            toast.success("Đã cập nhật phường/xã phụ trách");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSavingWard(false);
         }
     };
 
@@ -678,6 +740,66 @@ const UserListContent: React.FC = () => {
                                             onClick={handleAssignNeighborhood}
                                         >
                                             Gán
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {canFullUpdate &&
+                                selectedUser.roles.some(role =>
+                                    WARD_SCOPED_ROLES.includes(role),
+                                ) && (
+                                <div className="mt-5 border-t border-divider_01 pt-4">
+                                    <h3 className="mb-2 text-sm font-semibold">
+                                        Phường/xã phụ trách
+                                    </h3>
+                                    <p className="mb-3 text-xs text-text_2">
+                                        Xác định phường/xã thuộc phạm vi quản
+                                        lý của cán bộ hoặc bí thư này.
+                                    </p>
+                                    <div className="flex flex-col gap-3">
+                                        <FilterableSelect
+                                            label="Tỉnh/Thành phố"
+                                            placeholder="Chọn tỉnh/thành phố"
+                                            searchPlaceholder="Tìm theo tên tỉnh/thành phố..."
+                                            items={provinces}
+                                            getId={p => String(p.code)}
+                                            getLabel={p => p.name}
+                                            value={wardProvinceCode}
+                                            valueLabel={wardProvinceName}
+                                            onChange={(code, province) => {
+                                                setWardProvinceCode(code || "");
+                                                setWardProvinceName(
+                                                    province?.name || "",
+                                                );
+                                                setWardCode("");
+                                                setWardName("");
+                                            }}
+                                        />
+                                        <FilterableSelect
+                                            label="Phường/Xã"
+                                            placeholder={
+                                                wardProvinceCode
+                                                    ? "Chọn phường/xã"
+                                                    : "Chọn tỉnh/thành phố trước"
+                                            }
+                                            searchPlaceholder="Tìm theo tên phường/xã..."
+                                            items={wards}
+                                            getId={w => String(w.code)}
+                                            getLabel={w => w.name}
+                                            value={wardCode}
+                                            valueLabel={wardName}
+                                            onChange={(code, ward) => {
+                                                setWardCode(code || "");
+                                                setWardName(ward?.name || "");
+                                            }}
+                                            disabled={!wardProvinceCode}
+                                        />
+                                        <Button
+                                            loading={savingWard}
+                                            onClick={handleSaveWard}
+                                        >
+                                            Lưu phường/xã phụ trách
                                         </Button>
                                     </div>
                                 </div>

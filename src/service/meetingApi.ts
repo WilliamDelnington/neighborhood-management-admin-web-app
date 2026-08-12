@@ -1,5 +1,11 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { AuditLogRecord, Meeting, MeetingRegistration, PaginatedData } from "@dts";
+import {
+    AnnouncementAttachment,
+    AuditLogRecord,
+    Meeting,
+    MeetingRegistration,
+    PaginatedData,
+} from "@dts";
 import { request } from "./request";
 
 export interface MeetingInput {
@@ -8,7 +14,6 @@ export interface MeetingInput {
     location: string;
     content: string;
     minutes?: string;
-    attachments?: string[];
     published: boolean;
     eligibleAll?: boolean;
     eligibleRoles?: string[];
@@ -61,3 +66,30 @@ export const fetchMeetingAuditLogs = (
         `${API.MEETINGS}/${id}/audit-logs`,
         params,
     );
+
+export const fetchMeetingAttachments = (
+    id: string,
+): Promise<AnnouncementAttachment[]> =>
+    request<AnnouncementAttachment[]>(
+        "GET",
+        `${API.MEETINGS}/${id}/attachments`,
+    );
+
+export const uploadMeetingAttachment = (
+    id: string,
+    file: File,
+): Promise<AnnouncementAttachment> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<AnnouncementAttachment>(
+        "POST",
+        `${API.MEETINGS}/${id}/attachments`,
+        formData,
+    );
+};
+
+export const deleteMeetingAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>("DELETE", `${API.MEETINGS}/${id}/attachments/${fileId}`);

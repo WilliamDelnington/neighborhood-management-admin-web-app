@@ -160,8 +160,15 @@ const AnnouncementListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="font-medium">
-                                        {a.pinned ? "📌 " : ""}
-                                        {a.title}
+                                        <div className="flex items-center gap-2">
+                                            {a.pinned ? "📌 " : ""}
+                                            {a.title}
+                                            {a.isUrgent && (
+                                                <Badge tone="red">
+                                                    Khẩn cấp
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {LOAI_THONG_BAO_LABEL[a.category]}

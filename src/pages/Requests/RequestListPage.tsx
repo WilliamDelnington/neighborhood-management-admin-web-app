@@ -25,7 +25,13 @@ import SendRequestSheet from "@components/admin/SendRequestSheet";
 import RequestDetailSheet from "./RequestDetailSheet";
 import { usePermission } from "@store/authStore";
 import { RequestItem, RequestType } from "@dts";
-import { REQUEST_STATUS_LABEL, REQUEST_STATUS_TONE, REQUEST_TYPE_LABEL } from "@constants/domain";
+import {
+    REQUEST_PRIORITY_LABEL,
+    REQUEST_PRIORITY_TONE,
+    REQUEST_STATUS_LABEL,
+    REQUEST_STATUS_TONE,
+    REQUEST_TYPE_LABEL,
+} from "@constants/domain";
 import { fetchRequests } from "@service/requestApi";
 
 const ALL_TYPES = "all";
@@ -126,6 +132,7 @@ const RequestListContent: React.FC = () => {
                             <TableRow>
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Loại</TableHead>
+                                <TableHead>Mức độ</TableHead>
                                 <TableHead>Nhà liên quan</TableHead>
                                 <TableHead>Người nhận</TableHead>
                                 <TableHead>Hạn xử lý</TableHead>
@@ -144,7 +151,24 @@ const RequestListContent: React.FC = () => {
                                         {r.title}
                                     </TableCell>
                                     <TableCell>
-                                        {REQUEST_TYPE_LABEL[r.type]}
+                                        {r.formDefinitionSnapshot?.name ||
+                                            REQUEST_TYPE_LABEL[r.type] ||
+                                            r.type}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            tone={
+                                                REQUEST_PRIORITY_TONE[
+                                                    r.priority
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                REQUEST_PRIORITY_LABEL[
+                                                    r.priority
+                                                ]
+                                            }
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>{houseText(r.houseId)}</TableCell>
                                     <TableCell>

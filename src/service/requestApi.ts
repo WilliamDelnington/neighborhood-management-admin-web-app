@@ -4,8 +4,11 @@ import {
     MyRequestItem,
     PaginatedData,
     RequestAttachment,
+    RequestComment,
+    RequestHouseRole,
     RequestItem,
     RequestMeta,
+    RequestPriority,
     RequestStatus,
     RequestType,
 } from "@dts";
@@ -15,12 +18,16 @@ export interface CreateRequestInput {
     type: RequestType;
     title: string;
     description?: string;
+    priority?: RequestPriority;
     relatedModel?: string;
     relatedId?: string;
     houseId?: string;
     dueDate?: string;
     targetUserIds?: string[];
     targetRoles?: string[];
+    houseRole?: RequestHouseRole;
+    targetHouseNeighborhoodLeader?: boolean;
+    formData?: Record<string, unknown>;
 }
 
 export const fetchRequestMeta = (): Promise<RequestMeta> =>
@@ -56,6 +63,7 @@ export const updateRequest = (
         title?: string;
         description?: string;
         note?: string;
+        priority?: RequestPriority;
         dueDate?: string;
         addTargetUserIds?: string[];
         addTargetRoles?: string[];
@@ -88,6 +96,25 @@ export const updateMyRequestStatus = (
     request<MyRequestItem>(
         "PATCH",
         `${API.REQUESTS}/${requestId}/recipients/me`,
+        input,
+    );
+
+export const updateRequestFormData = (
+    requestId: string,
+    formData: Record<string, unknown>,
+): Promise<RequestItem> =>
+    request<RequestItem>("PATCH", `${API.REQUESTS}/${requestId}/form-data`, {
+        formData,
+    });
+
+export const confirmRequestRecipient = (
+    requestId: string,
+    userId: string,
+    input: { decision: "resolved" | "in_progress"; note?: string },
+) =>
+    request(
+        "PATCH",
+        `${API.REQUESTS}/${requestId}/recipients/${userId}`,
         input,
     );
 
@@ -124,3 +151,18 @@ export const deleteRequestAttachment = (
     fileId: string,
 ): Promise<null> =>
     request<null>("DELETE", `${API.REQUESTS}/${id}/attachments/${fileId}`);
+
+export const fetchRequestComments = (
+    id: string,
+): Promise<RequestComment[]> =>
+    request<RequestComment[]>("GET", `${API.REQUESTS}/${id}/comments`);
+
+export const createRequestComment = (
+    id: string,
+    content: string,
+): Promise<RequestComment> =>
+    request<RequestComment>(
+        "POST",
+        `${API.REQUESTS}/${id}/comments`,
+        { content },
+    );

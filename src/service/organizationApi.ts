@@ -20,15 +20,17 @@ export const fetchOrganizations = (
 export const fetchOrganizationById = (id: string): Promise<Organization> =>
     request<Organization>("GET", `${API.ORGANIZATIONS}/${id}`);
 
-export interface OrganizationInput {
+export interface CreateOrganizationInput {
     name: string;
     taxCode?: string;
     organizationType: OrganizationType;
     // Chi admin can gui - house_owner tu tao to chuc luon bi ep ve chinh minh
     // o backend (xem organizationService.createOrganization), bo qua truong
-    // nay neu co gui.
+    // nay neu co gui. Duoc tao thanh ban ghi OrganizationRepresentative
+    // (role="legal_representative") - xem organizationRepresentativeApi.ts
+    // de them/chuyen nguoi dai dien SAU khi to chuc da ton tai.
     representativeUserId?: string;
-    representativeRole?: string;
+    representativeTitle?: string;
     phone?: string;
     email?: string;
     address?: string;
@@ -36,13 +38,19 @@ export interface OrganizationInput {
 }
 
 export const createOrganization = (
-    input: OrganizationInput,
+    input: CreateOrganizationInput,
 ): Promise<Organization> =>
     request<Organization>("POST", API.ORGANIZATIONS, input);
 
-// taxCode la bat bien sau khi tao - khong nam trong kieu cap nhat.
+// taxCode la bat bien sau khi tao; representativeUserId/representativeTitle
+// KHONG con sua duoc qua day nua - doi nguoi dai dien phai di qua
+// organizationRepresentativeApi.ts (them/ket thuc/xac thuc), dam bao luon co
+// lich su thay vi bi ghi de.
 export type UpdateOrganizationInput = Partial<
-    Omit<OrganizationInput, "taxCode">
+    Omit<
+        CreateOrganizationInput,
+        "taxCode" | "representativeUserId" | "representativeTitle"
+    >
 >;
 
 export const updateOrganization = (

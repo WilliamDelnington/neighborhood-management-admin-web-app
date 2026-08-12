@@ -17,6 +17,7 @@ export const API = {
 
     USERS: "/api/users",
     USERS_ASSIGNABLE_STAFF: "/api/users/assignable-staff",
+    USERS_SEARCH_RESIDENTS: "/api/users/search-residents",
     ROLES: "/api/roles",
     ROLES_PERMISSIONS: "/api/roles/permissions",
     ROLES_ASSIGN: "/api/roles/assign",
@@ -26,10 +27,15 @@ export const API = {
     HOUSES_CHECK_OWNER_PHONE: "/api/houses/check-owner-phone",
     ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
     ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
+    WARD_MANAGERS: "/api/wards/managers",
     ORGANIZATIONS: "/api/organizations",
     HOUSEHOLDS: "/api/households",
     NEIGHBORHOODS: "/api/neighborhoods",
     STREETS: "/api/streets",
+    INFRASTRUCTURE_ASSETS: "/api/infrastructure-assets",
+    PERIODIC_REPORTS: "/api/periodic-reports",
+    KPI_DEFINITIONS: "/api/kpi-definitions",
+    KPIS: "/api/kpis",
     CITIZENS: "/api/citizens",
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",
@@ -41,6 +47,9 @@ export const API = {
     SUPPORT_TICKETS: "/api/support-tickets",
 
     ANNOUNCEMENTS: "/api/announcements",
+    CORRESPONDENCE_TYPES: "/api/correspondence-types",
+    CORRESPONDENCES: "/api/correspondences",
+    CHANGE_REQUESTS: "/api/change-requests",
     MEETINGS: "/api/meetings",
     SURVEYS: "/api/surveys",
 
@@ -50,10 +59,14 @@ export const API = {
     REQUESTS: "/api/requests",
     REQUESTS_META: "/api/requests/meta",
     REQUESTS_MY: "/api/requests/my",
+    REQUEST_TYPES: "/api/request-types",
+    INSPECTION_CAMPAIGNS: "/api/v1/neighborhood/inspection-campaigns",
+    INSPECTIONS_V1: "/api/v1",
 
     FINANCE: "/api/finance",
     FILES: "/api/files",
     SETTINGS: "/api/settings",
+    INTEGRATION_READINESS: "/api/integrations/readiness",
 
     REPORTS: "/api/reports",
     IMPORT: "/api/import",

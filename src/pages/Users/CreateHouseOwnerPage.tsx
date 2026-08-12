@@ -9,14 +9,12 @@ import { createHouseOwner } from "@service/userApi";
 
 type FormState = {
     phone: string;
-    password: string;
     displayName: string;
     address: string;
 };
 
 const EMPTY_FORM: FormState = {
     phone: "",
-    password: "",
     displayName: "",
     address: "",
 };
@@ -31,8 +29,8 @@ const CreateHouseOwnerPage: React.FC = () => (
  * Man rieng (khong dung chung UserListPage - trang do doi hoi quyen
  * "users.read", von liet ke TOAN BO tai khoan he thong khong loc theo to dan
  * pho) de to truong tao tai khoan chu ho ma khong bi cap them quyen xem het
- * moi nguoi dung. Chu ho dang nhap bang chinh so dien thoai/mat khau duoc
- * dat o day (xem authService.loginWithPhone o backend).
+ * moi nguoi dung. Chu ho mo Mini App va cho phep Zalo chia se so dien thoai;
+ * backend se lien ket Zalo identity voi tai khoan duoc tao truoc o day.
  */
 const CreateHouseOwnerContent: React.FC = () => {
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -44,13 +42,12 @@ const CreateHouseOwnerContent: React.FC = () => {
 
     const isValid =
         form.phone.trim().length > 0 &&
-        form.password.trim().length >= 6 &&
         form.displayName.trim().length > 0;
 
     const handleCreate = async () => {
         if (!isValid) {
             toast.error(
-                "Vui lòng nhập đầy đủ số điện thoại, mật khẩu (tối thiểu 6 ký tự) và họ tên",
+                "Vui lòng nhập đầy đủ số điện thoại và họ tên",
             );
             return;
         }
@@ -58,7 +55,6 @@ const CreateHouseOwnerContent: React.FC = () => {
             setSaving(true);
             await createHouseOwner({
                 phone: form.phone.trim(),
-                password: form.password,
                 displayName: form.displayName.trim(),
                 address: form.address.trim() || undefined,
             });
@@ -79,8 +75,8 @@ const CreateHouseOwnerContent: React.FC = () => {
             {lastCreatedPhone && (
                 <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
                     Đã tạo tài khoản với số điện thoại <strong>{lastCreatedPhone}</strong>.
-                    Vui lòng thông báo số điện thoại và mật khẩu cho chủ hộ để họ đăng
-                    nhập vào ứng dụng.
+                    Chủ hộ có thể mở Mini App và cho phép Zalo chia sẻ số điện thoại
+                    này để đăng nhập; không cần mật khẩu.
                 </div>
             )}
 
@@ -92,15 +88,6 @@ const CreateHouseOwnerContent: React.FC = () => {
                             placeholder="VD: 0912345678"
                             value={form.phone}
                             onChange={e => set("phone", e.target.value)}
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label>Mật khẩu ban đầu</Label>
-                        <Input
-                            type="text"
-                            placeholder="Tối thiểu 6 ký tự"
-                            value={form.password}
-                            onChange={e => set("password", e.target.value)}
                         />
                     </div>
                     <div className="space-y-1.5">
