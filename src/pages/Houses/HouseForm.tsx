@@ -116,6 +116,7 @@ export interface HouseFormValues {
     ownerName: string;
     ownerPhone: string;
     ownerEmail: string;
+    ownerPassword: string;
     createOwnerAccount: boolean;
     // ownerKind="organization": thong tin to chuc duoc khai bao inline, luon
     // duoc thu thap - backend tim-hoac-tao theo taxCode neu co nhap, khong thi
@@ -131,6 +132,7 @@ export interface HouseFormValues {
     repName: string;
     repPhone: string;
     repEmail: string;
+    repPassword: string;
 }
 
 export const EMPTY_HOUSE_FORM: HouseFormValues = {
@@ -150,6 +152,7 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
     ownerName: "",
     ownerPhone: "",
     ownerEmail: "",
+    ownerPassword: "",
     createOwnerAccount: false,
     orgName: "",
     orgTaxCode: "",
@@ -160,6 +163,7 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
     repName: "",
     repPhone: "",
     repEmail: "",
+    repPassword: "",
 };
 
 export function toHouseInput(values: HouseFormValues): HouseInput {
@@ -185,6 +189,11 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
                       displayName: values.ownerName.trim(),
                       phone: values.ownerPhone.trim(),
                       email: values.ownerEmail.trim() || undefined,
+                      password:
+                          values.createOwnerAccount &&
+                          values.ownerPassword.trim()
+                              ? values.ownerPassword.trim()
+                              : undefined,
                   }
                 : undefined,
         createOwnerAccount:
@@ -212,6 +221,7 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
                       displayName: values.repName.trim(),
                       phone: values.repPhone.trim(),
                       email: values.repEmail.trim() || undefined,
+                      password: values.repPassword.trim() || undefined,
                   }
                 : undefined,
     };
@@ -223,12 +233,29 @@ export function isHouseFormValid(values: HouseFormValues): boolean {
     }
     if (values.usageTypes.length === 0) return false;
     if (values.ownerKind === "individual") {
-        return !!(values.ownerName.trim() && values.ownerPhone.trim());
+        if (!(values.ownerName.trim() && values.ownerPhone.trim())) {
+            return false;
+        }
+        if (
+            values.createOwnerAccount &&
+            values.ownerPassword.trim().length > 0 &&
+            values.ownerPassword.trim().length < 6
+        ) {
+            return false;
+        }
     }
     if (values.ownerKind === "organization") {
         if (!values.orgName.trim()) return false;
         if (values.createRepresentativeAccount) {
-            return !!(values.repName.trim() && values.repPhone.trim());
+            if (!(values.repName.trim() && values.repPhone.trim())) {
+                return false;
+            }
+            if (
+                values.repPassword.trim().length > 0 &&
+                values.repPassword.trim().length < 6
+            ) {
+                return false;
+            }
         }
     }
     return true;
@@ -635,6 +662,27 @@ const HouseForm: React.FC<HouseFormProps> = ({
                                     Tạo tài khoản Chủ sở hữu
                                 </Label>
                             </div>
+                            {values.createOwnerAccount && (
+                                <div className="space-y-1.5">
+                                    <Label>Mật khẩu (không bắt buộc)</Label>
+                                    <Input
+                                        type="password"
+                                        placeholder="Ít nhất 6 ký tự"
+                                        value={values.ownerPassword}
+                                        onChange={e =>
+                                            set(
+                                                "ownerPassword",
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Đặt mật khẩu để chủ nhà đăng nhập ngay
+                                        bằng số điện thoại + mật khẩu này. Để
+                                        trống nếu chủ nhà sẽ tự đăng ký sau.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -759,6 +807,26 @@ const HouseForm: React.FC<HouseFormProps> = ({
                                                 set("repEmail", e.target.value)
                                             }
                                         />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>Mật khẩu (không bắt buộc)</Label>
+                                        <Input
+                                            type="password"
+                                            placeholder="Ít nhất 6 ký tự"
+                                            value={values.repPassword}
+                                            onChange={e =>
+                                                set(
+                                                    "repPassword",
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Đặt mật khẩu để người đại diện đăng
+                                            nhập ngay bằng số điện thoại + mật
+                                            khẩu này. Để trống nếu họ sẽ tự
+                                            đăng ký sau.
+                                        </p>
                                     </div>
                                 </div>
                             )}

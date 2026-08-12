@@ -332,7 +332,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
             },
             {
                 key: "create_house_owner",
-                label: "Tạo tài khoản chủ hộ",
+                label: "Tạo tài khoản",
                 path: "/users/new-house-owner",
                 icon: UserPlus,
                 permission: "users.create",

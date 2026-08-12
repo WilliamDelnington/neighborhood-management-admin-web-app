@@ -44,6 +44,8 @@ export const ROLE_LABEL: Record<Role, string> = {
     house_owner: "Chủ sở hữu",
     household_head: "Chủ hộ",
     neighborhood_leader: "Tổ trưởng",
+    neighborhood_coleader: "Tổ phó",
+    neighborhood_collaborator: "Cộng tác viên Tổ dân phố",
     secretary: "Bí thư",
     regional_police: "Công an khu vực",
     people_committee_official: "Cán bộ UBND",
