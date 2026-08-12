@@ -15,6 +15,11 @@ export interface HouseOwnerPersonInput {
     displayName: string;
     phone: string;
     email?: string;
+    // TAM THOI: cho phep nhan vien dat mat khau luc tao tai khoan thay (thay
+    // OTP, hien chua san sang do can duyet mau tin truoc - xem LoginPage.tsx
+    // o mini app). Chi ap dung khi tao tai khoan MOI (bo qua neu so dien
+    // thoai da co tai khoan san).
+    password?: string;
 }
 
 export interface HouseOwnerOrganizationInput {

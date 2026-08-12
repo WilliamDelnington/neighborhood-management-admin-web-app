@@ -116,10 +116,22 @@ export const lockUserAccount = (
 ): Promise<User> =>
     request<User>("PATCH", `${API.USERS}/${id}/lock`, { status, statusReason });
 
+// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai
+// CHI admin moi duoc chon (kiem tra o backend, xem userService.createHouseOwnerByStaff).
+export type CreatableStaffRole =
+    | "house_owner"
+    | "neighborhood_leader"
+    | "neighborhood_coleader"
+    | "neighborhood_collaborator";
+
 export interface CreateHouseOwnerParams {
     phone: string;
     displayName: string;
     address?: string;
+    role?: CreatableStaffRole;
+    // TAM THOI: dat mat khau luc tao (thay OTP/Zalo, hien chua san sang do can
+    // duyet mau tin truoc - xem LoginPage.tsx o mini app).
+    password?: string;
 }
 
 export const createHouseOwner = (
