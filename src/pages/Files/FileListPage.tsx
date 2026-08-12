@@ -42,7 +42,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
-import { DEFAULT_PAGE_SIZE } from "@constants/common";
+import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import { AppError, FileAsset, FileAssetCategory, RoleRecord } from "@dts";
 import {
     FILE_ASSET_CATEGORY_LABEL,
@@ -338,7 +338,7 @@ const FileListContent: React.FC = () => {
                                         <div className="flex items-center gap-1.5">
                                             {file.name}
                                             <a
-                                                href={file.url}
+                                                href={resolveAssetUrl(file.url)}
                                                 target="_blank"
                                                 rel="noreferrer"
                                                 onClick={e => e.stopPropagation()}

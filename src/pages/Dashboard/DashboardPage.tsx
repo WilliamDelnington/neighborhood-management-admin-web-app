@@ -758,6 +758,36 @@ const DashboardContent: React.FC = () => {
                 </div>
             </header>
 
+            {hasChartCapability && (
+                <section>
+                    <div className="mb-2">
+                        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
+                            <BarChart3 className="h-4 w-4 text-main" />
+                            Theo dõi điều hành
+                        </h2>
+                        <p className="mt-0.5 text-xs text-text_2">
+                            Biểu đồ được chọn theo vai trò và phạm vi dữ liệu
+                            được phân công.
+                        </p>
+                    </div>
+                    {chartSpecs.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                            {chartSpecs.map(chart => (
+                                <DashboardChartCard
+                                    key={chart.key}
+                                    chart={chart}
+                                    onOpen={() => navigate(chart.link)}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-2xl border border-dashed border-divider_01 bg-white px-4 py-8 text-center text-sm text-text_2">
+                            Chưa có dữ liệu đủ để vẽ biểu đồ trong phạm vi này.
+                        </div>
+                    )}
+                </section>
+            )}
+
             {attentionItems.length > 0 && (
                 <section>
                     <div className="mb-2 flex items-center justify-between">
@@ -950,36 +980,6 @@ const DashboardContent: React.FC = () => {
                     />
                 )}
             */}
-
-            {hasChartCapability && (
-                <section>
-                    <div className="mb-2">
-                        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                            <BarChart3 className="h-4 w-4 text-main" />
-                            Theo dõi điều hành
-                        </h2>
-                        <p className="mt-0.5 text-xs text-text_2">
-                            Biểu đồ được chọn theo vai trò và phạm vi dữ liệu
-                            được phân công.
-                        </p>
-                    </div>
-                    {chartSpecs.length > 0 ? (
-                        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                            {chartSpecs.map(chart => (
-                                <DashboardChartCard
-                                    key={chart.key}
-                                    chart={chart}
-                                    onOpen={() => navigate(chart.link)}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="rounded-2xl border border-dashed border-divider_01 bg-white px-4 py-8 text-center text-sm text-text_2">
-                            Chưa có dữ liệu đủ để vẽ biểu đồ trong phạm vi này.
-                        </div>
-                    )}
-                </section>
-            )}
 
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {summary.myRequests.length > 0 && (
