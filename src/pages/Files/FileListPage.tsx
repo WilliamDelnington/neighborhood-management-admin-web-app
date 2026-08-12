@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ExternalLink, Plus } from "lucide-react";
+import { ExternalLink, Paperclip, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
@@ -61,6 +61,12 @@ const ALL_CATEGORIES = "all";
 
 const uploaderText = (uploadedBy: FileAsset["uploadedBy"]) =>
     typeof uploadedBy === "string" ? uploadedBy : uploadedBy.displayName;
+
+// File tai len truc tiep (khac voi dan URL ngoai, vd Google Drive) luon co
+// duong dan chua "/uploads/" (xem localUpload.ts saveUploadedFile phia
+// backend) - dung de quyet dinh hien thi nhu mot tep dinh kem thay vi mot o
+// nhap URL co the sua, vi sua tay duong dan file da tai len la vo nghia.
+const isUploadedAssetUrl = (url: string) => /\/uploads\//.test(url);
 
 const FileListPage: React.FC = () => (
     <AdminGuard permissions={["files.read"]}>
@@ -263,6 +269,8 @@ const FileListContent: React.FC = () => {
             setDeleting(false);
         }
     };
+
+    const editingIsUploadedFile = !!editing && isUploadedAssetUrl(editing.url);
 
     const isFormValid =
         form.name.trim() &&
@@ -480,21 +488,36 @@ const FileListContent: React.FC = () => {
                                     </div>
                                 </div>
                             )}
-                            {(editing || uploadMode === "link") && (
+                            {editing && editingIsUploadedFile && (
                                 <div className="space-y-1.5">
-                                    <Label>Đường dẫn (URL)</Label>
-                                    <Input
-                                        placeholder="https://drive.google.com/..."
-                                        value={form.url}
-                                        onChange={e =>
-                                            setForm(prev => ({
-                                                ...prev,
-                                                url: e.target.value,
-                                            }))
-                                        }
-                                    />
+                                    <Label>Tệp đính kèm</Label>
+                                    <a
+                                        href={resolveAssetUrl(form.url)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-2 rounded-lg border border-divider_01 p-2 text-sm text-primary hover:underline"
+                                    >
+                                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                                        {form.name || "Xem tệp đã tải lên"}
+                                    </a>
                                 </div>
                             )}
+                            {(!editing || !editingIsUploadedFile) &&
+                                (editing || uploadMode === "link") && (
+                                    <div className="space-y-1.5">
+                                        <Label>Đường dẫn (URL)</Label>
+                                        <Input
+                                            placeholder="https://drive.google.com/..."
+                                            value={form.url}
+                                            onChange={e =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    url: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                )}
                             {!editing && uploadMode === "upload" && (
                                 <div className="space-y-1.5">
                                     <Label>Tệp đính kèm</Label>
