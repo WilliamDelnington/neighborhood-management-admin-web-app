@@ -21,6 +21,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Complaint, NhomPhanAnh, TrangThaiPhanAnh } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
@@ -188,13 +189,14 @@ const ComplaintListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã — Tiêu đề</TableHead>
                                 <TableHead>Nhóm</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(c => (
+                            {items.map((c, index) => (
                                 <TableRow
                                     key={c._id}
                                     className="cursor-pointer"
@@ -202,6 +204,9 @@ const ComplaintListContent: React.FC = () => {
                                         navigate(`/complaints/${c._id}`)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {c.code} — {c.title}
                                     </TableCell>

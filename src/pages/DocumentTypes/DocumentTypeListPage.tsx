@@ -40,6 +40,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, DocumentType } from "@dts";
 import {
     createDocumentType,
@@ -266,6 +267,7 @@ const DocumentTypeListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên loại giấy tờ</TableHead>
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Ngày cấp / hạn dùng</TableHead>
@@ -274,7 +276,7 @@ const DocumentTypeListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(dt => (
+                            {items.map((dt, index) => (
                                 <TableRow
                                     key={dt._id}
                                     className={canUpdate ? "cursor-pointer" : ""}
@@ -282,6 +284,9 @@ const DocumentTypeListContent: React.FC = () => {
                                         canUpdate && openEditSheet(dt)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {dt.name}
                                         {dt.description && (

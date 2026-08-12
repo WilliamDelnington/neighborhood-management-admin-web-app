@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const i=require\\('lucide-react'\\); console.log\\(Object.keys\\(i\\).filter\\(k=>/MessageSquare|Warning/i.test\\(k\\)\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4000/ --max-time 3)"
+    ]
+  }
+}

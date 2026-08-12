@@ -24,6 +24,7 @@ import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Company, VerificationStatus } from "@dts";
 import { fetchCompanies } from "@service/companyApi";
 
@@ -132,6 +133,7 @@ const CompanyListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên công ty</TableHead>
                                 <TableHead>Nhà số</TableHead>
                                 <TableHead>Cụm</TableHead>
@@ -140,7 +142,7 @@ const CompanyListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(c => (
+                            {items.map((c, index) => (
                                 <TableRow
                                     key={c._id}
                                     className="cursor-pointer"
@@ -150,6 +152,9 @@ const CompanyListContent: React.FC = () => {
                                         )
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {c.name}
                                     </TableCell>

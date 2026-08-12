@@ -182,13 +182,14 @@ const StreetListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(s => (
+                            {items.map((s, index) => (
                                 <TableRow
                                     key={s._id}
                                     className="cursor-pointer"
@@ -196,6 +197,9 @@ const StreetListContent: React.FC = () => {
                                         navigate(`/streets/${s._id}`)
                                     }
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * 30 + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {s.code}
                                     </TableCell>

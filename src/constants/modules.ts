@@ -358,13 +358,14 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: ShieldCheck,
                 permission: "settings.read",
             },
-            {
-                key: "mini_app_features",
-                label: "Tính năng Mini App",
-                path: "/mini-app-features",
-                icon: ListOrdered,
-                permission: "settings.read",
-            },
+            // Tạm ẩn menu Tính năng Mini App
+            // {
+            //     key: "mini_app_features",
+            //     label: "Tính năng Mini App",
+            //     path: "/mini-app-features",
+            //     icon: ListOrdered,
+            //     permission: "settings.read",
+            // },
             {
                 key: "audit_logs",
                 label: "Nhật ký hệ thống",

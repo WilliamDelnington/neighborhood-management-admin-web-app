@@ -189,6 +189,7 @@ const ChangeRequestListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Đối tượng</TableHead>
                                 <TableHead>Loại thay đổi</TableHead>
                                 <TableHead>Người gửi</TableHead>
@@ -197,12 +198,15 @@ const ChangeRequestListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(item => (
+                            {items.map((item, index) => (
                                 <TableRow
                                     key={item._id}
                                     className="cursor-pointer"
                                     onClick={() => openDetail(item)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * 20 + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {TARGET_MODEL_LABEL[item.targetModel]}
                                     </TableCell>

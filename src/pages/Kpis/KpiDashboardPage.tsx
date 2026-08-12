@@ -252,10 +252,11 @@ const KpiDashboardContent: React.FC = () => {
 
             <div className="rounded-2xl border bg-white shadow-sm">
                 <Table>
-                    <TableHeader><TableRow><TableHead>Mã</TableHead><TableHead>Tên KPI</TableHead><TableHead>Nguồn</TableHead><TableHead>Kỳ</TableHead><TableHead>Mục tiêu</TableHead><TableHead /></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead className="w-12 text-center">STT</TableHead><TableHead>Mã</TableHead><TableHead>Tên KPI</TableHead><TableHead>Nguồn</TableHead><TableHead>Kỳ</TableHead><TableHead>Mục tiêu</TableHead><TableHead /></TableRow></TableHeader>
                     <TableBody>
-                        {definitions.map(definition => (
+                        {definitions.map((definition, index) => (
                             <TableRow key={definition._id}>
+                                <TableCell className="text-center text-text_2">{index + 1}</TableCell>
                                 <TableCell className="font-mono text-xs">{definition.code}</TableCell>
                                 <TableCell><button className="font-medium text-main hover:underline" onClick={() => canManage && openEdit(definition)}>{definition.name}</button></TableCell>
                                 <TableCell>{SOURCE_LABEL[definition.dataSource]}</TableCell>

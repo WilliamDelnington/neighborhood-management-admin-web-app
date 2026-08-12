@@ -51,7 +51,7 @@ const GisOverviewMap: React.FC<Props> = ({ data, onOpenHouse }) => {
                 </div>
             ) : (
                 <>
-                    <div className="relative overflow-hidden rounded-xl border bg-slate-50">
+                    <div className="relative overflow-hidden rounded-xl border border-divider_01 bg-ng_10">
                         <svg
                             viewBox="0 0 100 100"
                             className="h-[320px] w-full"
@@ -60,7 +60,7 @@ const GisOverviewMap: React.FC<Props> = ({ data, onOpenHouse }) => {
                         >
                             <defs>
                                 <pattern id="gis-grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#e2e8f0" strokeWidth="0.25" />
+                                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#E9EBED" strokeWidth="0.5" />
                                 </pattern>
                             </defs>
                             <rect width="100" height="100" fill="url(#gis-grid)" />

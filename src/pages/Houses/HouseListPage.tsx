@@ -31,6 +31,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { usePermission } from "@store/authStore";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     formatFullAddress,
     HOUSE_STATUS_LABEL,
@@ -186,6 +187,7 @@ const HouseListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã nhà</TableHead>
                                 <TableHead>Địa chỉ</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
@@ -194,12 +196,15 @@ const HouseListContent: React.FC = () => {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map(h => (
+                            {items.map((h, index) => (
                                 <TableRow
                                     key={h._id}
                                     className="cursor-pointer"
                                     onClick={() => navigate(`/houses/${h._id}`)}
                                 >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
                                     <TableCell className="font-medium">
                                         {h.code}
                                     </TableCell>
