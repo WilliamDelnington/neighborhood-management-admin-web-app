@@ -83,6 +83,7 @@ const ComplaintDetailContent: React.FC = () => {
     const [assigneeStaff, setAssigneeStaff] = useState<AssignableStaff[]>([]);
     const [assigneeLoading, setAssigneeLoading] = useState(false);
     const [expectedCompletionDate, setExpectedCompletionDate] = useState("");
+    const [transferReason, setTransferReason] = useState("");
     const [assigning, setAssigning] = useState(false);
 
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -115,6 +116,7 @@ const ComplaintDetailContent: React.FC = () => {
 
     useEffect(() => {
         if (!assigneeDialogOpen) return;
+        setTransferReason("");
         setAssigneeLoading(true);
         fetchAssignableStaff()
             .then(setAssigneeStaff)
@@ -147,8 +149,14 @@ const ComplaintDetailContent: React.FC = () => {
         }
     };
 
+    const wasAssigned = !!complaint?.assigneeId;
+
     const handleAssign = async (staff: AssignableStaff) => {
         if (!id) return;
+        if (wasAssigned && !transferReason.trim()) {
+            toast.error("Vui lòng nhập lý do khi đổi người phụ trách");
+            return;
+        }
         try {
             setAssigning(true);
             const updated = await assignComplaint(
@@ -157,9 +165,11 @@ const ComplaintDetailContent: React.FC = () => {
                 expectedCompletionDate
                     ? new Date(expectedCompletionDate).toISOString()
                     : undefined,
+                wasAssigned ? transferReason.trim() : undefined,
             );
             setComplaint(updated);
             setAssigneeDialogOpen(false);
+            setTransferReason("");
             toast.success(`Đã giao cho ${staff.displayName}`);
         } catch (err) {
             toast.error((err as AppError).message);
@@ -505,6 +515,18 @@ const ComplaintDetailContent: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle>Chọn người phụ trách</DialogTitle>
                     </DialogHeader>
+                    {wasAssigned && (
+                        <div className="space-y-1.5">
+                            <label className="text-sm text-text_2">
+                                Lý do đổi người phụ trách
+                            </label>
+                            <Textarea
+                                placeholder="Bắt buộc khi đổi người phụ trách hiện tại"
+                                value={transferReason}
+                                onChange={e => setTransferReason(e.target.value)}
+                            />
+                        </div>
+                    )}
                     <Input
                         placeholder="Tìm theo tên cán bộ..."
                         value={assigneeSearch}
@@ -520,7 +542,10 @@ const ComplaintDetailContent: React.FC = () => {
                                 <button
                                     key={u.id}
                                     type="button"
-                                    disabled={assigning}
+                                    disabled={
+                                        assigning ||
+                                        (wasAssigned && !transferReason.trim())
+                                    }
                                     className="block w-full border-b border-divider_01 py-2 text-left text-sm last:border-0 hover:bg-ng_10 disabled:opacity-50"
                                     onClick={() => handleAssign(u)}
                                 >

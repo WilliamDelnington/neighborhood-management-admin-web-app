@@ -49,10 +49,12 @@ export const updateComplaintStatus = (
 
 export const assignComplaint = (
     id: string,
-    assigneeId: string,
+    primaryAssigneeId: string,
     expectedCompletionDate?: string,
+    transferReason?: string,
 ): Promise<Complaint> =>
     request<Complaint>("PATCH", `${API.COMPLAINTS}/${id}/assign`, {
-        assigneeId,
+        primaryAssigneeId,
         expectedCompletionDate,
+        transferReason,
     });
