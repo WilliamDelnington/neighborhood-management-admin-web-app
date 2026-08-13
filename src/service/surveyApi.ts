@@ -18,6 +18,15 @@ export interface SurveyInput {
     eligibleNeighborhoodIds?: string[];
     eligibleBusinessTypeIds?: string[];
     resultSummary?: string;
+    // Nguoi duoc chu khao sat (nguoi tao) uy quyen cung chinh sua/mo/dong/xoa -
+    // moi id phai la tai khoan dang co quyen "surveys.update".
+    coEditorUserIds?: string[];
+}
+
+export interface SurveyAnswerInput {
+    questionId: string;
+    selectedOptions: string[];
+    otherText?: string;
 }
 
 export const fetchSurveys = (
@@ -48,6 +57,12 @@ export const openSurvey = (id: string): Promise<Survey> =>
 
 export const closeSurvey = (id: string): Promise<Survey> =>
     request<Survey>("POST", `${API.SURVEYS}/${id}/close`);
+
+export const respondToSurvey = (
+    id: string,
+    answers: SurveyAnswerInput[],
+): Promise<null> =>
+    request<null>("POST", `${API.SURVEYS}/${id}/respond`, { answers });
 
 export const fetchSurveyResults = (id: string): Promise<SurveyResults> =>
     request<SurveyResults>("GET", `${API.SURVEYS}/${id}/results`);

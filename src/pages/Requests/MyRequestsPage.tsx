@@ -330,10 +330,8 @@ const MyRequestsContent: React.FC = () => {
                                                             Bắt đầu xử lý
                                                         </Button>
                                                     )}
-                                                    {(item.status ===
-                                                        "in_progress" ||
-                                                        item.status ===
-                                                            "needs_info") && (
+                                                    {item.status ===
+                                                        "in_progress" && (
                                                         <>
                                                             <Button
                                                                 size="sm"

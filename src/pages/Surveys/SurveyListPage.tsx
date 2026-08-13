@@ -14,13 +14,17 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
-import { usePermission } from "@store/authStore";
+import { useAuthStore, usePermission } from "@store/authStore";
 import {
     TRANG_THAI_KHAO_SAT_LABEL,
     TRANG_THAI_KHAO_SAT_TONE,
 } from "@constants/domain";
 import { AppError, Survey } from "@dts";
 import { closeSurvey, fetchSurveys, openSurvey } from "@service/surveyApi";
+import SurveyRespondDialog from "./SurveyRespondDialog";
+
+const idOf = (ref?: string | { _id: string }): string | undefined =>
+    !ref ? undefined : typeof ref === "string" ? ref : ref._id;
 
 const SurveyListPage: React.FC = () => (
     <AdminGuard permissions={["surveys.read"]}>
@@ -31,13 +35,38 @@ const SurveyListPage: React.FC = () => (
 const SurveyListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("surveys.create");
-    const canEdit = usePermission("surveys.update");
+    const hasUpdatePermission = usePermission("surveys.update");
     const canPublish = usePermission("surveys.publish");
+    const canRespond = usePermission("surveys.respond");
+    const currentUser = useAuthStore(state => state.user);
+    const isAdmin = !!currentUser?.roles.includes("admin");
 
     const [items, setItems] = useState<Survey[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [actingId, setActingId] = useState<string | null>(null);
+    const [respondingSurvey, setRespondingSurvey] = useState<Survey | null>(
+        null,
+    );
+
+    // Chi chu khao sat (createdBy) hoac dong chu bien (coEditorUserIds) moi
+    // duoc sua/mo/dong/xoa - khac voi truoc day (bat ky ai co quyen
+    // "surveys.update"/"surveys.publish" deu thao tac duoc tren khao sat cua
+    // nguoi khac). Backend da chan (assertSurveyEditable, ap dung chung cho ca
+    // update/open/close/delete) - day chi la an bot thao tac khong dung duoc
+    // de tranh nguoi dung bam vao roi gap loi 403.
+    const isOwnerOrCoEditor = (survey: Survey): boolean => {
+        if (!currentUser) return false;
+        if (isAdmin) return true;
+        if (idOf(survey.createdBy) === currentUser.id) return true;
+        return (survey.coEditorUserIds || []).some(
+            u => idOf(u) === currentUser.id,
+        );
+    };
+    const canEditSurvey = (survey: Survey): boolean =>
+        hasUpdatePermission && isOwnerOrCoEditor(survey);
+    const canPublishSurvey = (survey: Survey): boolean =>
+        canPublish && isOwnerOrCoEditor(survey);
 
     const load = () => {
         setLoading(true);
@@ -102,9 +131,11 @@ const SurveyListContent: React.FC = () => {
                             {items.map((s, index) => (
                                 <TableRow
                                     key={s._id}
-                                    className={canEdit ? "cursor-pointer" : ""}
+                                    className={
+                                        canEditSurvey(s) ? "cursor-pointer" : ""
+                                    }
                                     onClick={
-                                        canEdit
+                                        canEditSurvey(s)
                                             ? () =>
                                                   navigate(
                                                       `/surveys/${s._id}/edit`,
@@ -149,7 +180,21 @@ const SurveyListContent: React.FC = () => {
                                             >
                                                 Kết quả
                                             </Button>
-                                            {canPublish &&
+                                            {canRespond &&
+                                                s.status === "dang_mo" && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            setRespondingSurvey(
+                                                                s,
+                                                            )
+                                                        }
+                                                    >
+                                                        Trả lời
+                                                    </Button>
+                                                )}
+                                            {canPublishSurvey(s) &&
                                                 s.status !== "da_dong" && (
                                                     <Button
                                                         size="sm"
@@ -173,6 +218,11 @@ const SurveyListContent: React.FC = () => {
                     </Table>
                 )}
             </div>
+
+            <SurveyRespondDialog
+                survey={respondingSurvey}
+                onOpenChange={open => !open && setRespondingSurvey(null)}
+            />
         </div>
     );
 };

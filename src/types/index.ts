@@ -898,6 +898,8 @@ export type Survey = {
     openDate?: string;
     closeDate?: string;
     resultSummary?: string;
+    createdBy?: string | { _id: string; displayName: string };
+    coEditorUserIds?: (string | { _id: string; displayName: string })[];
     createdAt: string;
 };
 
