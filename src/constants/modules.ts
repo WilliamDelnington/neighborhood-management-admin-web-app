@@ -24,13 +24,14 @@ import {
     Building2,
     ListOrdered,
     Send,
-    Inbox,
     ShieldCheck,
     Users,
     FileSignature,
     ClipboardCheck,
     Construction,
     Landmark,
+    LayoutGrid,
+    Link2,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -95,13 +96,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/infrastructure-assets",
                 icon: Construction,
                 permission: "infrastructure.read",
-            },
-            {
-                key: "periodic-reports",
-                label: "Báo cáo định kỳ",
-                path: "/periodic-reports",
-                icon: ClipboardList,
-                permission: "reports.author",
             },
             {
                 key: "houses",
@@ -192,7 +186,12 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 label: "Yêu cầu công việc",
                 path: "/requests",
                 icon: Send,
-                permission: "requests.read",
+                // "dashboard.read" (khong phai "requests.read") - trang nay gio
+                // gop ca tab "Được giao" (Yeu cau cua toi cu, mo cho MOI nhan
+                // vien dang nhap, khong rieng nguoi gui/quan tri) va tab "Đã
+                // gửi" (rieng cua actor, van yeu cau requests.read/requests.create
+                // ben trong tung thao tac). Xem RequestListPage.tsx.
+                permission: "dashboard.read",
             },
             {
                 key: "request_types",
@@ -209,16 +208,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "inspections.read",
             },
             {
-                key: "my_requests",
-                label: "Yêu cầu của tôi",
-                path: "/requests/my",
-                icon: Inbox,
-                // Dung chung permission "dashboard.read" - moi nhan vien dang
-                // nhap deu co the la nguoi nhan yeu cau, khong gioi han theo
-                // requests.read (chi nguoi gui/quan tri moi can quyen do).
-                permission: "dashboard.read",
-            },
-            {
                 key: "change_requests",
                 label: "Yêu cầu thay đổi thông tin",
                 path: "/change-requests",
@@ -231,6 +220,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/reports",
                 icon: BarChart3,
                 permission: "reports.read",
+            },
+            {
+                key: "periodic-reports",
+                label: "Báo cáo định kỳ",
+                path: "/periodic-reports",
+                icon: ClipboardList,
+                permission: "reports.author",
             },
             {
                 key: "kpis",
@@ -372,6 +368,20 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/audit-logs",
                 icon: History,
                 permission: "audit.read",
+            },
+        ],
+    },
+    {
+        key: "services",
+        label: "Quản lý dịch vụ",
+        icon: LayoutGrid,
+        items: [
+            {
+                key: "utility_apps",
+                label: "Nhóm tiện ích",
+                path: "/utility-apps",
+                icon: Link2,
+                permission: "utility_apps.manage",
             },
         ],
     },

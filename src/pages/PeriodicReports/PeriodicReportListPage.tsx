@@ -130,6 +130,11 @@ const PeriodicReportListContent: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [revisionNote, setRevisionNote] = useState("");
     const [uploading, setUploading] = useState(false);
+    // Bao cao chua duoc tao (chua co id) khong the goi uploadPeriodicReportAttachment
+    // ngay - file chon o man soan moi duoc giu tam o day, tai len ngay sau khi
+    // createPeriodicReport() thanh cong. Bat buoc phai co it nhat 1 file (khac
+    // Correspondence/InfrastructureAsset - tuy chon o hai noi do).
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
     const load = (targetPage = 1) => {
         setLoading(true);
@@ -153,6 +158,7 @@ const PeriodicReportListContent: React.FC = () => {
         setSelected(null);
         setForm(EMPTY_FORM);
         setRevisionNote("");
+        setPendingFiles([]);
         setOpen(true);
         try {
             const nextContext = await fetchPeriodicReportContext();
@@ -207,6 +213,10 @@ const PeriodicReportListContent: React.FC = () => {
             toast.error("Vui lòng nhập kỳ, Tổ dân phố và nơi nhận cấp Phường");
             return;
         }
+        if (!selected && pendingFiles.length === 0) {
+            toast.error("Vui lòng đính kèm ít nhất một tệp báo cáo");
+            return;
+        }
         const payload = {
             type: form.type,
             periodStart: new Date(`${form.periodStart}T00:00:00`).toISOString(),
@@ -217,8 +227,29 @@ const PeriodicReportListContent: React.FC = () => {
         };
         try {
             setSaving(true);
-            if (selected) await updatePeriodicReport(selected._id, payload);
-            else await createPeriodicReport(payload);
+            if (selected) {
+                await updatePeriodicReport(selected._id, payload);
+            } else {
+                const created = await createPeriodicReport(payload);
+                let uploadFailures = 0;
+                for (const file of pendingFiles) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await uploadPeriodicReportAttachment(
+                        created._id,
+                        file,
+                    ).catch(() => {
+                        uploadFailures += 1;
+                    });
+                }
+                if (uploadFailures > 0) {
+                    toast.error(
+                        `Đã tạo bản nháp nhưng ${uploadFailures} tệp đính kèm tải lên thất bại - vui lòng thử lại`,
+                    );
+                    setOpen(false);
+                    load(page);
+                    return;
+                }
+            }
             toast.success("Đã lưu bản nháp và tổng hợp số liệu tự động");
             setOpen(false);
             load(page);
@@ -293,7 +324,42 @@ const PeriodicReportListContent: React.FC = () => {
 
                         {([['generalSituation', 'Tình hình chung'], ['highlights', 'Vấn đề nổi bật'], ['recommendations', 'Kiến nghị'], ['proposals', 'Đề xuất']] as [keyof PeriodicReportSections, string][]).map(([key, label]) => <div key={key}><Label>{label}</Label><Textarea className="mt-1" disabled={!!selected && !canEdit} value={form.sections[key] || ""} onChange={event => setForm(current => ({ ...current, sections: { ...current.sections, [key]: event.target.value } }))} /></div>)}
 
-                        {selected && <section className="rounded-lg border p-3"><div className="mb-2 flex items-center justify-between"><h3 className="font-medium">Tệp đính kèm</h3>{canEdit && <label className="cursor-pointer"><input type="file" className="hidden" disabled={uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /><span className="inline-flex items-center text-sm text-main"><Upload className="mr-1 h-4 w-4" /> {uploading ? "Đang tải..." : "Tải lên"}</span></label>}</div>{!selected.attachments?.length ? <p className="text-sm text-text_2">Chưa có tệp</p> : selected.attachments.map(file => <div key={file._id} className="flex items-center justify-between border-t py-2 text-sm"><a className="flex items-center gap-2 text-main hover:underline" href={resolveAssetUrl(file.url)} target="_blank" rel="noreferrer"><Paperclip className="h-4 w-4" />{file.name}</a>{canEdit && <Button size="icon" variant="ghost" onClick={() => void action(() => deletePeriodicReportAttachment(selected._id, file._id), "Đã xóa tệp")}><Trash2 className="h-4 w-4" /></Button>}</div>)}</section>}
+                        {selected ? (
+                            <section className="rounded-lg border p-3"><div className="mb-2 flex items-center justify-between"><h3 className="font-medium">Tệp đính kèm</h3>{canEdit && <label className="cursor-pointer"><input type="file" className="hidden" disabled={uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /><span className="inline-flex items-center text-sm text-main"><Upload className="mr-1 h-4 w-4" /> {uploading ? "Đang tải..." : "Tải lên"}</span></label>}</div>{!selected.attachments?.length ? <p className="text-sm text-text_2">Chưa có tệp</p> : selected.attachments.map(file => <div key={file._id} className="flex items-center justify-between border-t py-2 text-sm"><a className="flex items-center gap-2 text-main hover:underline" href={resolveAssetUrl(file.url)} target="_blank" rel="noreferrer"><Paperclip className="h-4 w-4" />{file.name}</a>{canEdit && <Button size="icon" variant="ghost" onClick={() => void action(() => deletePeriodicReportAttachment(selected._id, file._id), "Đã xóa tệp")}><Trash2 className="h-4 w-4" /></Button>}</div>)}</section>
+                        ) : (
+                            <section className="rounded-lg border p-3">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <h3 className="font-medium">Tệp đính kèm (bắt buộc)</h3>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            onChange={event => {
+                                                const file = event.target.files?.[0];
+                                                if (file) setPendingFiles(prev => [...prev, file]);
+                                                event.target.value = "";
+                                            }}
+                                        />
+                                        <span className="inline-flex items-center text-sm text-main">
+                                            <Upload className="mr-1 h-4 w-4" /> Tải lên
+                                        </span>
+                                    </label>
+                                </div>
+                                <p className="mb-2 text-xs text-text_2">Tệp chọn ở đây sẽ được tải lên ngay sau khi lưu bản nháp.</p>
+                                {pendingFiles.length === 0 ? (
+                                    <p className="text-sm text-text_2">Chưa có tệp</p>
+                                ) : (
+                                    pendingFiles.map((file, index) => (
+                                        <div key={`${file.name}-${index}`} className="flex items-center justify-between border-t py-2 text-sm">
+                                            <span className="flex items-center gap-2"><Paperclip className="h-4 w-4" />{file.name}</span>
+                                            <Button size="icon" variant="ghost" onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== index))}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))
+                                )}
+                            </section>
+                        )}
 
                         {selected?.versions && selected.versions.length > 0 && <section><h3 className="mb-2 font-medium">Lịch sử phiên bản đã nộp</h3>{selected.versions.map(version => <div key={version._id} className="flex items-center justify-between border-b py-2 text-sm"><span>v{version.version} - {new Date(version.submittedAt).toLocaleString("vi-VN")}</span>{canExport && <Button size="sm" variant="outline" onClick={() => void downloadPeriodicReportPdf(selected._id, version.version)}><Download className="mr-1 h-4 w-4" /> PDF</Button>}</div>)}</section>}
 

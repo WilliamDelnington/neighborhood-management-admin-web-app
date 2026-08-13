@@ -113,7 +113,7 @@ const QUICK_MODULE_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "reports",
         "houses",
     ],
-    staff: ["my_requests", "requests", "houses", "reports"],
+    staff: ["requests", "houses", "reports"],
 };
 
 const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {

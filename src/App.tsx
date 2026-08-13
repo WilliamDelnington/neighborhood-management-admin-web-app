@@ -88,9 +88,6 @@ const RequestListPage = React.lazy(
 const RequestTypeListPage = React.lazy(
     () => import("@pages/RequestTypes/RequestTypeListPage"),
 );
-const MyRequestsPage = React.lazy(
-    () => import("@pages/Requests/MyRequestsPage"),
-);
 const RequestHistoryPage = React.lazy(
     () => import("@pages/Requests/RequestHistoryPage"),
 );
@@ -180,6 +177,9 @@ const DocumentTypeListPage = React.lazy(
 const FileListPage = React.lazy(() => import("@pages/Files/FileListPage"));
 const AuditLogListPage = React.lazy(
     () => import("@pages/AuditLogs/AuditLogListPage"),
+);
+const UtilityAppListPage = React.lazy(
+    () => import("@pages/UtilityApps/UtilityAppListPage"),
 );
 
 const PageFallback = () => (
@@ -308,7 +308,7 @@ const App: React.FC = () => {
                             path="/request-types"
                             element={<RequestTypeListPage />}
                         />
-                        <Route path="/requests/my" element={<MyRequestsPage />} />
+                        <Route path="/requests/my" element={<RequestListPage />} />
                         <Route
                             path="/requests/:id/history"
                             element={<RequestHistoryPage />}
@@ -392,6 +392,10 @@ const App: React.FC = () => {
                             element={<SurveyHistoryPage />}
                         />
                         <Route path="/files" element={<FileListPage />} />
+                        <Route
+                            path="/utility-apps"
+                            element={<UtilityAppListPage />}
+                        />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/kpis" element={<KpiDashboardPage />} />

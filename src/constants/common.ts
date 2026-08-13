@@ -65,6 +65,7 @@ export const API = {
 
     FINANCE: "/api/finance",
     FILES: "/api/files",
+    UTILITY_APPS: "/api/utility-apps",
     SETTINGS: "/api/settings",
     INTEGRATION_READINESS: "/api/integrations/readiness",
 

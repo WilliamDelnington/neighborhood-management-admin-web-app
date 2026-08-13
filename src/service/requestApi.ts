@@ -40,6 +40,8 @@ export const fetchRequests = (params?: {
     relatedModel?: string;
     relatedId?: string;
     houseId?: string;
+    // "sent" = chi yeu cau do chinh minh tao (tab "Đã gửi" - xem RequestListPage.tsx).
+    view?: "sent";
 }): Promise<PaginatedData<RequestItem>> =>
     request<PaginatedData<RequestItem>>("GET", API.REQUESTS, {
         page: params?.page || 1,
@@ -48,6 +50,7 @@ export const fetchRequests = (params?: {
         relatedModel: params?.relatedModel,
         relatedId: params?.relatedId,
         houseId: params?.houseId,
+        view: params?.view,
     });
 
 export const fetchRequestById = (id: string): Promise<RequestItem> =>

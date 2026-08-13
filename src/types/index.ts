@@ -1705,3 +1705,13 @@ export type ImportJob = {
     committedCount?: number;
     createdAt: string;
 };
+
+export type UtilityApp = {
+    _id: string;
+    name: string;
+    icon: string;
+    url: string;
+    active: boolean;
+    sortOrder: number;
+    createdAt: string;
+};
