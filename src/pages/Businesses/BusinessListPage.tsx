@@ -25,10 +25,12 @@ import {
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Business, VerificationStatus } from "@dts";
+import { Business, BusinessType, VerificationStatus } from "@dts";
 import { fetchBusinesses } from "@service/businessApi";
+import { fetchBusinessTypes } from "@service/businessTypeApi";
 
 const ALL_STATUS = "all";
+const ALL_BUSINESS_TYPE = "all";
 
 const BusinessListPage: React.FC = () => (
     <AdminGuard permissions={["businesses.read"]}>
@@ -53,6 +55,8 @@ const BusinessListContent: React.FC = () => {
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
+    const [businessType, setBusinessType] = useState("");
+    const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
     const [items, setItems] = useState<Business[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -66,6 +70,7 @@ const BusinessListContent: React.FC = () => {
             page: targetPage,
             search: keyword,
             status: status || undefined,
+            businessType: businessType || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -80,7 +85,13 @@ const BusinessListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status]);
+    }, [search, status, businessType]);
+
+    useEffect(() => {
+        fetchBusinessTypes({ limit: 200, active: true })
+            .then(res => setBusinessTypes(res.items))
+            .catch(() => setBusinessTypes([]));
+    }, []);
 
     return (
         <div>
@@ -88,7 +99,7 @@ const BusinessListContent: React.FC = () => {
                 <h1 className="text-lg font-semibold">Hộ kinh doanh</h1>
             </div>
 
-            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
+            <div className="mb-4 grid max-w-3xl grid-cols-3 gap-3">
                 <Input
                     placeholder="Tìm theo tên hộ kinh doanh..."
                     value={search}
@@ -115,6 +126,26 @@ const BusinessListContent: React.FC = () => {
                         ).map(([key, label]) => (
                             <SelectItem key={key} value={key}>
                                 {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={businessType || ALL_BUSINESS_TYPE}
+                    onValueChange={v =>
+                        setBusinessType(v === ALL_BUSINESS_TYPE ? "" : v)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả loại hình" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_BUSINESS_TYPE}>
+                            Tất cả loại hình
+                        </SelectItem>
+                        {businessTypes.map(bt => (
+                            <SelectItem key={bt._id} value={bt._id}>
+                                {bt.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
