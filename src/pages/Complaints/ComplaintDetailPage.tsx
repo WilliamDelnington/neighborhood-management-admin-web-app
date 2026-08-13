@@ -395,9 +395,15 @@ const ComplaintDetailContent: React.FC = () => {
                                         // moi duoc xac nhan (xem
                                         // confirmComplaintResolution o
                                         // backend) - nhan vien khong chon
-                                        // duoc trang thai nay o day.
+                                        // duoc trang thai nay o day. "da_tiep_nhan"/
+                                        // "da_chuyen_ubnd" bi an theo yeu cau.
                                         .filter(
-                                            ([key]) => key !== "hoan_thanh",
+                                            ([key]) =>
+                                                ![
+                                                    "hoan_thanh",
+                                                    "da_tiep_nhan",
+                                                    "da_chuyen_ubnd",
+                                                ].includes(key),
                                         )
                                         .map(([key, label]) => (
                                             <SelectItem key={key} value={key}>
