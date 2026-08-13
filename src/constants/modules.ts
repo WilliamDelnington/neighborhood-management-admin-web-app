@@ -32,6 +32,7 @@ import {
     Landmark,
     LayoutGrid,
     Link2,
+    Tags,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -159,6 +160,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/complaints",
                 icon: MessageSquare,
                 permission: "complaints.read",
+            },
+            {
+                key: "complaint_types",
+                label: "Loại phản ánh",
+                path: "/complaint-types",
+                icon: Tags,
+                permission: "complaint_types.read",
             },
             {
                 key: "support_tickets",

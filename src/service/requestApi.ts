@@ -121,6 +121,24 @@ export const confirmRequestRecipient = (
         input,
     );
 
+export const initiateRequestTransfer = (
+    requestId: string,
+    input: { toUserId: string; reason: string },
+) =>
+    request(
+        "POST",
+        `${API.REQUESTS}/${requestId}/recipients/me/transfer`,
+        input,
+    );
+
+export const respondToRequestTransfer = (
+    requestId: string,
+    decision: "accept" | "reject",
+) =>
+    request("POST", `${API.REQUESTS}/${requestId}/transfer/respond`, {
+        decision,
+    });
+
 export const fetchRequestAuditLogs = (
     id: string,
     params?: { page?: number; limit?: number },

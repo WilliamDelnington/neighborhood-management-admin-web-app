@@ -402,6 +402,9 @@ export const REQUEST_AUDIT_ACTION_LABEL: Record<string, string> = {
     "request.add_recipients": "Thêm người nhận",
     "request.attachment.upload": "Tải lên file đính kèm",
     "request.attachment.delete": "Xóa file đính kèm",
+    request_transfer_initiated: "Đề nghị chuyển yêu cầu",
+    request_transfer_accepted: "Đã chấp nhận chuyển yêu cầu",
+    request_transfer_rejected: "Đã từ chối chuyển yêu cầu",
 };
 
 export const MEETING_AUDIT_ACTION_LABEL: Record<string, string> = {

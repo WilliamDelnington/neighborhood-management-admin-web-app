@@ -55,6 +55,15 @@ export const fetchInspectionCreationOptions = (neighborhoodIds: string[] = []) =
 export const createInspectionCampaign = (input: CreateInspectionCampaignInput) =>
     request<InspectionCampaign>("POST", `${v1}/inspection-campaigns`, input);
 
+export const updateInspectionCampaignChecklist = (
+    id: string,
+    checklistTemplate: InspectionChecklistItem[],
+) => request<InspectionCampaign>(
+    "PATCH",
+    `${v1}/inspection-campaigns/${id}`,
+    { checklistTemplate },
+);
+
 export const transitionInspectionCampaign = (
     id: string,
     action: "publish" | "lock" | "reopen" | "close",

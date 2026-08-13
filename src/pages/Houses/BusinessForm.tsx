@@ -21,6 +21,7 @@ export interface BusinessFormValues {
     name: string;
     businessType: string;
     ownerName: string;
+    taxCode: string;
     representativeUserId: string;
     representativeUserLabel: string;
     phone: string;
@@ -32,6 +33,7 @@ export const EMPTY_BUSINESS_FORM: BusinessFormValues = {
     name: "",
     businessType: "",
     ownerName: "",
+    taxCode: "",
     representativeUserId: "",
     representativeUserLabel: "",
     phone: "",
@@ -48,6 +50,7 @@ export function toBusinessInput(
         houseId,
         businessType: values.businessType || null,
         ownerName: values.ownerName.trim() || undefined,
+        taxCode: values.taxCode.trim() || undefined,
         representativeUserId: values.representativeUserId || null,
         phone: values.phone.trim() || undefined,
         active: values.active,
@@ -122,6 +125,13 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ values, onChange }) => {
                 <Input
                     value={values.ownerName}
                     onChange={e => set("ownerName", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Mã số thuế</Label>
+                <Input
+                    value={values.taxCode}
+                    onChange={e => set("taxCode", e.target.value)}
                 />
             </div>
             <RepresentativeUserPicker

@@ -38,6 +38,7 @@ import {
     deleteUtilityApp,
     fetchUtilityApps,
     updateUtilityApp,
+    uploadUtilityAppIcon,
 } from "@service/utilityAppApi";
 
 const UtilityAppListPage: React.FC = () => (
@@ -66,7 +67,11 @@ const EMPTY_FORM: FormState = {
  * "Nhom tien ich" (trong nhom "Quan ly dich vu") - danh sach shortcut icon+ten+
  * duong dan hien thi tren trang chu resident-web-app (xem HomePage.tsx o repo
  * do). icon la URL anh (khong dung icon-key vi 2 frontend dung 2 bo UI khac
- * nhau - URL anh render giong nhau o ca hai noi).
+ * nhau - URL anh render giong nhau o ca hai noi). Anh duoc tai truc tiep len
+ * qua endpoint rieng /api/utility-apps/upload-icon (chi can quyen
+ * utility_apps.manage, khong dung /api/files vi endpoint do doi hoi them
+ * quyen files.create) - backend tra ve san URL tuyet doi de resident-web-app
+ * (origin khac) van render duoc.
  */
 const UtilityAppListContent: React.FC = () => {
     const canManage = usePermission("utility_apps.manage");
@@ -79,6 +84,7 @@ const UtilityAppListContent: React.FC = () => {
     const [editing, setEditing] = useState<UtilityApp | null>(null);
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
+    const [uploadingIcon, setUploadingIcon] = useState(false);
 
     const [toDelete, setToDelete] = useState<UtilityApp | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -112,9 +118,30 @@ const UtilityAppListContent: React.FC = () => {
         setSheetOpen(true);
     };
 
+    const handleIconFileChange = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const selected = e.target.files?.[0];
+        e.target.value = "";
+        if (!selected) return;
+        try {
+            setUploadingIcon(true);
+            const { url } = await uploadUtilityAppIcon(selected);
+            setForm(prev => ({ ...prev, icon: url }));
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploadingIcon(false);
+        }
+    };
+
     const handleSave = async () => {
         if (!form.name.trim() || !form.icon.trim() || !form.url.trim()) {
             toast.error("Vui lòng nhập đầy đủ Tên, Icon và Đường dẫn");
+            return;
+        }
+        if (uploadingIcon) {
+            toast.error("Vui lòng chờ tải ảnh icon xong");
             return;
         }
         try {
@@ -264,18 +291,20 @@ const UtilityAppListContent: React.FC = () => {
                                 />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Icon (URL ảnh)</Label>
-                                <Input
-                                    placeholder="https://.../icon.png"
-                                    value={form.icon}
-                                    onChange={e =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            icon: e.target.value,
-                                        }))
-                                    }
+                                <Label>Icon (ảnh)</Label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    disabled={uploadingIcon}
+                                    onChange={handleIconFileChange}
+                                    className="block w-full text-sm text-text_2"
                                 />
-                                {form.icon && (
+                                {uploadingIcon && (
+                                    <p className="text-xs text-text_2">
+                                        Đang tải ảnh lên...
+                                    </p>
+                                )}
+                                {form.icon && !uploadingIcon && (
                                     <img
                                         src={form.icon}
                                         alt=""
@@ -327,6 +356,7 @@ const UtilityAppListContent: React.FC = () => {
                         <Button
                             className="w-full"
                             loading={saving}
+                            disabled={uploadingIcon}
                             onClick={handleSave}
                         >
                             {editing ? "Lưu thay đổi" : "Thêm tiện ích"}

@@ -60,6 +60,9 @@ const ComplaintListPage = React.lazy(
 const ComplaintDetailPage = React.lazy(
     () => import("@pages/Complaints/ComplaintDetailPage"),
 );
+const ComplaintTypeListPage = React.lazy(
+    () => import("@pages/ComplaintTypes/ComplaintTypeListPage"),
+);
 const SupportTicketListPage = React.lazy(
     () => import("@pages/SupportTickets/SupportTicketListPage"),
 );
@@ -276,6 +279,10 @@ const App: React.FC = () => {
                         <Route
                             path="/complaints/:id"
                             element={<ComplaintDetailPage />}
+                        />
+                        <Route
+                            path="/complaint-types"
+                            element={<ComplaintTypeListPage />}
                         />
                         <Route
                             path="/support-tickets"

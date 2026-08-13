@@ -35,6 +35,9 @@ const ALL_STATUS = "all";
 const ALL_CATEGORY = "all";
 const ALL_NHOM_PHAN_ANH = Object.keys(NHOM_PHAN_ANH_LABEL) as NhomPhanAnh[];
 
+const formatDateTime = (value?: string) =>
+    value ? new Date(value).toLocaleString("vi-VN") : "";
+
 const ComplaintListPage: React.FC = () => (
     <AdminGuard permissions={["complaints.read"]}>
         <ComplaintListContent />
@@ -191,6 +194,7 @@ const ComplaintListContent: React.FC = () => {
                             <TableRow>
                                 <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã — Tiêu đề</TableHead>
+                                <TableHead>Thời gian gửi</TableHead>
                                 <TableHead>Nhóm</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                             </TableRow>
@@ -209,6 +213,9 @@ const ComplaintListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {c.code} — {c.title}
+                                    </TableCell>
+                                    <TableCell className="text-text_2">
+                                        {formatDateTime(c.createdAt)}
                                     </TableCell>
                                     <TableCell>
                                         {NHOM_PHAN_ANH_LABEL[c.category]}

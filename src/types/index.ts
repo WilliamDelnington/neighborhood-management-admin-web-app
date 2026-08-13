@@ -524,6 +524,9 @@ export type Business = {
     cluster: string;
     businessType?: { _id: string; name: string } | null;
     ownerName?: string;
+    // Khong bat buoc - khong phai ho kinh doanh nao cung da dang ky ma so
+    // thue (xem models/Business.ts o backend).
+    taxCode?: string;
     representativeUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     phone?: string;
     active: boolean;
@@ -552,6 +555,8 @@ export type Company = {
     houseId: string | House | null;
     cluster: string;
     ownerName?: string;
+    // Bat buoc o Company (khac Business) - xem models/Company.ts o backend.
+    taxCode: string;
     representativeUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
     // ghi chu tren models/Company.ts o backend.
@@ -689,6 +694,22 @@ export type Complaint = {
     ratingNote?: string;
     createdAt: string;
     updatedAt: string;
+};
+
+export type ComplaintTypeDefinition = {
+    _id?: string;
+    key: string;
+    name: string;
+    description?: string;
+    // Thu tu mang the hien uu tien dieu huong nguoi nhan (xem
+    // resolveComplaintTypeRecipientIds trong backend complaintService.ts).
+    allowedReceiverRoles: string[];
+    isBuiltIn?: boolean;
+    active?: boolean;
+    wardCode?: number;
+    wardName?: string;
+    createdAt?: string;
+    updatedAt?: string;
 };
 
 export type ComplaintTimelineEntry = {
@@ -1071,6 +1092,13 @@ export type RequestRecipientItem = {
     respondedAt?: string;
     resolvedAt?: string;
     isOverdue: boolean;
+    // Chuyen tiep yeu cau - chi co gia tri khi dang co de nghi chuyen dang cho
+    // xu ly tren chinh nguoi nhan nay. Xem RequestDetailSheet.tsx.
+    transferStatus?: "pending";
+    transferToUserId?: string;
+    transferToDisplayName?: string;
+    transferReason?: string;
+    transferInitiatedAt?: string;
 };
 
 export type RequestAttachment = {

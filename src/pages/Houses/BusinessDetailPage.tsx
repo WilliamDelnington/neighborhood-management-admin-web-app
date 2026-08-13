@@ -59,6 +59,7 @@ const toFormValues = (b: Business): BusinessFormValues => {
         name: b.name,
         businessType: b.businessType?._id || "",
         ownerName: b.ownerName || "",
+        taxCode: b.taxCode || "",
         representativeUserId: rep?._id || "",
         representativeUserLabel: rep
             ? `${rep.displayName}${rep.phone ? ` · ${rep.phone}` : ""}`

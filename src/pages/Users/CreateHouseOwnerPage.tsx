@@ -20,6 +20,7 @@ type FormState = {
     phone: string;
     displayName: string;
     address: string;
+    idNumber: string;
     password: string;
     role: CreatableStaffRole;
 };
@@ -28,6 +29,7 @@ const EMPTY_FORM: FormState = {
     phone: "",
     displayName: "",
     address: "",
+    idNumber: "",
     password: "",
     role: "house_owner",
 };
@@ -76,12 +78,13 @@ const CreateHouseOwnerContent: React.FC = () => {
     const isValid =
         form.phone.trim().length > 0 &&
         form.displayName.trim().length > 0 &&
+        form.idNumber.trim().length > 0 &&
         form.password.trim().length >= 6;
 
     const handleCreate = async () => {
         if (!isValid) {
             toast.error(
-                "Vui lòng nhập đầy đủ số điện thoại, họ tên và mật khẩu (ít nhất 6 ký tự)",
+                "Vui lòng nhập đầy đủ số điện thoại, họ tên, số CMND/CCCD và mật khẩu (ít nhất 6 ký tự)",
             );
             return;
         }
@@ -91,6 +94,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                 phone: form.phone.trim(),
                 displayName: form.displayName.trim(),
                 address: form.address.trim() || undefined,
+                idNumber: form.idNumber.trim(),
                 role: form.role,
                 password: form.password.trim(),
             });
@@ -171,6 +175,13 @@ const CreateHouseOwnerContent: React.FC = () => {
                         <Input
                             value={form.address}
                             onChange={e => set("address", e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label>Số CMND/CCCD</Label>
+                        <Input
+                            value={form.idNumber}
+                            onChange={e => set("idNumber", e.target.value)}
                         />
                     </div>
                     <div className="space-y-1.5">

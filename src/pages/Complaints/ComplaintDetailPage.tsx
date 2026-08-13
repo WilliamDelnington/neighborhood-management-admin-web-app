@@ -40,9 +40,11 @@ import {
 } from "@constants/domain";
 import {
     assignComplaint,
+    choosePersonInCharge,
     deleteComplaint,
     fetchComplaintAttachments,
     fetchComplaintDetail,
+    receiveComplaint,
     updateComplaintStatus,
 } from "@service/complaintApi";
 import { fetchAssignableStaff } from "@service/userApi";
@@ -89,6 +91,16 @@ const ComplaintDetailContent: React.FC = () => {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
+    // Luong "Tiep nhan" / "Chon nguoi phu trach" - chi hien khi phan anh dang
+    // "moi_tiep_nhan", tach rieng khoi dialog "Phân công xử lý" o tren (giu
+    // nguyen card do khong doi, van dung endpoint /assign de tai phan cong).
+    const [receiving, setReceiving] = useState(false);
+    const [chooseDialogOpen, setChooseDialogOpen] = useState(false);
+    const [chooseSearch, setChooseSearch] = useState("");
+    const [chooseStaff, setChooseStaff] = useState<AssignableStaff[]>([]);
+    const [chooseLoading, setChooseLoading] = useState(false);
+    const [choosing, setChoosing] = useState(false);
+
     const load = () => {
         if (!id) return;
         setLoading(true);
@@ -127,6 +139,20 @@ const ComplaintDetailContent: React.FC = () => {
 
     const assigneeResults = assigneeStaff.filter(s =>
         s.displayName.toLowerCase().includes(assigneeSearch.toLowerCase()),
+    );
+
+    useEffect(() => {
+        if (!chooseDialogOpen) return;
+        setChooseLoading(true);
+        fetchAssignableStaff()
+            .then(setChooseStaff)
+            .catch(() => setChooseStaff([]))
+            .finally(() => setChooseLoading(false));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chooseDialogOpen]);
+
+    const chooseResults = chooseStaff.filter(s =>
+        s.displayName.toLowerCase().includes(chooseSearch.toLowerCase()),
     );
 
     const handleUpdateStatus = async () => {
@@ -175,6 +201,37 @@ const ComplaintDetailContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setAssigning(false);
+        }
+    };
+
+    const handleReceive = async () => {
+        if (!id) return;
+        try {
+            setReceiving(true);
+            const updated = await receiveComplaint(id);
+            setComplaint(updated);
+            toast.success("Đã tiếp nhận phản ánh");
+            load();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setReceiving(false);
+        }
+    };
+
+    const handleChoosePersonInCharge = async (staff: AssignableStaff) => {
+        if (!id) return;
+        try {
+            setChoosing(true);
+            const updated = await choosePersonInCharge(id, staff.id);
+            setComplaint(updated);
+            setChooseDialogOpen(false);
+            toast.success(`Đã chọn ${staff.displayName} phụ trách`);
+            load();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setChoosing(false);
         }
     };
 
@@ -338,6 +395,28 @@ const ComplaintDetailContent: React.FC = () => {
                         loading={attachmentsLoading}
                         canManage={false}
                     />
+
+                    {canAssign && complaint.status === "moi_tiep_nhan" && (
+                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                            <h2 className="mb-3 text-base font-semibold">
+                                Tiếp nhận phản ánh
+                            </h2>
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    loading={receiving}
+                                    onClick={handleReceive}
+                                >
+                                    Tiếp nhận
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setChooseDialogOpen(true)}
+                                >
+                                    Chọn người phụ trách
+                                </Button>
+                            </div>
+                        </div>
+                    )}
 
                     {canAssign && (
                         <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
@@ -554,6 +633,37 @@ const ComplaintDetailContent: React.FC = () => {
                                     }
                                     className="block w-full border-b border-divider_01 py-2 text-left text-sm last:border-0 hover:bg-ng_10 disabled:opacity-50"
                                     onClick={() => handleAssign(u)}
+                                >
+                                    {u.displayName}
+                                </button>
+                            ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={chooseDialogOpen} onOpenChange={setChooseDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Chọn người phụ trách</DialogTitle>
+                    </DialogHeader>
+                    <Input
+                        placeholder="Tìm theo tên cán bộ..."
+                        value={chooseSearch}
+                        onChange={e => setChooseSearch(e.target.value)}
+                    />
+                    <div className="max-h-80 overflow-y-auto">
+                        {chooseLoading && <LoadingState />}
+                        {!chooseLoading && chooseResults.length === 0 && (
+                            <EmptyState label="Không tìm thấy cán bộ phù hợp" />
+                        )}
+                        {!chooseLoading &&
+                            chooseResults.map(u => (
+                                <button
+                                    key={u.id}
+                                    type="button"
+                                    disabled={choosing}
+                                    className="block w-full border-b border-divider_01 py-2 text-left text-sm last:border-0 hover:bg-ng_10 disabled:opacity-50"
+                                    onClick={() => handleChoosePersonInCharge(u)}
                                 >
                                     {u.displayName}
                                 </button>

@@ -58,3 +58,21 @@ export const assignComplaint = (
         expectedCompletionDate,
         transferReason,
     });
+
+// Nhan vien tu tiep nhan mot phan anh dang "moi_tiep_nhan" - tro thanh nguoi
+// phu trach chinh CUA CHINH MINH. Khac assignComplaint (chon/doi nguoi phu
+// trach cho NGUOI KHAC, dung de tai phan cong sau nay).
+export const receiveComplaint = (id: string): Promise<Complaint> =>
+    request<Complaint>("POST", `${API.COMPLAINTS}/${id}/receive`);
+
+// Nhan vien chon MOT nguoi khac lam nguoi phu trach chinh cho mot phan anh
+// dang "moi_tiep_nhan" - khac receiveComplaint (tu tiep nhan) va
+// assignComplaint (tai phan cong/chuyen trach nhiem sau buoc tiep nhan dau
+// tien).
+export const choosePersonInCharge = (
+    id: string,
+    userId: string,
+): Promise<Complaint> =>
+    request<Complaint>("POST", `${API.COMPLAINTS}/${id}/choose-assignee`, {
+        userId,
+    });

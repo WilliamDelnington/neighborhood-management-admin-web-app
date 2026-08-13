@@ -58,6 +58,7 @@ const toFormValues = (c: Company): CompanyFormValues => {
     return {
         name: c.name,
         ownerName: c.ownerName || "",
+        taxCode: c.taxCode || "",
         representativeUserId: rep?._id || "",
         representativeUserLabel: rep
             ? `${rep.displayName}${rep.phone ? ` · ${rep.phone}` : ""}`

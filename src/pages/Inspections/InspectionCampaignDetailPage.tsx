@@ -5,8 +5,11 @@ import {
     Bell,
     Lock,
     Play,
+    Plus,
     RotateCcw,
+    Save,
     Send,
+    Trash2,
     UserRoundCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +20,8 @@ import Pagination from "@components/admin/Pagination";
 import { Badge, type BadgeTone } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { Checkbox } from "@components/ui/checkbox";
+import { Input } from "@components/ui/input";
+import { Label } from "@components/ui/label";
 import {
     Select,
     SelectContent,
@@ -36,6 +41,8 @@ import type {
     AppError,
     AssignableStaff,
     InspectionCampaign,
+    InspectionChecklistInputType,
+    InspectionChecklistItem,
     InspectionResultStatus,
     InspectionTarget,
 } from "@dts";
@@ -49,6 +56,7 @@ import {
     sendInspectionForm,
     submitInspectionToWard,
     transitionInspectionCampaign,
+    updateInspectionCampaignChecklist,
 } from "@service/inspectionApi";
 
 const RESULT_STATUS: Record<InspectionResultStatus, { label: string; tone: BadgeTone }> = {
@@ -59,6 +67,28 @@ const RESULT_STATUS: Record<InspectionResultStatus, { label: string; tone: Badge
     REQUEST_REVISION: { label: "Cần bổ sung", tone: "red" },
     FIELD_CHECK_REQUIRED: { label: "Cần kiểm tra thực địa", tone: "yellow" },
 };
+
+const INPUT_TYPE_LABEL: Record<InspectionChecklistInputType, string> = {
+    BOOLEAN: "Có / Không",
+    TEXT: "Văn bản",
+    NUMBER: "Số",
+    SINGLE_SELECT: "Chọn một",
+    MULTI_SELECT: "Chọn nhiều",
+};
+
+const newItemId = () => {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return `item-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
+const emptyChecklistItem = (): InspectionChecklistItem => ({
+    itemId: newItemId(),
+    label: "",
+    inputType: "BOOLEAN",
+    required: true,
+});
 
 const houseOf = (target: InspectionTarget) =>
     typeof target.houseId === "string" ? null : target.houseId;
@@ -88,6 +118,8 @@ const InspectionCampaignDetailContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [working, setWorking] = useState(false);
+    const [checklist, setChecklist] = useState<InspectionChecklistItem[]>([]);
+    const [savingChecklist, setSavingChecklist] = useState(false);
 
     const load = async (targetPage = 1) => {
         setLoading(true);
@@ -103,6 +135,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                 }),
             ]);
             setCampaign(campaignData);
+            setChecklist(campaignData.checklistTemplate);
             if (campaignData.availableNeighborhoods?.length === 1) {
                 setSubmissionNeighborhoodId(campaignData.availableNeighborhoods[0]._id);
             }
@@ -154,6 +187,44 @@ const InspectionCampaignDetailContent: React.FC = () => {
             () => assignInspectionTargets(id, selected, collaboratorId),
             `Đã giao ${selected.length} Nhà số`,
         );
+    };
+
+    const updateChecklistItem = (
+        itemId: string,
+        patch: Partial<InspectionChecklistItem>,
+    ) => setChecklist(current => current.map(item =>
+        item.itemId === itemId ? { ...item, ...patch } : item,
+    ));
+
+    const handleSaveChecklist = async () => {
+        if (checklist.length === 0 || checklist.some(item => item.label.trim().length < 2)) {
+            toast.error("Checklist phải có ít nhất một mục hợp lệ");
+            return;
+        }
+        if (checklist.some(item =>
+            ["SINGLE_SELECT", "MULTI_SELECT"].includes(item.inputType) &&
+            (!item.options || item.options.length === 0),
+        )) {
+            toast.error("Các câu hỏi lựa chọn phải có phương án trả lời");
+            return;
+        }
+        try {
+            setSavingChecklist(true);
+            await updateInspectionCampaignChecklist(
+                id,
+                checklist.map(item => ({
+                    ...item,
+                    label: item.label.trim(),
+                    options: item.options?.map(option => option.trim()).filter(Boolean),
+                })),
+            );
+            toast.success("Đã lưu checklist");
+            await load(page);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSavingChecklist(false);
+        }
     };
 
     if (loading && !campaign) return <LoadingState label="Đang tải chiến dịch..." />;
@@ -306,6 +377,100 @@ const InspectionCampaignDetailContent: React.FC = () => {
                         </div>
                     )}
                 </div>
+            )}
+
+            {campaign.status === "DRAFT" && canManage && (
+                <section className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <h2 className="font-semibold">Checklist</h2>
+                            <p className="mt-1 text-xs text-text_2">
+                                Chỉnh sửa checklist khi chiến dịch còn ở bản nháp. Sau khi triển khai, Tổ dân phố không thể sửa.
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setChecklist(current => [...current, emptyChecklistItem()])}
+                        >
+                            <Plus className="h-4 w-4" /> Thêm mục
+                        </Button>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                        {checklist.map((item, index) => (
+                            <div key={item.itemId} className="rounded-xl border border-divider_01 p-4">
+                                <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+                                    <div>
+                                        <Label htmlFor={`checklist-${item.itemId}`}>Mục {index + 1}</Label>
+                                        <Input
+                                            id={`checklist-${item.itemId}`}
+                                            className="mt-2"
+                                            placeholder="Nội dung cần kiểm tra"
+                                            value={item.label}
+                                            onChange={event => updateChecklistItem(item.itemId, { label: event.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Kiểu trả lời</Label>
+                                        <Select
+                                            value={item.inputType}
+                                            onValueChange={value => updateChecklistItem(item.itemId, {
+                                                inputType: value as InspectionChecklistInputType,
+                                                options: ["SINGLE_SELECT", "MULTI_SELECT"].includes(value)
+                                                    ? item.options || []
+                                                    : undefined,
+                                            })}
+                                        >
+                                            <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                {Object.entries(INPUT_TYPE_LABEL).map(([value, label]) => (
+                                                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="mt-6 text-red-500"
+                                        disabled={checklist.length === 1}
+                                        onClick={() => setChecklist(current => current.filter(row => row.itemId !== item.itemId))}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <div className="mt-3 flex items-center gap-2">
+                                    <Checkbox
+                                        id={`required-${item.itemId}`}
+                                        checked={item.required}
+                                        onCheckedChange={checked => updateChecklistItem(item.itemId, { required: checked === true })}
+                                    />
+                                    <Label htmlFor={`required-${item.itemId}`}>Bắt buộc trả lời</Label>
+                                </div>
+                                {["SINGLE_SELECT", "MULTI_SELECT"].includes(item.inputType) && (
+                                    <div className="mt-3">
+                                        <Label htmlFor={`options-${item.itemId}`}>Các phương án, cách nhau bằng dấu phẩy</Label>
+                                        <Input
+                                            id={`options-${item.itemId}`}
+                                            className="mt-2"
+                                            placeholder="Đạt, Chưa đạt, Không áp dụng"
+                                            value={(item.options || []).join(", ")}
+                                            onChange={event => updateChecklistItem(item.itemId, {
+                                                options: event.target.value.split(",").map(value => value.trim()),
+                                            })}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <Button loading={savingChecklist} onClick={handleSaveChecklist}>
+                            <Save className="h-4 w-4" /> Lưu checklist
+                        </Button>
+                    </div>
+                </section>
             )}
 
             {summary && (

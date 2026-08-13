@@ -44,6 +44,7 @@ export const API = {
     DOCUMENT_TYPES: "/api/document-types",
 
     COMPLAINTS: "/api/complaints",
+    COMPLAINT_TYPES: "/api/complaint-types",
     SUPPORT_TICKETS: "/api/support-tickets",
 
     ANNOUNCEMENTS: "/api/announcements",

@@ -32,3 +32,13 @@ export const updateUtilityApp = (
 
 export const deleteUtilityApp = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.UTILITY_APPS}/${id}`);
+
+export const uploadUtilityAppIcon = (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<{ url: string }>(
+        "POST",
+        `${API.UTILITY_APPS}/upload-icon`,
+        formData,
+    );
+};
