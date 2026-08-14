@@ -33,6 +33,8 @@ import {
     LayoutGrid,
     Link2,
     Tags,
+    CalendarClock,
+    CalendarCheck,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -242,6 +244,41 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/kpis",
                 icon: BarChart3,
                 permission: "reports.kpi_read",
+            },
+        ],
+    },
+    {
+        key: "appointments",
+        label: "Đặt lịch hẹn",
+        icon: CalendarClock,
+        items: [
+            {
+                key: "appointments",
+                label: "Lịch hẹn",
+                path: "/appointments",
+                icon: CalendarClock,
+                permission: "appointments.read",
+            },
+            {
+                key: "appointment_checkin",
+                label: "Check-in lịch hẹn",
+                path: "/appointments/check-in",
+                icon: CalendarCheck,
+                permission: "appointments.checkin",
+            },
+            {
+                key: "appointment_reports",
+                label: "Báo cáo lịch hẹn",
+                path: "/appointment-reports",
+                icon: BarChart3,
+                permission: "appointments.read",
+            },
+            {
+                key: "appointment_services",
+                label: "Dịch vụ hẹn lịch",
+                path: "/appointment-services",
+                icon: ClipboardList,
+                permission: "appointments.manage",
             },
         ],
     },

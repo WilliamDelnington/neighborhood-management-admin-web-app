@@ -1185,6 +1185,98 @@ export type RequestComment = {
 };
 
 // ---------------------------------------------------------------------------
+// Dat lich hen (Appointment) - dat lich voi can bo phuong/to dan pho theo
+// khung gio, co check-in/hoan thanh va danh gia sau khi xong.
+// ---------------------------------------------------------------------------
+export type AppointmentStatus =
+    | "cho_xac_nhan"
+    | "da_xac_nhan"
+    | "da_check_in"
+    | "hoan_thanh"
+    | "tu_choi"
+    | "da_huy"
+    | "vang_mat";
+
+export type Appointment = {
+    _id: string;
+    code: string;
+    serviceId: string | { _id: string; name: string };
+    timeSlotId: string;
+    houseId: string | { _id: string; code: string; address?: string };
+    citizenUserId?: string | { _id: string; displayName: string; phone?: string };
+    proxyName?: string;
+    proxyPhone?: string;
+    bookedByUserId: string | { _id: string; displayName: string };
+    appointedDate: string;
+    startTime: string;
+    endTime: string;
+    note?: string;
+    status: AppointmentStatus;
+    cancelReason?: string;
+    rejectReason?: string;
+    checkinTime?: string;
+    completedTime?: string;
+    officerUserId?: string | { _id: string; displayName: string };
+    rating?: number;
+    ratingNote?: string;
+    wardCode?: number;
+    neighborhoodId?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type AppointmentTimeSlot = {
+    _id: string;
+    dayOfWeek: number; // 1-7, Thu 2 - Chu nhat
+    startTime: string;
+    endTime: string;
+    maxCapacity: number;
+    active: boolean;
+};
+
+export type AppointmentService = {
+    _id: string;
+    key: string;
+    name: string;
+    description?: string;
+    locationAddress: string;
+    scope: "ward" | "neighborhood";
+    wardCode?: number;
+    wardName?: string;
+    neighborhoodId?: string;
+    slotDurationMinutes: number;
+    autoApprove: boolean;
+    active: boolean;
+    assignedOfficerUserIds: Array<{ _id: string; displayName: string }>;
+    timeSlots: AppointmentTimeSlot[];
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type AppointmentReportServiceRow = {
+    serviceId: string;
+    serviceName: string;
+    total: number;
+    completed: number;
+    noShow: number;
+    cancelled: number;
+    onTimeRate: number;
+    avgRating: number | null;
+};
+
+export type AppointmentReportSummary = {
+    byService: AppointmentReportServiceRow[];
+    overall: {
+        total: number;
+        completed: number;
+        noShow: number;
+        cancelled: number;
+        onTimeRate: number;
+        avgRating: number | null;
+    };
+};
+
+// ---------------------------------------------------------------------------
 // Tai chinh
 // ---------------------------------------------------------------------------
 export type LoaiGiaoDichTaiChinh = "thu" | "chi";

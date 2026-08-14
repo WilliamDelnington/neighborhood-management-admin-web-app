@@ -94,6 +94,21 @@ const RequestTypeListPage = React.lazy(
 const RequestHistoryPage = React.lazy(
     () => import("@pages/Requests/RequestHistoryPage"),
 );
+const AppointmentServiceListPage = React.lazy(
+    () => import("@pages/AppointmentServices/AppointmentServiceListPage"),
+);
+const AppointmentListPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentListPage"),
+);
+const AppointmentHistoryPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentHistoryPage"),
+);
+const AppointmentCheckInPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentCheckInPage"),
+);
+const AppointmentReportPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentReportPage"),
+);
 const InspectionCampaignListPage = React.lazy(
     () => import("@pages/Inspections/InspectionCampaignListPage"),
 );
@@ -319,6 +334,26 @@ const App: React.FC = () => {
                         <Route
                             path="/requests/:id/history"
                             element={<RequestHistoryPage />}
+                        />
+                        <Route
+                            path="/appointment-services"
+                            element={<AppointmentServiceListPage />}
+                        />
+                        <Route
+                            path="/appointments"
+                            element={<AppointmentListPage />}
+                        />
+                        <Route
+                            path="/appointments/check-in"
+                            element={<AppointmentCheckInPage />}
+                        />
+                        <Route
+                            path="/appointments/:id/history"
+                            element={<AppointmentHistoryPage />}
+                        />
+                        <Route
+                            path="/appointment-reports"
+                            element={<AppointmentReportPage />}
                         />
                         <Route
                             path="/inspections"
