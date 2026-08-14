@@ -411,6 +411,15 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                         {creatorText(request.createdBy)}
                                     </div>
                                 </div>
+                                {request.relatedModel === "Complaint" &&
+                                    request.relatedId && (
+                                        <Link
+                                            to={`/complaints/${request.relatedId}`}
+                                            className="mt-1 block text-sm text-primary hover:underline"
+                                        >
+                                            Xem phản ánh liên quan
+                                        </Link>
+                                    )}
                                 <Link
                                     to={`/requests/${request._id}/history`}
                                     className="mt-1 inline-block text-sm text-primary hover:underline"

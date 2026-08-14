@@ -8,14 +8,6 @@ import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
-import { Checkbox } from "@components/ui/checkbox";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@components/ui/select";
 import {
     Dialog,
     DialogContent,
@@ -31,7 +23,6 @@ import {
     Complaint,
     ComplaintTimelineEntry,
     FileAsset,
-    TrangThaiPhanAnh,
 } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
@@ -45,7 +36,7 @@ import {
     fetchComplaintAttachments,
     fetchComplaintDetail,
     receiveComplaint,
-    updateComplaintStatus,
+    requestComplaintInfo,
 } from "@service/complaintApi";
 import { fetchAssignableStaff } from "@service/userApi";
 
@@ -64,7 +55,6 @@ const ComplaintDetailContent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const canAssign = usePermission("complaints.assign");
-    const canUpdateStatus = usePermission("complaints.update_status");
     const canDelete = usePermission("complaints.delete");
 
     const [complaint, setComplaint] = useState<Complaint | null>(null);
@@ -74,11 +64,6 @@ const ComplaintDetailContent: React.FC = () => {
 
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
-
-    const [newStatus, setNewStatus] = useState<TrangThaiPhanAnh | "">("");
-    const [note, setNote] = useState("");
-    const [isPublic, setIsPublic] = useState(true);
-    const [updating, setUpdating] = useState(false);
 
     const [assigneeDialogOpen, setAssigneeDialogOpen] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState("");
@@ -101,6 +86,13 @@ const ComplaintDetailContent: React.FC = () => {
     const [chooseLoading, setChooseLoading] = useState(false);
     const [choosing, setChoosing] = useState(false);
 
+    // "Yeu cau bo sung thong tin" - chi hien cung nhom voi Tiep nhan/Chon
+    // nguoi phu trach (canAssign, "moi_tiep_nhan"), chuyen phan anh sang
+    // "can_bo_sung" thay vi tiep nhan/chon nguoi phu trach ngay.
+    const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+    const [infoContent, setInfoContent] = useState("");
+    const [requestingInfo, setRequestingInfo] = useState(false);
+
     const load = () => {
         if (!id) return;
         setLoading(true);
@@ -109,7 +101,6 @@ const ComplaintDetailContent: React.FC = () => {
             .then(res => {
                 setComplaint(res.complaint);
                 setTimeline(res.timeline);
-                setNewStatus(res.complaint.status);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -155,23 +146,27 @@ const ComplaintDetailContent: React.FC = () => {
         s.displayName.toLowerCase().includes(chooseSearch.toLowerCase()),
     );
 
-    const handleUpdateStatus = async () => {
-        if (!id || !newStatus) return;
+    const handleRequestInfo = async () => {
+        if (!id) return;
+        if (!infoContent.trim()) {
+            toast.error("Vui lòng nhập thông tin cần bổ sung");
+            return;
+        }
         try {
-            setUpdating(true);
-            const updated = await updateComplaintStatus(id, {
-                status: newStatus,
-                note: note.trim() || undefined,
-                isPublic,
-            });
+            setRequestingInfo(true);
+            const updated = await requestComplaintInfo(
+                id,
+                infoContent.trim(),
+            );
             setComplaint(updated);
-            setNote("");
-            toast.success("Đã cập nhật trạng thái phản ánh");
+            setInfoDialogOpen(false);
+            setInfoContent("");
+            toast.success("Đã yêu cầu bổ sung thông tin");
             load();
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
-            setUpdating(false);
+            setRequestingInfo(false);
         }
     };
 
@@ -396,7 +391,7 @@ const ComplaintDetailContent: React.FC = () => {
                         canManage={false}
                     />
 
-                    {canAssign && complaint.status === "moi_tiep_nhan" && (
+                    {canAssign && complaint.canReceiveOrChooseAssignee && (
                         <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
                             <h2 className="mb-3 text-base font-semibold">
                                 Tiếp nhận phản ánh
@@ -414,6 +409,22 @@ const ComplaintDetailContent: React.FC = () => {
                                 >
                                     Chọn người phụ trách
                                 </Button>
+                                {/* Yeu cau bo sung thong tin: chi con dung
+                                duoc khi phan anh CON dang "moi_tiep_nhan"
+                                (backend requestComplaintInfo van gioi han
+                                nhu vay) - khac Tiep nhan/Chon nguoi phu
+                                trach, co the lap lai qua nhieu vong doi cua
+                                phan anh (xem canReceiveOrChooseAssignee). */}
+                                {complaint.status === "moi_tiep_nhan" && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            setInfoDialogOpen(true)
+                                        }
+                                    >
+                                        Yêu cầu bổ sung thông tin
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     )}
@@ -445,78 +456,6 @@ const ComplaintDetailContent: React.FC = () => {
                                     {assigneeName
                                         ? `Đang giao: ${assigneeName} — Đổi người`
                                         : "Chọn người phụ trách"}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-
-                    {canUpdateStatus && (
-                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                            <h2 className="mb-3 text-base font-semibold">
-                                Cập nhật trạng thái
-                            </h2>
-                            <Select
-                                value={newStatus}
-                                onValueChange={v =>
-                                    setNewStatus(v as TrangThaiPhanAnh)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Trạng thái mới" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {(
-                                        Object.entries(
-                                            TRANG_THAI_PHAN_ANH_LABEL,
-                                        ) as [TrangThaiPhanAnh, string][]
-                                    )
-                                        // "hoan_thanh" chi nguoi gui phan anh
-                                        // moi duoc xac nhan (xem
-                                        // confirmComplaintResolution o
-                                        // backend) - nhan vien khong chon
-                                        // duoc trang thai nay o day. "da_tiep_nhan"/
-                                        // "da_chuyen_ubnd" bi an theo yeu cau.
-                                        .filter(
-                                            ([key]) =>
-                                                ![
-                                                    "hoan_thanh",
-                                                    "da_tiep_nhan",
-                                                    "da_chuyen_ubnd",
-                                                ].includes(key),
-                                        )
-                                        .map(([key, label]) => (
-                                            <SelectItem key={key} value={key}>
-                                                {label}
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                            <Textarea
-                                className="mt-3"
-                                placeholder="Nội dung cập nhật, phản hồi cho người dân..."
-                                value={note}
-                                onChange={e => setNote(e.target.value)}
-                            />
-                            <label
-                                htmlFor="isPublic"
-                                className="mt-3 flex items-center gap-2 text-sm"
-                            >
-                                <Checkbox
-                                    id="isPublic"
-                                    checked={isPublic}
-                                    onCheckedChange={checked =>
-                                        setIsPublic(checked === true)
-                                    }
-                                />
-                                Công khai cho người dân
-                            </label>
-                            <div className="mt-3">
-                                <Button
-                                    loading={updating}
-                                    disabled={!newStatus}
-                                    onClick={handleUpdateStatus}
-                                >
-                                    Cập nhật trạng thái
                                 </Button>
                             </div>
                         </div>
@@ -669,6 +608,39 @@ const ComplaintDetailContent: React.FC = () => {
                                 </button>
                             ))}
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Yêu cầu bổ sung thông tin</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-1.5">
+                        <label className="text-sm text-text_2">
+                            Thông tin cần người gửi bổ sung
+                        </label>
+                        <Textarea
+                            placeholder="Ví dụ: Vui lòng cung cấp ảnh chụp vị trí cụ thể..."
+                            value={infoContent}
+                            onChange={e => setInfoContent(e.target.value)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setInfoDialogOpen(false)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            loading={requestingInfo}
+                            disabled={!infoContent.trim()}
+                            onClick={handleRequestInfo}
+                        >
+                            Gửi yêu cầu
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

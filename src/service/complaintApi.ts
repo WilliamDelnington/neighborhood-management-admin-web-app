@@ -76,3 +76,13 @@ export const choosePersonInCharge = (
     request<Complaint>("POST", `${API.COMPLAINTS}/${id}/choose-assignee`, {
         userId,
     });
+
+// Yeu cau nguoi gui bo sung thong tin cho mot phan anh dang "moi_tiep_nhan" -
+// chuyen phan anh sang "can_bo_sung", nguoi gui tu sua phan anh de bo sung.
+export const requestComplaintInfo = (
+    id: string,
+    content: string,
+): Promise<Complaint> =>
+    request<Complaint>("POST", `${API.COMPLAINTS}/${id}/request-info`, {
+        content,
+    });

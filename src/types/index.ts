@@ -694,6 +694,10 @@ export type Complaint = {
     ratingNote?: string;
     createdAt: string;
     updatedAt: string;
+    // Chi co tren response chi tiet (getComplaintDetailForOwnerOrStaff), va
+    // chi tinh cho staff - xem canReceiveOrChooseAssignee o backend
+    // complaintService.ts. False/undefined o cac response khac (vd list).
+    canReceiveOrChooseAssignee?: boolean;
 };
 
 export type ComplaintTypeDefinition = {
