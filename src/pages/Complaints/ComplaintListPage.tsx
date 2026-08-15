@@ -22,18 +22,19 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Complaint, NhomPhanAnh, TrangThaiPhanAnh } from "@dts";
+import { Complaint, ComplaintTypeDefinition, NhomPhanAnh, TrangThaiPhanAnh } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
     TRANG_THAI_PHAN_ANH_LABEL,
     TRANG_THAI_PHAN_ANH_TONE,
 } from "@constants/domain";
 import { fetchComplaints } from "@service/complaintApi";
+import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 import { useAuthStore } from "@store/authStore";
 
 const ALL_STATUS = "all";
 const ALL_CATEGORY = "all";
-const ALL_NHOM_PHAN_ANH = Object.keys(NHOM_PHAN_ANH_LABEL) as NhomPhanAnh[];
+const BOOTSTRAP_NHOM_PHAN_ANH = Object.keys(NHOM_PHAN_ANH_LABEL) as NhomPhanAnh[];
 
 const formatDateTime = (value?: string) =>
     value ? new Date(value).toLocaleString("vi-VN") : "";
@@ -50,7 +51,32 @@ const ComplaintListContent: React.FC = () => {
     const allowedCategories = useAuthStore(
         state => state.user?.allowedComplaintCategories,
     );
-    const visibleCategories = allowedCategories ?? ALL_NHOM_PHAN_ANH;
+
+    // Danh sach day du (ke ca da ngung dung) - dung de hien nhan cho cac
+    // phan anh cu, tranh hien key tho/trong neu loai da bi ngung dung sau khi
+    // phan anh duoc tao.
+    const [complaintTypes, setComplaintTypes] = useState<
+        ComplaintTypeDefinition[]
+    >([]);
+    useEffect(() => {
+        fetchComplaintTypeDefinitions({ limit: 200 })
+            .then(res => setComplaintTypes(res.items))
+            .catch(() => {
+                /* giu fallback tinh (NHOM_PHAN_ANH_LABEL) neu goi API loi */
+            });
+    }, []);
+
+    const labelByCategory = (key: NhomPhanAnh) =>
+        complaintTypes.find(t => t.key === key)?.name ||
+        NHOM_PHAN_ANH_LABEL[key] ||
+        key;
+
+    const activeCategoryOptions = complaintTypes.length
+        ? complaintTypes
+              .filter(t => t.active !== false)
+              .map(t => t.key)
+        : BOOTSTRAP_NHOM_PHAN_ANH;
+    const visibleCategories = allowedCategories ?? activeCategoryOptions;
 
     const [status, setStatus] = useState<TrangThaiPhanAnh | "">(
         (searchParams.get("status") as TrangThaiPhanAnh | null) || "",
@@ -175,7 +201,7 @@ const ComplaintListContent: React.FC = () => {
                         </SelectItem>
                         {visibleCategories.map(key => (
                             <SelectItem key={key} value={key}>
-                                {NHOM_PHAN_ANH_LABEL[key]}
+                                {labelByCategory(key)}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -218,7 +244,7 @@ const ComplaintListContent: React.FC = () => {
                                         {formatDateTime(c.createdAt)}
                                     </TableCell>
                                     <TableCell>
-                                        {NHOM_PHAN_ANH_LABEL[c.category]}
+                                        {labelByCategory(c.category)}
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-wrap gap-1.5">

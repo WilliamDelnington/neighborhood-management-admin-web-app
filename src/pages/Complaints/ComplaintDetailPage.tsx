@@ -22,6 +22,7 @@ import {
     AssignableStaff,
     Complaint,
     ComplaintTimelineEntry,
+    ComplaintTypeDefinition,
     FileAsset,
 } from "@dts";
 import {
@@ -38,6 +39,7 @@ import {
     receiveComplaint,
     requestComplaintInfo,
 } from "@service/complaintApi";
+import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 import { fetchAssignableStaff } from "@service/userApi";
 
 const formatDateTime = (value?: string) =>
@@ -64,6 +66,24 @@ const ComplaintDetailContent: React.FC = () => {
 
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
+
+    // Danh sach day du (ke ca da ngung dung) de hien nhan nhom phan anh dung
+    // ten quan tri duoc, thay vi bang tinh NHOM_PHAN_ANH_LABEL - xem cung
+    // pattern trong ComplaintListPage.tsx.
+    const [complaintTypes, setComplaintTypes] = useState<
+        ComplaintTypeDefinition[]
+    >([]);
+    useEffect(() => {
+        fetchComplaintTypeDefinitions({ limit: 200 })
+            .then(res => setComplaintTypes(res.items))
+            .catch(() => {
+                /* giu fallback tinh (NHOM_PHAN_ANH_LABEL) neu goi API loi */
+            });
+    }, []);
+    const categoryLabel = (key: string) =>
+        complaintTypes.find(t => t.key === key)?.name ||
+        NHOM_PHAN_ANH_LABEL[key] ||
+        key;
 
     const [assigneeDialogOpen, setAssigneeDialogOpen] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState("");
@@ -318,7 +338,7 @@ const ComplaintDetailContent: React.FC = () => {
                             {complaint.title}
                         </div>
                         <div className="mt-1 text-xs text-text_2">
-                            {NHOM_PHAN_ANH_LABEL[complaint.category]}
+                            {categoryLabel(complaint.category)}
                             {complaint.area ? ` • ${complaint.area}` : ""}
                         </div>
                         <p className="mt-3 text-sm">{complaint.content}</p>

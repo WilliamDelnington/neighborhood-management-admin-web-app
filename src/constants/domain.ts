@@ -53,7 +53,12 @@ export const ROLE_LABEL: Record<Role, string> = {
     admin: "Quản trị viên",
 };
 
-export const NHOM_PHAN_ANH_LABEL: Record<NhomPhanAnh, string> = {
+// Danh sach nhom phan anh 10 loai cu (truoc khi co ComplaintTypeDefinition
+// quan tri duoc qua man Loai phan anh). Chi con dung lam gia tri khoi tao
+// truoc khi goi API xong, va lam fallback nhan cho key khong tim thay trong
+// danh sach da fetch - KHONG con la nguon du lieu chinh, xem
+// fetchComplaintTypeDefinitions trong @service/complaintTypeApi.
+export const NHOM_PHAN_ANH_LABEL: Record<string, string> = {
     an_ninh_trat_tu: "An ninh trật tự",
     pccc: "PCCC",
     ve_sinh_moi_truong: "Vệ sinh môi trường",

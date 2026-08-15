@@ -49,6 +49,7 @@ import {
     updateRole,
 } from "@service/roleApi";
 import { fetchRequestTypeDefinitions } from "@service/requestTypeApi";
+import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 
 const RoleListPage: React.FC = () => (
     <AdminGuard permissions={["roles.read"]}>
@@ -80,10 +81,6 @@ const EMPTY_FORM: FormState = {
     allowedRequestTypes: null,
 };
 
-const ALL_NHOM_PHAN_ANH = Object.keys(
-    NHOM_PHAN_ANH_LABEL,
-) as NhomPhanAnh[];
-
 const RoleListContent: React.FC = () => {
     const canCreate = usePermission("roles.create");
     const canUpdate = usePermission("roles.update");
@@ -95,6 +92,11 @@ const RoleListContent: React.FC = () => {
         Array<{ key: RequestType; name: string }>
     >(
         Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({ key, name })),
+    );
+    const [complaintCategoryOptions, setComplaintCategoryOptions] = useState<
+        Array<{ key: NhomPhanAnh; name: string }>
+    >(
+        Object.entries(NHOM_PHAN_ANH_LABEL).map(([key, name]) => ({ key, name })),
     );
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -116,8 +118,9 @@ const RoleListContent: React.FC = () => {
             fetchRoles({ page: targetPage }),
             fetchRolePermissionRegistry(),
             fetchRequestTypeDefinitions({ active: true, limit: 200 }),
+            fetchComplaintTypeDefinitions({ active: true, limit: 200 }),
         ])
-            .then(([roleList, permissionRegistry, customTypes]) => {
+            .then(([roleList, permissionRegistry, customTypes, complaintTypes]) => {
                 setRoles(roleList.items);
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
@@ -132,6 +135,12 @@ const RoleListContent: React.FC = () => {
                         name: type.name,
                     })),
                 ]);
+                setComplaintCategoryOptions(
+                    complaintTypes.items.map(type => ({
+                        key: type.key,
+                        name: type.name,
+                    })),
+                );
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -522,25 +531,25 @@ const RoleListContent: React.FC = () => {
                             </div>
                             {form.allowedComplaintCategories !== null && (
                                 <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2">
-                                    {ALL_NHOM_PHAN_ANH.map(category => (
+                                    {complaintCategoryOptions.map(category => (
                                         <div
-                                            key={category}
+                                            key={category.key}
                                             className="flex items-center gap-2"
                                         >
                                             <Checkbox
                                                 checked={(
                                                     form.allowedComplaintCategories ||
                                                     []
-                                                ).includes(category)}
+                                                ).includes(category.key)}
                                                 disabled={!canEditCurrentRole}
                                                 onCheckedChange={() =>
                                                     toggleComplaintCategory(
-                                                        category,
+                                                        category.key,
                                                     )
                                                 }
                                             />
                                             <Label className="text-sm font-normal">
-                                                {NHOM_PHAN_ANH_LABEL[category]}
+                                                {category.name}
                                             </Label>
                                         </div>
                                     ))}

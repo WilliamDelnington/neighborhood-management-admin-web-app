@@ -644,17 +644,10 @@ export type Citizen = {
 // ---------------------------------------------------------------------------
 // Phan anh kien nghi
 // ---------------------------------------------------------------------------
-export type NhomPhanAnh =
-    | "an_ninh_trat_tu"
-    | "pccc"
-    | "ve_sinh_moi_truong"
-    | "ha_tang_dien_nuoc"
-    | "chieu_sang"
-    | "tranh_chap_dan_cu"
-    | "tam_tru_nha_cho_thue"
-    | "gop_y_chung"
-    | "ha_tang"
-    | "khac";
+// Truoc la mot union co dinh (danh sach 10 nhom cu) - nay category la key cua
+// mot ComplaintTypeDefinition quan tri duoc qua man Loai phan anh, cung quy
+// uoc voi RequestType.
+export type NhomPhanAnh = string;
 
 export type TrangThaiPhanAnh =
     | "moi_tiep_nhan"

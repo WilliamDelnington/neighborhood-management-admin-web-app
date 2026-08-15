@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -124,6 +124,22 @@ const SentRequestsTab: React.FC = () => {
     const [error, setError] = useState(false);
     const [formOpen, setFormOpen] = useState(false);
     const [detailId, setDetailId] = useState<string | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    useEffect(() => {
+        const requestId = searchParams.get("requestId");
+        if (requestId) setDetailId(requestId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+    const closeDetail = (open: boolean) => {
+        if (open) return;
+        setDetailId(null);
+        if (searchParams.get("requestId")) {
+            searchParams.delete("requestId");
+            setSearchParams(searchParams, { replace: true });
+        }
+    };
 
     const load = (targetPage = 1) => {
         setLoading(true);
@@ -287,7 +303,7 @@ const SentRequestsTab: React.FC = () => {
 
             <RequestDetailSheet
                 requestId={detailId}
-                onOpenChange={open => !open && setDetailId(null)}
+                onOpenChange={closeDetail}
                 onUpdated={() => load(page)}
             />
         </div>
@@ -317,6 +333,22 @@ const AssignedRequestsTab: React.FC = () => {
     const [detailRequestId, setDetailRequestId] = useState<string | null>(
         null,
     );
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    useEffect(() => {
+        const requestId = searchParams.get("requestId");
+        if (requestId) setDetailRequestId(requestId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
+
+    const closeDetail = (open: boolean) => {
+        if (open) return;
+        setDetailRequestId(null);
+        if (searchParams.get("requestId")) {
+            searchParams.delete("requestId");
+            setSearchParams(searchParams, { replace: true });
+        }
+    };
 
     const load = (targetPage = 1) => {
         setLoading(true);
@@ -679,7 +711,7 @@ const AssignedRequestsTab: React.FC = () => {
 
             <RequestDetailSheet
                 requestId={detailRequestId}
-                onOpenChange={open => !open && setDetailRequestId(null)}
+                onOpenChange={closeDetail}
                 onUpdated={() => load(page)}
             />
         </div>
