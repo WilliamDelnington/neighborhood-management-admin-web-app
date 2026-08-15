@@ -69,7 +69,7 @@ const creatorText = (c: RequestItem["createdBy"] | MyRequestItem["createdBy"]) =
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
 
-type RequestView = "sent" | "assigned";
+type RequestView = "sent" | "assigned" | "all";
 
 /**
  * "Yêu cầu công việc" (Đã gửi) + "Yêu cầu của tôi" (Được giao) gop lam mot
@@ -77,6 +77,13 @@ type RequestView = "sent" | "assigned";
  * (CorrespondenceListPage.tsx: 1 trang, 1 permission, tab dieu khien view goi
  * len backend). Route "/requests/my" (con giu lai cho cac lien ket cu tu
  * Dashboard) mac dinh mo tab "Duoc giao"; "/requests" mac dinh mo tab "Da gui".
+ *
+ * Tab "Tất cả" (them moi): chi hien voi nguoi co quyen "requests.update" HOAC
+ * "requests.read_all" - ca hai deu duoc requestService.listRequests coi la
+ * canManageAll (xem comment trong ham do). Tach rieng requests.read_all
+ * (chi xem) khoi requests.update (xem VA duoc sua/huy yeu cau cua nguoi
+ * khac) de co the cap quyen "xem toan bo" cho bi thu/can bo UBND ma khong
+ * vo tinh cap luon quyen sua/huy yeu cau cua nguoi khac.
  */
 const RequestListPage: React.FC = () => (
     <AdminGuard permissions={["dashboard.read"]}>
@@ -86,6 +93,9 @@ const RequestListPage: React.FC = () => (
 
 const RequestListContent: React.FC = () => {
     const location = useLocation();
+    const canUpdateAll = usePermission("requests.update");
+    const canReadAll = usePermission("requests.read_all");
+    const canViewAll = canUpdateAll || canReadAll;
     const [view, setView] = useState<RequestView>(
         location.pathname === "/requests/my" ? "assigned" : "sent",
     );
@@ -101,9 +111,14 @@ const RequestListContent: React.FC = () => {
                 <TabsList>
                     <TabsTrigger value="sent">Đã gửi</TabsTrigger>
                     <TabsTrigger value="assigned">Được giao</TabsTrigger>
+                    {canViewAll && (
+                        <TabsTrigger value="all">Tất cả</TabsTrigger>
+                    )}
                 </TabsList>
             </Tabs>
-            {view === "sent" ? <SentRequestsTab /> : <AssignedRequestsTab />}
+            {view === "sent" && <SentRequestsTab />}
+            {view === "assigned" && <AssignedRequestsTab />}
+            {view === "all" && canViewAll && <AllRequestsTab />}
         </div>
     );
 };
@@ -304,6 +319,176 @@ const SentRequestsTab: React.FC = () => {
             <RequestDetailSheet
                 requestId={detailId}
                 onOpenChange={closeDetail}
+                onUpdated={() => load(page)}
+            />
+        </div>
+    );
+};
+
+/**
+ * Tab "Tất cả" - chi render khi RequestListContent da kiem tra canViewAll
+ * (requests.update). Cau truc bang giong het SentRequestsTab (đã bao gồm cột
+ * "Người gửi" và badge trạng thái theo từng người nhận), chỉ khác ở nguồn dữ
+ * liệu: goi fetchRequests KHONG truyen view, nen backend tra ve TOAN BO yeu
+ * cau (khong loc theo createdBy/recipient) cho nguoi co quyen quan ly.
+ */
+const AllRequestsTab: React.FC = () => {
+    const [type, setType] = useState<RequestType | "">("");
+    const [items, setItems] = useState<RequestItem[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const [detailId, setDetailId] = useState<string | null>(null);
+
+    const load = (targetPage = 1) => {
+        setLoading(true);
+        setError(false);
+        fetchRequests({ page: targetPage, type: type || undefined })
+            .then(res => {
+                setItems(res.items);
+                setPage(res.page);
+                setTotalPages(res.totalPages);
+            })
+            .catch(() => setError(true))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        load(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [type]);
+
+    return (
+        <div>
+            <Select
+                value={type || ALL_TYPES}
+                onValueChange={v =>
+                    setType(v === ALL_TYPES ? "" : (v as RequestType))
+                }
+            >
+                <SelectTrigger className="mb-4 max-w-xs">
+                    <SelectValue placeholder="Lọc theo loại yêu cầu" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value={ALL_TYPES}>Tất cả loại yêu cầu</SelectItem>
+                    {(Object.entries(REQUEST_TYPE_LABEL) as [RequestType, string][]).map(
+                        ([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ),
+                    )}
+                </SelectContent>
+            </Select>
+
+            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+                {loading && <LoadingState />}
+                {!loading && error && <ErrorState onRetry={() => load(1)} />}
+                {!loading && !error && items.length === 0 && (
+                    <EmptyState label="Chưa có yêu cầu nào" />
+                )}
+                {!loading && !error && items.length > 0 && (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-12 text-center">STT</TableHead>
+                                <TableHead>Tiêu đề</TableHead>
+                                <TableHead>Loại</TableHead>
+                                <TableHead>Mức độ</TableHead>
+                                <TableHead>Nhà liên quan</TableHead>
+                                <TableHead>Người nhận</TableHead>
+                                <TableHead>Hạn xử lý</TableHead>
+                                <TableHead>Người gửi</TableHead>
+                                <TableHead />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map((r, index) => (
+                                <TableRow
+                                    key={r._id}
+                                    className="cursor-pointer"
+                                    onClick={() => setDetailId(r._id)}
+                                >
+                                    <TableCell className="text-center text-text_2">
+                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                    </TableCell>
+                                    <TableCell className="font-medium">
+                                        {r.title}
+                                    </TableCell>
+                                    <TableCell>
+                                        {r.formDefinitionSnapshot?.name ||
+                                            REQUEST_TYPE_LABEL[r.type] ||
+                                            r.type}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            tone={
+                                                REQUEST_PRIORITY_TONE[
+                                                    r.priority
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                REQUEST_PRIORITY_LABEL[
+                                                    r.priority
+                                                ]
+                                            }
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>{houseText(r.houseId)}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {r.recipients.map(rec => (
+                                                <Badge
+                                                    key={rec._id}
+                                                    tone={
+                                                        rec.isOverdue
+                                                            ? "red"
+                                                            : REQUEST_STATUS_TONE[
+                                                                  rec.status
+                                                              ]
+                                                    }
+                                                    title={
+                                                        REQUEST_STATUS_LABEL[
+                                                            rec.status
+                                                        ]
+                                                    }
+                                                >
+                                                    {rec.displayName}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>{formatDate(r.dueDate)}</TableCell>
+                                    <TableCell>{creatorText(r.createdBy)}</TableCell>
+                                    <TableCell onClick={e => e.stopPropagation()}>
+                                        <Link
+                                            to={`/requests/${r._id}/history`}
+                                            className="text-sm text-primary hover:underline"
+                                        >
+                                            Lịch sử
+                                        </Link>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </div>
+
+            {!loading && !error && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={p => load(p)}
+                    disabled={loading}
+                />
+            )}
+
+            <RequestDetailSheet
+                requestId={detailId}
+                onOpenChange={open => !open && setDetailId(null)}
                 onUpdated={() => load(page)}
             />
         </div>

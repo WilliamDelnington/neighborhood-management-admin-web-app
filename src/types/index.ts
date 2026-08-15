@@ -130,14 +130,18 @@ export type DocumentType = {
     updatedAt: string;
 };
 
-export type BusinessTypeDocumentRule = {
+// Dung chung cho BusinessType.requiredDocuments (o cap loai hinh) va
+// House/Household/Company.requiredDocuments (o cap tung ban ghi cu the).
+// reviewerRoles rong = fallback ve permission ".verify" tuong ung khi duyet.
+export type RequiredDocumentRule = {
     _id?: string;
     documentTypeId: string | DocumentType;
     isRequired: boolean;
     warningBeforeDays?: number;
-    // Rong = fallback ve permission "businesses.verify" khi duyet giay to nay.
     reviewerRoles: string[];
 };
+
+export type BusinessTypeDocumentRule = RequiredDocumentRule;
 
 export type BusinessType = {
     _id: string;
@@ -271,6 +275,7 @@ export type House = {
     denialReason?: string;
     needsUpdateNote?: string;
     residenceDeclarationNumber?: string;
+    requiredDocuments: RequiredDocumentRule[];
     gisLatitude?: number | null;
     gisLongitude?: number | null;
     gisAccuracyMeters?: number | null;
@@ -513,6 +518,7 @@ export type Household = {
     approvalNote?: string;
     denialReason?: string;
     note?: string;
+    requiredDocuments: RequiredDocumentRule[];
     createdAt: string;
     updatedAt: string;
 };
@@ -567,6 +573,7 @@ export type Company = {
     approvalNote?: string;
     denialReason?: string;
     note?: string;
+    requiredDocuments: RequiredDocumentRule[];
     createdAt: string;
     updatedAt: string;
 };
@@ -590,9 +597,12 @@ export type HouseUsageUnit = {
     updatedAt: string;
 };
 
-export type BusinessDocument = {
+// Dung chung cho BusinessDocument/HouseDocument/HouseholdDocument/
+// CompanyDocument - cac model backend deu cung mot hinh dang, chi khac ten
+// truong tham chieu ve entity cha (businessId/houseId/...), truong ma khong
+// component/service phia frontend nao can doc truc tiep.
+export type RequiredDocumentRecord = {
     _id: string;
-    businessId: string;
     documentTypeId: string | DocumentType;
     fileAssetId: string | PopulatedFileAssetSummary;
     docNumber?: string;
@@ -609,16 +619,23 @@ export type BusinessDocument = {
     updatedAt: string;
 };
 
+export type BusinessDocument = RequiredDocumentRecord & { businessId: string };
+
 export type RequiredDocumentItem = {
-    rule: BusinessTypeDocumentRule;
-    activeDocument: BusinessDocument | null;
-    history: BusinessDocument[];
+    rule: RequiredDocumentRule;
+    activeDocument: RequiredDocumentRecord | null;
+    history: RequiredDocumentRecord[];
     missing: boolean;
     expired: boolean;
 };
 
 export type RequiredDocumentsResult = {
     business: Business;
+    items: RequiredDocumentItem[];
+};
+
+export type EntityRequiredDocumentsResult = {
+    entity: unknown;
     items: RequiredDocumentItem[];
 };
 

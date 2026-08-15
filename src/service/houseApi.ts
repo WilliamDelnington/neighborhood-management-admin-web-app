@@ -1,6 +1,7 @@
 import { API } from "@constants/common";
 import {
     AuditLogRecord,
+    EntityRequiredDocumentsResult,
     FileAsset,
     House,
     HouseGisSource,
@@ -8,8 +9,15 @@ import {
     HouseStatus,
     HouseUsageType,
     PaginatedData,
+    RequiredDocumentRecord,
 } from "@dts";
 import { request } from "./request";
+import {
+    fetchEntityRequiredDocuments,
+    putEntityRequiredDocuments,
+    RequiredDocumentRuleInput,
+    reviewEntityDocument,
+} from "./requiredDocumentApi";
 
 export interface HouseOwnerPersonInput {
     displayName: string;
@@ -158,3 +166,30 @@ export const deleteHouseAttachment = (
     fileId: string,
 ): Promise<null> =>
     request<null>("DELETE", `${API.HOUSES}/${id}/attachments/${fileId}`);
+
+export const fetchHouseRequiredDocuments = (
+    id: string,
+): Promise<EntityRequiredDocumentsResult> =>
+    fetchEntityRequiredDocuments(API.HOUSES, id);
+
+export const putHouseRequiredDocuments = (
+    id: string,
+    requiredDocuments: RequiredDocumentRuleInput[],
+): Promise<House> =>
+    putEntityRequiredDocuments<House>(API.HOUSES, id, requiredDocuments);
+
+export const reviewHouseDocument = (
+    id: string,
+    documentId: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string,
+    approvalNote?: string,
+): Promise<RequiredDocumentRecord> =>
+    reviewEntityDocument(
+        API.HOUSES,
+        id,
+        documentId,
+        decision,
+        rejectionReason,
+        approvalNote,
+    );

@@ -1,6 +1,18 @@
 import { API } from "@constants/common";
-import { Household, PaginatedData, VerificationStatus } from "@dts";
+import {
+    EntityRequiredDocumentsResult,
+    Household,
+    PaginatedData,
+    RequiredDocumentRecord,
+    VerificationStatus,
+} from "@dts";
 import { request } from "./request";
+import {
+    fetchEntityRequiredDocuments,
+    putEntityRequiredDocuments,
+    RequiredDocumentRuleInput,
+    reviewEntityDocument,
+} from "./requiredDocumentApi";
 
 export interface HouseholdInput {
     cluster: string;
@@ -51,3 +63,34 @@ export const updateHouseholdStatus = (
     note?: string,
 ): Promise<Household> =>
     request<Household>("PATCH", `${API.HOUSEHOLDS}/${id}/status`, { status, note });
+
+export const fetchHouseholdRequiredDocuments = (
+    id: string,
+): Promise<EntityRequiredDocumentsResult> =>
+    fetchEntityRequiredDocuments(API.HOUSEHOLDS, id);
+
+export const putHouseholdRequiredDocuments = (
+    id: string,
+    requiredDocuments: RequiredDocumentRuleInput[],
+): Promise<Household> =>
+    putEntityRequiredDocuments<Household>(
+        API.HOUSEHOLDS,
+        id,
+        requiredDocuments,
+    );
+
+export const reviewHouseholdDocument = (
+    id: string,
+    documentId: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string,
+    approvalNote?: string,
+): Promise<RequiredDocumentRecord> =>
+    reviewEntityDocument(
+        API.HOUSEHOLDS,
+        id,
+        documentId,
+        decision,
+        rejectionReason,
+        approvalNote,
+    );

@@ -33,6 +33,8 @@ import {
     deleteBusinessAttachment,
     fetchBusinessAttachments,
     fetchBusinessById,
+    fetchRequiredDocuments,
+    reviewBusinessDocument,
     updateBusiness,
     updateBusinessStatus,
 } from "@service/businessApi";
@@ -397,7 +399,10 @@ const BusinessDetailContent: React.FC = () => {
                     </div>
 
                     <RequiredDocumentsPanel
-                        businessId={business._id}
+                        entityId={business._id}
+                        fetchItems={fetchRequiredDocuments}
+                        onReview={reviewBusinessDocument}
+                        verifyPermission="businesses.verify"
                         onChanged={load}
                     />
 
