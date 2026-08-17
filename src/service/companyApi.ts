@@ -4,12 +4,14 @@ import {
     EntityRequiredDocumentsResult,
     PaginatedData,
     RequiredDocumentRecord,
+    RequiredDocumentRule,
     VerificationStatus,
 } from "@dts";
 import { request } from "./request";
 import {
     fetchEntityRequiredDocuments,
-    putEntityRequiredDocuments,
+    fetchRequiredDocumentRules,
+    putRequiredDocumentRules,
     RequiredDocumentRuleInput,
     reviewEntityDocument,
 } from "./requiredDocumentApi";
@@ -65,11 +67,15 @@ export const fetchCompanyRequiredDocuments = (
 ): Promise<EntityRequiredDocumentsResult> =>
     fetchEntityRequiredDocuments(API.COMPANIES, id);
 
-export const putCompanyRequiredDocuments = (
-    id: string,
+/** Dong luat giay to bat buoc AP DUNG CHUNG cho toan bo cong ty (khong phai mot cong ty cu the). */
+export const fetchCompanyRequiredDocumentRules = (): Promise<{
+    requiredDocuments: RequiredDocumentRule[];
+}> => fetchRequiredDocumentRules(API.COMPANIES);
+
+export const putCompanyRequiredDocumentRules = (
     requiredDocuments: RequiredDocumentRuleInput[],
-): Promise<Company> =>
-    putEntityRequiredDocuments<Company>(API.COMPANIES, id, requiredDocuments);
+): Promise<{ requiredDocuments: RequiredDocumentRule[] }> =>
+    putRequiredDocumentRules(API.COMPANIES, requiredDocuments);
 
 export const reviewCompanyDocument = (
     id: string,

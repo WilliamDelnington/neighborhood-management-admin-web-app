@@ -10,11 +10,13 @@ import {
     HouseUsageType,
     PaginatedData,
     RequiredDocumentRecord,
+    RequiredDocumentRule,
 } from "@dts";
 import { request } from "./request";
 import {
     fetchEntityRequiredDocuments,
-    putEntityRequiredDocuments,
+    fetchRequiredDocumentRules,
+    putRequiredDocumentRules,
     RequiredDocumentRuleInput,
     reviewEntityDocument,
 } from "./requiredDocumentApi";
@@ -172,11 +174,15 @@ export const fetchHouseRequiredDocuments = (
 ): Promise<EntityRequiredDocumentsResult> =>
     fetchEntityRequiredDocuments(API.HOUSES, id);
 
-export const putHouseRequiredDocuments = (
-    id: string,
+/** Dong luat giay to bat buoc AP DUNG CHUNG cho toan bo nha so (khong phai mot nha cu the). */
+export const fetchHouseRequiredDocumentRules = (): Promise<{
+    requiredDocuments: RequiredDocumentRule[];
+}> => fetchRequiredDocumentRules(API.HOUSES);
+
+export const putHouseRequiredDocumentRules = (
     requiredDocuments: RequiredDocumentRuleInput[],
-): Promise<House> =>
-    putEntityRequiredDocuments<House>(API.HOUSES, id, requiredDocuments);
+): Promise<{ requiredDocuments: RequiredDocumentRule[] }> =>
+    putRequiredDocumentRules(API.HOUSES, requiredDocuments);
 
 export const reviewHouseDocument = (
     id: string,

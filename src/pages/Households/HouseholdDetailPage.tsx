@@ -27,16 +27,8 @@ import {
     ErrorState,
 } from "@components/admin/DataStates";
 import { usePermission } from "@store/authStore";
-import RequiredDocumentRuleEditor from "@components/admin/RequiredDocumentRuleEditor";
 import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
-import {
-    AppError,
-    Citizen,
-    DocumentType,
-    Household,
-    RoleRecord,
-    VerificationStatus,
-} from "@dts";
+import { AppError, Citizen, Household, VerificationStatus } from "@dts";
 import {
     LOAI_SO_HUU_LABEL,
     VERIFICATION_STATUS_LABEL,
@@ -47,14 +39,10 @@ import {
     fetchHouseholdById,
     fetchHouseholdCitizens,
     fetchHouseholdRequiredDocuments,
-    putHouseholdRequiredDocuments,
     reviewHouseholdDocument,
     updateHousehold,
     updateHouseholdStatus,
 } from "@service/householdApi";
-import { fetchDocumentTypes } from "@service/documentTypeApi";
-import { fetchRoles } from "@service/roleApi";
-import { RequiredDocumentRuleInput } from "@service/requiredDocumentApi";
 import {
     createCitizen,
     deleteCitizen,
@@ -154,21 +142,7 @@ const HouseholdDetailContent: React.FC = () => {
     >(null);
     const [deletingCitizen, setDeletingCitizen] = useState(false);
 
-    const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-    const [roles, setRoles] = useState<RoleRecord[]>([]);
-    const [rules, setRules] = useState<RequiredDocumentRuleInput[]>([]);
-    const [rulesSaving, setRulesSaving] = useState(false);
-
     const backPath = houseId ? `/houses/${houseId}` : "/houses";
-
-    useEffect(() => {
-        fetchDocumentTypes({ active: true, limit: 100 })
-            .then(res => setDocumentTypes(res.items))
-            .catch(() => setDocumentTypes([]));
-        fetchRoles({ active: true, limit: 100 })
-            .then(res => setRoles(res.items))
-            .catch(() => setRoles([]));
-    }, []);
 
     const load = () => {
         if (!id) return;
@@ -178,38 +152,9 @@ const HouseholdDetailContent: React.FC = () => {
             .then(h => {
                 setHousehold(h);
                 setForm(toFormValues(h));
-                setRules(
-                    (h.requiredDocuments || []).map(rule => ({
-                        documentTypeId:
-                            typeof rule.documentTypeId === "string"
-                                ? rule.documentTypeId
-                                : rule.documentTypeId._id,
-                        isRequired: rule.isRequired,
-                        warningBeforeDays: rule.warningBeforeDays,
-                        reviewerRoles: rule.reviewerRoles,
-                    })),
-                );
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    };
-
-    const handleSaveRules = async () => {
-        if (!id) return;
-        if (rules.some(r => !r.documentTypeId)) {
-            toast.error("Vui lòng chọn loại giấy tờ cho tất cả các dòng");
-            return;
-        }
-        try {
-            setRulesSaving(true);
-            const updated = await putHouseholdRequiredDocuments(id, rules);
-            setHousehold(updated);
-            toast.success("Đã cập nhật yêu cầu giấy tờ");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setRulesSaving(false);
-        }
     };
 
     const loadCitizens = () => {
@@ -494,26 +439,6 @@ const HouseholdDetailContent: React.FC = () => {
                             </>
                         )}
                     </div>
-
-                    {canUpdate && (
-                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                            <RequiredDocumentRuleEditor
-                                rules={rules}
-                                documentTypes={documentTypes}
-                                roles={roles}
-                                onChange={setRules}
-                                verifyPermissionLabel="Duyệt / từ chối hộ dân"
-                            />
-                            <Button
-                                className="mt-3 w-full"
-                                variant="outline"
-                                loading={rulesSaving}
-                                onClick={handleSaveRules}
-                            >
-                                Lưu yêu cầu giấy tờ
-                            </Button>
-                        </div>
-                    )}
 
                     {id && (
                         <RequiredDocumentsPanel

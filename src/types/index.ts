@@ -131,7 +131,8 @@ export type DocumentType = {
 };
 
 // Dung chung cho BusinessType.requiredDocuments (o cap loai hinh) va
-// House/Household/Company.requiredDocuments (o cap tung ban ghi cu the).
+// RequiredDocumentSettings cua House/Household/Company (ap dung chung cho ca
+// category, khong phai tung ban ghi rieng - xem backend).
 // reviewerRoles rong = fallback ve permission ".verify" tuong ung khi duyet.
 export type RequiredDocumentRule = {
     _id?: string;
@@ -275,7 +276,6 @@ export type House = {
     denialReason?: string;
     needsUpdateNote?: string;
     residenceDeclarationNumber?: string;
-    requiredDocuments: RequiredDocumentRule[];
     gisLatitude?: number | null;
     gisLongitude?: number | null;
     gisAccuracyMeters?: number | null;
@@ -518,7 +518,6 @@ export type Household = {
     approvalNote?: string;
     denialReason?: string;
     note?: string;
-    requiredDocuments: RequiredDocumentRule[];
     createdAt: string;
     updatedAt: string;
 };
@@ -573,7 +572,6 @@ export type Company = {
     approvalNote?: string;
     denialReason?: string;
     note?: string;
-    requiredDocuments: RequiredDocumentRule[];
     createdAt: string;
     updatedAt: string;
 };

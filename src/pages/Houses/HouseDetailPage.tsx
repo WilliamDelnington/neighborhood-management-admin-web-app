@@ -40,7 +40,6 @@ import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import HouseOwnershipPanel from "@components/admin/HouseOwnershipPanel";
 import TransferNeighborhoodDialog from "@components/admin/TransferNeighborhoodDialog";
 import HouseGisPanel from "@components/admin/HouseGisPanel";
-import RequiredDocumentRuleEditor from "@components/admin/RequiredDocumentRuleEditor";
 import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
@@ -56,14 +55,12 @@ import {
     AppError,
     Business,
     Company,
-    DocumentType,
     FileAsset,
     House,
     HouseStatus,
     Household,
     HouseUsageType,
     HouseUsageUnit,
-    RoleRecord,
 } from "@dts";
 import {
     deleteHouse,
@@ -75,14 +72,10 @@ import {
     fetchHouseCompanies,
     fetchHouseHouseholds,
     fetchHouseRequiredDocuments,
-    putHouseRequiredDocuments,
     reviewHouseDocument,
     updateHouse,
     updateHouseStatus,
 } from "@service/houseApi";
-import { fetchDocumentTypes } from "@service/documentTypeApi";
-import { fetchRoles } from "@service/roleApi";
-import { RequiredDocumentRuleInput } from "@service/requiredDocumentApi";
 import { createHousehold, updateHousehold } from "@service/householdApi";
 import { fetchOrganizationById } from "@service/organizationApi";
 import { createBusiness } from "@service/businessApi";
@@ -235,20 +228,6 @@ const HouseDetailContent: React.FC = () => {
         string | null
     >(null);
 
-    const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-    const [roles, setRoles] = useState<RoleRecord[]>([]);
-    const [rules, setRules] = useState<RequiredDocumentRuleInput[]>([]);
-    const [rulesSaving, setRulesSaving] = useState(false);
-
-    useEffect(() => {
-        fetchDocumentTypes({ active: true, limit: 100 })
-            .then(res => setDocumentTypes(res.items))
-            .catch(() => setDocumentTypes([]));
-        fetchRoles({ active: true, limit: 100 })
-            .then(res => setRoles(res.items))
-            .catch(() => setRoles([]));
-    }, []);
-
     const load = () => {
         if (!houseId) return;
         setLoading(true);
@@ -257,38 +236,9 @@ const HouseDetailContent: React.FC = () => {
             .then(h => {
                 setHouse(h);
                 setForm(toFormValues(h));
-                setRules(
-                    (h.requiredDocuments || []).map(rule => ({
-                        documentTypeId:
-                            typeof rule.documentTypeId === "string"
-                                ? rule.documentTypeId
-                                : rule.documentTypeId._id,
-                        isRequired: rule.isRequired,
-                        warningBeforeDays: rule.warningBeforeDays,
-                        reviewerRoles: rule.reviewerRoles,
-                    })),
-                );
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    };
-
-    const handleSaveRules = async () => {
-        if (!houseId) return;
-        if (rules.some(r => !r.documentTypeId)) {
-            toast.error("Vui lòng chọn loại giấy tờ cho tất cả các dòng");
-            return;
-        }
-        try {
-            setRulesSaving(true);
-            const updated = await putHouseRequiredDocuments(houseId, rules);
-            setHouse(updated);
-            toast.success("Đã cập nhật yêu cầu giấy tờ");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setRulesSaving(false);
-        }
     };
 
     const loadHouseholds = () => {
@@ -474,8 +424,10 @@ const HouseDetailContent: React.FC = () => {
     };
 
     const handleCreateHousehold = async () => {
-        if (!houseId || !isHouseholdFormValid(householdForm)) {
-            toast.error("Vui lòng nhập đầy đủ cụm dân cư, địa chỉ, chủ hộ");
+        if (!houseId || !isHouseholdFormValid(householdForm, "create")) {
+            toast.error(
+                "Vui lòng nhập đầy đủ cụm dân cư, địa chỉ, chủ hộ, số điện thoại",
+            );
             return;
         }
         try {
@@ -1148,26 +1100,6 @@ const HouseDetailContent: React.FC = () => {
                         onDelete={handleDeleteAttachment}
                     />
 
-                    {canUpdate && (
-                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                            <RequiredDocumentRuleEditor
-                                rules={rules}
-                                documentTypes={documentTypes}
-                                roles={roles}
-                                onChange={setRules}
-                                verifyPermissionLabel="Duyệt / từ chối nhà số"
-                            />
-                            <Button
-                                className="mt-3 w-full"
-                                variant="outline"
-                                loading={rulesSaving}
-                                onClick={handleSaveRules}
-                            >
-                                Lưu yêu cầu giấy tờ
-                            </Button>
-                        </div>
-                    )}
-
                     {houseId && (
                         <RequiredDocumentsPanel
                             entityId={houseId}
@@ -1304,6 +1236,7 @@ const HouseDetailContent: React.FC = () => {
                             values={householdForm}
                             onChange={setHouseholdForm}
                             lockedCluster={house?.cluster}
+                            mode="create"
                         />
                     </div>
                     <SheetFooter>

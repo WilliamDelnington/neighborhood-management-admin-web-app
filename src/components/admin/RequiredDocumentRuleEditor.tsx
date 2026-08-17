@@ -26,10 +26,11 @@ export interface RequiredDocumentRuleEditorProps {
 /**
  * Editor danh sach dong luat "giay to bat buoc/tuy chon" - tach ra tu
  * BusinessTypeListPage (noi dong luat nam tren BusinessType dung chung cho
- * nhieu Business) de dung lai cho House/Household/Company (dong luat nam
- * TRUC TIEP tren tung ban ghi). Component chi quan ly UI/state cuc bo cua
- * danh sach dong luat - viec luu (goi API) do trang cha thuc hien qua
- * onChange + nut Luu rieng cua trang cha.
+ * nhieu Business) de dung lai cho RequiredDocumentSettingsPage (dong luat AP
+ * DUNG CHUNG cho ca category House/Household/Company, khong phai tung ban
+ * ghi). Component chi quan ly UI/state cuc bo cua danh sach dong luat - viec
+ * luu (goi API) do trang cha thuc hien qua onChange + nut Luu rieng cua trang
+ * cha.
  */
 const RequiredDocumentRuleEditor: React.FC<RequiredDocumentRuleEditorProps> = ({
     rules,

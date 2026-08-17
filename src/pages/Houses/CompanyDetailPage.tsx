@@ -20,33 +20,21 @@ import {
     DialogFooter,
 } from "@components/ui/dialog";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
-import RequiredDocumentRuleEditor from "@components/admin/RequiredDocumentRuleEditor";
 import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
-import {
-    AppError,
-    Company,
-    DocumentType,
-    RoleRecord,
-    VerificationStatus,
-    House,
-} from "@dts";
+import { AppError, Company, VerificationStatus, House } from "@dts";
 import {
     deleteCompany,
     fetchCompanyById,
     fetchCompanyRequiredDocuments,
-    putCompanyRequiredDocuments,
     reviewCompanyDocument,
     updateCompany,
     updateCompanyStatus,
 } from "@service/companyApi";
-import { fetchDocumentTypes } from "@service/documentTypeApi";
-import { fetchRoles } from "@service/roleApi";
-import { RequiredDocumentRuleInput } from "@service/requiredDocumentApi";
 import CompanyForm, {
     CompanyFormValues,
     isCompanyFormValid,
@@ -117,20 +105,6 @@ const CompanyDetailContent: React.FC = () => {
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [resubmitting, setResubmitting] = useState(false);
 
-    const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([]);
-    const [roles, setRoles] = useState<RoleRecord[]>([]);
-    const [rules, setRules] = useState<RequiredDocumentRuleInput[]>([]);
-    const [rulesSaving, setRulesSaving] = useState(false);
-
-    useEffect(() => {
-        fetchDocumentTypes({ active: true, limit: 100 })
-            .then(res => setDocumentTypes(res.items))
-            .catch(() => setDocumentTypes([]));
-        fetchRoles({ active: true, limit: 100 })
-            .then(res => setRoles(res.items))
-            .catch(() => setRoles([]));
-    }, []);
-
     const load = () => {
         if (!companyId) return;
         setLoading(true);
@@ -139,41 +113,9 @@ const CompanyDetailContent: React.FC = () => {
             .then(c => {
                 setCompany(c);
                 setForm(toFormValues(c));
-                setRules(
-                    (c.requiredDocuments || []).map(rule => ({
-                        documentTypeId:
-                            typeof rule.documentTypeId === "string"
-                                ? rule.documentTypeId
-                                : rule.documentTypeId._id,
-                        isRequired: rule.isRequired,
-                        warningBeforeDays: rule.warningBeforeDays,
-                        reviewerRoles: rule.reviewerRoles,
-                    })),
-                );
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    };
-
-    const handleSaveRules = async () => {
-        if (!companyId) return;
-        if (rules.some(r => !r.documentTypeId)) {
-            toast.error("Vui lòng chọn loại giấy tờ cho tất cả các dòng");
-            return;
-        }
-        try {
-            setRulesSaving(true);
-            const updated = await putCompanyRequiredDocuments(
-                companyId,
-                rules,
-            );
-            setCompany(updated);
-            toast.success("Đã cập nhật yêu cầu giấy tờ");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setRulesSaving(false);
-        }
     };
 
     useEffect(() => {
@@ -422,26 +364,6 @@ const CompanyDetailContent: React.FC = () => {
                             </>
                         )}
                     </div>
-
-                    {canUpdate && (
-                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                            <RequiredDocumentRuleEditor
-                                rules={rules}
-                                documentTypes={documentTypes}
-                                roles={roles}
-                                onChange={setRules}
-                                verifyPermissionLabel="Duyệt / từ chối công ty"
-                            />
-                            <Button
-                                className="mt-3 w-full"
-                                variant="outline"
-                                loading={rulesSaving}
-                                onClick={handleSaveRules}
-                            >
-                                Lưu yêu cầu giấy tờ
-                            </Button>
-                        </div>
-                    )}
 
                     {companyId && (
                         <RequiredDocumentsPanel

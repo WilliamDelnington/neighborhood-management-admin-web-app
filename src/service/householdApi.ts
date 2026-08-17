@@ -4,12 +4,14 @@ import {
     Household,
     PaginatedData,
     RequiredDocumentRecord,
+    RequiredDocumentRule,
     VerificationStatus,
 } from "@dts";
 import { request } from "./request";
 import {
     fetchEntityRequiredDocuments,
-    putEntityRequiredDocuments,
+    fetchRequiredDocumentRules,
+    putRequiredDocumentRules,
     RequiredDocumentRuleInput,
     reviewEntityDocument,
 } from "./requiredDocumentApi";
@@ -69,15 +71,15 @@ export const fetchHouseholdRequiredDocuments = (
 ): Promise<EntityRequiredDocumentsResult> =>
     fetchEntityRequiredDocuments(API.HOUSEHOLDS, id);
 
-export const putHouseholdRequiredDocuments = (
-    id: string,
+/** Dong luat giay to bat buoc AP DUNG CHUNG cho toan bo ho dan (khong phai mot ho cu the). */
+export const fetchHouseholdRequiredDocumentRules = (): Promise<{
+    requiredDocuments: RequiredDocumentRule[];
+}> => fetchRequiredDocumentRules(API.HOUSEHOLDS);
+
+export const putHouseholdRequiredDocumentRules = (
     requiredDocuments: RequiredDocumentRuleInput[],
-): Promise<Household> =>
-    putEntityRequiredDocuments<Household>(
-        API.HOUSEHOLDS,
-        id,
-        requiredDocuments,
-    );
+): Promise<{ requiredDocuments: RequiredDocumentRule[] }> =>
+    putRequiredDocumentRules(API.HOUSEHOLDS, requiredDocuments);
 
 export const reviewHouseholdDocument = (
     id: string,

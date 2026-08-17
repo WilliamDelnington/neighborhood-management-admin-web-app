@@ -192,6 +192,9 @@ const MiniAppFeaturesPage = React.lazy(
 const DocumentTypeListPage = React.lazy(
     () => import("@pages/DocumentTypes/DocumentTypeListPage"),
 );
+const RequiredDocumentSettingsPage = React.lazy(
+    () => import("@pages/RequiredDocuments/RequiredDocumentSettingsPage"),
+);
 const FileListPage = React.lazy(() => import("@pages/Files/FileListPage"));
 const AuditLogListPage = React.lazy(
     () => import("@pages/AuditLogs/AuditLogListPage"),
@@ -475,6 +478,10 @@ const App: React.FC = () => {
                         <Route
                             path="/document-types"
                             element={<DocumentTypeListPage />}
+                        />
+                        <Route
+                            path="/required-document-settings"
+                            element={<RequiredDocumentSettingsPage />}
                         />
                         <Route
                             path="/audit-logs"

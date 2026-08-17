@@ -295,6 +295,13 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "document_types.read",
             },
             {
+                key: "required_document_settings",
+                label: "Yêu cầu giấy tờ chung",
+                path: "/required-document-settings",
+                icon: ClipboardList,
+                permission: "houses.update",
+            },
+            {
                 key: "files",
                 label: "Biểu mẫu & tệp tin",
                 path: "/files",
