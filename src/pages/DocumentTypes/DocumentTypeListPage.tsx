@@ -40,6 +40,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, DocumentType } from "@dts";
 import {
@@ -195,12 +196,15 @@ const DocumentTypeListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Danh mục giấy tờ</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>Thêm loại giấy tờ</Button>
-                )}
-            </div>
+            <PageHeader
+                title="Danh mục giấy tờ"
+                description="Quản lý danh mục loại giấy tờ dùng trong hồ sơ."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>Thêm loại giấy tờ</Button>
+                    )
+                }
+            />
 
             <Input
                 className="mb-3 max-w-sm"

@@ -20,6 +20,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import AppointmentDetailSheet from "./AppointmentDetailSheet";
 import { Appointment, AppointmentService, AppointmentStatus } from "@dts";
 import {
@@ -108,7 +109,10 @@ const AppointmentListContent: React.FC = () => {
 
     return (
         <div>
-            <h1 className="mb-4 text-lg font-semibold">Lịch hẹn</h1>
+            <PageHeader
+                title="Lịch hẹn"
+                description="Quản lý lịch hẹn làm việc của cư dân với tổ dân phố/phường."
+            />
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
                 <Select

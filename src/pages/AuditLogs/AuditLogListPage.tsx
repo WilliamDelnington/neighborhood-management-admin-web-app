@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -112,9 +113,10 @@ const AuditLogListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4">
-                <h1 className="text-lg font-semibold">Nhật ký hệ thống</h1>
-            </div>
+            <PageHeader
+                title="Nhật ký hệ thống"
+                description="Tra cứu nhật ký thao tác của người dùng trong hệ thống."
+            />
 
             <div className="mb-3 flex flex-wrap items-end gap-3">
                 <div className="space-y-1.5">

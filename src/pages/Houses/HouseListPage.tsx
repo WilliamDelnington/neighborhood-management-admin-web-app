@@ -30,6 +30,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -123,15 +124,18 @@ const HouseListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý nhà số</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm nhà số
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Quản lý nhà số"
+                description="Quản lý thông tin nhà số, chủ nhà và trạng thái xác minh."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm nhà số
+                        </Button>
+                    )
+                }
+            />
             {neighborhoodId && (
                 <div className="mb-3 flex items-center justify-between rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700">
                     <span>Đang lọc Nhà số theo Tổ dân phố đã chọn</span>

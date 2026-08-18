@@ -32,6 +32,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { usePermission } from "@store/authStore";
 import { resolveAssetUrl } from "@constants/common";
 import {
@@ -305,15 +306,18 @@ const InfrastructureAssetListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Sổ hạ tầng</h1>
-                {canManage && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm tài sản
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Sổ hạ tầng"
+                description="Theo dõi hạ tầng công cộng (đường, cống, đèn chiếu sáng...) trên địa bàn."
+                action={
+                    canManage && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm tài sản
+                        </Button>
+                    )
+                }
+            />
 
             <div className="mb-3 grid max-w-2xl grid-cols-3 gap-3">
                 <Input

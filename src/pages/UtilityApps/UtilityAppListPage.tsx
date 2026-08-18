@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -186,15 +187,18 @@ const UtilityAppListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Nhóm tiện ích</h1>
-                {canManage && (
-                    <Button onClick={openCreateSheet}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm tiện ích
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Nhóm tiện ích"
+                description="Quản lý nhóm tiện ích/dịch vụ tích hợp cho cư dân."
+                action={
+                    canManage && (
+                        <Button onClick={openCreateSheet}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm tiện ích
+                        </Button>
+                    )
+                }
+            />
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}

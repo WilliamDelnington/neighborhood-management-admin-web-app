@@ -40,6 +40,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, BusinessType, DocumentType, RoleRecord } from "@dts";
 import {
@@ -281,12 +282,15 @@ const BusinessTypeListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Loại hình kinh doanh</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>Thêm loại hình</Button>
-                )}
-            </div>
+            <PageHeader
+                title="Loại hình kinh doanh"
+                description="Quản lý danh mục loại hình kinh doanh áp dụng cho hộ kinh doanh và công ty."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>Thêm loại hình</Button>
+                    )
+                }
+            />
 
             <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
                 <Input

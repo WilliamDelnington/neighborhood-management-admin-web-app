@@ -14,6 +14,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import PageHeader from "@components/admin/PageHeader";
 import { Meeting } from "@dts";
 import { fetchMeetings } from "@service/meetingApi";
 
@@ -54,15 +55,18 @@ const MeetingListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý cuộc họp</h1>
-                {canManage && (
-                    <Button onClick={() => navigate("/meetings/create")}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm mới
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Quản lý cuộc họp"
+                description="Quản lý lịch và biên bản các cuộc họp."
+                action={
+                    canManage && (
+                        <Button onClick={() => navigate("/meetings/create")}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm mới
+                        </Button>
+                    )
+                }
+            />
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}

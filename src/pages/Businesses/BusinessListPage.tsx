@@ -20,6 +20,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
@@ -95,9 +96,10 @@ const BusinessListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Hộ kinh doanh</h1>
-            </div>
+            <PageHeader
+                title="Hộ kinh doanh"
+                description="Quản lý hộ kinh doanh đăng ký hoạt động trên địa bàn."
+            />
 
             <div className="mb-4 grid max-w-3xl grid-cols-3 gap-3">
                 <Input

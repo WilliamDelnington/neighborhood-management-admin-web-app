@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -110,7 +111,10 @@ const CreateHouseOwnerContent: React.FC = () => {
 
     return (
         <div className="max-w-lg">
-            <h1 className="mb-4 text-lg font-semibold">Tạo tài khoản</h1>
+            <PageHeader
+                title="Tạo tài khoản"
+                description="Tạo tài khoản chủ nhà mới trong hệ thống."
+            />
 
             {lastCreatedPhone && (
                 <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">

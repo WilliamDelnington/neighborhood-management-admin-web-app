@@ -37,6 +37,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import HeadOfHouseholdUserPicker from "@components/admin/HeadOfHouseholdUserPicker";
 import OrganizationRepresentativePanel from "@components/admin/OrganizationRepresentativePanel";
 import { AppError, Organization, ORGANIZATION_TYPE_LABEL, OrganizationType } from "@dts";
@@ -197,12 +198,15 @@ const OrganizationListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Tổ chức (chủ nhà)</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>Thêm tổ chức</Button>
-                )}
-            </div>
+            <PageHeader
+                title="Tổ chức (chủ nhà)"
+                description="Quản lý các tổ chức đứng tên chủ sở hữu nhà thay vì cá nhân."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>Thêm tổ chức</Button>
+                    )
+                }
+            />
 
             <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
                 <Input

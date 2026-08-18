@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Checkbox } from "@components/ui/checkbox";
@@ -83,14 +84,17 @@ const MiniAppFeaturesContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Tính năng Mini App</h1>
-                {canSave && (
-                    <Button loading={saving} onClick={handleSave}>
-                        Lưu thay đổi
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Tính năng Mini App"
+                description="Quản lý tính năng hiển thị trên Mini App cho cư dân."
+                action={
+                    canSave && (
+                        <Button loading={saving} onClick={handleSave}>
+                            Lưu thay đổi
+                        </Button>
+                    )
+                }
+            />
 
             <p className="mb-4 text-sm text-text_2">
                 6 tính năng có thứ tự nhỏ nhất sẽ hiện sẵn trên trang chủ; các

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -285,15 +286,16 @@ const FinanceListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">
-                    Tài chính tổ dân phố
-                </h1>
-                <Button onClick={openCreateSheet}>
-                    <Plus className="mr-1 h-4 w-4" />
-                    Thêm mới
-                </Button>
-            </div>
+            <PageHeader
+                title="Tài chính tổ dân phố"
+                description="Quản lý các khoản thu chi tài chính của tổ dân phố."
+                action={
+                    <Button onClick={openCreateSheet}>
+                        <Plus className="mr-1 h-4 w-4" />
+                        Thêm mới
+                    </Button>
+                }
+            />
 
             <div className="mb-4 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
                 <h2 className="mb-2 text-base font-semibold">

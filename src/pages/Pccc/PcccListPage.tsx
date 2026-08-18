@@ -43,6 +43,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import StatCard from "@components/admin/StatCard";
 import { usePermission } from "@store/authStore";
 import { AppError, MucNguyCoPccc, PcccAttachment, PcccCheck, RequestItem } from "@dts";
@@ -332,15 +333,18 @@ const PcccListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Phòng cháy chữa cháy</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm đợt kiểm tra
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Phòng cháy chữa cháy"
+                description="Quản lý hồ sơ, kiểm tra phòng cháy chữa cháy tại các nhà số/tổ chức."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm đợt kiểm tra
+                        </Button>
+                    )
+                }
+            />
 
             <div className="mb-4 grid grid-cols-3 gap-3">
                 <StatCard label="Xanh" value={summary.xanh ?? 0} tone="success" />

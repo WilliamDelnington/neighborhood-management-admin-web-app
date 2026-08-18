@@ -33,6 +33,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, CorrespondenceType, Role, RoleRecord } from "@dts";
 import {
@@ -208,12 +209,15 @@ const CorrespondenceTypeListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Loại văn bản</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>Thêm loại văn bản</Button>
-                )}
-            </div>
+            <PageHeader
+                title="Loại văn bản"
+                description="Quản lý loại văn bản và ma trận gửi/nhận áp dụng cho văn bản đi/đến."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>Thêm loại văn bản</Button>
+                    )
+                }
+            />
 
             <Input
                 className="mb-3 max-w-sm"

@@ -27,6 +27,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { usePermission } from "@store/authStore";
 import { AppError, ResidentRecord } from "@dts";
@@ -165,15 +166,18 @@ const ResidentListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Hồ sơ cư trú</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm hồ sơ
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Hồ sơ cư trú"
+                description="Quản lý hồ sơ cư trú, tạm trú/tạm vắng của cư dân."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm hồ sơ
+                        </Button>
+                    )
+                }
+            />
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}

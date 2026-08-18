@@ -21,6 +21,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Complaint, ComplaintTypeDefinition, NhomPhanAnh, TrangThaiPhanAnh } from "@dts";
 import {
@@ -152,9 +153,10 @@ const ComplaintListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4">
-                <h1 className="text-lg font-semibold">Phản ánh kiến nghị</h1>
-            </div>
+            <PageHeader
+                title="Phản ánh kiến nghị"
+                description="Tiếp nhận và xử lý phản ánh, kiến nghị của cư dân."
+            />
 
             <Input
                 className="mb-4 max-w-sm"

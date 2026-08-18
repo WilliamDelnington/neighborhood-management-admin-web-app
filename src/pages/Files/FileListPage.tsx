@@ -42,6 +42,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import { AppError, FileAsset, FileAssetCategory, RoleRecord } from "@dts";
 import {
@@ -279,15 +280,18 @@ const FileListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Biểu mẫu &amp; tệp tin</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm tệp
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Biểu mẫu & tệp tin"
+                description="Quản lý biểu mẫu và tệp tin dùng chung."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm tệp
+                        </Button>
+                    )
+                }
+            />
 
             <Select
                 value={category || ALL_CATEGORIES}

@@ -23,6 +23,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import {
     AppError,
     ChangeRequest,
@@ -161,9 +162,10 @@ const ChangeRequestListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Yêu cầu thay đổi thông tin</h1>
-            </div>
+            <PageHeader
+                title="Yêu cầu thay đổi thông tin"
+                description="Duyệt các yêu cầu thay đổi thông tin nhà, hộ khẩu hoặc tài khoản đã xác minh."
+            />
 
             <Tabs
                 className="mb-4"

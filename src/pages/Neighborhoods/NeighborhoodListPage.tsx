@@ -30,6 +30,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { usePermission } from "@store/authStore";
 import { AppError, Neighborhood, NeighborhoodStatus, Street, User } from "@dts";
 import { createNeighborhood, fetchNeighborhoods } from "@service/neighborhoodApi";
@@ -143,15 +144,18 @@ const NeighborhoodListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Tổ dân phố</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm tổ dân phố
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Tổ dân phố"
+                description="Quản lý các tổ dân phố và cán bộ phụ trách trong từng khu vực."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm tổ dân phố
+                        </Button>
+                    )
+                }
+            />
 
             <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <Input

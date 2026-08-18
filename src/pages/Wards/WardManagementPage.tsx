@@ -134,6 +134,10 @@ const WardManagementContent: React.FC = () => {
                 <h1 className="flex items-center gap-2 text-2xl font-semibold">
                     <Landmark className="h-6 w-6" /> Quản lý phường / xã
                 </h1>
+                <p className="mt-1 text-sm text-text_2">
+                    Quản lý danh sách phường/xã, làm cơ sở phân cấp tổ dân phố
+                    và địa chỉ.
+                </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                     Phân công Bí thư và Cán bộ UBND theo phạm vi phường/xã.
                 </p>

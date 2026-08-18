@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -296,12 +297,15 @@ const RoleListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Vai trò & phân quyền</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>Tạo vai trò</Button>
-                )}
-            </div>
+            <PageHeader
+                title="Vai trò & phân quyền"
+                description="Quản lý vai trò và phân quyền truy cập chức năng."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>Tạo vai trò</Button>
+                    )
+                }
+            />
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}

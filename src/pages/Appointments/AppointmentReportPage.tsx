@@ -13,6 +13,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import StatCard from "@components/admin/StatCard";
 import ReportBarChart from "@components/admin/ReportBarChart";
+import PageHeader from "@components/admin/PageHeader";
 import { AppointmentReportSummary, AppointmentService } from "@dts";
 import { fetchAppointmentReportSummary } from "@service/appointmentApi";
 import { fetchAppointmentServices } from "@service/appointmentServiceApi";
@@ -87,7 +88,10 @@ const AppointmentReportContent: React.FC = () => {
 
     return (
         <div>
-            <h1 className="mb-4 text-lg font-semibold">Báo cáo lịch hẹn</h1>
+            <PageHeader
+                title="Báo cáo lịch hẹn"
+                description="Xem báo cáo thống kê về lịch hẹn."
+            />
 
             <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
                 <div>

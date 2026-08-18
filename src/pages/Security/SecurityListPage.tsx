@@ -35,6 +35,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import PageHeader from "@components/admin/PageHeader";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import RequestSubSection, {
     emptyRequestSubSection,
@@ -273,15 +274,18 @@ const SecurityListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">An ninh</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm hồ sơ
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="An ninh"
+                description="Quản lý các vụ việc, hồ sơ liên quan đến an ninh trật tự."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm hồ sơ
+                        </Button>
+                    )
+                }
+            />
 
             <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
                 <Select

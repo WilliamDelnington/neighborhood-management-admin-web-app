@@ -20,6 +20,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { LoaiYeuCauHoTro, SupportTicket, TrangThaiYeuCauHoTro } from "@dts";
 import {
     LOAI_YEU_CAU_HO_TRO_LABEL,
@@ -112,9 +113,10 @@ const SupportTicketListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4">
-                <h1 className="text-lg font-semibold">Yêu cầu hỗ trợ</h1>
-            </div>
+            <PageHeader
+                title="Yêu cầu hỗ trợ"
+                description="Tiếp nhận và xử lý yêu cầu hỗ trợ từ cư dân."
+            />
 
             <Input
                 className="mb-4 max-w-sm"

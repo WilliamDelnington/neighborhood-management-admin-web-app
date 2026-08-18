@@ -16,6 +16,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import PageHeader from "@components/admin/PageHeader";
 import {
     LOAI_THONG_BAO_LABEL,
     TRANG_THAI_THONG_BAO_LABEL,
@@ -107,15 +108,18 @@ const AnnouncementListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý thông báo</h1>
-                {canCreate && (
-                    <Button onClick={() => navigate("/announcements/create")}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm thông báo
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Quản lý thông báo"
+                description="Soạn và gửi thông báo đến cư dân."
+                action={
+                    canCreate && (
+                        <Button onClick={() => navigate("/announcements/create")}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm thông báo
+                        </Button>
+                    )
+                }
+            />
 
             <Tabs
                 className="mb-4"

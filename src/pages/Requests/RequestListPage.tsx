@@ -33,6 +33,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import RequestDetailSheet from "./RequestDetailSheet";
 import { usePermission } from "@store/authStore";
@@ -102,7 +103,10 @@ const RequestListContent: React.FC = () => {
 
     return (
         <div>
-            <h1 className="mb-4 text-lg font-semibold">Yêu cầu công việc</h1>
+            <PageHeader
+                title="Yêu cầu công việc"
+                description="Theo dõi và xử lý các yêu cầu công việc được giao trong tổ dân phố."
+            />
             <Tabs
                 className="mb-4"
                 value={view}

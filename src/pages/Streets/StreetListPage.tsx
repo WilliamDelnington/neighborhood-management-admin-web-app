@@ -30,6 +30,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
 import { usePermission } from "@store/authStore";
 import { AppError, Street } from "@dts";
 import { createStreet, fetchStreets } from "@service/streetApi";
@@ -118,26 +119,29 @@ const StreetListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Đường / phố</h1>
-                <div className="flex items-center gap-2">
-                    {canImport && (
-                        <Button
-                            variant="outline"
-                            onClick={() => setImportVisible(true)}
-                        >
-                            <FileSpreadsheet className="mr-1 h-4 w-4" />
-                            Nhập từ Excel
-                        </Button>
-                    )}
-                    {canCreate && (
-                        <Button onClick={openCreate}>
-                            <Plus className="mr-1 h-4 w-4" />
-                            Thêm đường/phố
-                        </Button>
-                    )}
-                </div>
-            </div>
+            <PageHeader
+                title="Đường / phố"
+                description="Quản lý danh mục đường/phố dùng để chuẩn hoá địa chỉ nhà số."
+                action={
+                    <div className="flex items-center gap-2">
+                        {canImport && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setImportVisible(true)}
+                            >
+                                <FileSpreadsheet className="mr-1 h-4 w-4" />
+                                Nhập từ Excel
+                            </Button>
+                        )}
+                        {canCreate && (
+                            <Button onClick={openCreate}>
+                                <Plus className="mr-1 h-4 w-4" />
+                                Thêm đường/phố
+                            </Button>
+                        )}
+                    </div>
+                }
+            />
 
             <div className="mb-3 grid max-w-xl grid-cols-2 gap-3">
                 <Input

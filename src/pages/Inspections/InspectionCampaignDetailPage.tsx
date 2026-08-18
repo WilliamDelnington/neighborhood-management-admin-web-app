@@ -22,6 +22,7 @@ import { Button } from "@components/ui/button";
 import { Checkbox } from "@components/ui/checkbox";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
+import { Textarea } from "@components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -57,6 +58,7 @@ import {
     submitInspectionToWard,
     transitionInspectionCampaign,
     updateInspectionCampaignChecklist,
+    updateInspectionCampaignDetails,
 } from "@service/inspectionApi";
 
 const RESULT_STATUS: Record<InspectionResultStatus, { label: string; tone: BadgeTone }> = {
@@ -120,6 +122,9 @@ const InspectionCampaignDetailContent: React.FC = () => {
     const [working, setWorking] = useState(false);
     const [checklist, setChecklist] = useState<InspectionChecklistItem[]>([]);
     const [savingChecklist, setSavingChecklist] = useState(false);
+    const [name, setName] = useState("");
+    const [purpose, setPurpose] = useState("");
+    const [savingDetails, setSavingDetails] = useState(false);
 
     const load = async (targetPage = 1) => {
         setLoading(true);
@@ -136,6 +141,8 @@ const InspectionCampaignDetailContent: React.FC = () => {
             ]);
             setCampaign(campaignData);
             setChecklist(campaignData.checklistTemplate);
+            setName(campaignData.name);
+            setPurpose(campaignData.purpose);
             if (campaignData.availableNeighborhoods?.length === 1) {
                 setSubmissionNeighborhoodId(campaignData.availableNeighborhoods[0]._id);
             }
@@ -189,6 +196,30 @@ const InspectionCampaignDetailContent: React.FC = () => {
         );
     };
 
+    const handleSaveDetails = async () => {
+        if (name.trim().length < 3) {
+            toast.error("Tên chiến dịch quá ngắn");
+            return;
+        }
+        if (purpose.trim().length < 10) {
+            toast.error("Mục tiêu chiến dịch quá ngắn");
+            return;
+        }
+        try {
+            setSavingDetails(true);
+            await updateInspectionCampaignDetails(id, {
+                name: name.trim(),
+                purpose: purpose.trim(),
+            });
+            toast.success("Đã lưu tên và mục tiêu chiến dịch");
+            await load(page);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSavingDetails(false);
+        }
+    };
+
     const updateChecklistItem = (
         itemId: string,
         patch: Partial<InspectionChecklistItem>,
@@ -238,12 +269,42 @@ const InspectionCampaignDetailContent: React.FC = () => {
                     <ArrowLeft className="h-4 w-4" /> Quay lại danh sách
                 </Button>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h1 className="text-xl font-semibold">{campaign.name}</h1>
-                            <Badge tone={campaign.status === "ACTIVE" ? "blue" : "gray"}>{campaign.status}</Badge>
-                        </div>
-                        <p className="mt-2 max-w-3xl text-sm text-text_2">{campaign.purpose}</p>
+                    <div className="max-w-3xl flex-1">
+                        {campaign.status === "DRAFT" && canManage ? (
+                            <div className="space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Input
+                                        className="max-w-md text-xl font-semibold"
+                                        value={name}
+                                        onChange={event => setName(event.target.value)}
+                                    />
+                                    <Badge tone="gray">{campaign.status}</Badge>
+                                </div>
+                                <Textarea
+                                    value={purpose}
+                                    onChange={event => setPurpose(event.target.value)}
+                                />
+                                <Button
+                                    size="sm"
+                                    loading={savingDetails}
+                                    onClick={handleSaveDetails}
+                                    disabled={
+                                        name.trim() === campaign.name &&
+                                        purpose.trim() === campaign.purpose
+                                    }
+                                >
+                                    <Save className="h-4 w-4" /> Lưu tên và mục tiêu
+                                </Button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h1 className="text-xl font-semibold">{campaign.name}</h1>
+                                    <Badge tone={campaign.status === "ACTIVE" ? "blue" : "gray"}>{campaign.status}</Badge>
+                                </div>
+                                <p className="mt-2 max-w-3xl text-sm text-text_2">{campaign.purpose}</p>
+                            </>
+                        )}
                         <p className="mt-2 text-sm text-text_2">
                             Hạn: {new Date(campaign.dueAt).toLocaleDateString("vi-VN")}
                             {campaign.requiredEvidence ? " · Bắt buộc minh chứng" : ""}

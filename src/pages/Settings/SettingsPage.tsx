@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -203,9 +204,10 @@ const SettingsContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Cài đặt</h1>
-            </div>
+            <PageHeader
+                title="Cài đặt"
+                description="Cấu hình chung của hệ thống."
+            />
 
             {loading && <LoadingState />}
             {!loading && error && <ErrorState onRetry={load} />}

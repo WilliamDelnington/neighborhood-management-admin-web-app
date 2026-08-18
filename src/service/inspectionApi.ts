@@ -64,6 +64,15 @@ export const updateInspectionCampaignChecklist = (
     { checklistTemplate },
 );
 
+export const updateInspectionCampaignDetails = (
+    id: string,
+    input: { name: string; purpose: string },
+) => request<InspectionCampaign>(
+    "PATCH",
+    `${v1}/inspection-campaigns/${id}/details`,
+    input,
+);
+
 export const transitionInspectionCampaign = (
     id: string,
     action: "publish" | "lock" | "reopen" | "close",

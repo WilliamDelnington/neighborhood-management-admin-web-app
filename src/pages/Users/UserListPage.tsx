@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -386,9 +387,10 @@ const UserListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4">
-                <h1 className="text-lg font-semibold">Người dùng & vai trò</h1>
-            </div>
+            <PageHeader
+                title="Người dùng & vai trò"
+                description="Quản lý tài khoản người dùng và vai trò được gán."
+            />
 
             <Input
                 className="mb-3 max-w-sm"

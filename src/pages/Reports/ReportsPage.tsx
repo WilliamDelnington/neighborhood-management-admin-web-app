@@ -13,6 +13,7 @@ import {
 } from "@components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import PageHeader from "@components/admin/PageHeader";
 import ReportBarChart, {
     ReportBarChartSeries,
 } from "@components/admin/ReportBarChart";
@@ -598,7 +599,7 @@ const ReportsContent: React.FC = () => {
     if (!activeTab) {
         return (
             <div>
-                <h1 className="mb-4 text-lg font-semibold">Báo cáo</h1>
+                <PageHeader title="Báo cáo" description="Xem báo cáo tổng hợp số liệu quản lý theo địa bàn." />
                 <EmptyState label="Bạn không có quyền xem báo cáo nào" />
             </div>
         );
@@ -606,7 +607,7 @@ const ReportsContent: React.FC = () => {
 
     return (
         <div>
-            <h1 className="mb-4 text-lg font-semibold">Báo cáo</h1>
+            <PageHeader title="Báo cáo" description="Xem báo cáo tổng hợp số liệu quản lý theo địa bàn." />
 
             <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
                 <div>

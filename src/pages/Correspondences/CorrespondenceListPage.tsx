@@ -15,6 +15,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import PageHeader from "@components/admin/PageHeader";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Correspondence, CorrespondenceType } from "@dts";
 import { fetchCorrespondences } from "@service/correspondenceApi";
@@ -110,15 +111,18 @@ const CorrespondenceListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Văn bản</h1>
-                {canCreate && (
-                    <Button onClick={() => navigate("/correspondences/create")}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Soạn văn bản
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Văn bản"
+                description="Soạn thảo, gửi và theo dõi văn bản qua lại giữa tổ dân phố và phường."
+                action={
+                    canCreate && (
+                        <Button onClick={() => navigate("/correspondences/create")}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Soạn văn bản
+                        </Button>
+                    )
+                }
+            />
 
             <Tabs
                 className="mb-3"

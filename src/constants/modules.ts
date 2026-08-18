@@ -43,6 +43,7 @@ export type ModuleItem = {
     path: string;
     icon: typeof Home;
     permission: string;
+    description?: string;
 };
 
 export type ModuleGroup = {
@@ -60,6 +61,7 @@ export const TOP_LEVEL_MODULES: ModuleItem[] = [
         path: "/",
         icon: LayoutDashboard,
         permission: "dashboard.read",
+        description: "Tổng quan số liệu và hoạt động của tổ dân phố.",
     },
 ];
 
@@ -78,6 +80,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/wards",
                 icon: Landmark,
                 permission: "wards.manage",
+                description:
+                    "Quản lý danh sách phường/xã, làm cơ sở phân cấp tổ dân phố và địa chỉ.",
             },
             {
                 key: "neighborhoods",
@@ -85,6 +89,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/neighborhoods",
                 icon: MapPinned,
                 permission: "neighborhoods.read",
+                description:
+                    "Quản lý các tổ dân phố và cán bộ phụ trách trong từng khu vực.",
             },
             {
                 key: "streets",
@@ -92,6 +98,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/streets",
                 icon: MapPinned,
                 permission: "streets.read",
+                description:
+                    "Quản lý danh mục đường/phố dùng để chuẩn hoá địa chỉ nhà số.",
             },
             {
                 key: "infrastructure-assets",
@@ -99,6 +107,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/infrastructure-assets",
                 icon: Construction,
                 permission: "infrastructure.read",
+                description:
+                    "Theo dõi hạ tầng công cộng (đường, cống, đèn chiếu sáng...) trên địa bàn.",
             },
             {
                 key: "houses",
@@ -106,6 +116,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/houses",
                 icon: Home,
                 permission: "houses.read",
+                description:
+                    "Quản lý thông tin nhà số, chủ nhà và trạng thái xác minh.",
             },
             {
                 key: "organizations",
@@ -113,6 +125,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/organizations",
                 icon: Building2,
                 permission: "organizations.read",
+                description:
+                    "Quản lý các tổ chức đứng tên chủ sở hữu nhà thay vì cá nhân.",
             },
             {
                 key: "residents",
@@ -120,6 +134,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/residents",
                 icon: Users,
                 permission: "residents.read",
+                description:
+                    "Quản lý hồ sơ cư trú, tạm trú/tạm vắng của cư dân.",
             },
         ],
     },
@@ -134,6 +150,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/businesses",
                 icon: Store,
                 permission: "businesses.read",
+                description:
+                    "Quản lý hộ kinh doanh đăng ký hoạt động trên địa bàn.",
             },
             {
                 key: "companies",
@@ -141,6 +159,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/companies",
                 icon: Building,
                 permission: "companies.read",
+                description:
+                    "Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn.",
             },
             {
                 key: "business_types",
@@ -148,6 +168,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/business-types",
                 icon: Briefcase,
                 permission: "business_types.read",
+                description:
+                    "Quản lý danh mục loại hình kinh doanh áp dụng cho hộ kinh doanh và công ty.",
             },
         ],
     },
@@ -162,6 +184,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/complaints",
                 icon: MessageSquare,
                 permission: "complaints.read",
+                description:
+                    "Tiếp nhận và xử lý phản ánh, kiến nghị của cư dân.",
             },
             {
                 key: "complaint_types",
@@ -169,6 +193,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/complaint-types",
                 icon: Tags,
                 permission: "complaint_types.read",
+                description:
+                    "Quản lý danh mục loại phản ánh để phân loại và định tuyến xử lý.",
             },
             {
                 key: "support_tickets",
@@ -176,6 +202,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/support-tickets",
                 icon: LifeBuoy,
                 permission: "support_tickets.read",
+                description: "Tiếp nhận và xử lý yêu cầu hỗ trợ từ cư dân.",
             },
             {
                 key: "pccc",
@@ -183,6 +210,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/pccc",
                 icon: Flame,
                 permission: "pccc.read",
+                description:
+                    "Quản lý hồ sơ, kiểm tra phòng cháy chữa cháy tại các nhà số/tổ chức.",
             },
             {
                 key: "security",
@@ -190,6 +219,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/security",
                 icon: Shield,
                 permission: "security.read",
+                description:
+                    "Quản lý các vụ việc, hồ sơ liên quan đến an ninh trật tự.",
             },
             {
                 key: "requests",
@@ -202,6 +233,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 // gửi" (rieng cua actor, van yeu cau requests.read/requests.create
                 // ben trong tung thao tac). Xem RequestListPage.tsx.
                 permission: "dashboard.read",
+                description:
+                    "Theo dõi và xử lý các yêu cầu công việc được giao trong tổ dân phố.",
             },
             {
                 key: "request_types",
@@ -209,6 +242,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/request-types",
                 icon: ClipboardList,
                 permission: "request_types.read",
+                description:
+                    "Quản lý loại nhiệm vụ và biểu mẫu áp dụng cho yêu cầu công việc.",
             },
             {
                 key: "inspections",
@@ -216,6 +251,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/inspections",
                 icon: ClipboardCheck,
                 permission: "inspections.read",
+                description:
+                    "Tổ chức và theo dõi các chiến dịch rà soát, kiểm tra theo đợt.",
             },
             {
                 key: "change_requests",
@@ -223,6 +260,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/change-requests",
                 icon: ClipboardCheck,
                 permission: "change_requests.read",
+                description:
+                    "Duyệt các yêu cầu thay đổi thông tin nhà, hộ khẩu hoặc tài khoản đã xác minh.",
             },
             {
                 key: "reports",
@@ -230,6 +269,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/reports",
                 icon: BarChart3,
                 permission: "reports.read",
+                description: "Xem báo cáo tổng hợp số liệu quản lý theo địa bàn.",
             },
             {
                 key: "periodic-reports",
@@ -237,6 +277,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/periodic-reports",
                 icon: ClipboardList,
                 permission: "reports.author",
+                description: "Quản lý báo cáo định kỳ theo lịch của tổ dân phố.",
             },
             {
                 key: "kpis",
@@ -244,6 +285,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/kpis",
                 icon: BarChart3,
                 permission: "reports.kpi_read",
+                description: "Theo dõi chỉ số KPI đánh giá hoạt động của phường.",
             },
         ],
     },
@@ -258,6 +300,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/appointments",
                 icon: CalendarClock,
                 permission: "appointments.read",
+                description:
+                    "Quản lý lịch hẹn làm việc của cư dân với tổ dân phố/phường.",
             },
             {
                 key: "appointment_checkin",
@@ -265,6 +309,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/appointments/check-in",
                 icon: CalendarCheck,
                 permission: "appointments.checkin",
+                description:
+                    "Check-in cư dân đã đặt lịch hẹn khi đến làm việc.",
             },
             {
                 key: "appointment_reports",
@@ -272,6 +318,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/appointment-reports",
                 icon: BarChart3,
                 permission: "appointments.read",
+                description: "Xem báo cáo thống kê về lịch hẹn.",
             },
             {
                 key: "appointment_services",
@@ -279,6 +326,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/appointment-services",
                 icon: ClipboardList,
                 permission: "appointments.manage",
+                description: "Quản lý danh mục dịch vụ có thể đặt lịch hẹn.",
             },
         ],
     },
@@ -293,6 +341,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/document-types",
                 icon: FileCheck2,
                 permission: "document_types.read",
+                description: "Quản lý danh mục loại giấy tờ dùng trong hồ sơ.",
             },
             {
                 key: "required_document_settings",
@@ -300,6 +349,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/required-document-settings",
                 icon: ClipboardList,
                 permission: "houses.update",
+                description:
+                    "Cấu hình giấy tờ bắt buộc phải nộp theo từng loại đối tượng (nhà, hộ khẩu, doanh nghiệp).",
             },
             {
                 key: "files",
@@ -307,6 +358,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/files",
                 icon: FileText,
                 permission: "files.read",
+                description: "Quản lý biểu mẫu và tệp tin dùng chung.",
             },
             {
                 key: "correspondence_types",
@@ -314,6 +366,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/correspondence-types",
                 icon: FileSignature,
                 permission: "correspondence_types.read",
+                description:
+                    "Quản lý loại văn bản và ma trận gửi/nhận áp dụng cho văn bản đi/đến.",
             },
         ],
     },
@@ -328,6 +382,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/meetings",
                 icon: CalendarDays,
                 permission: "meetings.read",
+                description: "Quản lý lịch và biên bản các cuộc họp.",
             },
             {
                 key: "announcements",
@@ -335,6 +390,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/announcements",
                 icon: Megaphone,
                 permission: "announcements.read",
+                description: "Soạn và gửi thông báo đến cư dân.",
             },
             {
                 key: "correspondences",
@@ -342,6 +398,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/correspondences",
                 icon: FileSignature,
                 permission: "correspondences.read",
+                description:
+                    "Soạn thảo, gửi và theo dõi văn bản qua lại giữa tổ dân phố và phường.",
             },
             {
                 key: "surveys",
@@ -349,6 +407,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/surveys",
                 icon: ClipboardList,
                 permission: "surveys.read",
+                description: "Tạo khảo sát và thu thập ý kiến cư dân.",
             },
         ],
     },
@@ -363,6 +422,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/finance",
                 icon: Wallet,
                 permission: "finance.read",
+                description:
+                    "Quản lý các khoản thu chi tài chính của tổ dân phố.",
             },
         ],
     },
@@ -377,6 +438,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/users",
                 icon: UserCog,
                 permission: "users.read",
+                description: "Quản lý tài khoản người dùng và vai trò được gán.",
             },
             {
                 key: "create_house_owner",
@@ -384,6 +446,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/users/new-house-owner",
                 icon: UserPlus,
                 permission: "users.create",
+                description: "Tạo tài khoản chủ nhà mới trong hệ thống.",
             },
             {
                 key: "roles",
@@ -391,6 +454,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/roles",
                 icon: KeyRound,
                 permission: "roles.read",
+                description:
+                    "Quản lý vai trò và phân quyền truy cập chức năng.",
             },
             {
                 key: "settings",
@@ -398,6 +463,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/settings",
                 icon: Settings,
                 permission: "settings.read",
+                description: "Cấu hình chung của hệ thống.",
             },
             {
                 key: "digital_readiness",
@@ -405,6 +471,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/digital-readiness",
                 icon: ShieldCheck,
                 permission: "settings.read",
+                description:
+                    "Theo dõi mức độ sẵn sàng chuyển đổi số của địa bàn.",
             },
             // Tạm ẩn menu Tính năng Mini App
             // {
@@ -413,6 +481,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
             //     path: "/mini-app-features",
             //     icon: ListOrdered,
             //     permission: "settings.read",
+            //     description:
+            //         "Quản lý tính năng hiển thị trên Mini App cho cư dân.",
             // },
             {
                 key: "audit_logs",
@@ -420,6 +490,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/audit-logs",
                 icon: History,
                 permission: "audit.read",
+                description:
+                    "Tra cứu nhật ký thao tác của người dùng trong hệ thống.",
             },
         ],
     },
@@ -434,6 +506,8 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/utility-apps",
                 icon: Link2,
                 permission: "utility_apps.manage",
+                description:
+                    "Quản lý nhóm tiện ích/dịch vụ tích hợp cho cư dân.",
             },
         ],
     },

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import {
@@ -100,15 +101,18 @@ const SurveyListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý khảo sát</h1>
-                {canCreate && (
-                    <Button onClick={() => navigate("/surveys/create")}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm mới
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Quản lý khảo sát"
+                description="Tạo khảo sát và thu thập ý kiến cư dân."
+                action={
+                    canCreate && (
+                        <Button onClick={() => navigate("/surveys/create")}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm mới
+                        </Button>
+                    )
+                }
+            />
 
             <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
