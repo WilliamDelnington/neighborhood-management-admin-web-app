@@ -194,7 +194,8 @@ export type HouseGisSource =
     | "unavailable"
     | "device_gps"
     | "manual"
-    | "external_gis";
+    | "external_gis"
+    | "address_lookup";
 
 // ---------------------------------------------------------------------------
 // Chu so huu (nha so co the thuoc ca nhan hoac to chuc)
@@ -814,6 +815,23 @@ export type Announcement = {
     createdAt: string;
 };
 
+export type LoaiTinTuc = "chung" | "hoat_dong" | "an_ninh_trat_tu" | "khac";
+
+export type TrangThaiTinTuc = "nhap" | "da_dang";
+
+export type News = {
+    _id: string;
+    title: string;
+    content: string;
+    category: LoaiTinTuc;
+    status: TrangThaiTinTuc;
+    pinned: boolean;
+    coverImageUrl?: string;
+    images: string[];
+    publishedAt?: string;
+    createdAt: string;
+};
+
 export type ChangeRequestTargetModel = "HouseRecord" | "HouseOwnership" | "User";
 export type ChangeRequestType = "update" | "unlink" | "transfer_neighborhood";
 export type ChangeRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
@@ -1257,6 +1275,20 @@ export type AppointmentService = {
     active: boolean;
     assignedOfficerUserIds: Array<{ _id: string; displayName: string }>;
     timeSlots: AppointmentTimeSlot[];
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type AppointmentHolidayType = "le" | "tam_ngung";
+
+export type AppointmentHoliday = {
+    _id: string;
+    date: string;
+    name: string;
+    type: AppointmentHolidayType;
+    // Khong dat = ap dung cho TOAN BO cac phuong/xa (ngay le co dinh quoc gia).
+    wardCode?: number;
+    note?: string;
     createdAt?: string;
     updatedAt?: string;
 };

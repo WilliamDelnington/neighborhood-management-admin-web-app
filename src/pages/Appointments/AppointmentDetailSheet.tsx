@@ -205,11 +205,15 @@ const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
 
     const handleCancel = async () => {
         if (!appointmentId) return;
+        if (!cancelReason.trim()) {
+            toast.error("Vui lòng nhập lý do hủy");
+            return;
+        }
         try {
             setCancelling(true);
             const updated = await cancelAppointment(
                 appointmentId,
-                cancelReason.trim() || undefined,
+                cancelReason.trim(),
             );
             setAppointment(updated);
             setCancelDialogOpen(false);
@@ -388,7 +392,7 @@ const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
                         <DialogTitle>Hủy lịch hẹn</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-1.5">
-                        <Label>Lý do hủy (không bắt buộc)</Label>
+                        <Label>Lý do hủy (bắt buộc)</Label>
                         <Textarea
                             value={cancelReason}
                             onChange={e => setCancelReason(e.target.value)}

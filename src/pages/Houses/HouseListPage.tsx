@@ -31,6 +31,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
+import HouseMapPanel from "@components/admin/HouseMapPanel";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -144,6 +145,8 @@ const HouseListContent: React.FC = () => {
                     </Button>
                 </div>
             )}
+
+            <HouseMapPanel />
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
                 <Input

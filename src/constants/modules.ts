@@ -35,6 +35,8 @@ import {
     Tags,
     CalendarClock,
     CalendarCheck,
+    CalendarOff,
+    Newspaper,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -328,6 +330,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "appointments.manage",
                 description: "Quản lý danh mục dịch vụ có thể đặt lịch hẹn.",
             },
+            {
+                key: "appointment_holidays",
+                label: "Ngày nghỉ / lễ",
+                path: "/appointment-holidays",
+                icon: CalendarOff,
+                permission: "appointments.manage",
+                description:
+                    "Khai báo các ngày không tiếp nhận đặt lịch hẹn (lễ, Tết, tạm ngưng đột xuất).",
+            },
         ],
     },
     {
@@ -391,6 +402,14 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: Megaphone,
                 permission: "announcements.read",
                 description: "Soạn và gửi thông báo đến cư dân.",
+            },
+            {
+                key: "news",
+                label: "Tin tức",
+                path: "/news",
+                icon: Newspaper,
+                permission: "news.read",
+                description: "Soạn và đăng tin tức tới cư dân.",
             },
             {
                 key: "correspondences",

@@ -19,6 +19,8 @@ import type {
     LoaiGiaoDichTaiChinh,
     LoaiSoHuu,
     LoaiThongBao,
+    LoaiTinTuc,
+    TrangThaiTinTuc,
     LoaiYeuCauHoTro,
     MucDoAnNinh,
     MucNguyCoPccc,
@@ -438,7 +440,8 @@ export const APPOINTMENT_AUDIT_ACTION_LABEL: Record<string, string> = {
     "appointment.confirm": "Xác nhận lịch hẹn",
     "appointment.reject": "Từ chối lịch hẹn",
     "appointment.cancel": "Hủy lịch hẹn",
-    "appointment.checkin": "Check-in",
+    "appointment.reschedule": "Đổi lịch hẹn",
+    "appointment.check_in": "Check-in",
     "appointment.complete": "Hoàn thành làm việc",
     "appointment.rate": "Đánh giá lịch hẹn",
     "appointment.no_show": "Tự động đánh dấu vắng mặt",
@@ -555,6 +558,18 @@ export const LOAI_THONG_BAO_LABEL: Record<LoaiThongBao, string> = {
 };
 
 export const TRANG_THAI_THONG_BAO_LABEL: Record<TrangThaiThongBao, string> = {
+    nhap: "Nháp",
+    da_dang: "Đã đăng",
+};
+
+export const LOAI_TIN_TUC_LABEL: Record<LoaiTinTuc, string> = {
+    chung: "Tin chung",
+    hoat_dong: "Hoạt động cộng đồng",
+    an_ninh_trat_tu: "An ninh trật tự",
+    khac: "Khác",
+};
+
+export const TRANG_THAI_TIN_TUC_LABEL: Record<TrangThaiTinTuc, string> = {
     nhap: "Nháp",
     da_dang: "Đã đăng",
 };

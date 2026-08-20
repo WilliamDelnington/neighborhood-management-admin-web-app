@@ -25,6 +25,7 @@ export const API = {
 
     HOUSES: "/api/houses",
     HOUSES_CHECK_OWNER_PHONE: "/api/houses/check-owner-phone",
+    HOUSES_GIS_OVERVIEW: "/api/houses/gis-overview",
     ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
     ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
     WARD_MANAGERS: "/api/wards/managers",
@@ -48,6 +49,7 @@ export const API = {
     SUPPORT_TICKETS: "/api/support-tickets",
 
     ANNOUNCEMENTS: "/api/announcements",
+    NEWS: "/api/news",
     CORRESPONDENCE_TYPES: "/api/correspondence-types",
     CORRESPONDENCES: "/api/correspondences",
     CHANGE_REQUESTS: "/api/change-requests",
@@ -63,6 +65,7 @@ export const API = {
     REQUEST_TYPES: "/api/request-types",
     APPOINTMENT_SERVICES: "/api/appointment-services",
     APPOINTMENTS: "/api/appointments",
+    APPOINTMENT_HOLIDAYS: "/api/appointment-holidays",
     INSPECTION_CAMPAIGNS: "/api/v1/neighborhood/inspection-campaigns",
     INSPECTIONS_V1: "/api/v1",
 

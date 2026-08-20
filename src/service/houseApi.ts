@@ -143,6 +143,30 @@ export const updateHouseGis = (
 export const deleteHouse = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.HOUSES}/${id}`);
 
+export interface HouseGisOverviewPoint {
+    houseId: string;
+    code: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number | null;
+}
+
+export interface HouseGisOverview {
+    scopeLabel: string;
+    totalHouses: number;
+    housesWithCoordinates: number;
+    points: HouseGisOverviewPoint[];
+}
+
+/**
+ * Chi 1 request backend (khong ton chi phi Google) - dung cho ca so lieu
+ * thong ke "N/M nha co toa do" (tai ngay khi vao trang) va danh sach diem cho
+ * ban do tong hop (chi ve khi bam "Xem bản đồ" - xem HouseMapPanel.tsx).
+ */
+export const fetchHouseGisOverview = (): Promise<HouseGisOverview> =>
+    request<HouseGisOverview>("GET", API.HOUSES_GIS_OVERVIEW);
+
 export const updateHouseStatus = (
     id: string,
     status: HouseStatus,

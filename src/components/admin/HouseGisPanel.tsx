@@ -5,9 +5,15 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Badge } from "@components/ui/badge";
-import { House, AppError } from "@dts";
+import { House, AppError, HouseGisSource } from "@dts";
 import { updateHouseGis } from "@service/houseApi";
 import { usePermission } from "@store/authStore";
+
+const GIS_SOURCE_SHORT_LABEL: Partial<Record<HouseGisSource, string>> = {
+    device_gps: "GPS thiết bị",
+    address_lookup: "Tra cứu địa chỉ",
+    manual: "Nhập tay",
+};
 
 type Props = {
     house: House;
@@ -151,7 +157,8 @@ const HouseGisPanel: React.FC<Props> = ({ house, onUpdated }) => {
             {house.gisCapturedAt && (
                 <p className="mt-2 text-xs text-muted-foreground">
                     Cập nhật lúc {new Date(house.gisCapturedAt).toLocaleString("vi-VN")}
-                    {house.gisSource === "device_gps" ? " · GPS thiết bị" : " · Nhập tay"}
+                    {" · "}
+                    {GIS_SOURCE_SHORT_LABEL[house.gisSource] || "Nhập tay"}
                 </p>
             )}
             {canUpdate && (

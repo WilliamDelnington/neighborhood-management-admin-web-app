@@ -97,6 +97,9 @@ const RequestHistoryPage = React.lazy(
 const AppointmentServiceListPage = React.lazy(
     () => import("@pages/AppointmentServices/AppointmentServiceListPage"),
 );
+const AppointmentHolidayListPage = React.lazy(
+    () => import("@pages/AppointmentServices/AppointmentHolidayListPage"),
+);
 const AppointmentListPage = React.lazy(
     () => import("@pages/Appointments/AppointmentListPage"),
 );
@@ -136,6 +139,8 @@ const AnnouncementListPage = React.lazy(
 const AnnouncementFormPage = React.lazy(
     () => import("@pages/Announcements/AnnouncementFormPage"),
 );
+const NewsListPage = React.lazy(() => import("@pages/News/NewsListPage"));
+const NewsFormPage = React.lazy(() => import("@pages/News/NewsFormPage"));
 const CorrespondenceTypeListPage = React.lazy(
     () => import("@pages/CorrespondenceTypes/CorrespondenceTypeListPage"),
 );
@@ -343,6 +348,10 @@ const App: React.FC = () => {
                             element={<AppointmentServiceListPage />}
                         />
                         <Route
+                            path="/appointment-holidays"
+                            element={<AppointmentHolidayListPage />}
+                        />
+                        <Route
                             path="/appointments"
                             element={<AppointmentListPage />}
                         />
@@ -398,6 +407,15 @@ const App: React.FC = () => {
                         <Route
                             path="/announcements/:id/edit"
                             element={<AnnouncementFormPage />}
+                        />
+                        <Route path="/news" element={<NewsListPage />} />
+                        <Route
+                            path="/news/create"
+                            element={<NewsFormPage />}
+                        />
+                        <Route
+                            path="/news/:id/edit"
+                            element={<NewsFormPage />}
                         />
                         <Route
                             path="/correspondence-types"

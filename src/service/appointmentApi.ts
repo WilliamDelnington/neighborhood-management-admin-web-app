@@ -34,7 +34,7 @@ export const lookupAppointmentByCode = (code: string): Promise<Appointment> =>
 
 export const cancelAppointment = (
     id: string,
-    reason?: string,
+    reason: string,
 ): Promise<Appointment> =>
     request<Appointment>("POST", `${API.APPOINTMENTS}/${id}/cancel`, {
         reason,
