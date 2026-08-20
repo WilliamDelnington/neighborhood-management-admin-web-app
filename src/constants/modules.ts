@@ -10,7 +10,6 @@ import {
     Wallet,
     BarChart3,
     UserCog,
-    UserPlus,
     Settings,
     KeyRound,
     Briefcase,
@@ -377,13 +376,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 path: "/users",
                 icon: UserCog,
                 permission: "users.read",
-            },
-            {
-                key: "create_house_owner",
-                label: "Tạo tài khoản",
-                path: "/users/new-house-owner",
-                icon: UserPlus,
-                permission: "users.create",
             },
             {
                 key: "roles",

@@ -98,7 +98,7 @@ const MiniAppFeaturesContent: React.FC = () => {
                 "Hiển thị" sẽ không xuất hiện trên Mini App.
             </p>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={load} />}
                 {!loading && !error && (

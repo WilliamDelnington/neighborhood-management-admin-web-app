@@ -15,6 +15,8 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Correspondence, CorrespondenceType } from "@dts";
 import { fetchCorrespondences } from "@service/correspondenceApi";
@@ -58,41 +60,33 @@ const CorrespondenceListContent: React.FC = () => {
     const [items, setItems] = useState<Correspondence[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const load = (
         targetPage = 1,
         currentView = view,
         currentStatus = status,
+        size = pageSize,
     ) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+        setLoading(true);
         setError(false);
         fetchCorrespondences(
             targetPage,
-            DEFAULT_PAGE_SIZE,
+            size,
             currentView,
             currentView === "sent" && currentStatus !== "all"
                 ? currentStatus
                 : undefined,
         )
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -120,16 +114,24 @@ const CorrespondenceListContent: React.FC = () => {
                 )}
             </div>
 
-            <Tabs
-                className="mb-3"
-                value={view}
-                onValueChange={value => setView(value as ViewFilter)}
-            >
-                <TabsList>
-                    <TabsTrigger value="received">Đã nhận</TabsTrigger>
-                    <TabsTrigger value="sent">Đã gửi</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <Tabs
+                    value={view}
+                    onValueChange={value => setView(value as ViewFilter)}
+                >
+                    <TabsList>
+                        <TabsTrigger value="received">Đã nhận</TabsTrigger>
+                        <TabsTrigger value="sent">Đã gửi</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, view, status, size);
+                    }}
+                />
+            </div>
 
             {view === "sent" && (
                 <Tabs
@@ -147,7 +149,7 @@ const CorrespondenceListContent: React.FC = () => {
                 </Tabs>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, view, status)} />
@@ -206,17 +208,12 @@ const CorrespondenceListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1, view, status)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
-            )}
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={p => load(p, view, status)}
+                disabled={loading}
+            />
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -29,12 +30,15 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
 import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     assignUserRole,
+    createHouseOwner,
+    CreatableStaffRole,
     fetchUsers,
     lockUserAccount,
     revokeUserRole,
@@ -50,7 +54,7 @@ import {
     fetchProvinces,
     fetchWardsByProvince,
 } from "@service/administrativeDivisionApi";
-import { usePermission } from "@store/authStore";
+import { usePermission, useAuthStore } from "@store/authStore";
 
 const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
 const PEOPLE_COMMITTEE_OFFICIAL_ROLE = "people_committee_official";
@@ -58,6 +62,33 @@ const SECRETARY_ROLE = "secretary";
 const WARD_SCOPED_ROLES: Role[] = [
     PEOPLE_COMMITTEE_OFFICIAL_ROLE,
     SECRETARY_ROLE,
+];
+
+type CreateAccountForm = {
+    phone: string;
+    displayName: string;
+    address: string;
+    idNumber: string;
+    password: string;
+    role: CreatableStaffRole;
+};
+
+const EMPTY_CREATE_FORM: CreateAccountForm = {
+    phone: "",
+    displayName: "",
+    address: "",
+    idNumber: "",
+    password: "",
+    role: "house_owner",
+};
+
+// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai chi
+// hien voi admin (backend cung tu choi neu khong phai admin - xem
+// userService.createHouseOwnerByStaff).
+const CREATE_STAFF_ONLY_ROLES: CreatableStaffRole[] = [
+    "neighborhood_leader",
+    "neighborhood_coleader",
+    "neighborhood_collaborator",
 ];
 
 const UserListPage: React.FC = () => (
@@ -73,6 +104,8 @@ const UserListContent: React.FC = () => {
     // xem userService.listUsers/lockUserStatus o backend.
     const canFullUpdate = usePermission("users.update");
     const canAssignRoles = usePermission("users.assign_roles");
+    const canCreateAccount = usePermission("users.create");
+    const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     // to truong khong co roles.read - goi fetchRoles se luon 403. Danh sach
     // nay chi phuc vu bo loc theo vai tro + man gan vai tro (da an voi to
     // truong qua canAssignRoles), nen bo qua hoan toan thay vi goi roi bo ket
@@ -89,9 +122,15 @@ const UserListContent: React.FC = () => {
     const roleLabel = (key: Role) => roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+
+    const [createSheetOpen, setCreateSheetOpen] = useState(false);
+    const [createForm, setCreateForm] = useState<CreateAccountForm>(EMPTY_CREATE_FORM);
+    const [creatingAccount, setCreatingAccount] = useState(false);
+    const [lastCreatedPhone, setLastCreatedPhone] = useState<string | null>(null);
 
     const [sheetOpen, setSheetOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -131,12 +170,12 @@ const UserListContent: React.FC = () => {
     const [wardName, setWardName] = useState("");
     const [savingWard, setSavingWard] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchUsers(
             targetPage,
-            DEFAULT_PAGE_SIZE,
+            size,
             keyword || undefined,
             role || undefined,
         )
@@ -148,6 +187,51 @@ const UserListContent: React.FC = () => {
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
+    };
+
+    const setCreateField = <K extends keyof CreateAccountForm>(
+        key: K,
+        value: CreateAccountForm[K],
+    ) => setCreateForm(prev => ({ ...prev, [key]: value }));
+
+    const openCreateSheet = () => {
+        setCreateForm(EMPTY_CREATE_FORM);
+        setLastCreatedPhone(null);
+        setCreateSheetOpen(true);
+    };
+
+    const isCreateFormValid =
+        createForm.phone.trim().length > 0 &&
+        createForm.displayName.trim().length > 0 &&
+        createForm.idNumber.trim().length > 0 &&
+        createForm.password.trim().length >= 6;
+
+    const handleCreateAccount = async () => {
+        if (!isCreateFormValid) {
+            toast.error(
+                "Vui lòng nhập đầy đủ số điện thoại, họ tên, số CMND/CCCD và mật khẩu (ít nhất 6 ký tự)",
+            );
+            return;
+        }
+        try {
+            setCreatingAccount(true);
+            await createHouseOwner({
+                phone: createForm.phone.trim(),
+                displayName: createForm.displayName.trim(),
+                address: createForm.address.trim() || undefined,
+                idNumber: createForm.idNumber.trim(),
+                role: createForm.role,
+                password: createForm.password.trim(),
+            });
+            toast.success(`Đã tạo tài khoản ${ROLE_LABEL[createForm.role]} mới`);
+            setLastCreatedPhone(createForm.phone.trim());
+            setCreateForm(EMPTY_CREATE_FORM);
+            load(page, search);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setCreatingAccount(false);
+        }
     };
 
     useEffect(() => {
@@ -386,16 +470,31 @@ const UserListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4">
+            <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Người dùng & vai trò</h1>
+                {canCreateAccount && (
+                    <Button onClick={openCreateSheet}>
+                        <Plus className="mr-1 h-4 w-4" />
+                        Tạo tài khoản
+                    </Button>
+                )}
             </div>
 
-            <Input
-                className="mb-3 max-w-sm"
-                placeholder="Tìm theo tên hoặc số điện thoại..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-3 flex items-center gap-2">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, search, size);
+                    }}
+                />
+                <Input
+                    className="max-w-sm flex-1"
+                    placeholder="Tìm theo tên hoặc số điện thoại..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+            </div>
 
             <div className="mb-3 flex flex-wrap gap-2">
                 <Button
@@ -424,7 +523,7 @@ const UserListContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -823,6 +922,133 @@ const UserListContent: React.FC = () => {
                             )}
                         </div>
                     )}
+                </SheetContent>
+            </Sheet>
+
+            <Sheet open={createSheetOpen} onOpenChange={setCreateSheetOpen}>
+                <SheetContent className="flex flex-col">
+                    <SheetHeader>
+                        <SheetTitle>Tạo tài khoản</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 space-y-4 overflow-y-auto py-4">
+                        {lastCreatedPhone && (
+                            <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                                Đã tạo tài khoản với số điện thoại{" "}
+                                <strong>{lastCreatedPhone}</strong>. Đăng nhập
+                                trong Mini App bằng số điện thoại và mật khẩu
+                                vừa đặt.
+                                {CREATE_STAFF_ONLY_ROLES.includes(createForm.role) && (
+                                    <>
+                                        {" "}
+                                        Vào trang chi tiết Tổ dân phố để gán
+                                        tài khoản này làm{" "}
+                                        {ROLE_LABEL[createForm.role]} của một
+                                        tổ cụ thể.
+                                    </>
+                                )}
+                            </div>
+                        )}
+                        {isAdmin && (
+                            <div className="space-y-1.5">
+                                <Label>Vai trò</Label>
+                                <Select
+                                    value={createForm.role}
+                                    onValueChange={v =>
+                                        setCreateField(
+                                            "role",
+                                            v as CreatableStaffRole,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="house_owner">
+                                            {ROLE_LABEL.house_owner}
+                                        </SelectItem>
+                                        {CREATE_STAFF_ONLY_ROLES.map(r => (
+                                            <SelectItem key={r} value={r}>
+                                                {ROLE_LABEL[r]}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                        <div className="space-y-1.5">
+                            <Label>Số điện thoại</Label>
+                            <Input
+                                placeholder="VD: 0912345678"
+                                autoComplete="off"
+                                inputMode="numeric"
+                                value={createForm.phone}
+                                onChange={e =>
+                                    setCreateField(
+                                        "phone",
+                                        e.target.value.replace(/\D/g, ""),
+                                    )
+                                }
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Họ tên</Label>
+                            <Input
+                                placeholder="VD: Nguyễn Văn A"
+                                autoComplete="off"
+                                value={createForm.displayName}
+                                onChange={e =>
+                                    setCreateField(
+                                        "displayName",
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Địa chỉ (tùy chọn)</Label>
+                            <Input
+                                autoComplete="off"
+                                value={createForm.address}
+                                onChange={e =>
+                                    setCreateField("address", e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Số CMND/CCCD</Label>
+                            <Input
+                                autoComplete="off"
+                                value={createForm.idNumber}
+                                onChange={e =>
+                                    setCreateField("idNumber", e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Mật khẩu</Label>
+                            <Input
+                                type="password"
+                                autoComplete="new-password"
+                                placeholder="Ít nhất 6 ký tự"
+                                value={createForm.password}
+                                onChange={e =>
+                                    setCreateField("password", e.target.value)
+                                }
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Sẽ đăng nhập bằng số điện thoại + mật khẩu này.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        className="w-full"
+                        loading={creatingAccount}
+                        disabled={!isCreateFormValid}
+                        onClick={handleCreateAccount}
+                    >
+                        Tạo tài khoản
+                    </Button>
                 </SheetContent>
             </Sheet>
         </div>

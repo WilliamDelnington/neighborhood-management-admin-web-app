@@ -193,7 +193,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 </p>
             </div>
 
-            <section className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+            <section className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                 <h2 className="font-semibold">Thông tin chung</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="md:col-span-2">
@@ -212,7 +212,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                         <Label htmlFor="campaign-due">Thời hạn *</Label>
                         <Input id="campaign-due" type="datetime-local" className="mt-2" value={dueAt} onChange={event => setDueAt(event.target.value)} />
                     </div>
-                    <div className="flex items-center justify-between gap-4 rounded-xl bg-ng_10 p-4">
+                    <div className="flex items-center justify-between gap-4 rounded-lg bg-ng_10 p-4">
                         <span>
                             <span className="block text-sm font-medium">Cho phép Nhà số tự khai</span>
                             <span className="text-xs text-text_2">Tổ có thể gửi biểu mẫu xuống Nhà.</span>
@@ -224,7 +224,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                             onCheckedChange={checked => setAllowSelfDeclaration(checked === true)}
                         />
                     </div>
-                    <div className="flex items-center justify-between gap-4 rounded-xl bg-ng_10 p-4">
+                    <div className="flex items-center justify-between gap-4 rounded-lg bg-ng_10 p-4">
                         <span>
                             <span className="block text-sm font-medium">Bắt buộc minh chứng</span>
                             <span className="text-xs text-text_2">Không thể submit nếu chưa có ảnh/tệp.</span>
@@ -239,7 +239,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+            <section className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <h2 className="font-semibold">Checklist *</h2>
@@ -251,7 +251,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 </div>
                 <div className="mt-4 space-y-3">
                     {checklist.map((item, index) => (
-                        <div key={item.itemId} className="rounded-xl border border-divider_01 p-4">
+                        <div key={item.itemId} className="rounded-lg border border-divider_01 p-4">
                             <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
                                 <div>
                                     <Label htmlFor={`checklist-${item.itemId}`}>Mục {index + 1}</Label>
@@ -320,7 +320,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 </div>
             </section>
 
-            <section className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+            <section className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                 <h2 className="font-semibold">Tổ dân phố và Nhà số mục tiêu *</h2>
                 <p className="mt-1 text-xs text-text_2">
                     Danh sách chỉ gồm các Tổ thuộc Phường/xã được gán cho tài khoản.
@@ -329,7 +329,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 {!loadingOptions && optionsError && <ErrorState onRetry={() => loadOptions(selectedNeighborhoodIds)} />}
                 {!loadingOptions && !optionsError && options && (
                     <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                        <div className="rounded-xl border border-divider_01 p-3">
+                        <div className="rounded-lg border border-divider_01 p-3">
                             <div className="mb-2 text-sm font-medium">1. Chọn Tổ dân phố</div>
                             <div className="max-h-72 space-y-1 overflow-y-auto">
                                 {options.neighborhoods.map(neighborhood => (
@@ -354,7 +354,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                                 ))}
                             </div>
                         </div>
-                        <div className="rounded-xl border border-divider_01 p-3">
+                        <div className="rounded-lg border border-divider_01 p-3">
                             <div className="mb-2 flex items-center justify-between gap-2">
                                 <span className="text-sm font-medium">2. Chọn Nhà số ({selectedHouseIds.length})</span>
                                 {options.houses.length > 0 && (

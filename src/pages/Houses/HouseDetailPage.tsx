@@ -637,7 +637,7 @@ const HouseDetailContent: React.FC = () => {
 
             {!loading && !error && house && form && (
                 <>
-                    <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {house.code}
@@ -854,7 +854,7 @@ const HouseDetailContent: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg bg-white p-5 shadow-sm">
                         <HouseGisPanel house={house} onUpdated={setHouse} />
                     </div>
 
@@ -865,7 +865,7 @@ const HouseDetailContent: React.FC = () => {
                         />
                     )}
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">
                                 Hộ dân trong nhà
@@ -932,7 +932,7 @@ const HouseDetailContent: React.FC = () => {
                             ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">
                                 Hộ kinh doanh
@@ -987,7 +987,7 @@ const HouseDetailContent: React.FC = () => {
                             ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">Công ty</h2>
                             {canCreateCompany && (
@@ -1037,7 +1037,7 @@ const HouseDetailContent: React.FC = () => {
                             ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">
                                 Đơn vị sử dụng

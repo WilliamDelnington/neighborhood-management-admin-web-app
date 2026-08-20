@@ -112,7 +112,7 @@ const AdminLayout: React.FC = () => {
 
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-40 flex w-64 flex-shrink-0 flex-col border-r border-divider_01 bg-white transition-transform duration-200 ease-in-out",
+                    "fixed inset-y-0 left-0 z-40 flex w-80 flex-shrink-0 flex-col border-r border-divider_01 bg-white transition-transform duration-200 ease-in-out",
                     "lg:static lg:translate-x-0",
                     sidebarOpen ? "translate-x-0" : "-translate-x-full",
                 )}

@@ -21,6 +21,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Complaint, ComplaintTypeDefinition, NhomPhanAnh, TrangThaiPhanAnh } from "@dts";
 import {
@@ -90,14 +91,16 @@ const ComplaintListContent: React.FC = () => {
     const [items, setItems] = useState<Complaint[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchComplaints({
             page: targetPage,
+            limit: size,
             status: status || undefined,
             category: category || undefined,
             search: search || undefined,
@@ -156,12 +159,21 @@ const ComplaintListContent: React.FC = () => {
                 <h1 className="text-lg font-semibold">Phản ánh kiến nghị</h1>
             </div>
 
-            <Input
-                className="mb-4 max-w-sm"
-                placeholder="Tìm theo mã phản ánh, tiêu đề..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-4 flex items-center gap-2">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+                <Input
+                    className="max-w-sm flex-1"
+                    placeholder="Tìm theo mã phản ánh, tiêu đề..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+            </div>
 
             <div className="mb-4 grid grid-cols-2 gap-3">
                 <Select
@@ -208,7 +220,7 @@ const ComplaintListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -235,7 +247,7 @@ const ComplaintListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {c.code} — {c.title}

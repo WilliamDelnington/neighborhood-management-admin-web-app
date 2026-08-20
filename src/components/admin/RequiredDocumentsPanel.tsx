@@ -73,7 +73,7 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
     fetchItems,
     onReview,
     verifyPermission,
-    className = "mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm",
+    className = "mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm",
     onChanged,
 }) => {
     const currentUser = useAuthStore(state => state.user);

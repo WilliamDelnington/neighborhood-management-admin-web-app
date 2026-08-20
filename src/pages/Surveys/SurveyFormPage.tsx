@@ -283,18 +283,18 @@ const SurveyFormContent: React.FC = () => {
 
             <div className="max-w-2xl">
                 {isEdit && loading && (
-                    <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
                         <LoadingState />
                     </div>
                 )}
                 {isEdit && !loading && loadError && (
-                    <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
                         <ErrorState onRetry={loadDetail} />
                     </div>
                 )}
                 {(!isEdit || (!loading && !loadError)) && (
                     <div className="flex flex-col gap-4">
-                        <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
                             <div className="flex flex-col gap-4">
                                 <div className="space-y-1.5">
                                     <Label>Tên khảo sát</Label>
@@ -318,7 +318,7 @@ const SurveyFormContent: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
                             <h2 className="mb-1 text-sm font-semibold">
                                 Đồng chủ biên
                             </h2>
@@ -359,7 +359,7 @@ const SurveyFormContent: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
                             <h2 className="mb-3 text-sm font-semibold">
                                 Đối tượng được trả lời
                             </h2>
@@ -527,7 +527,7 @@ const SurveyFormContent: React.FC = () => {
                                 {questions.map((q, qIndex) => (
                                     <div
                                         key={qIndex}
-                                        className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm"
+                                        className="rounded-lg border border-divider_01 bg-white p-4 shadow-sm"
                                     >
                                         <div className="mb-2 flex items-center justify-between">
                                             <span className="text-xs font-medium text-text_2">
@@ -699,7 +699,7 @@ const SurveyFormContent: React.FC = () => {
 
             {isEdit && id && (
                 <RecordHistorySection
-                    className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                    className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-white p-6 shadow-sm"
                     fetchHistory={params => fetchSurveyAuditLogs(id, params)}
                     actionLabels={SURVEY_AUDIT_ACTION_LABEL}
                     historyHref={`/surveys/${id}/history`}

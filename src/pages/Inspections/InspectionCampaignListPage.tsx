@@ -4,6 +4,7 @@ import { CalendarClock, ClipboardCheck, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { Badge, type BadgeTone } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import type { InspectionCampaign, InspectionCampaignStatus } from "@dts";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { fetchInspectionCampaigns } from "@service/inspectionApi";
 import { usePermission } from "@store/authStore";
 
@@ -38,15 +40,17 @@ const InspectionCampaignListContent: React.FC = () => {
     const [items, setItems] = useState<InspectionCampaign[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [status, setStatus] = useState("ALL");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchInspectionCampaigns({
             page: targetPage,
+            limit: size,
             status: status === "ALL" ? undefined : status,
         })
             .then(data => {
@@ -84,6 +88,13 @@ const InspectionCampaignListContent: React.FC = () => {
                             ))}
                         </SelectContent>
                     </Select>
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
                     {canCreate && (
                         <Button onClick={() => navigate("/inspections/create")}>
                             <Plus className="h-4 w-4" /> Tạo chiến dịch
@@ -104,11 +115,11 @@ const InspectionCampaignListContent: React.FC = () => {
                         return (
                             <article
                                 key={item._id}
-                                className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm"
+                                className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex min-w-0 gap-3">
-                                        <span className="rounded-xl bg-blue-50 p-2 text-primary">
+                                        <span className="rounded-lg bg-blue-50 p-2 text-primary">
                                             <ClipboardCheck className="h-5 w-5" />
                                         </span>
                                         <div className="min-w-0">

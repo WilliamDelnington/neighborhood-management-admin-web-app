@@ -27,7 +27,7 @@ const GisOverviewMap: React.FC<Props> = ({ data, onOpenHouse }) => {
     }, [data.points]);
 
     return (
-        <section className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-divider_01 bg-white p-4 shadow-sm">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
                     <div className="flex items-center gap-2">
@@ -45,13 +45,13 @@ const GisOverviewMap: React.FC<Props> = ({ data, onOpenHouse }) => {
             </div>
 
             {plotted.length === 0 ? (
-                <div className="rounded-xl border border-dashed px-4 py-10 text-center text-sm text-text_2">
+                <div className="rounded-lg border border-dashed px-4 py-10 text-center text-sm text-text_2">
                     Chưa có tọa độ hợp lệ để hiển thị. Có thể lấy GPS tại trang chi tiết
                     Nhà số; null hoặc 0/0 vẫn được giữ là “chưa có GIS”.
                 </div>
             ) : (
                 <>
-                    <div className="relative overflow-hidden rounded-xl border border-divider_01 bg-ng_10">
+                    <div className="relative overflow-hidden rounded-lg border border-divider_01 bg-ng_10">
                         <svg
                             viewBox="0 0 100 100"
                             className="h-[320px] w-full"

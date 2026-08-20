@@ -33,6 +33,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import RequestDetailSheet from "./RequestDetailSheet";
 import { usePermission } from "@store/authStore";
@@ -135,6 +136,7 @@ const SentRequestsTab: React.FC = () => {
     const [items, setItems] = useState<RequestItem[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [formOpen, setFormOpen] = useState(false);
@@ -156,10 +158,10 @@ const SentRequestsTab: React.FC = () => {
         }
     };
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchRequests({ page: targetPage, type: type || undefined, view: "sent" })
+        fetchRequests({ page: targetPage, limit: size, type: type || undefined, view: "sent" })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -176,7 +178,14 @@ const SentRequestsTab: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-end">
+            <div className="mb-4 flex items-center justify-end gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
                 {canCreate && (
                     <Button onClick={() => setFormOpen(true)}>
                         <Plus className="mr-1 h-4 w-4" />
@@ -206,7 +215,7 @@ const SentRequestsTab: React.FC = () => {
                 </SelectContent>
             </Select>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -337,14 +346,15 @@ const AllRequestsTab: React.FC = () => {
     const [items, setItems] = useState<RequestItem[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [detailId, setDetailId] = useState<string | null>(null);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchRequests({ page: targetPage, type: type || undefined })
+        fetchRequests({ page: targetPage, limit: size, type: type || undefined })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -361,28 +371,37 @@ const AllRequestsTab: React.FC = () => {
 
     return (
         <div>
-            <Select
-                value={type || ALL_TYPES}
-                onValueChange={v =>
-                    setType(v === ALL_TYPES ? "" : (v as RequestType))
-                }
-            >
-                <SelectTrigger className="mb-4 max-w-xs">
-                    <SelectValue placeholder="Lọc theo loại yêu cầu" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value={ALL_TYPES}>Tất cả loại yêu cầu</SelectItem>
-                    {(Object.entries(REQUEST_TYPE_LABEL) as [RequestType, string][]).map(
-                        ([key, label]) => (
-                            <SelectItem key={key} value={key}>
-                                {label}
-                            </SelectItem>
-                        ),
-                    )}
-                </SelectContent>
-            </Select>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <Select
+                    value={type || ALL_TYPES}
+                    onValueChange={v =>
+                        setType(v === ALL_TYPES ? "" : (v as RequestType))
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Lọc theo loại yêu cầu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_TYPES}>Tất cả loại yêu cầu</SelectItem>
+                        {(Object.entries(REQUEST_TYPE_LABEL) as [RequestType, string][]).map(
+                            ([key, label]) => (
+                                <SelectItem key={key} value={key}>
+                                    {label}
+                                </SelectItem>
+                            ),
+                        )}
+                    </SelectContent>
+                </Select>
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -507,6 +526,7 @@ const AssignedRequestsTab: React.FC = () => {
     const [items, setItems] = useState<MyRequestItem[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -535,11 +555,12 @@ const AssignedRequestsTab: React.FC = () => {
         }
     };
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchMyRequests({
             page: targetPage,
+            limit: size,
             status: status || undefined,
             type: type || undefined,
             overdueOnly: overdueOnly || undefined,
@@ -651,9 +672,17 @@ const AssignedRequestsTab: React.FC = () => {
                     />
                     <Label className="cursor-pointer">Chỉ hiện quá hạn</Label>
                 </label>
+
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (

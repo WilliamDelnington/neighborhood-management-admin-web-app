@@ -40,6 +40,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, DocumentType } from "@dts";
 import {
@@ -88,6 +89,7 @@ const DocumentTypeListContent: React.FC = () => {
     const [items, setItems] = useState<DocumentType[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -99,11 +101,12 @@ const DocumentTypeListContent: React.FC = () => {
     const [toDelete, setToDelete] = useState<DocumentType | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchDocumentTypes({
             page: targetPage,
+            limit: size,
             search: search || undefined,
             active: active === "" ? undefined : active === "true",
             hasIssueDate:
@@ -202,12 +205,21 @@ const DocumentTypeListContent: React.FC = () => {
                 )}
             </div>
 
-            <Input
-                className="mb-3 max-w-sm"
-                placeholder="Tìm theo tên loại giấy tờ..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-3 flex items-center gap-2">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+                <Input
+                    className="max-w-sm flex-1"
+                    placeholder="Tìm theo tên loại giấy tờ..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+            </div>
 
             <div className="mb-4 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
                 <Select
@@ -257,7 +269,7 @@ const DocumentTypeListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (

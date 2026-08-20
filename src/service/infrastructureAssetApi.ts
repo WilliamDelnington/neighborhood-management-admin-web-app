@@ -1,4 +1,4 @@
-import { API } from "@constants/common";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AnnouncementAttachment,
     InfrastructureAsset,
@@ -25,7 +25,7 @@ export const fetchInfrastructureAssets = (
         API.INFRASTRUCTURE_ASSETS,
         {
             page: params.page ?? 1,
-            limit: params.limit ?? 30,
+            limit: params.limit ?? DEFAULT_PAGE_SIZE,
             search: params.search,
             neighborhoodId: params.neighborhoodId,
             type: params.type,

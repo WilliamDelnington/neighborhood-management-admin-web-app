@@ -14,6 +14,9 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Meeting } from "@dts";
 import { fetchMeetings } from "@service/meetingApi";
 
@@ -38,35 +41,51 @@ const MeetingListContent: React.FC = () => {
     const canManage = usePermission("meetings.create");
 
     const [items, setItems] = useState<Meeting[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = () => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchMeetings(false)
-            .then(res => setItems(res.items))
+        fetchMeetings(false, targetPage, size)
+            .then(res => {
+                setItems(res.items);
+                setPage(res.page);
+                setTotalPages(res.totalPages);
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []);
+    useEffect(() => load(1), []);
 
     return (
         <div>
             <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-lg font-semibold">Quản lý cuộc họp</h1>
-                {canManage && (
-                    <Button onClick={() => navigate("/meetings/create")}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm mới
-                    </Button>
-                )}
+                <div className="flex items-center gap-3">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    {canManage && (
+                        <Button onClick={() => navigate("/meetings/create")}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm mới
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
-                {!loading && error && <ErrorState onRetry={load} />}
+                {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
                     <EmptyState label="Chưa có cuộc họp nào được tạo" />
                 )}
@@ -110,6 +129,13 @@ const MeetingListContent: React.FC = () => {
                     </Table>
                 )}
             </div>
+
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={load}
+                disabled={loading}
+            />
         </div>
     );
 };

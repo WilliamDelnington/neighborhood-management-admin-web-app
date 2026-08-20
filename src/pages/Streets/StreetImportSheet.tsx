@@ -165,7 +165,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                 <div className="flex-1 space-y-4 overflow-y-auto py-4">
                     {!job && (
                         <>
-                            <div className="rounded-xl border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
+                            <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
                                 Tải lên file Excel bất kỳ có dòng tiêu đề ở
                                 hàng đầu tiên. Sau khi tải lên, bạn sẽ chọn cột
                                 nào tương ứng với tên, mã và trạng thái đường/
@@ -184,7 +184,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
 
                     {job && showMapping && (
                         <div className="space-y-4">
-                            <div className="rounded-xl border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
+                            <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
                                 Đã đọc {job.totalRows} dòng dữ liệu với các cột:{" "}
                                 {job.headers.join(", ")}. Vui lòng chọn cột
                                 tương ứng cho từng trường bên dưới.
@@ -305,7 +305,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                             </div>
 
                             {job.rowErrors.length > 0 && (
-                                <div className="space-y-1 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+                                <div className="space-y-1 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">
                                     {job.rowErrors.map(e => (
                                         <div key={e.row}>
                                             Dòng {e.row}: {e.message}

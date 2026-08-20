@@ -606,7 +606,7 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                             </div>
 
                             {formDefinition && formDefinition.fields.length > 0 && (
-                                <div className="rounded-xl border border-divider_01 p-3">
+                                <div className="rounded-lg border border-divider_01 p-3">
                                     <div className="mb-3">
                                         <h3 className="text-sm font-semibold">
                                             Dữ liệu nghiệp vụ · v{request.formSchemaVersion || 1}

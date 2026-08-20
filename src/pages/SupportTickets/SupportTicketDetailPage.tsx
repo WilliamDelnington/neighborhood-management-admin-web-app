@@ -140,7 +140,7 @@ const SupportTicketDetailContent: React.FC = () => {
 
             {!loading && !error && ticket && (
                 <>
-                    <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {ticket.code}
@@ -201,7 +201,7 @@ const SupportTicketDetailContent: React.FC = () => {
                     </div>
 
                     {canUpdateStatus && (
-                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                             <h2 className="mb-3 text-base font-semibold">
                                 Cập nhật trạng thái & phản hồi
                             </h2>
@@ -253,7 +253,7 @@ const SupportTicketDetailContent: React.FC = () => {
                         defaultTitle={`Chuyển tiếp yêu cầu hỗ trợ: ${ticket.title}`}
                     />
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                         <h2 className="mb-3 text-base font-semibold">
                             Trao đổi
                         </h2>

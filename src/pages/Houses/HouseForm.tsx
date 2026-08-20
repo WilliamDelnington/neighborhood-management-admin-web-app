@@ -566,7 +566,7 @@ const HouseForm: React.FC<HouseFormProps> = ({
                 />
             </div>
             {(canAttachOwner || canPickOrganization) && (
-                <div className="space-y-3 rounded-xl border border-divider_01 p-3">
+                <div className="space-y-3 rounded-lg border border-divider_01 p-3">
                     <div className="space-y-1.5">
                         <Label>Loại chủ nhà</Label>
                         <RadioGroup
@@ -760,7 +760,7 @@ const HouseForm: React.FC<HouseFormProps> = ({
                                 </Label>
                             </div>
                             {values.createRepresentativeAccount && (
-                                <div className="flex flex-col gap-3 rounded-xl border border-divider_01 p-3">
+                                <div className="flex flex-col gap-3 rounded-lg border border-divider_01 p-3">
                                     <div className="space-y-1.5">
                                         <Label>Họ tên người đại diện</Label>
                                         <Input

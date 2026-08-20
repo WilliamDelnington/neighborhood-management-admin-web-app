@@ -83,4 +83,4 @@ export const API = {
     NOTIFICATIONS_READ_ALL: "/api/notifications/read-all",
 };
 
-export const DEFAULT_PAGE_SIZE = 20;
+export const DEFAULT_PAGE_SIZE = 10;

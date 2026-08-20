@@ -47,7 +47,7 @@ const LoginPage: React.FC = () => {
         <div className="flex min-h-screen items-center justify-center bg-app-bg p-6">
             <form
                 onSubmit={handleSubmit}
-                className="w-full max-w-sm rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                className="w-full max-w-sm rounded-lg border border-divider_01 bg-white p-6 shadow-sm"
             >
                 <div className="flex justify-center">
                     <AppBrand

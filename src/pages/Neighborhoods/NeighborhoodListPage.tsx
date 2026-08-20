@@ -30,7 +30,9 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { usePermission } from "@store/authStore";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Neighborhood, NeighborhoodStatus, Street, User } from "@dts";
 import { createNeighborhood, fetchNeighborhoods } from "@service/neighborhoodApi";
 import { fetchStreets } from "@service/streetApi";
@@ -72,6 +74,7 @@ const NeighborhoodListContent: React.FC = () => {
     const [items, setItems] = useState<Neighborhood[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -82,13 +85,13 @@ const NeighborhoodListContent: React.FC = () => {
     );
     const [submitting, setSubmitting] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchNeighborhoods({
             page: targetPage,
             search: keyword,
-            limit: 30,
+            limit: size,
             status: status || undefined,
             streetId: streetId || undefined,
             filterLeaderUserId: leaderId || undefined,
@@ -154,11 +157,21 @@ const NeighborhoodListContent: React.FC = () => {
             </div>
 
             <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <Input
-                    placeholder="Tìm theo tên hoặc mã tổ dân phố..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên hoặc mã tổ dân phố..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || STATUS_ALL}
                     onValueChange={v => setStatus(v === STATUS_ALL ? "" : v as NeighborhoodStatus)}
@@ -208,7 +221,7 @@ const NeighborhoodListContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="overflow-x-auto rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -243,7 +256,7 @@ const NeighborhoodListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * 30 + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {n.code}

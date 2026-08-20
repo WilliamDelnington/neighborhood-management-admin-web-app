@@ -3,6 +3,9 @@ import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -85,6 +88,9 @@ const RequestTypeListContent: React.FC = () => {
     const canManage = usePermission("request_types.manage");
     const [items, setItems] = useState<RequestTypeDefinition[]>([]);
     const [roles, setRoles] = useState<RequestTypeRoleOption[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [open, setOpen] = useState(false);
@@ -92,22 +98,27 @@ const RequestTypeListContent: React.FC = () => {
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
 
-    const load = () => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         Promise.all([
-            fetchRequestTypeDefinitions({ limit: 200 }),
+            fetchRequestTypeDefinitions({
+                page: targetPage,
+                limit: size,
+            }),
             fetchRequestTypeRoles(),
         ])
             .then(([definitions, roleList]) => {
                 setItems(definitions.items);
+                setPage(definitions.page);
+                setTotalPages(definitions.totalPages);
                 setRoles(roleList);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []);
+    useEffect(() => load(1), []);
 
     const openCreate = () => {
         setEditing(null);
@@ -229,16 +240,25 @@ const RequestTypeListContent: React.FC = () => {
                         Tạo nghiệp vụ mới bằng cấu hình, không cần sửa mã nguồn.
                     </p>
                 </div>
+                <div className="flex items-center gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
                 {canManage && (
                     <Button onClick={openCreate}>
                         <Plus className="mr-1 h-4 w-4" /> Thêm loại nhiệm vụ
                     </Button>
                 )}
+                </div>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
-                {!loading && error && <ErrorState onRetry={load} />}
+                {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
                     <EmptyState label="Chưa có loại nhiệm vụ tùy chỉnh" />
                 )}
@@ -301,6 +321,13 @@ const RequestTypeListContent: React.FC = () => {
                     </Table>
                 )}
             </div>
+
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={load}
+                disabled={loading}
+            />
 
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetContent className="sm:max-w-2xl">

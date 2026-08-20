@@ -44,7 +44,7 @@ export interface RecordHistorySectionProps {
  * su day du (xem RecordHistoryPage).
  */
 const RecordHistorySection: React.FC<RecordHistorySectionProps> = ({
-    className = "mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm",
+    className = "mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm",
     title = "Lịch sử chỉnh sửa",
     fetchHistory,
     actionLabels,

@@ -35,10 +35,14 @@ export type CreateInspectionCampaignInput = {
     targetHouseIds?: string[];
 };
 
-export const fetchInspectionCampaigns = (params?: { page?: number; status?: string }) =>
+export const fetchInspectionCampaigns = (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+}) =>
     request<PaginatedData<InspectionCampaign>>("GET", API.INSPECTION_CAMPAIGNS, {
         page: params?.page || 1,
-        limit: DEFAULT_PAGE_SIZE,
+        limit: params?.limit || DEFAULT_PAGE_SIZE,
         status: params?.status,
     });
 

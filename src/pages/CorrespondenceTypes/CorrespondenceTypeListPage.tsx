@@ -33,6 +33,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, CorrespondenceType, Role, RoleRecord } from "@dts";
 import {
@@ -79,6 +80,7 @@ const CorrespondenceTypeListContent: React.FC = () => {
     const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -90,10 +92,10 @@ const CorrespondenceTypeListContent: React.FC = () => {
     const [toDelete, setToDelete] = useState<CorrespondenceType | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchCorrespondenceTypes({ page: targetPage, search: search || undefined })
+        fetchCorrespondenceTypes({ page: targetPage, limit: size, search: search || undefined })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -215,14 +217,23 @@ const CorrespondenceTypeListContent: React.FC = () => {
                 )}
             </div>
 
-            <Input
-                className="mb-3 max-w-sm"
-                placeholder="Tìm theo tên loại văn bản..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-            />
+            <div className="mb-3 flex items-center gap-2">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+                <Input
+                    className="max-w-sm flex-1"
+                    placeholder="Tìm theo tên loại văn bản..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+            </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (

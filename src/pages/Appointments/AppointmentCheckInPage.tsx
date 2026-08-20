@@ -133,7 +133,7 @@ const AppointmentCheckInContent: React.FC = () => {
             )}
 
             {appointment && (
-                <div className="max-w-lg rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                <div className="max-w-lg rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
                     <div className="mb-2 flex items-center gap-2">
                         <h2 className="text-base font-semibold">
                             {appointment.code}

@@ -58,7 +58,7 @@ const ReportBarChart: React.FC<ReportBarChartProps> = ({
             >
                 <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="#e1e0d9"
+                    stroke="#DFE5EB"
                     horizontal={!isHorizontalBars}
                     vertical={isHorizontalBars}
                 />
@@ -92,7 +92,7 @@ const ReportBarChart: React.FC<ReportBarChartProps> = ({
                     contentStyle={{
                         fontSize: 12,
                         borderRadius: 8,
-                        borderColor: "#e1e0d9",
+                        borderColor: "#DFE5EB",
                     }}
                     cursor={{ fill: "rgba(0,0,0,0.04)" }}
                 />

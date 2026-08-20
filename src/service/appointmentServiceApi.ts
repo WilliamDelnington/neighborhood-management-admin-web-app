@@ -1,5 +1,5 @@
-import { API } from "@constants/common";
-import { AppointmentService, AppointmentTimeSlot } from "@dts";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
+import { AppointmentService, AppointmentTimeSlot, PaginatedData } from "@dts";
 import { request } from "./request";
 
 export type AppointmentTimeSlotInput = Omit<AppointmentTimeSlot, "_id"> & {
@@ -26,6 +26,25 @@ export const fetchAppointmentServices = (params?: {
     request<AppointmentService[]>("GET", API.APPOINTMENT_SERVICES, {
         activeOnly: params?.activeOnly,
     });
+
+// Dung rieng cho man quan tri AppointmentServiceListPage - khac
+// fetchAppointmentServices (tra ve mang day du, dung cho dropdown chon dich
+// vu o AppointmentListPage/AppointmentReportPage). Truyen page/limit khien
+// route tra ve dang phan trang thay vi mang day du.
+export const fetchAppointmentServicesPaged = (params: {
+    page?: number;
+    limit?: number;
+    activeOnly?: boolean;
+}): Promise<PaginatedData<AppointmentService>> =>
+    request<PaginatedData<AppointmentService>>(
+        "GET",
+        API.APPOINTMENT_SERVICES,
+        {
+            activeOnly: params.activeOnly,
+            page: params.page ?? 1,
+            limit: params.limit ?? DEFAULT_PAGE_SIZE,
+        },
+    );
 
 export const createAppointmentService = (
     input: AppointmentServiceInput,
