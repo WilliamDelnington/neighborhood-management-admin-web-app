@@ -256,6 +256,7 @@ const OrganizationListContent: React.FC = () => {
                                 <TableHead>Mã số thuế</TableHead>
                                 <TableHead>Người đại diện</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -285,6 +286,20 @@ const OrganizationListContent: React.FC = () => {
                                         <Badge tone={o.active ? "green" : "gray"}>
                                             {o.active ? "Hoạt động" : "Vô hiệu"}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        {canUpdate && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => openEditSheet(o)}
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

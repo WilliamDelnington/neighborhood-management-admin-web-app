@@ -201,6 +201,7 @@ const ResidentListContent: React.FC = () => {
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Hình thức sở hữu</TableHead>
                                 <TableHead>Số người đang ở thực tế</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -225,6 +226,20 @@ const ResidentListContent: React.FC = () => {
                                         {LOAI_SO_HUU_LABEL[r.ownershipType]}
                                     </TableCell>
                                     <TableCell>{r.renterCount || 0}</TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        {canManage && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => openEdit(r)}
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

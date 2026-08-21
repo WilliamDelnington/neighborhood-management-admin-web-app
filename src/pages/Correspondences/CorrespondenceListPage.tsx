@@ -167,6 +167,7 @@ const CorrespondenceListContent: React.FC = () => {
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Ngày ban hành</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -200,6 +201,18 @@ const CorrespondenceListContent: React.FC = () => {
                                         {new Date(
                                             doc.issuedAt,
                                         ).toLocaleDateString("vi-VN")}
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openCorrespondence(doc)}
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

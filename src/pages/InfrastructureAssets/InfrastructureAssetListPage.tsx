@@ -401,6 +401,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
                                 <TableHead>Tình trạng</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -441,6 +442,18 @@ const InfrastructureAssetListContent: React.FC = () => {
                                                 ]
                                             }
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openEdit(a)}
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

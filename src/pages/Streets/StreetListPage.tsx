@@ -199,6 +199,7 @@ const StreetListContent: React.FC = () => {
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -223,6 +224,20 @@ const StreetListContent: React.FC = () => {
                                                 ? "Đang hoạt động"
                                                 : "Ngừng hoạt động"}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/streets/${s._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

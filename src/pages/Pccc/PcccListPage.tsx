@@ -397,6 +397,7 @@ const PcccListContent: React.FC = () => {
                                 <TableHead>Nhà</TableHead>
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Mức nguy cơ</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -423,6 +424,20 @@ const PcccListContent: React.FC = () => {
                                         >
                                             {MUC_NGUY_CO_PCCC_LABEL[c.riskLevel]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        {canManage && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => openEdit(c)}
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

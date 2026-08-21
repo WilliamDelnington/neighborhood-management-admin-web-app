@@ -97,6 +97,7 @@ const MeetingListContent: React.FC = () => {
                                 <TableHead>Tên cuộc họp</TableHead>
                                 <TableHead>Thời gian / Địa điểm</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -122,6 +123,20 @@ const MeetingListContent: React.FC = () => {
                                         <Badge tone={m.published ? "green" : "gray"}>
                                             {m.published ? "Đã đăng" : "Nháp"}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/meetings/${m._id}/edit`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
