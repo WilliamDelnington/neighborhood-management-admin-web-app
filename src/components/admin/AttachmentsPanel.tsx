@@ -33,7 +33,7 @@ export interface AttachmentsPanelProps {
  * doanh - chi xem va xoa (upload van chi thuc hien qua ung dung Zalo).
  */
 const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({
-    className = "mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm",
+    className = "mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm",
     title = "Tài liệu đính kèm",
     attachments,
     loading,

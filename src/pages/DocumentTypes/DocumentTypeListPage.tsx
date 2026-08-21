@@ -269,7 +269,7 @@ const DocumentTypeListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (

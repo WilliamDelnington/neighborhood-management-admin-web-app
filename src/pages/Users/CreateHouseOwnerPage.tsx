@@ -127,7 +127,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                 <div className="flex flex-col gap-4">
                     {isAdmin && (
                         <div className="space-y-1.5">

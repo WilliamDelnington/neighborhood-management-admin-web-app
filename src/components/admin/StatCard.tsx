@@ -19,7 +19,7 @@ const TONE_STYLES: Record<
         iconBg: "bg-blue_10",
         iconColor: "text-main",
         accent: "bg-main",
-        cardBg: "bg-white",
+        cardBg: "bg-ui_bg",
     },
     warning: {
         text: "text-warning",

@@ -383,7 +383,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
             )}
 
             {campaign.status === "DRAFT" && canManage && (
-                <section className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                <section className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                         <div>
                             <h2 className="font-semibold">Checklist</h2>
@@ -485,7 +485,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                         ["Chưa kiểm tra", summary.unchecked],
                         ["Cần bổ sung", summary.needsSupplement],
                     ].map(([label, value]) => (
-                        <div key={label} className="rounded-lg border border-divider_01 bg-white p-4 shadow-sm">
+                        <div key={label} className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                             <div className="text-2xl font-semibold">{value}</div>
                             <div className="mt-1 text-xs text-text_2">{label}</div>
                         </div>
@@ -493,7 +493,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 <div className="flex flex-col gap-3 border-b border-divider_01 p-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <Select value={filter} onValueChange={setFilter}>

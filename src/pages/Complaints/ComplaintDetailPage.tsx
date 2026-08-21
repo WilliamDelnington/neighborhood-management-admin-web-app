@@ -297,7 +297,7 @@ const ComplaintDetailContent: React.FC = () => {
 
             {!loading && !error && complaint && (
                 <>
-                    <div className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {complaint.code}
@@ -412,7 +412,7 @@ const ComplaintDetailContent: React.FC = () => {
                     />
 
                     {canAssign && complaint.canReceiveOrChooseAssignee && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                             <h2 className="mb-3 text-base font-semibold">
                                 Tiếp nhận phản ánh
                             </h2>
@@ -450,7 +450,7 @@ const ComplaintDetailContent: React.FC = () => {
                     )}
 
                     {canAssign && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                             <h2 className="mb-3 text-base font-semibold">
                                 Phân công xử lý
                             </h2>
@@ -481,7 +481,7 @@ const ComplaintDetailContent: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-3 text-base font-semibold">
                             Lịch sử xử lý
                         </h2>

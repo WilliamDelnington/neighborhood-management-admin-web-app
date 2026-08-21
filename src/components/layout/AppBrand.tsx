@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { cn } from "@lib/utils";
 import { resolveAssetUrl } from "@constants/common";
 import { fetchPublicSettings } from "@service/settingsApi";
 
 const APP_NAME = "Quản lý Tổ dân phố";
+const WARD_NAME = "Phường Dương Nội";
 
 export interface AppBrandProps {
     imgClassName?: string;
@@ -36,7 +38,14 @@ const AppBrand: React.FC<AppBrandProps> = ({ imgClassName, textClassName }) => {
             />
         );
     }
-    return <span className={textClassName}>{APP_NAME}</span>;
+    return (
+        <span className={cn("flex flex-col items-center leading-tight", textClassName)}>
+            <span>{APP_NAME}</span>
+            <span className="text-[0.7rem] font-medium uppercase tracking-[0.14em] text-main/75">
+                {WARD_NAME}
+            </span>
+        </span>
+    );
 };
 
 export default AppBrand;

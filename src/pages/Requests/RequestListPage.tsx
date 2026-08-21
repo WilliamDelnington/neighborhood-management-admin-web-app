@@ -96,14 +96,28 @@ const RequestListContent: React.FC = () => {
     const location = useLocation();
     const canUpdateAll = usePermission("requests.update");
     const canReadAll = usePermission("requests.read_all");
+    const canCreateRequest = usePermission("requests.create");
     const canViewAll = canUpdateAll || canReadAll;
     const [view, setView] = useState<RequestView>(
         location.pathname === "/requests/my" ? "assigned" : "sent",
     );
+    const [createSheetOpen, setCreateSheetOpen] = useState(false);
+    // Tang moi lan tao yeu cau thanh cong, de SentRequestsTab tu nap lai du
+    // dang o tab nao khi tao xong (nut Tao yeu cau hien o day - muc cha - de
+    // khong bien mat khi chuyen qua tab "Duoc giao"/"Tat ca").
+    const [sentReloadKey, setSentReloadKey] = useState(0);
 
     return (
         <div>
-            <h1 className="mb-4 text-lg font-semibold">Yêu cầu công việc</h1>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h1 className="text-lg font-semibold">Yêu cầu công việc</h1>
+                {canCreateRequest && (
+                    <Button onClick={() => setCreateSheetOpen(true)}>
+                        <Plus className="mr-1 h-4 w-4" />
+                        Tạo yêu cầu
+                    </Button>
+                )}
+            </div>
             <Tabs
                 className="mb-4"
                 value={view}
@@ -117,9 +131,15 @@ const RequestListContent: React.FC = () => {
                     )}
                 </TabsList>
             </Tabs>
-            {view === "sent" && <SentRequestsTab />}
+            {view === "sent" && <SentRequestsTab reloadKey={sentReloadKey} />}
             {view === "assigned" && <AssignedRequestsTab />}
             {view === "all" && canViewAll && <AllRequestsTab />}
+
+            <SendRequestSheet
+                open={createSheetOpen}
+                onOpenChange={setCreateSheetOpen}
+                onCreated={() => setSentReloadKey(k => k + 1)}
+            />
         </div>
     );
 };
@@ -129,9 +149,7 @@ const RequestListContent: React.FC = () => {
  * tao (fetchRequests({view:"sent"}) - backend loc theo createdBy=actor bat ke
  * vai tro quan ly, xem requestService.listRequests).
  */
-const SentRequestsTab: React.FC = () => {
-    const canCreate = usePermission("requests.create");
-
+const SentRequestsTab: React.FC<{ reloadKey: number }> = ({ reloadKey }) => {
     const [type, setType] = useState<RequestType | "">("");
     const [items, setItems] = useState<RequestItem[]>([]);
     const [page, setPage] = useState(1);
@@ -139,7 +157,6 @@ const SentRequestsTab: React.FC = () => {
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
-    const [formOpen, setFormOpen] = useState(false);
     const [detailId, setDetailId] = useState<string | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -176,9 +193,34 @@ const SentRequestsTab: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [type]);
 
+    useEffect(() => {
+        if (reloadKey > 0) load(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reloadKey]);
+
     return (
         <div>
-            <div className="mb-4 flex items-center justify-end gap-3">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <Select
+                    value={type || ALL_TYPES}
+                    onValueChange={v =>
+                        setType(v === ALL_TYPES ? "" : (v as RequestType))
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Lọc theo loại yêu cầu" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_TYPES}>Tất cả loại yêu cầu</SelectItem>
+                        {(Object.entries(REQUEST_TYPE_LABEL) as [RequestType, string][]).map(
+                            ([key, label]) => (
+                                <SelectItem key={key} value={key}>
+                                    {label}
+                                </SelectItem>
+                            ),
+                        )}
+                    </SelectContent>
+                </Select>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -186,36 +228,9 @@ const SentRequestsTab: React.FC = () => {
                         load(1, size);
                     }}
                 />
-                {canCreate && (
-                    <Button onClick={() => setFormOpen(true)}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Tạo yêu cầu
-                    </Button>
-                )}
             </div>
 
-            <Select
-                value={type || ALL_TYPES}
-                onValueChange={v =>
-                    setType(v === ALL_TYPES ? "" : (v as RequestType))
-                }
-            >
-                <SelectTrigger className="mb-4 max-w-xs">
-                    <SelectValue placeholder="Lọc theo loại yêu cầu" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value={ALL_TYPES}>Tất cả loại yêu cầu</SelectItem>
-                    {(Object.entries(REQUEST_TYPE_LABEL) as [RequestType, string][]).map(
-                        ([key, label]) => (
-                            <SelectItem key={key} value={key}>
-                                {label}
-                            </SelectItem>
-                        ),
-                    )}
-                </SelectContent>
-            </Select>
-
-            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -319,12 +334,6 @@ const SentRequestsTab: React.FC = () => {
                 />
             )}
 
-            <SendRequestSheet
-                open={formOpen}
-                onOpenChange={setFormOpen}
-                onCreated={() => load(1)}
-            />
-
             <RequestDetailSheet
                 requestId={detailId}
                 onOpenChange={closeDetail}
@@ -401,7 +410,7 @@ const AllRequestsTab: React.FC = () => {
                 />
             </div>
 
-            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -682,7 +691,7 @@ const AssignedRequestsTab: React.FC = () => {
                 />
             </div>
 
-            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (

@@ -170,7 +170,7 @@ const AppointmentListContent: React.FC = () => {
                 />
             </div>
 
-            <div className="rounded-lg border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (

@@ -212,7 +212,7 @@ const KpiDashboardContent: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-ui_bg p-4 shadow-sm">
                 <div><Label>Từ ngày</Label><Input className="mt-1" type="date" value={fromDate} onChange={event => setFromDate(event.target.value)} /></div>
                 <div><Label>Đến ngày</Label><Input className="mt-1" type="date" value={toDate} onChange={event => setToDate(event.target.value)} /></div>
                 <Button variant="secondary" loading={loading} onClick={load}>
@@ -229,7 +229,7 @@ const KpiDashboardContent: React.FC = () => {
             {!loading && !error && evaluations.length > 0 && (
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {evaluations.map(item => (
-                        <div key={item.definition._id} className="rounded-lg border bg-white p-4 shadow-sm">
+                        <div key={item.definition._id} className="rounded-lg border bg-ui_bg p-4 shadow-sm">
                             <div className="flex items-start justify-between gap-2">
                                 <div>
                                     <p className="font-medium">{item.definition.name}</p>
@@ -250,7 +250,7 @@ const KpiDashboardContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-lg border bg-white shadow-sm">
+            <div className="rounded-lg border bg-ui_bg shadow-sm">
                 <Table>
                     <TableHeader><TableRow><TableHead className="w-12 text-center">STT</TableHead><TableHead>Mã</TableHead><TableHead>Tên KPI</TableHead><TableHead>Nguồn</TableHead><TableHead>Kỳ</TableHead><TableHead>Mục tiêu</TableHead><TableHead /></TableRow></TableHeader>
                     <TableBody>

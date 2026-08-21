@@ -279,7 +279,7 @@ const MeetingFormContent: React.FC = () => {
                 </h1>
             </div>
 
-            <div className="max-w-2xl rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
+            <div className="max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                 {isEdit && loading && <LoadingState />}
                 {isEdit && !loading && loadError && (
                     <ErrorState onRetry={loadDetail} />
@@ -519,7 +519,7 @@ const MeetingFormContent: React.FC = () => {
             </div>
 
             {isEdit && (
-                <div className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
+                <div className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                     <div className="mb-3 flex items-center justify-between">
                         <h2 className="text-sm font-semibold">
                             Tệp đính kèm
@@ -583,7 +583,7 @@ const MeetingFormContent: React.FC = () => {
             )}
 
             {isEdit && (
-                <div className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
+                <div className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                     <h2 className="mb-3 text-sm font-semibold">
                         Tình hình đăng ký tham dự
                     </h2>
@@ -633,7 +633,7 @@ const MeetingFormContent: React.FC = () => {
 
             {isEdit && id && (
                 <RecordHistorySection
-                    className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-white p-6 shadow-sm"
+                    className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm"
                     fetchHistory={params => fetchMeetingAuditLogs(id, params)}
                     actionLabels={MEETING_AUDIT_ACTION_LABEL}
                     historyHref={`/meetings/${id}/history`}

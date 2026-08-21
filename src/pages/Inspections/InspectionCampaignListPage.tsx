@@ -115,7 +115,7 @@ const InspectionCampaignListContent: React.FC = () => {
                         return (
                             <article
                                 key={item._id}
-                                className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm"
+                                className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex min-w-0 gap-3">

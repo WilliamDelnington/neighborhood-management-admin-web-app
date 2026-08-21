@@ -7,6 +7,19 @@
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <title>Quản trị Tổ dân phố Hòa Bình</title>
+        <script>
+            (function () {
+                try {
+                    var stored = localStorage.getItem("hb_admin_theme");
+                    var dark =
+                        stored === "dark" ||
+                        (!stored &&
+                            window.matchMedia("(prefers-color-scheme: dark)")
+                                .matches);
+                    if (dark) document.documentElement.classList.add("dark");
+                } catch (e) {}
+            })();
+        </script>
     </head>
     <body>
         <div id="root"></div>

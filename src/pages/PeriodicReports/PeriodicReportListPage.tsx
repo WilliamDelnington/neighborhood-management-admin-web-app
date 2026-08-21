@@ -307,7 +307,7 @@ const PeriodicReportListContent: React.FC = () => {
                     }}
                 />
             </div>
-            <div className="rounded-lg border bg-white shadow-sm">
+            <div className="rounded-lg border bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && <EmptyState label="Chưa có báo cáo" />}

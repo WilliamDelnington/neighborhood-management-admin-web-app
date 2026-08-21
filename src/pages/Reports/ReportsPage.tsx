@@ -608,7 +608,7 @@ const ReportsContent: React.FC = () => {
         <div>
             <h1 className="mb-4 text-lg font-semibold">Báo cáo</h1>
 
-            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-divider_01 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                 <div>
                     <Label>Khoảng thời gian</Label>
                     <Select
@@ -693,7 +693,7 @@ const ReportsContent: React.FC = () => {
 
                 {tabs.map(tab => (
                     <TabsContent key={tab.key} value={tab.key}>
-                        <div className="rounded-lg border border-divider_01 bg-white p-4 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                             <div className="mb-3 flex items-center justify-between">
                                 <h2 className="text-base font-semibold">
                                     {tab.label}

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud, ArrowLeftRight } from "lucide-react";
+import { UploadCloud, ArrowLeftRight, FileDown } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
     Sheet,
@@ -31,6 +31,7 @@ import {
     uploadStreetImportFile,
     applyStreetImportMapping,
     commitStreetImport,
+    downloadStreetImportTemplate,
 } from "@service/importApi";
 
 interface StreetImportSheetProps {
@@ -59,6 +60,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
     const [mapping, setMapping] = useState<MappingForm>(EMPTY_MAPPING);
     const [showMapping, setShowMapping] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [downloadingTemplate, setDownloadingTemplate] = useState(false);
     const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
 
@@ -82,6 +84,17 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         setMapping(EMPTY_MAPPING);
         setShowMapping(false);
         setFile(e.target.files?.[0] || null);
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            setDownloadingTemplate(true);
+            await downloadStreetImportTemplate();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDownloadingTemplate(false);
+        }
     };
 
     const handleUpload = async () => {
@@ -171,6 +184,16 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                                 nào tương ứng với tên, mã và trạng thái đường/
                                 phố — không cần tên cột phải khớp chính xác.
                             </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                loading={downloadingTemplate}
+                                onClick={handleDownloadTemplate}
+                            >
+                                <FileDown className="mr-1 h-4 w-4" />
+                                Tải mẫu Excel
+                            </Button>
                             <div>
                                 <input
                                     type="file"

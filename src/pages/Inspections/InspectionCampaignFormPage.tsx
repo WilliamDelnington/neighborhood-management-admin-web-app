@@ -193,7 +193,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 </p>
             </div>
 
-            <section className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+            <section className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                 <h2 className="font-semibold">Thông tin chung</h2>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <div className="md:col-span-2">
@@ -239,7 +239,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 </div>
             </section>
 
-            <section className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+            <section className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <h2 className="font-semibold">Checklist *</h2>
@@ -320,7 +320,7 @@ const InspectionCampaignFormContent: React.FC = () => {
                 </div>
             </section>
 
-            <section className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+            <section className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                 <h2 className="font-semibold">Tổ dân phố và Nhà số mục tiêu *</h2>
                 <p className="mt-1 text-xs text-text_2">
                     Danh sách chỉ gồm các Tổ thuộc Phường/xã được gán cho tài khoản.

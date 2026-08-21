@@ -112,7 +112,7 @@ const CorrespondenceDetailContent: React.FC = () => {
                 <h1 className="text-lg font-semibold">Chi tiết văn bản</h1>
             </div>
 
-            <div className="max-w-2xl rounded-lg border border-divider_01 bg-white p-6 shadow-sm">
+            <div className="max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && loadError && <ErrorState onRetry={load} />}
                 {!loading && !loadError && doc && (

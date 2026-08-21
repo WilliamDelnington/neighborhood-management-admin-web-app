@@ -551,7 +551,7 @@ const NeighborhoodDetailContent: React.FC = () => {
 
             {!loading && !error && neighborhood && form && (
                 <>
-                    <div className="rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {neighborhood.code} — {neighborhood.name}
@@ -664,7 +664,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
                             <div>
                                 <h2 className="text-base font-semibold">Nhiệm kỳ</h2>
@@ -728,7 +728,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                         ))}
                     </div>
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">Hồ sơ quyết định / ranh giới</h2>
                         {canManage && (
                             <div className="mb-3 grid gap-2 md:grid-cols-[1fr_2fr_auto]">
@@ -750,7 +750,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                         />
                     </div>
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">
                             Thông tin tổ trưởng
                         </h2>
@@ -849,7 +849,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">
                             Tổ phó
                         </h2>
@@ -944,7 +944,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-1 text-base font-semibold">Cộng tác viên</h2>
                         <p className="mb-3 text-xs text-text_2">
                             Phạm vi hẹp không tự mở quyền xem toàn Tổ; chiến dịch vẫn kiểm tra từng Nhà được giao.
@@ -1033,7 +1033,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                                 {collaboratorForm.scopeType === "HOUSE_GROUP" && (
                                     <div className="space-y-2 md:col-span-2">
                                         <Label>Nhóm Nhà số</Label>
-                                        <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-divider_01 bg-white p-3">
+                                        <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-divider_01 bg-ui_bg p-3">
                                             {scopeHouses.map(house => (
                                                 <label key={house._id} className="flex items-center gap-2 text-sm">
                                                     <input
@@ -1087,7 +1087,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                     </div>
 
                     {canManage && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                             <h2 className="mb-2 text-base font-semibold">
                                 Lịch sử tổ trưởng
                             </h2>
@@ -1128,7 +1128,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                         </div>
                     )}
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">Lịch sử thay đổi Tổ</h2>
                         {organizationHistory.length === 0 && (
                             <EmptyState label="Chưa có lịch sử thay đổi" />

@@ -24,6 +24,69 @@
         --input: 210 14% 73%;
         --ring: 205 63% 34%;
         --radius: 0.5rem;
+
+        /* Bang mau tuy chinh (chu dao Navy/Government) - dang "R G B" de
+         * Tailwind ghep duoc rgb(var(--x) / <alpha-value>), ho tro modifier
+         * do mo (vd bg-danger-soft/40) o ca hai theme. */
+        --c-primary: 30 90 138; /* #1E5A8A */
+        --c-primary-dark: 22 58 95; /* #163A5F */
+        --c-primary-soft: 234 242 248; /* #EAF2F8 */
+        --c-app-bg: 244 246 248; /* #F4F6F8 */
+        --c-ui-bg: 255 255 255; /* #FFFFFF */
+        --c-surface-2: 248 250 252; /* #F8FAFC */
+        --c-text-1: 23 33 43; /* #17212B */
+        --c-text-2: 100 116 139; /* #64748B */
+        --c-text-3: 148 163 184; /* #94A3B8 */
+        --c-border: 238 241 244; /* #EEF1F4 */
+        --c-border-strong: 223 229 235; /* #DFE5EB */
+        --c-success: 22 128 60; /* #16803C */
+        --c-success-soft: 215 240 222; /* #D7F0DE */
+        --c-warning: 199 120 0; /* #C77800 */
+        --c-warning-soft: 247 228 188; /* #F7E4BC */
+        --c-danger: 200 50 50; /* #C83232 */
+        --c-danger-soft: 247 214 214; /* #F7D6D6 */
+        --c-info: 37 99 235; /* #2563EB */
+        --c-info-soft: 217 233 248; /* #D9E9F8 */
+    }
+
+    .dark {
+        --background: 222 47% 11%;
+        --foreground: 210 40% 98%;
+        --card: 217 33% 15%;
+        --card-foreground: 210 40% 98%;
+        --popover: 217 33% 15%;
+        --popover-foreground: 210 40% 98%;
+        --secondary: 217 33% 17%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 217 33% 17%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 217 33% 20%;
+        --accent-foreground: 210 40% 98%;
+        --destructive: 0 63% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 217 33% 20%;
+        --input: 217 33% 24%;
+        --ring: 213 94% 68%;
+
+        --c-primary: 96 165 250; /* blue-400, sang hon de doc duoc tren nen toi */
+        --c-primary-dark: 59 130 246; /* blue-500 */
+        --c-primary-soft: 30 58 95;
+        --c-app-bg: 15 23 42; /* slate-900 */
+        --c-ui-bg: 30 41 59; /* slate-800 */
+        --c-surface-2: 36 52 74;
+        --c-text-1: 241 245 249; /* slate-100 */
+        --c-text-2: 148 163 184; /* slate-400 */
+        --c-text-3: 100 116 139; /* slate-500 */
+        --c-border: 42 59 82;
+        --c-border-strong: 51 65 85; /* slate-700 */
+        --c-success: 52 211 153; /* emerald-400 */
+        --c-success-soft: 18 53 36;
+        --c-warning: 251 191 36; /* amber-400 */
+        --c-warning-soft: 58 42 15;
+        --c-danger: 248 113 113; /* red-400 */
+        --c-danger-soft: 59 24 24;
+        --c-info: 56 189 248; /* sky-400 */
+        --c-info-soft: 30 58 95;
     }
 }
 

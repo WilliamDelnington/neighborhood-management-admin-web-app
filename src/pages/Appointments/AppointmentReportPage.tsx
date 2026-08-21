@@ -89,7 +89,7 @@ const AppointmentReportContent: React.FC = () => {
         <div>
             <h1 className="mb-4 text-lg font-semibold">Báo cáo lịch hẹn</h1>
 
-            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-divider_01 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                 <div>
                     <Label>Dịch vụ</Label>
                     <Select
@@ -165,7 +165,7 @@ const AppointmentReportContent: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <div className="rounded-lg border border-divider_01 bg-white p-3 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-3 shadow-sm">
                             <h3 className="mb-2 text-sm font-medium text-text_2">
                                 Tỷ lệ đúng giờ / vắng mặt theo dịch vụ
                             </h3>
@@ -190,7 +190,7 @@ const AppointmentReportContent: React.FC = () => {
                                 />
                             )}
                         </div>
-                        <div className="rounded-lg border border-divider_01 bg-white p-3 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-3 shadow-sm">
                             <h3 className="mb-2 text-sm font-medium text-text_2">
                                 Đánh giá trung bình theo dịch vụ
                             </h3>

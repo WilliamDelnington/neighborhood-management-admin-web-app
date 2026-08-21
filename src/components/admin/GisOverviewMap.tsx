@@ -27,7 +27,7 @@ const GisOverviewMap: React.FC<Props> = ({ data, onOpenHouse }) => {
     }, [data.points]);
 
     return (
-        <section className="rounded-lg border border-divider_01 bg-white p-4 shadow-sm">
+        <section className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
             <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                 <div>
                     <div className="flex items-center gap-2">
