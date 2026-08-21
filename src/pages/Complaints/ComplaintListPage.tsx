@@ -237,6 +237,7 @@ const ComplaintListContent: React.FC = () => {
                                 <TableHead>Thời gian gửi</TableHead>
                                 <TableHead>Nhóm</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -281,6 +282,20 @@ const ComplaintListContent: React.FC = () => {
                                                 </Badge>
                                             )}
                                         </div>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/complaints/${c._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -165,7 +165,8 @@ const WardManagementContent: React.FC = () => {
                                 <Table><TableHeader><TableRow><TableHead className="w-12 text-center">STT</TableHead><TableHead>Phường / xã</TableHead><TableHead>Mã</TableHead><TableHead>Người quản lý</TableHead></TableRow></TableHeader>
                                     <TableBody>{filteredWards.map((ward, index) => {
                                         const count = staff.filter(user => user.wardCode === ward.code).length;
-                                        return <TableRow key={ward.code} className={`cursor-pointer ${ward.code === selectedWardCode ? "bg-muted" : ""}`} onClick={() => setSelectedWardCode(ward.code)}><TableCell className="text-center text-text_2">{index + 1}</TableCell><TableCell className="font-medium">{ward.name}</TableCell><TableCell>{ward.code}</TableCell><TableCell><Badge tone={count ? "green" : "gray"}>{count}</Badge></TableCell></TableRow>;
+                                        const active = ward.code === selectedWardCode;
+                                        return <TableRow key={ward.code} className={`cursor-pointer border-l-4 ${active ? "border-l-main bg-blue_10 hover:bg-blue_10" : "border-l-transparent"}`} onClick={() => setSelectedWardCode(ward.code)}><TableCell className={`text-center ${active ? "font-semibold text-main" : "text-text_2"}`}>{index + 1}</TableCell><TableCell className={`font-medium ${active ? "text-main" : ""}`}>{ward.name}</TableCell><TableCell className={active ? "font-medium text-main" : ""}>{ward.code}</TableCell><TableCell><Badge tone={count ? "green" : "gray"}>{count}</Badge></TableCell></TableRow>;
                                     })}</TableBody>
                                 </Table>
                             </div>
@@ -173,11 +174,21 @@ const WardManagementContent: React.FC = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
-                    <CardHeader><CardTitle>{selectedWard?.name || "Chọn phường / xã"}</CardTitle></CardHeader>
-                    <CardContent className="space-y-5">
+                <Card className="overflow-hidden">
+                    <CardHeader className="flex-row items-center gap-3 border-b border-divider_01 bg-blue_10">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-main text-white">
+                            <Landmark className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <CardTitle className="text-main">{selectedWard?.name || "Chọn phường / xã"}</CardTitle>
+                            {selectedWard && (
+                                <p className="text-xs text-text_2">Mã phường/xã: {selectedWard.code}</p>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-5 pt-4">
                         {selectedWard && <>
-                            <div className="space-y-2"><Label>Thêm người quản lý</Label><Select value={candidateId} onValueChange={setCandidateId}><SelectTrigger><SelectValue placeholder="Chọn Bí thư hoặc Cán bộ UBND" /></SelectTrigger><SelectContent>{candidates.map(user => <SelectItem key={user.id} value={user.id}>{user.displayName} — {roleLabel(user)}</SelectItem>)}</SelectContent></Select><Button className="w-full" disabled={!candidateId || !!savingId} onClick={assign}><UserPlus className="mr-2 h-4 w-4" />Phân công</Button></div>
+                            <div className="space-y-2"><Label>Thêm người quản lý</Label><Select value={candidateId} onValueChange={setCandidateId}><SelectTrigger><SelectValue placeholder="Chọn Bí thư hoặc Cán bộ UBND" /></SelectTrigger><SelectContent>{candidates.map(user => <SelectItem key={user.id} value={user.id}>{user.displayName} — {roleLabel(user)}</SelectItem>)}</SelectContent></Select><Button className="w-full" loading={savingId === candidateId} disabled={!candidateId || !!savingId} onClick={assign}>{savingId !== candidateId && <UserPlus className="mr-2 h-4 w-4" />}Phân công</Button></div>
                             <div className="space-y-3"><Label>Đang quản lý ({managers.length})</Label>{managers.length === 0 ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Chưa có người quản lý.</p> : managers.map(user => <div key={user.id} className="flex items-center justify-between gap-3 rounded-md border p-3"><div><p className="font-medium">{user.displayName}</p><p className="text-sm text-muted-foreground">{user.phone} · {roleLabel(user)}</p></div><Button variant="outline" size="sm" disabled={savingId === user.id} onClick={() => unassign(user.id)}>{savingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}</Button></div>)}</div>
                         </>}
                     </CardContent>

@@ -208,6 +208,7 @@ const ChangeRequestListContent: React.FC = () => {
                                 <TableHead>Người gửi</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Ngày gửi</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -238,6 +239,18 @@ const ChangeRequestListContent: React.FC = () => {
                                         {new Date(
                                             item.createdAt,
                                         ).toLocaleString("vi-VN")}
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openDetail(item)}
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

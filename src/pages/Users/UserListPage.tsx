@@ -543,6 +543,7 @@ const UserListContent: React.FC = () => {
                                 <TableHead>Tên/SĐT</TableHead>
                                 <TableHead>Vai trò</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -566,6 +567,18 @@ const UserListContent: React.FC = () => {
                                         <Badge tone={USER_STATUS_TONE[u.status]}>
                                             {USER_STATUS_LABEL[u.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openManageSheet(u)}
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

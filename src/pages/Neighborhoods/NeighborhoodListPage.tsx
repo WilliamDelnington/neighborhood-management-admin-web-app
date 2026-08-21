@@ -248,6 +248,7 @@ const NeighborhoodListContent: React.FC = () => {
                                 <TableHead>Nhiệm kỳ</TableHead>
                                 <TableHead>Số nhà</TableHead>
                                 <TableHead>Hồ sơ</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -305,6 +306,20 @@ const NeighborhoodListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell>{n.houseCount}</TableCell>
                                     <TableCell>{n.attachmentCount || 0}</TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/neighborhoods/${n._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

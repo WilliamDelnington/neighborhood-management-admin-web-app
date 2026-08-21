@@ -215,6 +215,7 @@ const HouseListContent: React.FC = () => {
                                 <TableHead>Tổ dân phố</TableHead>
                                 <TableHead>GIS</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -254,6 +255,20 @@ const HouseListContent: React.FC = () => {
                                         <Badge tone={HOUSE_STATUS_TONE[h.status]}>
                                             {HOUSE_STATUS_LABEL[h.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/houses/${h._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

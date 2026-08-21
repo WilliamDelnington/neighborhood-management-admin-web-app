@@ -364,6 +364,7 @@ const SecurityListContent: React.FC = () => {
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Mức độ</TableHead>
                                 <TableHead>Tình trạng theo dõi</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -401,6 +402,20 @@ const SecurityListContent: React.FC = () => {
                                                 ]
                                             }
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        {canManage && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => openEdit(r)}
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

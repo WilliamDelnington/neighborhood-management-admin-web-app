@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
+import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
@@ -154,6 +155,7 @@ const CompanyListContent: React.FC = () => {
                                 <TableHead>Cụm</TableHead>
                                 <TableHead>Tổ chức liên kết</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -185,6 +187,22 @@ const CompanyListContent: React.FC = () => {
                                         <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>
                                             {VERIFICATION_STATUS_LABEL[c.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/houses/${houseIdOf(c)}/companies/${c._id}`,
+                                                )
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

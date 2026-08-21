@@ -215,7 +215,7 @@ const AdminLayout: React.FC = () => {
             </aside>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-14 flex-shrink-0 items-center justify-between gap-2 border-b border-divider_01 bg-ui_bg px-4">
+                <header className="flex h-16 flex-shrink-0 items-center gap-2 border-b border-divider_01 bg-ui_bg px-4 shadow-sm">
                     <button
                         type="button"
                         className="rounded-md p-1.5 text-text_2 hover:bg-ng_10 lg:hidden"
@@ -224,22 +224,55 @@ const AdminLayout: React.FC = () => {
                         <Menu className="h-5 w-5" />
                     </button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="ml-auto flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={toggleTheme}
+                            title={
+                                theme === "dark"
+                                    ? "Chuyển sang chế độ sáng"
+                                    : "Chuyển sang chế độ tối"
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-full text-text_2 transition-colors hover:bg-ng_10 hover:text-main"
+                        >
+                            {theme === "dark" ? (
+                                <Sun className="h-[18px] w-[18px]" />
+                            ) : (
+                                <Moon className="h-[18px] w-[18px]" />
+                            )}
+                        </button>
+
                         <NotificationBell />
+
+                        <span className="mx-1 h-6 w-px bg-divider_01" />
+
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-ng_10">
-                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue_10 text-xs font-semibold text-main">
+                            <DropdownMenuTrigger className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm transition-colors hover:bg-ng_10">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-main to-primary-dark text-xs font-semibold text-white ring-2 ring-blue_10">
                                     {user?.displayName
                                         ?.charAt(0)
                                         ?.toUpperCase() || "?"}
                                 </div>
-                                <span className="font-medium">
-                                    {user?.displayName}
+                                <span className="hidden flex-col items-start leading-tight sm:flex">
+                                    <span className="font-semibold text-text_1">
+                                        {user?.displayName}
+                                    </span>
+                                    <span className="text-xs text-text_3">
+                                        {user
+                                            ? ROLE_LABEL[user.primaryRole]
+                                            : ""}
+                                    </span>
                                 </span>
+                                <ChevronDown className="h-3.5 w-3.5 text-text_3" />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>
-                                    {user ? ROLE_LABEL[user.primaryRole] : ""}
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel className="flex flex-col">
+                                    <span className="font-semibold text-text_1">
+                                        {user?.displayName}
+                                    </span>
+                                    <span className="text-xs font-normal text-text_3">
+                                        {user ? ROLE_LABEL[user.primaryRole] : ""}
+                                    </span>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={() => setProfileOpen(true)}>
@@ -251,16 +284,6 @@ const AdminLayout: React.FC = () => {
                                 >
                                     <KeyRound className="mr-2 h-4 w-4" />
                                     Đổi mật khẩu
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={toggleTheme}>
-                                    {theme === "dark" ? (
-                                        <Sun className="mr-2 h-4 w-4" />
-                                    ) : (
-                                        <Moon className="mr-2 h-4 w-4" />
-                                    )}
-                                    {theme === "dark"
-                                        ? "Chế độ sáng"
-                                        : "Chế độ tối"}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleLogout}>
