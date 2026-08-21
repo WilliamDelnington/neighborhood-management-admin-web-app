@@ -327,7 +327,7 @@ const CorrespondenceFormContent: React.FC = () => {
                 </h1>
             </div>
 
-            <div className="max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+            <div className="max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                 {isEdit && loading && <LoadingState />}
                 {isEdit && !loading && loadError && (
                     <ErrorState onRetry={loadDetail} />

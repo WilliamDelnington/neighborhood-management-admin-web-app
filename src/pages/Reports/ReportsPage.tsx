@@ -545,7 +545,7 @@ const ReportsContent: React.FC = () => {
                 return (
                     <div
                         key={spec.dataKey}
-                        className="rounded-xl border border-divider_01 p-3"
+                        className="rounded-lg border border-divider_01 p-3"
                     >
                         <h3 className="mb-2 text-sm font-medium text-text_2">
                             {spec.title}
@@ -609,7 +609,7 @@ const ReportsContent: React.FC = () => {
         <div>
             <PageHeader title="Báo cáo" description="Xem báo cáo tổng hợp số liệu quản lý theo địa bàn." />
 
-            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                 <div>
                     <Label>Khoảng thời gian</Label>
                     <Select
@@ -694,7 +694,7 @@ const ReportsContent: React.FC = () => {
 
                 {tabs.map(tab => (
                     <TabsContent key={tab.key} value={tab.key}>
-                        <div className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                             <div className="mb-3 flex items-center justify-between">
                                 <h2 className="text-base font-semibold">
                                     {tab.label}

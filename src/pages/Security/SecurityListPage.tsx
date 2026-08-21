@@ -36,6 +36,9 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import PageHeader from "@components/admin/PageHeader";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import RequestSubSection, {
     emptyRequestSubSection,
@@ -126,8 +129,8 @@ const SecurityListContent: React.FC = () => {
     const [items, setItems] = useState<SecurityRecord[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const [formVisible, setFormVisible] = useState(false);
@@ -146,30 +149,22 @@ const SecurityListContent: React.FC = () => {
     const [requestSubSection, setRequestSubSection] =
         useState<RequestSubSectionValue>(emptyRequestSubSection());
 
-    const load = (targetPage = 1) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+    const load = (targetPage = 1, size = pageSize) => {
+        setLoading(true);
         setError(false);
         fetchSecurityRecords({
             page: targetPage,
+            limit: size,
             level: level || undefined,
             monitoringStatus: monitoringStatus || undefined,
         })
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -287,6 +282,16 @@ const SecurityListContent: React.FC = () => {
                 }
             />
 
+            <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+
             <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
                 <Select
                     value={level || LEVEL_ALL}
@@ -342,7 +347,7 @@ const SecurityListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1)} />
@@ -404,17 +409,12 @@ const SecurityListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
-            )}
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={load}
+                disabled={loading}
+            />
 
             <Sheet open={formVisible} onOpenChange={setFormVisible}>
                 <SheetContent>

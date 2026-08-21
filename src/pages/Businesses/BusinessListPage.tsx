@@ -21,6 +21,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
@@ -61,14 +62,16 @@ const BusinessListContent: React.FC = () => {
     const [items, setItems] = useState<Business[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchBusinesses({
             page: targetPage,
+            limit: size,
             search: keyword,
             status: status || undefined,
             businessType: businessType || undefined,
@@ -101,12 +104,22 @@ const BusinessListContent: React.FC = () => {
                 description="Quản lý hộ kinh doanh đăng ký hoạt động trên địa bàn."
             />
 
-            <div className="mb-4 grid max-w-3xl grid-cols-3 gap-3">
-                <Input
-                    placeholder="Tìm theo tên hộ kinh doanh..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên hộ kinh doanh..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || ALL_STATUS}
                     onValueChange={v =>
@@ -154,7 +167,7 @@ const BusinessListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -186,7 +199,7 @@ const BusinessListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {b.name}

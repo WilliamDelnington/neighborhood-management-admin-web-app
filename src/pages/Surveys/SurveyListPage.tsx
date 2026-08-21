@@ -15,6 +15,9 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
     TRANG_THAI_KHAO_SAT_LABEL,
@@ -43,6 +46,9 @@ const SurveyListContent: React.FC = () => {
     const isAdmin = !!currentUser?.roles.includes("admin");
 
     const [items, setItems] = useState<Survey[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [actingId, setActingId] = useState<string | null>(null);
@@ -69,16 +75,20 @@ const SurveyListContent: React.FC = () => {
     const canPublishSurvey = (survey: Survey): boolean =>
         canPublish && isOwnerOrCoEditor(survey);
 
-    const load = () => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchSurveys(false)
-            .then(res => setItems(res.items))
+        fetchSurveys(false, targetPage, size)
+            .then(res => {
+                setItems(res.items);
+                setPage(res.page);
+                setTotalPages(res.totalPages);
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []);
+    useEffect(() => load(1), []);
 
     const handleToggle = async (e: React.MouseEvent, survey: Survey) => {
         e.stopPropagation();
@@ -114,9 +124,19 @@ const SurveyListContent: React.FC = () => {
                 }
             />
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
-                {!loading && error && <ErrorState onRetry={load} />}
+                {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
                     <EmptyState label="Chưa có khảo sát nào được tạo" />
                 )}
@@ -222,6 +242,13 @@ const SurveyListContent: React.FC = () => {
                     </Table>
                 )}
             </div>
+
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={load}
+                disabled={loading}
+            />
 
             <SurveyRespondDialog
                 survey={respondingSurvey}

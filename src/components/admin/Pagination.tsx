@@ -38,7 +38,7 @@ const Pagination: React.FC<PaginationProps> = ({
     if (totalPages <= 1) return null;
 
     return (
-        <div className="mt-3 flex items-center justify-center gap-1">
+        <div className="mt-3 flex items-center justify-end gap-1">
             <Button
                 variant="outline"
                 size="sm"

@@ -1,4 +1,4 @@
-import { API } from "@constants/common";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     FileAsset,
     Neighborhood,
@@ -30,7 +30,7 @@ export const fetchNeighborhoods = (
 ): Promise<PaginatedData<Neighborhood>> =>
     request<PaginatedData<Neighborhood>>("GET", API.NEIGHBORHOODS, {
         page: params.page ?? 1,
-        limit: params.limit ?? 20,
+        limit: params.limit ?? DEFAULT_PAGE_SIZE,
         search: params.search,
         active: params.active,
         status: params.status,

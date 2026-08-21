@@ -31,7 +31,9 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { usePermission } from "@store/authStore";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Street } from "@dts";
 import { createStreet, fetchStreets } from "@service/streetApi";
 import StreetForm, {
@@ -60,6 +62,7 @@ const StreetListContent: React.FC = () => {
     const [items, setItems] = useState<Street[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -69,13 +72,13 @@ const StreetListContent: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchStreets({
             page: targetPage,
             search: keyword,
-            limit: 30,
+            limit: size,
             active: active === "" ? undefined : active === "true",
         })
             .then(res => {
@@ -143,12 +146,22 @@ const StreetListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-3 grid max-w-xl grid-cols-2 gap-3">
-                <Input
-                    placeholder="Tìm theo tên hoặc mã đường/phố..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên hoặc mã đường/phố..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={active || ACTIVE_ALL}
                     onValueChange={v =>
@@ -174,7 +187,7 @@ const StreetListContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -202,7 +215,7 @@ const StreetListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * 30 + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {s.code}

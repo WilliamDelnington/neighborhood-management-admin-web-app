@@ -214,7 +214,7 @@ const SettingsContent: React.FC = () => {
 
             {!loading && !error && (
                 <>
-                    <div className="mb-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                    <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                         <h2 className="mb-2 text-sm font-semibold">
                             Logo ứng dụng
                         </h2>
@@ -277,7 +277,7 @@ const SettingsContent: React.FC = () => {
                     {entries.map(setting => (
                         <div
                             key={setting.key}
-                            className="mb-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm"
+                            className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm"
                         >
                             <h2 className="mb-2 text-sm font-semibold">
                                 {setting.key}
@@ -317,7 +317,7 @@ const SettingsContent: React.FC = () => {
                     ))}
 
                     {showAddForm ? (
-                        <div className="mb-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                        <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                             <h2 className="mb-2 text-sm font-semibold">
                                 Thêm cấu hình mới
                             </h2>

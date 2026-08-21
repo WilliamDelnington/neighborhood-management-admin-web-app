@@ -198,7 +198,7 @@ const OrganizationRepresentativePanel: React.FC<
     };
 
     return (
-        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
             <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-base font-semibold">Người đại diện</h2>
                 {canManage && (

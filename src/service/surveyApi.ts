@@ -1,4 +1,4 @@
-import { API } from "@constants/common";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AuditLogRecord,
     PaginatedData,
@@ -31,11 +31,13 @@ export interface SurveyAnswerInput {
 
 export const fetchSurveys = (
     openOnly = false,
+    page = 1,
+    limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedData<Survey>> =>
     request<PaginatedData<Survey>>(
         "GET",
         API.SURVEYS,
-        { openOnly: openOnly ? 1 : undefined },
+        { openOnly: openOnly ? 1 : undefined, page, limit },
         { useAuth: false },
     );
 

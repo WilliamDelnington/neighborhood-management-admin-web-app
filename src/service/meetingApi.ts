@@ -29,10 +29,14 @@ export interface MeetingInput {
 // hien ra trong danh sach quan tri, dung nhu bao cao cua nguoi dung.
 export const fetchMeetings = (
     upcomingOnly?: boolean,
+    page = 1,
+    limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedData<Meeting>> =>
     request<PaginatedData<Meeting>>("GET", API.MEETINGS, {
         upcomingOnly,
         admin: 1,
+        page,
+        limit,
     });
 
 // KHONG dung useAuth:false - ham nay chi duoc goi tu man soan/sua cuoc hop

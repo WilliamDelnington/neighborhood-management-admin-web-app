@@ -37,7 +37,7 @@ const ReportLineChart: React.FC<ReportLineChartProps> = ({
                 data={data}
                 margin={{ top: 8, right: 16, bottom: 4, left: 4 }}
             >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e1e0d9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#DFE5EB" />
                 <XAxis
                     dataKey={labelKey}
                     tick={{ fontSize: 12, fill: "#52514e" }}
@@ -50,7 +50,7 @@ const ReportLineChart: React.FC<ReportLineChartProps> = ({
                     contentStyle={{
                         fontSize: 12,
                         borderRadius: 8,
-                        borderColor: "#e1e0d9",
+                        borderColor: "#DFE5EB",
                     }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />

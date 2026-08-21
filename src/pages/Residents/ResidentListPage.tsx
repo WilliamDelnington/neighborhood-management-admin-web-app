@@ -28,6 +28,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { usePermission } from "@store/authStore";
 import { AppError, ResidentRecord } from "@dts";
@@ -84,6 +85,7 @@ const ResidentListContent: React.FC = () => {
     const [items, setItems] = useState<ResidentRecord[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -94,10 +96,10 @@ const ResidentListContent: React.FC = () => {
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchResidentRecords({ page: targetPage })
+        fetchResidentRecords({ page: targetPage, limit: size })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -179,7 +181,17 @@ const ResidentListContent: React.FC = () => {
                 }
             />
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="mb-4 flex items-center justify-end gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -206,7 +218,7 @@ const ResidentListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {houseText(r.houseId)}

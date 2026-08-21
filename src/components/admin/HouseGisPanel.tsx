@@ -102,7 +102,7 @@ const HouseGisPanel: React.FC<Props> = ({ house, onUpdated }) => {
     );
 
     return (
-        <section className="rounded-xl border border-divider_01 p-4">
+        <section className="rounded-lg border border-divider_01 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-main" />

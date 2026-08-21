@@ -312,7 +312,7 @@ const AppointmentDetailSheet: React.FC<AppointmentDetailSheetProps> = ({
                             </div>
 
                             <AttachmentsPanel
-                                className="rounded-xl border border-divider_01 p-3"
+                                className="rounded-lg border border-divider_01 p-3"
                                 attachments={attachments}
                                 loading={attachmentsLoading}
                                 canManage={false}

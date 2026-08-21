@@ -1,13 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Menu, X } from "lucide-react";
+import {
+    ChevronDown,
+    KeyRound,
+    LogOut,
+    Menu,
+    Moon,
+    Sun,
+    User,
+    X,
+} from "lucide-react";
 import { useAuthStore } from "@store/authStore";
+import { useThemeStore } from "@store/themeStore";
 import { ROLE_LABEL } from "@constants/domain";
 import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
 import AppBrand from "./AppBrand";
+import ProfileDialog from "./ProfileDialog";
+import ChangePasswordDialog from "./ChangePasswordDialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -46,7 +58,11 @@ const AdminLayout: React.FC = () => {
     const location = useLocation();
     const user = useAuthStore(state => state.user);
     const storeLogout = useAuthStore(state => state.logout);
+    const theme = useThemeStore(state => state.theme);
+    const toggleTheme = useThemeStore(state => state.toggleTheme);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false);
+    const [changePasswordOpen, setChangePasswordOpen] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
         loadExpandedGroups,
     );
@@ -112,7 +128,7 @@ const AdminLayout: React.FC = () => {
 
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-40 flex w-64 flex-shrink-0 flex-col border-r border-divider_01 bg-white transition-transform duration-200 ease-in-out",
+                    "fixed inset-y-0 left-0 z-40 flex w-80 flex-shrink-0 flex-col border-r border-divider_01 bg-ui_bg transition-transform duration-200 ease-in-out",
                     "lg:static lg:translate-x-0",
                     sidebarOpen ? "translate-x-0" : "-translate-x-full",
                 )}
@@ -199,7 +215,7 @@ const AdminLayout: React.FC = () => {
             </aside>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-14 flex-shrink-0 items-center justify-between gap-2 border-b border-divider_01 bg-white px-4">
+                <header className="flex h-14 flex-shrink-0 items-center justify-between gap-2 border-b border-divider_01 bg-ui_bg px-4">
                     <button
                         type="button"
                         className="rounded-md p-1.5 text-text_2 hover:bg-ng_10 lg:hidden"
@@ -226,6 +242,27 @@ const AdminLayout: React.FC = () => {
                                     {user ? ROLE_LABEL[user.primaryRole] : ""}
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                                    <User className="mr-2 h-4 w-4" />
+                                    Hồ sơ của tôi
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => setChangePasswordOpen(true)}
+                                >
+                                    <KeyRound className="mr-2 h-4 w-4" />
+                                    Đổi mật khẩu
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={toggleTheme}>
+                                    {theme === "dark" ? (
+                                        <Sun className="mr-2 h-4 w-4" />
+                                    ) : (
+                                        <Moon className="mr-2 h-4 w-4" />
+                                    )}
+                                    {theme === "dark"
+                                        ? "Chế độ sáng"
+                                        : "Chế độ tối"}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleLogout}>
                                     <LogOut className="mr-2 h-4 w-4" />
                                     Đăng xuất
@@ -239,6 +276,12 @@ const AdminLayout: React.FC = () => {
                     <Outlet />
                 </main>
             </div>
+
+            <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+            <ChangePasswordDialog
+                open={changePasswordOpen}
+                onOpenChange={setChangePasswordOpen}
+            />
         </div>
     );
 };

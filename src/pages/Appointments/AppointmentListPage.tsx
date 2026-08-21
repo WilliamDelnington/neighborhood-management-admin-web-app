@@ -21,6 +21,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import AppointmentDetailSheet from "./AppointmentDetailSheet";
 import { Appointment, AppointmentService, AppointmentStatus } from "@dts";
 import {
@@ -74,15 +75,17 @@ const AppointmentListContent: React.FC = () => {
     const [items, setItems] = useState<Appointment[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [detailId, setDetailId] = useState<string | null>(null);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchAppointments({
             page: targetPage,
+            limit: size,
             status: status || undefined,
             serviceId: serviceId || undefined,
             date: date || undefined,
@@ -115,6 +118,13 @@ const AppointmentListContent: React.FC = () => {
             />
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
                 <Select
                     value={status || ALL}
                     onValueChange={v =>
@@ -164,7 +174,7 @@ const AppointmentListContent: React.FC = () => {
                 />
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -193,7 +203,7 @@ const AppointmentListContent: React.FC = () => {
                                     onClick={() => setDetailId(a._id)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-mono text-xs">
                                         {a.code}

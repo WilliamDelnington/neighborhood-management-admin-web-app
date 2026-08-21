@@ -176,7 +176,7 @@ const CategoryRuleEditor: React.FC<CategoryRuleEditorProps> = ({
     if (loading) return <p className="text-sm text-text_2">Đang tải...</p>;
 
     return (
-        <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+        <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
             <RequiredDocumentRuleEditor
                 rules={rules}
                 documentTypes={documentTypes}

@@ -41,6 +41,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, BusinessType, DocumentType, RoleRecord } from "@dts";
 import {
@@ -86,6 +87,7 @@ const BusinessTypeListContent: React.FC = () => {
     const [items, setItems] = useState<BusinessType[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -111,11 +113,12 @@ const BusinessTypeListContent: React.FC = () => {
             .catch(() => setRoles([]));
     }, []);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchBusinessTypes({
             page: targetPage,
+            limit: size,
             search: search || undefined,
             active: active === "" ? undefined : active === "true",
         })
@@ -292,12 +295,22 @@ const BusinessTypeListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
-                <Input
-                    placeholder="Tìm theo tên loại hình..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên loại hình..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={active || ACTIVE_ALL}
                     onValueChange={v =>
@@ -317,7 +330,7 @@ const BusinessTypeListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
@@ -344,7 +357,7 @@ const BusinessTypeListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {bt.name}

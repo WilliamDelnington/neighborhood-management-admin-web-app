@@ -12,31 +12,35 @@ export interface StatCardProps {
 
 const TONE_STYLES: Record<
     NonNullable<StatCardProps["tone"]>,
-    { text: string; iconBg: string; iconColor: string; accent: string }
+    { text: string; iconBg: string; iconColor: string; accent: string; cardBg: string }
 > = {
     default: {
         text: "text-text_1",
         iconBg: "bg-blue_10",
         iconColor: "text-main",
         accent: "bg-main",
+        cardBg: "bg-ui_bg",
     },
     warning: {
-        text: "text-amber-600",
-        iconBg: "bg-amber-50",
-        iconColor: "text-amber-600",
-        accent: "bg-amber-400",
+        text: "text-warning",
+        iconBg: "bg-warning-soft",
+        iconColor: "text-warning",
+        accent: "bg-warning",
+        cardBg: "bg-warning-soft/40",
     },
     danger: {
-        text: "text-red-600",
-        iconBg: "bg-red-50",
-        iconColor: "text-red-600",
-        accent: "bg-red-500",
+        text: "text-danger",
+        iconBg: "bg-danger-soft",
+        iconColor: "text-danger",
+        accent: "bg-danger",
+        cardBg: "bg-danger-soft/40",
     },
     success: {
-        text: "text-green-600",
-        iconBg: "bg-green-50",
-        iconColor: "text-green-600",
-        accent: "bg-green-500",
+        text: "text-success",
+        iconBg: "bg-success-soft",
+        iconColor: "text-success",
+        accent: "bg-success",
+        cardBg: "bg-success-soft/40",
     },
 };
 
@@ -53,7 +57,7 @@ const StatCard: React.FC<StatCardProps> = ({
         <>
             <span
                 className={cn(
-                    "absolute inset-y-0 left-0 w-1 rounded-l-2xl",
+                    "absolute inset-y-0 left-0 w-1 rounded-l-lg",
                     style.accent,
                 )}
             />
@@ -64,7 +68,7 @@ const StatCard: React.FC<StatCardProps> = ({
                     </div>
                     <div
                         className={cn(
-                            "mt-1.5 text-2xl font-bold tabular-nums",
+                            "mt-1.5 text-[28px] font-bold leading-tight tabular-nums",
                             style.text,
                         )}
                     >
@@ -74,7 +78,7 @@ const StatCard: React.FC<StatCardProps> = ({
                 {Icon && (
                     <div
                         className={cn(
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
                             style.iconBg,
                         )}
                     >
@@ -89,7 +93,10 @@ const StatCard: React.FC<StatCardProps> = ({
         return (
             <button
                 type="button"
-                className="relative overflow-hidden rounded-2xl border border-divider_01 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className={cn(
+                    "relative overflow-hidden rounded-lg border border-divider_01 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+                    style.cardBg,
+                )}
                 onClick={onClick}
             >
                 {body}
@@ -98,7 +105,12 @@ const StatCard: React.FC<StatCardProps> = ({
     }
 
     return (
-        <div className="relative overflow-hidden rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+        <div
+            className={cn(
+                "relative overflow-hidden rounded-lg border border-divider_01 p-4 shadow-sm",
+                style.cardBg,
+            )}
+        >
             {body}
         </div>
     );

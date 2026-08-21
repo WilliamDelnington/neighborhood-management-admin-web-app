@@ -24,6 +24,8 @@ import {
     DialogFooter,
 } from "@components/ui/dialog";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     LOAI_GIAO_DICH_TAI_CHINH_LABEL,
@@ -121,9 +123,9 @@ const FinanceListContent: React.FC = () => {
     const [items, setItems] = useState<FinanceTransaction[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
 
     const [sheetVisible, setSheetVisible] = useState(false);
@@ -147,32 +149,23 @@ const FinanceListContent: React.FC = () => {
             .finally(() => setSummaryLoading(false));
     };
 
-    const load = (targetPage: number, append: boolean) => {
-        if (append) {
-            setLoadingMore(true);
-        } else {
-            setLoading(true);
-        }
+    const load = (targetPage: number, size = pageSize) => {
+        setLoading(true);
         setError(false);
         fetchFinanceTransactions({
             page: targetPage,
-            limit: DEFAULT_PAGE_SIZE,
+            limit: size,
             type: type || undefined,
             status: status || undefined,
         })
             .then(res => {
-                setItems(prev =>
-                    append ? [...prev, ...res.items] : res.items,
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
                 setTotal(res.total);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -181,7 +174,7 @@ const FinanceListContent: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        load(1, false);
+        load(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [type, status]);
 
@@ -227,7 +220,7 @@ const FinanceListContent: React.FC = () => {
                 toast.success("Đã ghi nhận giao dịch");
             }
             setSheetVisible(false);
-            load(1, false);
+            load(1);
             loadSummary();
         } catch (err) {
             toast.error((err as AppError).message);
@@ -248,7 +241,7 @@ const FinanceListContent: React.FC = () => {
                     await cancelFinanceTransaction(editingId);
                     toast.success("Đã hủy giao dịch");
                     setSheetVisible(false);
-                    load(1, false);
+                    load(1);
                     loadSummary();
                 } catch (err) {
                     toast.error((err as AppError).message);
@@ -272,7 +265,7 @@ const FinanceListContent: React.FC = () => {
                     await deleteFinanceTransaction(editingId);
                     toast.success("Đã xóa giao dịch");
                     setSheetVisible(false);
-                    load(1, false);
+                    load(1);
                     loadSummary();
                 } catch (err) {
                     toast.error((err as AppError).message);
@@ -297,7 +290,17 @@ const FinanceListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+
+            <div className="mb-4 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                 <h2 className="mb-2 text-base font-semibold">
                     Tổng quan thu chi
                 </h2>
@@ -312,7 +315,7 @@ const FinanceListContent: React.FC = () => {
                 {!summaryLoading && summary && (
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {Object.entries(summary).map(([key, value]) => (
-                            <div key={key} className="rounded-xl bg-ng_10 p-3">
+                            <div key={key} className="rounded-lg bg-ng_10 p-3">
                                 <div className="text-xs text-text_2">
                                     {humanizeKey(key)}
                                 </div>
@@ -352,10 +355,10 @@ const FinanceListContent: React.FC = () => {
                 ))}
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
-                    <ErrorState onRetry={() => load(1, false)} />
+                    <ErrorState onRetry={() => load(1)} />
                 )}
                 {!loading && !error && items.length === 0 && (
                     <EmptyState label="Chưa có giao dịch nào" />
@@ -404,17 +407,12 @@ const FinanceListContent: React.FC = () => {
                 </div>
             )}
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1, true)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
-            )}
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={load}
+                disabled={loading}
+            />
 
             <Sheet open={sheetVisible} onOpenChange={setSheetVisible}>
                 <SheetContent>

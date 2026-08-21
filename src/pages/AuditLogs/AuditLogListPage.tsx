@@ -27,6 +27,7 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { AuditLogRecord } from "@dts";
 import { fetchAuditLogs } from "@service/auditLogApi";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
@@ -79,17 +80,19 @@ const AuditLogListContent: React.FC = () => {
     const [items, setItems] = useState<AuditLogRecord[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
     const [viewing, setViewing] = useState<AuditLogRecord | null>(null);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchAuditLogs({
             page: targetPage,
+            limit: size,
             action: action || undefined,
             targetModel: targetModel || undefined,
             from: from || undefined,
@@ -119,6 +122,13 @@ const AuditLogListContent: React.FC = () => {
             />
 
             <div className="mb-3 flex flex-wrap items-end gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
                 <div className="space-y-1.5">
                     <Label className="text-xs">Hành động</Label>
                     <Input
@@ -171,7 +181,7 @@ const AuditLogListContent: React.FC = () => {
                 <div className="mb-2 text-xs text-text_2">{total} bản ghi</div>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
@@ -194,7 +204,7 @@ const AuditLogListContent: React.FC = () => {
                             {items.map((log, index) => (
                                 <TableRow key={log._id}>
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap text-sm">
                                         {formatDateTime(log.createdAt)}

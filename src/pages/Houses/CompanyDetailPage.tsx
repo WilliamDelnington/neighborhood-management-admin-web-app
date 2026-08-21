@@ -220,7 +220,7 @@ const CompanyDetailContent: React.FC = () => {
 
             {!loading && !error && company && form && (
                 <>
-                    <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {company.name}

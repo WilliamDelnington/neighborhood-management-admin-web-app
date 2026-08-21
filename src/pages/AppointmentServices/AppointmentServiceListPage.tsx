@@ -3,6 +3,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import AssigneeMultiPicker from "@components/admin/AssigneeMultiPicker";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -38,9 +40,10 @@ import {
     archiveAppointmentService,
     AppointmentServiceInput,
     createAppointmentService,
-    fetchAppointmentServices,
+    fetchAppointmentServicesPaged,
     updateAppointmentService,
 } from "@service/appointmentServiceApi";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 
 const DAY_OF_WEEK_LABEL: Record<number, string> = {
@@ -107,6 +110,9 @@ const AppointmentServiceListPage: React.FC = () => (
 const AppointmentServiceListContent: React.FC = () => {
     const canManage = usePermission("appointments.manage");
     const [items, setItems] = useState<AppointmentService[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -116,16 +122,23 @@ const AppointmentServiceListContent: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [officerPickerOpen, setOfficerPickerOpen] = useState(false);
 
-    const load = () => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchAppointmentServices()
-            .then(setItems)
+        fetchAppointmentServicesPaged({
+            page: targetPage,
+            limit: size,
+        })
+            .then(res => {
+                setItems(res.items);
+                setPage(res.page);
+                setTotalPages(res.totalPages);
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []);
+    useEffect(() => load(1), []);
 
     useEffect(() => {
         fetchNeighborhoods({ active: true, limit: 200 })
@@ -255,9 +268,19 @@ const AppointmentServiceListContent: React.FC = () => {
                 )}
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="mb-3 flex justify-end">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
-                {!loading && error && <ErrorState onRetry={load} />}
+                {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
                     <EmptyState label="Chưa có dịch vụ hẹn lịch nào" />
                 )}
@@ -318,6 +341,13 @@ const AppointmentServiceListContent: React.FC = () => {
                     </Table>
                 )}
             </div>
+
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={load}
+                disabled={loading}
+            />
 
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetContent className="sm:max-w-2xl">

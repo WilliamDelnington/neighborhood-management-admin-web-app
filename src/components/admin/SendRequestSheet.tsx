@@ -271,7 +271,7 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                     </div>
 
                     {senderFields.length > 0 && (
-                        <div className="space-y-3 rounded-xl border border-divider_01 p-3">
+                        <div className="space-y-3 rounded-lg border border-divider_01 p-3">
                             <div>
                                 <Label>Thông tin nghiệp vụ</Label>
                                 <p className="text-xs text-muted-foreground">

@@ -44,6 +44,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import StatCard from "@components/admin/StatCard";
 import { usePermission } from "@store/authStore";
 import { AppError, MucNguyCoPccc, PcccAttachment, PcccCheck, RequestItem } from "@dts";
@@ -122,6 +123,7 @@ const PcccListContent: React.FC = () => {
     const [items, setItems] = useState<PcccCheck[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -154,10 +156,10 @@ const PcccListContent: React.FC = () => {
             .catch(() => setSummary({}));
     };
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchPcccChecks({ page: targetPage, riskLevel: riskLevel || undefined })
+        fetchPcccChecks({ page: targetPage, limit: size, riskLevel: riskLevel || undefined })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -346,6 +348,16 @@ const PcccListContent: React.FC = () => {
                 }
             />
 
+            <div className="mb-4 flex items-center justify-end gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+
             <div className="mb-4 grid grid-cols-3 gap-3">
                 <StatCard label="Xanh" value={summary.xanh ?? 0} tone="success" />
                 <StatCard label="Vàng" value={summary.vang ?? 0} tone="warning" />
@@ -376,7 +388,7 @@ const PcccListContent: React.FC = () => {
                 </SelectContent>
             </Select>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -402,7 +414,7 @@ const PcccListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {houseText(c.houseId)}

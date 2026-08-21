@@ -3,6 +3,8 @@ import { Download, Paperclip, Plus, RefreshCw, Trash2, Upload } from "lucide-rea
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { EmptyState, ErrorState, LoadingState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -31,7 +33,7 @@ import {
 } from "@components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs";
 import { Textarea } from "@components/ui/textarea";
-import { resolveAssetUrl } from "@constants/common";
+import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import {
     PERIODIC_REPORT_STATUS_LABEL,
     PERIODIC_REPORT_STATUS_TONE,
@@ -121,6 +123,7 @@ const PeriodicReportListContent: React.FC = () => {
     const [items, setItems] = useState<PeriodicReport[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [open, setOpen] = useState(false);
@@ -136,10 +139,10 @@ const PeriodicReportListContent: React.FC = () => {
     // Correspondence/InfrastructureAsset - tuy chon o hai noi do).
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchPeriodicReports({ page: targetPage, view })
+        fetchPeriodicReports({ page: targetPage, view, limit: size })
             .then(result => {
                 setItems(result.items);
                 setPage(result.page);
@@ -292,20 +295,29 @@ const PeriodicReportListContent: React.FC = () => {
                 <div><h1 className="text-lg font-semibold">Báo cáo Tổ dân phố</h1><p className="text-sm text-text_2">Số liệu nghiệp vụ được tổng hợp tự động; mỗi lần nộp tạo một phiên bản bất biến.</p></div>
                 {canAuthor && <Button onClick={() => void openCreate()}><Plus className="mr-1 h-4 w-4" /> Soạn báo cáo</Button>}
             </div>
-            <Tabs className="mb-4" value={view} onValueChange={value => setView(value as "mine" | "received")}>
-                <TabsList><TabsTrigger value="mine">Của tôi</TabsTrigger><TabsTrigger value="received">Phường nhận</TabsTrigger></TabsList>
-            </Tabs>
-            <div className="rounded-2xl border bg-white shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <Tabs value={view} onValueChange={value => setView(value as "mine" | "received")}>
+                    <TabsList><TabsTrigger value="mine">Của tôi</TabsTrigger><TabsTrigger value="received">Phường nhận</TabsTrigger></TabsList>
+                </Tabs>
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+            <div className="rounded-lg border bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && <EmptyState label="Chưa có báo cáo" />}
                 {!loading && !error && items.length > 0 && (
                     <Table><TableHeader><TableRow><TableHead className="w-12 text-center">STT</TableHead><TableHead>Loại</TableHead><TableHead>Tổ dân phố</TableHead><TableHead>Kỳ</TableHead><TableHead>{view === "mine" ? "Nơi nhận" : "Tác giả"}</TableHead><TableHead>Phiên bản</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
-                        <TableBody>{items.map((report, index) => <TableRow key={report._id} className="cursor-pointer" onClick={() => void openDetail(report)}><TableCell className="text-center text-text_2">{(page - 1) * 20 + index + 1}</TableCell><TableCell className="font-medium">{PERIODIC_REPORT_TYPE_LABEL[report.type]}</TableCell><TableCell>{refName(report.neighborhoodId)}</TableCell><TableCell>{toDateInput(report.periodStart)} → {toDateInput(report.periodEnd)}</TableCell><TableCell>{view === "mine" ? refName(report.submittedToUserId) : refName(report.authorUserId)}</TableCell><TableCell>v{report.currentVersion || 0}</TableCell><TableCell><Badge tone={PERIODIC_REPORT_STATUS_TONE[report.status]}>{PERIODIC_REPORT_STATUS_LABEL[report.status]}</Badge></TableCell></TableRow>)}</TableBody>
+                        <TableBody>{items.map((report, index) => <TableRow key={report._id} className="cursor-pointer" onClick={() => void openDetail(report)}><TableCell className="text-center text-text_2">{(page - 1) * pageSize + index + 1}</TableCell><TableCell className="font-medium">{PERIODIC_REPORT_TYPE_LABEL[report.type]}</TableCell><TableCell>{refName(report.neighborhoodId)}</TableCell><TableCell>{toDateInput(report.periodStart)} → {toDateInput(report.periodEnd)}</TableCell><TableCell>{view === "mine" ? refName(report.submittedToUserId) : refName(report.authorUserId)}</TableCell><TableCell>v{report.currentVersion || 0}</TableCell><TableCell><Badge tone={PERIODIC_REPORT_STATUS_TONE[report.status]}>{PERIODIC_REPORT_STATUS_LABEL[report.status]}</Badge></TableCell></TableRow>)}</TableBody>
                     </Table>
                 )}
             </div>
-            {totalPages > 1 && <div className="mt-3 flex justify-end gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => load(page - 1)}>Trước</Button><span className="py-2 text-sm">{page}/{totalPages}</span><Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => load(page + 1)}>Sau</Button></div>}
+            <Pagination page={page} totalPages={totalPages} onPageChange={load} disabled={loading} />
 
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetContent className="sm:max-w-3xl">

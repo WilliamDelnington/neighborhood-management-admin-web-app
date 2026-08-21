@@ -16,12 +16,12 @@ export interface ReportDonutChartProps {
 }
 
 const DEFAULT_COLORS = [
-    "#2563eb",
-    "#f97316",
-    "#16a34a",
-    "#7c3aed",
-    "#dc2626",
-    "#94a3b8",
+    "#1E5A8A",
+    "#5B8AB0",
+    "#163A5F",
+    "#94A3B8",
+    "#8FB4D1",
+    "#CBD5E1",
 ];
 
 /** Biểu đồ donut dành cho cơ cấu trạng thái, chỉ vẽ các lát có giá trị. */
@@ -61,7 +61,7 @@ const ReportDonutChart: React.FC<ReportDonutChartProps> = ({
                     contentStyle={{
                         fontSize: 12,
                         borderRadius: 8,
-                        borderColor: "#e1e0d9",
+                        borderColor: "#DFE5EB",
                     }}
                 />
                 <Legend

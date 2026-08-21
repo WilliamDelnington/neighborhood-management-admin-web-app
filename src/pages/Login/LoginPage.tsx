@@ -44,44 +44,50 @@ const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-app-bg p-6">
+        <div className="flex min-h-screen items-center justify-center bg-[#eef1f4] p-6">
             <form
                 onSubmit={handleSubmit}
-                className="w-full max-w-sm rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                className="w-full max-w-[28rem] rounded-xl border border-[#d7dee6] bg-[#f7f9fb] p-6 shadow-[0_2px_0_rgba(15,23,42,0.02)]"
             >
                 <div className="flex justify-center">
                     <AppBrand
                         imgClassName="h-12 max-w-[240px] object-contain"
-                        textClassName="text-lg font-semibold text-main"
+                        textClassName="items-center text-center text-[2.1rem] font-semibold leading-[1.3] tracking-[-0.03em] text-main"
                     />
                 </div>
-                <p className="mb-6 mt-1 text-center text-sm text-text_2">
+                <p className="mb-6 mt-1 text-center text-[1.05rem] text-[#4b5f73]">
                     Đăng nhập bằng số điện thoại cán bộ
                 </p>
 
-                <div className="space-y-1.5">
-                    <Label htmlFor="phone">Số điện thoại</Label>
+                <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-[1.05rem] font-medium text-[#1f2b38]">
+                        Số điện thoại
+                    </Label>
                     <Input
                         id="phone"
                         placeholder="0xxxxxxxxx"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
                         autoFocus
+                        className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
                     />
                 </div>
-                <div className="mt-3 space-y-1.5">
-                    <Label htmlFor="password">Mật khẩu</Label>
+                <div className="mt-4 space-y-2">
+                    <Label htmlFor="password" className="text-[1.05rem] font-medium text-[#1f2b38]">
+                        Mật khẩu
+                    </Label>
                     <Input
                         id="password"
                         type="password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
+                        className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
                     />
                 </div>
 
                 <Button
                     type="submit"
-                    className="mt-5 w-full"
+                    className="mt-5 h-12 w-full rounded-lg bg-[#0a5a8a] text-base font-semibold text-white shadow-none hover:bg-[#0a4f7c]"
                     loading={submitting}
                 >
                     Đăng nhập
