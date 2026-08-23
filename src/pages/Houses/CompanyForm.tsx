@@ -11,6 +11,7 @@ import { CompanyInput } from "@service/companyApi";
 export interface CompanyFormValues {
     name: string;
     ownerName: string;
+    taxCode: string;
     representativeUserId: string;
     representativeUserLabel: string;
     // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
@@ -25,6 +26,7 @@ export interface CompanyFormValues {
 export const EMPTY_COMPANY_FORM: CompanyFormValues = {
     name: "",
     ownerName: "",
+    taxCode: "",
     representativeUserId: "",
     representativeUserLabel: "",
     organizationId: "",
@@ -42,6 +44,7 @@ export function toCompanyInput(
         name: values.name.trim(),
         houseId,
         ownerName: values.ownerName.trim() || undefined,
+        taxCode: values.taxCode.trim(),
         representativeUserId: values.representativeUserId || null,
         organizationId: values.organizationId || null,
         phone: values.phone.trim() || undefined,
@@ -51,7 +54,7 @@ export function toCompanyInput(
 }
 
 export function isCompanyFormValid(values: CompanyFormValues): boolean {
-    return !!values.name.trim();
+    return !!values.name.trim() && !!values.taxCode.trim();
 }
 
 interface CompanyFormProps {
@@ -84,6 +87,13 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
                 <Input
                     value={values.ownerName}
                     onChange={e => set("ownerName", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Mã số thuế</Label>
+                <Input
+                    value={values.taxCode}
+                    onChange={e => set("taxCode", e.target.value)}
                 />
             </div>
             <RepresentativeUserPicker

@@ -97,19 +97,19 @@ const SurveyResultsContent: React.FC = () => {
             </div>
 
             {loading && (
-                <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                <div className="rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                     <LoadingState />
                 </div>
             )}
             {!loading && error && (
-                <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                <div className="rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                     <ErrorState onRetry={load} />
                 </div>
             )}
 
             {!loading && !error && results && (
                 <div className="flex flex-col gap-3">
-                    <div className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                         <h2 className="text-base font-semibold">
                             {results.title}
                         </h2>
@@ -119,7 +119,7 @@ const SurveyResultsContent: React.FC = () => {
                     </div>
 
                     {results.results.length === 0 && (
-                        <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                             <EmptyState label="Chưa có câu hỏi nào" />
                         </div>
                     )}
@@ -127,7 +127,7 @@ const SurveyResultsContent: React.FC = () => {
                     {results.results.map(r => (
                         <div
                             key={r.questionId}
-                            className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm"
+                            className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm"
                         >
                             <h3 className="mb-3 text-sm font-semibold">
                                 {r.question}
@@ -173,7 +173,7 @@ const SurveyResultsContent: React.FC = () => {
                     ))}
 
                     {(canUpdate || summary) && (
-                        <div className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                             <Label className="mb-1.5 block">
                                 Nhận xét / tổng hợp ý kiến
                             </Label>

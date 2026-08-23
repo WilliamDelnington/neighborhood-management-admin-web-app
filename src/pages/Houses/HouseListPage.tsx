@@ -30,6 +30,9 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import HouseMapPanel from "@components/admin/HouseMapPanel";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -65,6 +68,7 @@ const HouseListContent: React.FC = () => {
     const [items, setItems] = useState<House[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -72,11 +76,17 @@ const HouseListContent: React.FC = () => {
     const [form, setForm] = useState<HouseFormValues>(EMPTY_HOUSE_FORM);
     const [submitting, setSubmitting] = useState(false);
 
-    const load = (targetPage = 1, keyword = search, statusFilter = status) => {
+    const load = (
+        targetPage = 1,
+        keyword = search,
+        statusFilter = status,
+        size = pageSize,
+    ) => {
         setLoading(true);
         setError(false);
         fetchHouses({
             page: targetPage,
+            limit: size,
             search: keyword,
             status: statusFilter || undefined,
             neighborhoodId,
@@ -123,17 +133,20 @@ const HouseListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý nhà số</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm nhà số
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Quản lý nhà số"
+                description="Quản lý thông tin nhà số, chủ nhà và trạng thái xác minh."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm nhà số
+                        </Button>
+                    )
+                }
+            />
             {neighborhoodId && (
-                <div className="mb-3 flex items-center justify-between rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-700">
+                <div className="mb-3 flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
                     <span>Đang lọc Nhà số theo Tổ dân phố đã chọn</span>
                     <Button size="sm" variant="outline" onClick={() => navigate("/houses")}>
                         Bỏ lọc
@@ -141,7 +154,16 @@ const HouseListContent: React.FC = () => {
                 </div>
             )}
 
+            <HouseMapPanel />
+
             <div className="mb-4 flex flex-wrap items-center gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, search, status, size);
+                    }}
+                />
                 <Input
                     className="max-w-sm"
                     placeholder="Tìm theo mã nhà, địa chỉ..."
@@ -175,7 +197,7 @@ const HouseListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -193,6 +215,7 @@ const HouseListContent: React.FC = () => {
                                 <TableHead>Tổ dân phố</TableHead>
                                 <TableHead>GIS</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -203,7 +226,7 @@ const HouseListContent: React.FC = () => {
                                     onClick={() => navigate(`/houses/${h._id}`)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {h.code}
@@ -232,6 +255,20 @@ const HouseListContent: React.FC = () => {
                                         <Badge tone={HOUSE_STATUS_TONE[h.status]}>
                                             {HOUSE_STATUS_LABEL[h.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/houses/${h._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

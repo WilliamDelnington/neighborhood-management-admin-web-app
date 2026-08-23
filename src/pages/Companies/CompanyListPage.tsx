@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
+import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
@@ -20,6 +21,8 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
@@ -56,14 +59,16 @@ const CompanyListContent: React.FC = () => {
     const [items, setItems] = useState<Company[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchCompanies({
             page: targetPage,
+            limit: size,
             search: keyword,
             status: status || undefined,
         })
@@ -84,16 +89,27 @@ const CompanyListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Công ty</h1>
-            </div>
+            <PageHeader
+                title="Công ty"
+                description="Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn."
+            />
 
-            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
-                <Input
-                    placeholder="Tìm theo tên công ty..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên công ty..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || ALL_STATUS}
                     onValueChange={v =>
@@ -121,7 +137,7 @@ const CompanyListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -139,6 +155,7 @@ const CompanyListContent: React.FC = () => {
                                 <TableHead>Cụm</TableHead>
                                 <TableHead>Tổ chức liên kết</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -153,7 +170,7 @@ const CompanyListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {c.name}
@@ -170,6 +187,22 @@ const CompanyListContent: React.FC = () => {
                                         <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>
                                             {VERIFICATION_STATUS_LABEL[c.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/houses/${houseIdOf(c)}/companies/${c._id}`,
+                                                )
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

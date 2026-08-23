@@ -19,8 +19,11 @@ import {
     BUSINESS_DOCUMENT_STATUS_TONE,
 } from "@constants/domain";
 import { useAuthStore, usePermission } from "@store/authStore";
-import { AppError, BusinessDocument, RequiredDocumentItem } from "@dts";
-import { fetchRequiredDocuments, reviewBusinessDocument } from "@service/businessApi";
+import {
+    AppError,
+    RequiredDocumentItem,
+    RequiredDocumentRecord,
+} from "@dts";
 
 const formatDate = (iso?: string) => {
     if (!iso) return null;
@@ -36,7 +39,7 @@ const formatDateTime = (iso?: string) => {
     return d.toLocaleString("vi-VN");
 };
 
-const actorLabel = (actor: BusinessDocument["uploadedBy"]) => {
+const actorLabel = (actor: RequiredDocumentRecord["uploadedBy"]) => {
     if (!actor) return "Không rõ";
     return typeof actor === "string" ? actor : actor.displayName;
 };
@@ -47,19 +50,34 @@ const documentTypeName = (item: RequiredDocumentItem) => {
 };
 
 export interface RequiredDocumentsPanelProps {
-    businessId: string;
+    entityId: string;
+    /** Lay ma tran giay to yeu cau cho entityId nay (vd fetchRequiredDocuments cua houseApi/businessApi). */
+    fetchItems: (entityId: string) => Promise<{ items: RequiredDocumentItem[] }>;
+    /** Duyet/tu choi mot giay to dang cho duyet. */
+    onReview: (
+        entityId: string,
+        documentId: string,
+        decision: "approved" | "rejected",
+        rejectionReason?: string,
+        approvalNote?: string,
+    ) => Promise<unknown>;
+    /** Permission fallback khi dong luat khong khai bao reviewerRoles, vd "businesses.verify"/"houses.verify". */
+    verifyPermission: string;
     className?: string;
-    /** Goi lai sau khi duyet/tu choi thanh cong de trang cha lam moi trang thai ho kinh doanh. */
+    /** Goi lai sau khi duyet/tu choi thanh cong de trang cha lam moi trang thai. */
     onChanged?: () => void;
 }
 
 const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
-    businessId,
-    className = "mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm",
+    entityId,
+    fetchItems,
+    onReview,
+    verifyPermission,
+    className = "mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm",
     onChanged,
 }) => {
     const currentUser = useAuthStore(state => state.user);
-    const canVerifyDefault = usePermission("businesses.verify");
+    const canVerifyDefault = usePermission(verifyPermission);
 
     const [items, setItems] = useState<RequiredDocumentItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -79,7 +97,7 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
     const load = () => {
         setLoading(true);
         setError(false);
-        fetchRequiredDocuments(businessId)
+        fetchItems(entityId)
             .then(res => setItems(res.items))
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -88,7 +106,7 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
     useEffect(() => {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [businessId]);
+    }, [entityId]);
 
     const canReview = (item: RequiredDocumentItem) => {
         if (!currentUser) return false;
@@ -123,8 +141,8 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
         }
         try {
             setSubmittingDecision(decision);
-            await reviewBusinessDocument(
-                businessId,
+            await onReview(
+                entityId,
                 reviewing.activeDocument._id,
                 decision,
                 decision === "rejected" ? reviewNote.trim() : undefined,

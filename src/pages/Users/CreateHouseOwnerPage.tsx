@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -20,6 +21,7 @@ type FormState = {
     phone: string;
     displayName: string;
     address: string;
+    idNumber: string;
     password: string;
     role: CreatableStaffRole;
 };
@@ -28,6 +30,7 @@ const EMPTY_FORM: FormState = {
     phone: "",
     displayName: "",
     address: "",
+    idNumber: "",
     password: "",
     role: "house_owner",
 };
@@ -76,12 +79,13 @@ const CreateHouseOwnerContent: React.FC = () => {
     const isValid =
         form.phone.trim().length > 0 &&
         form.displayName.trim().length > 0 &&
+        form.idNumber.trim().length > 0 &&
         form.password.trim().length >= 6;
 
     const handleCreate = async () => {
         if (!isValid) {
             toast.error(
-                "Vui lòng nhập đầy đủ số điện thoại, họ tên và mật khẩu (ít nhất 6 ký tự)",
+                "Vui lòng nhập đầy đủ số điện thoại, họ tên, số CMND/CCCD và mật khẩu (ít nhất 6 ký tự)",
             );
             return;
         }
@@ -91,6 +95,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                 phone: form.phone.trim(),
                 displayName: form.displayName.trim(),
                 address: form.address.trim() || undefined,
+                idNumber: form.idNumber.trim(),
                 role: form.role,
                 password: form.password.trim(),
             });
@@ -106,10 +111,13 @@ const CreateHouseOwnerContent: React.FC = () => {
 
     return (
         <div className="max-w-lg">
-            <h1 className="mb-4 text-lg font-semibold">Tạo tài khoản</h1>
+            <PageHeader
+                title="Tạo tài khoản"
+                description="Tạo tài khoản chủ nhà mới trong hệ thống."
+            />
 
             {lastCreatedPhone && (
-                <div className="mb-4 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
                     Đã tạo tài khoản với số điện thoại <strong>{lastCreatedPhone}</strong>.
                     Đăng nhập trong Mini App bằng số điện thoại và mật khẩu
                     vừa đặt.
@@ -123,7 +131,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                 <div className="flex flex-col gap-4">
                     {isAdmin && (
                         <div className="space-y-1.5">
@@ -154,14 +162,19 @@ const CreateHouseOwnerContent: React.FC = () => {
                         <Label>Số điện thoại</Label>
                         <Input
                             placeholder="VD: 0912345678"
+                            autoComplete="off"
+                            inputMode="numeric"
                             value={form.phone}
-                            onChange={e => set("phone", e.target.value)}
+                            onChange={e =>
+                                set("phone", e.target.value.replace(/\D/g, ""))
+                            }
                         />
                     </div>
                     <div className="space-y-1.5">
                         <Label>Họ tên</Label>
                         <Input
                             placeholder="VD: Nguyễn Văn A"
+                            autoComplete="off"
                             value={form.displayName}
                             onChange={e => set("displayName", e.target.value)}
                         />
@@ -169,14 +182,24 @@ const CreateHouseOwnerContent: React.FC = () => {
                     <div className="space-y-1.5">
                         <Label>Địa chỉ (tùy chọn)</Label>
                         <Input
+                            autoComplete="off"
                             value={form.address}
                             onChange={e => set("address", e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label>Số CMND/CCCD</Label>
+                        <Input
+                            autoComplete="off"
+                            value={form.idNumber}
+                            onChange={e => set("idNumber", e.target.value)}
                         />
                     </div>
                     <div className="space-y-1.5">
                         <Label>Mật khẩu</Label>
                         <Input
                             type="password"
+                            autoComplete="new-password"
                             placeholder="Ít nhất 6 ký tự"
                             value={form.password}
                             onChange={e => set("password", e.target.value)}

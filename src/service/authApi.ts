@@ -21,8 +21,14 @@ export const loginWithPhone = (
 
 export const fetchMe = (): Promise<User> => request<User>("GET", API.AUTH_ME);
 
-export const setPassword = (password: string): Promise<User> =>
-    request<User>("POST", API.AUTH_SET_PASSWORD, { password });
+export const setPassword = (
+    password: string,
+    currentPassword?: string,
+): Promise<User> =>
+    request<User>("POST", API.AUTH_SET_PASSWORD, {
+        password,
+        currentPassword,
+    });
 
 export const logout = (): Promise<null> =>
     request<null>("POST", API.AUTH_LOGOUT);

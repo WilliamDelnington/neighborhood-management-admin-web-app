@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Paperclip, Plus, Trash2, Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -32,13 +32,17 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { usePermission } from "@store/authStore";
+import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import {
     INFRASTRUCTURE_ASSET_CONDITION_LABEL,
     INFRASTRUCTURE_ASSET_CONDITION_TONE,
     INFRASTRUCTURE_ASSET_TYPE_LABEL,
 } from "@constants/domain";
 import {
+    AnnouncementAttachment,
     AppError,
     InfrastructureAsset,
     InfrastructureAssetCondition,
@@ -50,8 +54,11 @@ import {
 import {
     createInfrastructureAsset,
     deleteInfrastructureAsset,
+    deleteInfrastructureAssetAttachment,
+    fetchInfrastructureAssetAttachments,
     fetchInfrastructureAssets,
     updateInfrastructureAsset,
+    uploadInfrastructureAssetAttachment,
 } from "@service/infrastructureAssetApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 
@@ -100,6 +107,7 @@ const InfrastructureAssetListContent: React.FC = () => {
     const [items, setItems] = useState<InfrastructureAsset[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -111,7 +119,21 @@ const InfrastructureAssetListContent: React.FC = () => {
     const [submitting, setSubmitting] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const [attachments, setAttachments] = useState<AnnouncementAttachment[]>(
+        [],
+    );
+    const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [deletingAttachmentId, setDeletingAttachmentId] = useState<
+        string | null
+    >(null);
+    // Tai san chua duoc tao (chua co id) khong the goi uploadInfrastructureAssetAttachment
+    // ngay (can relatedId that su) - file chon o man tao moi duoc giu tam o day,
+    // roi tai len ngay sau khi createInfrastructureAsset() thanh cong.
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchInfrastructureAssets({
@@ -119,6 +141,7 @@ const InfrastructureAssetListContent: React.FC = () => {
             search: search || undefined,
             type: typeFilter || undefined,
             condition: conditionFilter || undefined,
+            limit: size,
         })
             .then(res => {
                 setItems(res.items);
@@ -145,6 +168,8 @@ const InfrastructureAssetListContent: React.FC = () => {
     const openCreate = () => {
         setEditingId(null);
         setForm(EMPTY_FORM);
+        setPendingFiles([]);
+        setAttachments([]);
         setSheetOpen(true);
     };
 
@@ -161,7 +186,58 @@ const InfrastructureAssetListContent: React.FC = () => {
             condition: asset.condition,
             note: asset.note || "",
         });
+        setPendingFiles([]);
+        setAttachmentsLoading(true);
+        fetchInfrastructureAssetAttachments(asset._id)
+            .then(setAttachments)
+            .catch(() => setAttachments([]))
+            .finally(() => setAttachmentsLoading(false));
         setSheetOpen(true);
+    };
+
+    const handleUploadClick = () => fileInputRef.current?.click();
+
+    const handleFileSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        if (!editingId) {
+            setPendingFiles(prev => [...prev, file]);
+            return;
+        }
+        try {
+            setUploading(true);
+            const asset = await uploadInfrastructureAssetAttachment(
+                editingId,
+                file,
+            );
+            setAttachments(prev => [asset, ...prev]);
+            toast.success("Đã tải lên file đính kèm");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleRemovePendingFile = (index: number) => {
+        setPendingFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleDeleteAttachment = async (fileId: string) => {
+        if (!editingId) return;
+        try {
+            setDeletingAttachmentId(fileId);
+            await deleteInfrastructureAssetAttachment(editingId, fileId);
+            setAttachments(prev => prev.filter(a => a._id !== fileId));
+            toast.success("Đã xóa file đính kèm");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingAttachmentId(null);
+        }
     };
 
     const handleSubmit = async () => {
@@ -181,7 +257,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                 });
                 toast.success("Đã cập nhật tài sản hạ tầng");
             } else {
-                await createInfrastructureAsset({
+                const created = await createInfrastructureAsset({
                     name: form.name.trim(),
                     type: form.type,
                     neighborhoodId: form.neighborhoodId,
@@ -189,7 +265,23 @@ const InfrastructureAssetListContent: React.FC = () => {
                     condition: form.condition,
                     note: form.note.trim() || undefined,
                 });
-                toast.success("Đã thêm tài sản hạ tầng");
+                let uploadFailures = 0;
+                for (const file of pendingFiles) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await uploadInfrastructureAssetAttachment(
+                        created._id,
+                        file,
+                    ).catch(() => {
+                        uploadFailures += 1;
+                    });
+                }
+                if (uploadFailures > 0) {
+                    toast.error(
+                        `Đã thêm tài sản nhưng ${uploadFailures} tệp đính kèm tải lên thất bại`,
+                    );
+                } else {
+                    toast.success("Đã thêm tài sản hạ tầng");
+                }
             }
             setSheetOpen(false);
             load(page);
@@ -217,22 +309,35 @@ const InfrastructureAssetListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Sổ hạ tầng</h1>
-                {canManage && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm tài sản
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Sổ hạ tầng"
+                description="Theo dõi hạ tầng công cộng (đường, cống, đèn chiếu sáng...) trên địa bàn."
+                action={
+                    canManage && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm tài sản
+                        </Button>
+                    )
+                }
+            />
 
-            <div className="mb-3 grid max-w-2xl grid-cols-3 gap-3">
-                <Input
-                    placeholder="Tìm theo tên..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={typeFilter || ALL_VALUE}
                     onValueChange={v =>
@@ -285,7 +390,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
@@ -300,6 +405,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
                                 <TableHead>Tình trạng</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -310,7 +416,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                                     onClick={() => openEdit(a)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * 30 + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {a.name}
@@ -340,6 +446,18 @@ const InfrastructureAssetListContent: React.FC = () => {
                                                 ]
                                             }
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openEdit(a)}
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -476,6 +594,108 @@ const InfrastructureAssetListContent: React.FC = () => {
                                 }
                             />
                         </div>
+                        <div className="border-t border-divider_01 pt-4">
+                            <div className="mb-3 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">
+                                    Tệp đính kèm (không bắt buộc)
+                                </h3>
+                                {canManage && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        loading={uploading}
+                                        onClick={handleUploadClick}
+                                    >
+                                        <Upload className="mr-1 h-3.5 w-3.5" />
+                                        Tải lên
+                                    </Button>
+                                )}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    className="hidden"
+                                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                    onChange={handleFileSelected}
+                                />
+                            </div>
+                            {!editingId && (
+                                <p className="mb-2 text-xs text-text_2">
+                                    Tệp chọn ở đây sẽ được tải lên ngay sau khi
+                                    lưu.
+                                </p>
+                            )}
+                            {editingId && attachmentsLoading && (
+                                <LoadingState />
+                            )}
+                            {editingId &&
+                                !attachmentsLoading &&
+                                attachments.length === 0 &&
+                                pendingFiles.length === 0 && (
+                                    <EmptyState label="Chưa có file đính kèm" />
+                                )}
+                            {!editingId && pendingFiles.length === 0 && (
+                                <EmptyState label="Chưa có file đính kèm" />
+                            )}
+                            {editingId &&
+                                !attachmentsLoading &&
+                                attachments.map(a => (
+                                    <div
+                                        key={a._id}
+                                        className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
+                                    >
+                                        <a
+                                            href={resolveAssetUrl(a.url)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-2 text-primary hover:underline"
+                                        >
+                                            <Paperclip className="h-3.5 w-3.5" />
+                                            {a.name}
+                                        </a>
+                                        {canManage && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="!text-red-500"
+                                                loading={
+                                                    deletingAttachmentId ===
+                                                    a._id
+                                                }
+                                                onClick={() =>
+                                                    handleDeleteAttachment(
+                                                        a._id,
+                                                    )
+                                                }
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                            {!editingId &&
+                                pendingFiles.map((file, index) => (
+                                    <div
+                                        key={`${file.name}-${index}`}
+                                        className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Paperclip className="h-3.5 w-3.5" />
+                                            {file.name}
+                                        </span>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="!text-red-500"
+                                            onClick={() =>
+                                                handleRemovePendingFile(index)
+                                            }
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                ))}
+                        </div>
+
                         {editingId && (
                             <Button
                                 variant="outline"

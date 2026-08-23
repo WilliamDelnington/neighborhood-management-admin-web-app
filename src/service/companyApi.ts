@@ -1,11 +1,26 @@
 import { API } from "@constants/common";
-import { Company, PaginatedData, VerificationStatus } from "@dts";
+import {
+    Company,
+    EntityRequiredDocumentsResult,
+    PaginatedData,
+    RequiredDocumentRecord,
+    RequiredDocumentRule,
+    VerificationStatus,
+} from "@dts";
 import { request } from "./request";
+import {
+    fetchEntityRequiredDocuments,
+    fetchRequiredDocumentRules,
+    putRequiredDocumentRules,
+    RequiredDocumentRuleInput,
+    reviewEntityDocument,
+} from "./requiredDocumentApi";
 
 export interface CompanyInput {
     name: string;
     houseId: string;
     ownerName?: string;
+    taxCode: string;
     representativeUserId?: string | null;
     // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
     // ghi chu tren models/Company.ts o backend.
@@ -39,10 +54,41 @@ export const deleteCompany = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.COMPANIES}/${id}`);
 
 // Ghi de thu cong (admin: bat ky trang thai nao; chu ho: chi "denied" ->
-// "pending" de gui lai) - khong co quy trinh nop/duyet giay to rieng nhu
-// Business, xem PATCH /api/companies/:id/status o backend.
+// "pending" de gui lai) - status KHONG bi anh huong boi ket qua duyet giay to
+// yeu cau (khac Business), xem PATCH /api/companies/:id/status o backend.
 export const updateCompanyStatus = (
     id: string,
     status: VerificationStatus,
 ): Promise<Company> =>
     request<Company>("PATCH", `${API.COMPANIES}/${id}/status`, { status });
+
+export const fetchCompanyRequiredDocuments = (
+    id: string,
+): Promise<EntityRequiredDocumentsResult> =>
+    fetchEntityRequiredDocuments(API.COMPANIES, id);
+
+/** Dong luat giay to bat buoc AP DUNG CHUNG cho toan bo cong ty (khong phai mot cong ty cu the). */
+export const fetchCompanyRequiredDocumentRules = (): Promise<{
+    requiredDocuments: RequiredDocumentRule[];
+}> => fetchRequiredDocumentRules(API.COMPANIES);
+
+export const putCompanyRequiredDocumentRules = (
+    requiredDocuments: RequiredDocumentRuleInput[],
+): Promise<{ requiredDocuments: RequiredDocumentRule[] }> =>
+    putRequiredDocumentRules(API.COMPANIES, requiredDocuments);
+
+export const reviewCompanyDocument = (
+    id: string,
+    documentId: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string,
+    approvalNote?: string,
+): Promise<RequiredDocumentRecord> =>
+    reviewEntityDocument(
+        API.COMPANIES,
+        id,
+        documentId,
+        decision,
+        rejectionReason,
+        approvalNote,
+    );

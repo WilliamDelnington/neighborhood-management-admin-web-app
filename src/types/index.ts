@@ -130,14 +130,19 @@ export type DocumentType = {
     updatedAt: string;
 };
 
-export type BusinessTypeDocumentRule = {
+// Dung chung cho BusinessType.requiredDocuments (o cap loai hinh) va
+// RequiredDocumentSettings cua House/Household/Company (ap dung chung cho ca
+// category, khong phai tung ban ghi rieng - xem backend).
+// reviewerRoles rong = fallback ve permission ".verify" tuong ung khi duyet.
+export type RequiredDocumentRule = {
     _id?: string;
     documentTypeId: string | DocumentType;
     isRequired: boolean;
     warningBeforeDays?: number;
-    // Rong = fallback ve permission "businesses.verify" khi duyet giay to nay.
     reviewerRoles: string[];
 };
+
+export type BusinessTypeDocumentRule = RequiredDocumentRule;
 
 export type BusinessType = {
     _id: string;
@@ -189,7 +194,8 @@ export type HouseGisSource =
     | "unavailable"
     | "device_gps"
     | "manual"
-    | "external_gis";
+    | "external_gis"
+    | "address_lookup";
 
 // ---------------------------------------------------------------------------
 // Chu so huu (nha so co the thuoc ca nhan hoac to chuc)
@@ -524,6 +530,9 @@ export type Business = {
     cluster: string;
     businessType?: { _id: string; name: string } | null;
     ownerName?: string;
+    // Khong bat buoc - khong phai ho kinh doanh nao cung da dang ky ma so
+    // thue (xem models/Business.ts o backend).
+    taxCode?: string;
     representativeUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     phone?: string;
     active: boolean;
@@ -552,6 +561,8 @@ export type Company = {
     houseId: string | House | null;
     cluster: string;
     ownerName?: string;
+    // Bat buoc o Company (khac Business) - xem models/Company.ts o backend.
+    taxCode: string;
     representativeUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
     // ghi chu tren models/Company.ts o backend.
@@ -585,9 +596,12 @@ export type HouseUsageUnit = {
     updatedAt: string;
 };
 
-export type BusinessDocument = {
+// Dung chung cho BusinessDocument/HouseDocument/HouseholdDocument/
+// CompanyDocument - cac model backend deu cung mot hinh dang, chi khac ten
+// truong tham chieu ve entity cha (businessId/houseId/...), truong ma khong
+// component/service phia frontend nao can doc truc tiep.
+export type RequiredDocumentRecord = {
     _id: string;
-    businessId: string;
     documentTypeId: string | DocumentType;
     fileAssetId: string | PopulatedFileAssetSummary;
     docNumber?: string;
@@ -604,16 +618,23 @@ export type BusinessDocument = {
     updatedAt: string;
 };
 
+export type BusinessDocument = RequiredDocumentRecord & { businessId: string };
+
 export type RequiredDocumentItem = {
-    rule: BusinessTypeDocumentRule;
-    activeDocument: BusinessDocument | null;
-    history: BusinessDocument[];
+    rule: RequiredDocumentRule;
+    activeDocument: RequiredDocumentRecord | null;
+    history: RequiredDocumentRecord[];
     missing: boolean;
     expired: boolean;
 };
 
 export type RequiredDocumentsResult = {
     business: Business;
+    items: RequiredDocumentItem[];
+};
+
+export type EntityRequiredDocumentsResult = {
+    entity: unknown;
     items: RequiredDocumentItem[];
 };
 
@@ -639,17 +660,10 @@ export type Citizen = {
 // ---------------------------------------------------------------------------
 // Phan anh kien nghi
 // ---------------------------------------------------------------------------
-export type NhomPhanAnh =
-    | "an_ninh_trat_tu"
-    | "pccc"
-    | "ve_sinh_moi_truong"
-    | "ha_tang_dien_nuoc"
-    | "chieu_sang"
-    | "tranh_chap_dan_cu"
-    | "tam_tru_nha_cho_thue"
-    | "gop_y_chung"
-    | "ha_tang"
-    | "khac";
+// Truoc la mot union co dinh (danh sach 10 nhom cu) - nay category la key cua
+// mot ComplaintTypeDefinition quan tri duoc qua man Loai phan anh, cung quy
+// uoc voi RequestType.
+export type NhomPhanAnh = string;
 
 export type TrangThaiPhanAnh =
     | "moi_tiep_nhan"
@@ -689,6 +703,26 @@ export type Complaint = {
     ratingNote?: string;
     createdAt: string;
     updatedAt: string;
+    // Chi co tren response chi tiet (getComplaintDetailForOwnerOrStaff), va
+    // chi tinh cho staff - xem canReceiveOrChooseAssignee o backend
+    // complaintService.ts. False/undefined o cac response khac (vd list).
+    canReceiveOrChooseAssignee?: boolean;
+};
+
+export type ComplaintTypeDefinition = {
+    _id?: string;
+    key: string;
+    name: string;
+    description?: string;
+    // Thu tu mang the hien uu tien dieu huong nguoi nhan (xem
+    // resolveComplaintTypeRecipientIds trong backend complaintService.ts).
+    allowedReceiverRoles: string[];
+    isBuiltIn?: boolean;
+    active?: boolean;
+    wardCode?: number;
+    wardName?: string;
+    createdAt?: string;
+    updatedAt?: string;
 };
 
 export type ComplaintTimelineEntry = {
@@ -777,6 +811,23 @@ export type Announcement = {
     targetUserIds?: string[];
     targetNeighborhoodIds?: string[];
     isUrgent?: boolean;
+    publishedAt?: string;
+    createdAt: string;
+};
+
+export type LoaiTinTuc = "chung" | "hoat_dong" | "an_ninh_trat_tu" | "khac";
+
+export type TrangThaiTinTuc = "nhap" | "da_dang";
+
+export type News = {
+    _id: string;
+    title: string;
+    content: string;
+    category: LoaiTinTuc;
+    status: TrangThaiTinTuc;
+    pinned: boolean;
+    coverImageUrl?: string;
+    images: string[];
     publishedAt?: string;
     createdAt: string;
 };
@@ -898,6 +949,8 @@ export type Survey = {
     openDate?: string;
     closeDate?: string;
     resultSummary?: string;
+    createdBy?: string | { _id: string; displayName: string };
+    coEditorUserIds?: (string | { _id: string; displayName: string })[];
     createdAt: string;
 };
 
@@ -1069,6 +1122,13 @@ export type RequestRecipientItem = {
     respondedAt?: string;
     resolvedAt?: string;
     isOverdue: boolean;
+    // Chuyen tiep yeu cau - chi co gia tri khi dang co de nghi chuyen dang cho
+    // xu ly tren chinh nguoi nhan nay. Xem RequestDetailSheet.tsx.
+    transferStatus?: "pending";
+    transferToUserId?: string;
+    transferToDisplayName?: string;
+    transferReason?: string;
+    transferInitiatedAt?: string;
 };
 
 export type RequestAttachment = {
@@ -1148,6 +1208,112 @@ export type RequestComment = {
     authorId: string | { _id: string; displayName: string };
     content: string;
     createdAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Dat lich hen (Appointment) - dat lich voi can bo phuong/to dan pho theo
+// khung gio, co check-in/hoan thanh va danh gia sau khi xong.
+// ---------------------------------------------------------------------------
+export type AppointmentStatus =
+    | "cho_xac_nhan"
+    | "da_xac_nhan"
+    | "da_check_in"
+    | "hoan_thanh"
+    | "tu_choi"
+    | "da_huy"
+    | "vang_mat";
+
+export type Appointment = {
+    _id: string;
+    code: string;
+    serviceId: string | { _id: string; name: string };
+    timeSlotId: string;
+    houseId: string | { _id: string; code: string; address?: string };
+    citizenUserId?: string | { _id: string; displayName: string; phone?: string };
+    proxyName?: string;
+    proxyPhone?: string;
+    bookedByUserId: string | { _id: string; displayName: string };
+    appointedDate: string;
+    startTime: string;
+    endTime: string;
+    note?: string;
+    status: AppointmentStatus;
+    cancelReason?: string;
+    rejectReason?: string;
+    checkinTime?: string;
+    completedTime?: string;
+    officerUserId?: string | { _id: string; displayName: string };
+    rating?: number;
+    ratingNote?: string;
+    wardCode?: number;
+    neighborhoodId?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type AppointmentTimeSlot = {
+    _id: string;
+    dayOfWeek: number; // 1-7, Thu 2 - Chu nhat
+    startTime: string;
+    endTime: string;
+    maxCapacity: number;
+    active: boolean;
+};
+
+export type AppointmentService = {
+    _id: string;
+    key: string;
+    name: string;
+    description?: string;
+    locationAddress: string;
+    scope: "ward" | "neighborhood";
+    wardCode?: number;
+    wardName?: string;
+    neighborhoodId?: string;
+    slotDurationMinutes: number;
+    autoApprove: boolean;
+    active: boolean;
+    assignedOfficerUserIds: Array<{ _id: string; displayName: string }>;
+    timeSlots: AppointmentTimeSlot[];
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type AppointmentHolidayType = "le" | "tam_ngung";
+
+export type AppointmentHoliday = {
+    _id: string;
+    date: string;
+    name: string;
+    type: AppointmentHolidayType;
+    // Khong dat = ap dung cho TOAN BO cac phuong/xa (ngay le co dinh quoc gia).
+    wardCode?: number;
+    note?: string;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
+export type AppointmentReportServiceRow = {
+    serviceId: string;
+    serviceName: string;
+    total: number;
+    completed: number;
+    noShow: number;
+    cancelled: number;
+    onTimeRate: number;
+    avgRating: number | null;
+};
+
+export type AppointmentReportSummary = {
+    byService: AppointmentReportServiceRow[];
+    overall: {
+        total: number;
+        completed: number;
+        noShow: number;
+        cancelled: number;
+        onTimeRate: number;
+        avgRating: number | null;
+    };
 };
 
 // ---------------------------------------------------------------------------
@@ -1701,5 +1867,15 @@ export type ImportJob = {
     validRows: number;
     rowErrors: { row: number; message: string }[];
     committedCount?: number;
+    createdAt: string;
+};
+
+export type UtilityApp = {
+    _id: string;
+    name: string;
+    icon: string;
+    url: string;
+    active: boolean;
+    sortOrder: number;
     createdAt: string;
 };

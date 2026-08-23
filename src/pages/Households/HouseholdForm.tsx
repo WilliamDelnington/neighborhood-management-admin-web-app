@@ -63,12 +63,21 @@ export function toHouseholdInput(
     };
 }
 
-export function isHouseholdFormValid(values: HouseholdFormValues): boolean {
-    return !!(
+export function isHouseholdFormValid(
+    values: HouseholdFormValues,
+    mode: "create" | "edit" = "edit",
+): boolean {
+    const baseValid = !!(
         values.cluster.trim() &&
         values.address.trim() &&
         values.headOfHousehold.trim()
     );
+    // Backend yeu cau phone khi tao moi ho dan (xem
+    // validators/household.ts:createHouseholdSchema ben backend), nhung van
+    // tuy chon khi chinh sua (updateHouseholdSchema la .partial()) - ho dan cu
+    // chua khai bao phone van phai sua duoc cac truong khac binh thuong.
+    if (mode !== "create") return baseValid;
+    return baseValid && !!values.phone.trim();
 }
 
 interface HouseholdFormProps {
@@ -77,6 +86,9 @@ interface HouseholdFormProps {
     // Khi tao ho dan tu man chi tiet nha so, cum dan cu duoc ke thua tu nha
     // so va khong cho sua tay de tranh lech voi cum cua nha so cha.
     lockedCluster?: string;
+    // "create": danh dau so dien thoai la bat buoc (xem isHouseholdFormValid).
+    // "edit" (mac dinh): giu nguyen hanh vi cu, phone la tuy chon.
+    mode?: "create" | "edit";
 }
 
 /**
@@ -86,6 +98,7 @@ const HouseholdForm: React.FC<HouseholdFormProps> = ({
     values,
     onChange,
     lockedCluster,
+    mode = "edit",
 }) => {
     // Nguoi dung duoc phan cong cum (vd to truong) chi duoc chon trong cac cum
     // cua minh, tranh tao/sua ho dan sang cum ma ho khong con thay duoc sau do
@@ -180,7 +193,7 @@ const HouseholdForm: React.FC<HouseholdFormProps> = ({
                 />
             </div>
             <div className="space-y-1.5">
-                <Label>Số điện thoại</Label>
+                <Label>Số điện thoại{mode === "create" ? " *" : ""}</Label>
                 <Input
                     value={values.phone}
                     onChange={e => set("phone", e.target.value)}

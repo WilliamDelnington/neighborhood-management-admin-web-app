@@ -8,14 +8,6 @@ import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
-import { Checkbox } from "@components/ui/checkbox";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@components/ui/select";
 import {
     Dialog,
     DialogContent,
@@ -30,8 +22,8 @@ import {
     AssignableStaff,
     Complaint,
     ComplaintTimelineEntry,
+    ComplaintTypeDefinition,
     FileAsset,
-    TrangThaiPhanAnh,
 } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
@@ -40,11 +32,14 @@ import {
 } from "@constants/domain";
 import {
     assignComplaint,
+    choosePersonInCharge,
     deleteComplaint,
     fetchComplaintAttachments,
     fetchComplaintDetail,
-    updateComplaintStatus,
+    receiveComplaint,
+    requestComplaintInfo,
 } from "@service/complaintApi";
+import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 import { fetchAssignableStaff } from "@service/userApi";
 
 const formatDateTime = (value?: string) =>
@@ -62,7 +57,6 @@ const ComplaintDetailContent: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const canAssign = usePermission("complaints.assign");
-    const canUpdateStatus = usePermission("complaints.update_status");
     const canDelete = usePermission("complaints.delete");
 
     const [complaint, setComplaint] = useState<Complaint | null>(null);
@@ -73,20 +67,51 @@ const ComplaintDetailContent: React.FC = () => {
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
 
-    const [newStatus, setNewStatus] = useState<TrangThaiPhanAnh | "">("");
-    const [note, setNote] = useState("");
-    const [isPublic, setIsPublic] = useState(true);
-    const [updating, setUpdating] = useState(false);
+    // Danh sach day du (ke ca da ngung dung) de hien nhan nhom phan anh dung
+    // ten quan tri duoc, thay vi bang tinh NHOM_PHAN_ANH_LABEL - xem cung
+    // pattern trong ComplaintListPage.tsx.
+    const [complaintTypes, setComplaintTypes] = useState<
+        ComplaintTypeDefinition[]
+    >([]);
+    useEffect(() => {
+        fetchComplaintTypeDefinitions({ limit: 200 })
+            .then(res => setComplaintTypes(res.items))
+            .catch(() => {
+                /* giu fallback tinh (NHOM_PHAN_ANH_LABEL) neu goi API loi */
+            });
+    }, []);
+    const categoryLabel = (key: string) =>
+        complaintTypes.find(t => t.key === key)?.name ||
+        NHOM_PHAN_ANH_LABEL[key] ||
+        key;
 
     const [assigneeDialogOpen, setAssigneeDialogOpen] = useState(false);
     const [assigneeSearch, setAssigneeSearch] = useState("");
     const [assigneeStaff, setAssigneeStaff] = useState<AssignableStaff[]>([]);
     const [assigneeLoading, setAssigneeLoading] = useState(false);
     const [expectedCompletionDate, setExpectedCompletionDate] = useState("");
+    const [transferReason, setTransferReason] = useState("");
     const [assigning, setAssigning] = useState(false);
 
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Luong "Tiep nhan" / "Chon nguoi phu trach" - chi hien khi phan anh dang
+    // "moi_tiep_nhan", tach rieng khoi dialog "Phân công xử lý" o tren (giu
+    // nguyen card do khong doi, van dung endpoint /assign de tai phan cong).
+    const [receiving, setReceiving] = useState(false);
+    const [chooseDialogOpen, setChooseDialogOpen] = useState(false);
+    const [chooseSearch, setChooseSearch] = useState("");
+    const [chooseStaff, setChooseStaff] = useState<AssignableStaff[]>([]);
+    const [chooseLoading, setChooseLoading] = useState(false);
+    const [choosing, setChoosing] = useState(false);
+
+    // "Yeu cau bo sung thong tin" - chi hien cung nhom voi Tiep nhan/Chon
+    // nguoi phu trach (canAssign, "moi_tiep_nhan"), chuyen phan anh sang
+    // "can_bo_sung" thay vi tiep nhan/chon nguoi phu trach ngay.
+    const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+    const [infoContent, setInfoContent] = useState("");
+    const [requestingInfo, setRequestingInfo] = useState(false);
 
     const load = () => {
         if (!id) return;
@@ -96,7 +121,6 @@ const ComplaintDetailContent: React.FC = () => {
             .then(res => {
                 setComplaint(res.complaint);
                 setTimeline(res.timeline);
-                setNewStatus(res.complaint.status);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -115,6 +139,7 @@ const ComplaintDetailContent: React.FC = () => {
 
     useEffect(() => {
         if (!assigneeDialogOpen) return;
+        setTransferReason("");
         setAssigneeLoading(true);
         fetchAssignableStaff()
             .then(setAssigneeStaff)
@@ -127,28 +152,52 @@ const ComplaintDetailContent: React.FC = () => {
         s.displayName.toLowerCase().includes(assigneeSearch.toLowerCase()),
     );
 
-    const handleUpdateStatus = async () => {
-        if (!id || !newStatus) return;
+    useEffect(() => {
+        if (!chooseDialogOpen) return;
+        setChooseLoading(true);
+        fetchAssignableStaff()
+            .then(setChooseStaff)
+            .catch(() => setChooseStaff([]))
+            .finally(() => setChooseLoading(false));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chooseDialogOpen]);
+
+    const chooseResults = chooseStaff.filter(s =>
+        s.displayName.toLowerCase().includes(chooseSearch.toLowerCase()),
+    );
+
+    const handleRequestInfo = async () => {
+        if (!id) return;
+        if (!infoContent.trim()) {
+            toast.error("Vui lòng nhập thông tin cần bổ sung");
+            return;
+        }
         try {
-            setUpdating(true);
-            const updated = await updateComplaintStatus(id, {
-                status: newStatus,
-                note: note.trim() || undefined,
-                isPublic,
-            });
+            setRequestingInfo(true);
+            const updated = await requestComplaintInfo(
+                id,
+                infoContent.trim(),
+            );
             setComplaint(updated);
-            setNote("");
-            toast.success("Đã cập nhật trạng thái phản ánh");
+            setInfoDialogOpen(false);
+            setInfoContent("");
+            toast.success("Đã yêu cầu bổ sung thông tin");
             load();
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
-            setUpdating(false);
+            setRequestingInfo(false);
         }
     };
 
+    const wasAssigned = !!complaint?.assigneeId;
+
     const handleAssign = async (staff: AssignableStaff) => {
         if (!id) return;
+        if (wasAssigned && !transferReason.trim()) {
+            toast.error("Vui lòng nhập lý do khi đổi người phụ trách");
+            return;
+        }
         try {
             setAssigning(true);
             const updated = await assignComplaint(
@@ -157,14 +206,47 @@ const ComplaintDetailContent: React.FC = () => {
                 expectedCompletionDate
                     ? new Date(expectedCompletionDate).toISOString()
                     : undefined,
+                wasAssigned ? transferReason.trim() : undefined,
             );
             setComplaint(updated);
             setAssigneeDialogOpen(false);
+            setTransferReason("");
             toast.success(`Đã giao cho ${staff.displayName}`);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
             setAssigning(false);
+        }
+    };
+
+    const handleReceive = async () => {
+        if (!id) return;
+        try {
+            setReceiving(true);
+            const updated = await receiveComplaint(id);
+            setComplaint(updated);
+            toast.success("Đã tiếp nhận phản ánh");
+            load();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setReceiving(false);
+        }
+    };
+
+    const handleChoosePersonInCharge = async (staff: AssignableStaff) => {
+        if (!id) return;
+        try {
+            setChoosing(true);
+            const updated = await choosePersonInCharge(id, staff.id);
+            setComplaint(updated);
+            setChooseDialogOpen(false);
+            toast.success(`Đã chọn ${staff.displayName} phụ trách`);
+            load();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setChoosing(false);
         }
     };
 
@@ -215,7 +297,7 @@ const ComplaintDetailContent: React.FC = () => {
 
             {!loading && !error && complaint && (
                 <>
-                    <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {complaint.code}
@@ -256,7 +338,7 @@ const ComplaintDetailContent: React.FC = () => {
                             {complaint.title}
                         </div>
                         <div className="mt-1 text-xs text-text_2">
-                            {NHOM_PHAN_ANH_LABEL[complaint.category]}
+                            {categoryLabel(complaint.category)}
                             {complaint.area ? ` • ${complaint.area}` : ""}
                         </div>
                         <p className="mt-3 text-sm">{complaint.content}</p>
@@ -329,8 +411,46 @@ const ComplaintDetailContent: React.FC = () => {
                         canManage={false}
                     />
 
+                    {canAssign && complaint.canReceiveOrChooseAssignee && (
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
+                            <h2 className="mb-3 text-base font-semibold">
+                                Tiếp nhận phản ánh
+                            </h2>
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    loading={receiving}
+                                    onClick={handleReceive}
+                                >
+                                    Tiếp nhận
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setChooseDialogOpen(true)}
+                                >
+                                    Chọn người phụ trách
+                                </Button>
+                                {/* Yeu cau bo sung thong tin: chi con dung
+                                duoc khi phan anh CON dang "moi_tiep_nhan"
+                                (backend requestComplaintInfo van gioi han
+                                nhu vay) - khac Tiep nhan/Chon nguoi phu
+                                trach, co the lap lai qua nhieu vong doi cua
+                                phan anh (xem canReceiveOrChooseAssignee). */}
+                                {complaint.status === "moi_tiep_nhan" && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            setInfoDialogOpen(true)
+                                        }
+                                    >
+                                        Yêu cầu bổ sung thông tin
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {canAssign && (
-                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                             <h2 className="mb-3 text-base font-semibold">
                                 Phân công xử lý
                             </h2>
@@ -361,73 +481,7 @@ const ComplaintDetailContent: React.FC = () => {
                         </div>
                     )}
 
-                    {canUpdateStatus && (
-                        <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
-                            <h2 className="mb-3 text-base font-semibold">
-                                Cập nhật trạng thái
-                            </h2>
-                            <Select
-                                value={newStatus}
-                                onValueChange={v =>
-                                    setNewStatus(v as TrangThaiPhanAnh)
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Trạng thái mới" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {(
-                                        Object.entries(
-                                            TRANG_THAI_PHAN_ANH_LABEL,
-                                        ) as [TrangThaiPhanAnh, string][]
-                                    )
-                                        // "hoan_thanh" chi nguoi gui phan anh
-                                        // moi duoc xac nhan (xem
-                                        // confirmComplaintResolution o
-                                        // backend) - nhan vien khong chon
-                                        // duoc trang thai nay o day.
-                                        .filter(
-                                            ([key]) => key !== "hoan_thanh",
-                                        )
-                                        .map(([key, label]) => (
-                                            <SelectItem key={key} value={key}>
-                                                {label}
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                            <Textarea
-                                className="mt-3"
-                                placeholder="Nội dung cập nhật, phản hồi cho người dân..."
-                                value={note}
-                                onChange={e => setNote(e.target.value)}
-                            />
-                            <label
-                                htmlFor="isPublic"
-                                className="mt-3 flex items-center gap-2 text-sm"
-                            >
-                                <Checkbox
-                                    id="isPublic"
-                                    checked={isPublic}
-                                    onCheckedChange={checked =>
-                                        setIsPublic(checked === true)
-                                    }
-                                />
-                                Công khai cho người dân
-                            </label>
-                            <div className="mt-3">
-                                <Button
-                                    loading={updating}
-                                    disabled={!newStatus}
-                                    onClick={handleUpdateStatus}
-                                >
-                                    Cập nhật trạng thái
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-3 text-base font-semibold">
                             Lịch sử xử lý
                         </h2>
@@ -505,6 +559,18 @@ const ComplaintDetailContent: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle>Chọn người phụ trách</DialogTitle>
                     </DialogHeader>
+                    {wasAssigned && (
+                        <div className="space-y-1.5">
+                            <label className="text-sm text-text_2">
+                                Lý do đổi người phụ trách
+                            </label>
+                            <Textarea
+                                placeholder="Bắt buộc khi đổi người phụ trách hiện tại"
+                                value={transferReason}
+                                onChange={e => setTransferReason(e.target.value)}
+                            />
+                        </div>
+                    )}
                     <Input
                         placeholder="Tìm theo tên cán bộ..."
                         value={assigneeSearch}
@@ -520,7 +586,10 @@ const ComplaintDetailContent: React.FC = () => {
                                 <button
                                     key={u.id}
                                     type="button"
-                                    disabled={assigning}
+                                    disabled={
+                                        assigning ||
+                                        (wasAssigned && !transferReason.trim())
+                                    }
                                     className="block w-full border-b border-divider_01 py-2 text-left text-sm last:border-0 hover:bg-ng_10 disabled:opacity-50"
                                     onClick={() => handleAssign(u)}
                                 >
@@ -528,6 +597,70 @@ const ComplaintDetailContent: React.FC = () => {
                                 </button>
                             ))}
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={chooseDialogOpen} onOpenChange={setChooseDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Chọn người phụ trách</DialogTitle>
+                    </DialogHeader>
+                    <Input
+                        placeholder="Tìm theo tên cán bộ..."
+                        value={chooseSearch}
+                        onChange={e => setChooseSearch(e.target.value)}
+                    />
+                    <div className="max-h-80 overflow-y-auto">
+                        {chooseLoading && <LoadingState />}
+                        {!chooseLoading && chooseResults.length === 0 && (
+                            <EmptyState label="Không tìm thấy cán bộ phù hợp" />
+                        )}
+                        {!chooseLoading &&
+                            chooseResults.map(u => (
+                                <button
+                                    key={u.id}
+                                    type="button"
+                                    disabled={choosing}
+                                    className="block w-full border-b border-divider_01 py-2 text-left text-sm last:border-0 hover:bg-ng_10 disabled:opacity-50"
+                                    onClick={() => handleChoosePersonInCharge(u)}
+                                >
+                                    {u.displayName}
+                                </button>
+                            ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Yêu cầu bổ sung thông tin</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-1.5">
+                        <label className="text-sm text-text_2">
+                            Thông tin cần người gửi bổ sung
+                        </label>
+                        <Textarea
+                            placeholder="Ví dụ: Vui lòng cung cấp ảnh chụp vị trí cụ thể..."
+                            value={infoContent}
+                            onChange={e => setInfoContent(e.target.value)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setInfoDialogOpen(false)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            loading={requestingInfo}
+                            disabled={!infoContent.trim()}
+                            onClick={handleRequestInfo}
+                        >
+                            Gửi yêu cầu
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

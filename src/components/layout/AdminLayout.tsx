@@ -1,13 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Menu, X } from "lucide-react";
+import {
+    ChevronDown,
+    KeyRound,
+    LogOut,
+    Menu,
+    Moon,
+    Sun,
+    User,
+    X,
+} from "lucide-react";
 import { useAuthStore } from "@store/authStore";
+import { useThemeStore } from "@store/themeStore";
 import { ROLE_LABEL } from "@constants/domain";
 import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
 import AppBrand from "./AppBrand";
+import ProfileDialog from "./ProfileDialog";
+import ChangePasswordDialog from "./ChangePasswordDialog";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -46,7 +58,11 @@ const AdminLayout: React.FC = () => {
     const location = useLocation();
     const user = useAuthStore(state => state.user);
     const storeLogout = useAuthStore(state => state.logout);
+    const theme = useThemeStore(state => state.theme);
+    const toggleTheme = useThemeStore(state => state.toggleTheme);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [profileOpen, setProfileOpen] = useState(false);
+    const [changePasswordOpen, setChangePasswordOpen] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
         loadExpandedGroups,
     );
@@ -112,7 +128,7 @@ const AdminLayout: React.FC = () => {
 
             <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 z-40 flex w-64 flex-shrink-0 flex-col border-r border-divider_01 bg-white transition-transform duration-200 ease-in-out",
+                    "fixed inset-y-0 left-0 z-40 flex w-80 flex-shrink-0 flex-col border-r border-divider_01 bg-ui_bg transition-transform duration-200 ease-in-out",
                     "lg:static lg:translate-x-0",
                     sidebarOpen ? "translate-x-0" : "-translate-x-full",
                 )}
@@ -199,7 +215,7 @@ const AdminLayout: React.FC = () => {
             </aside>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-                <header className="flex h-14 flex-shrink-0 items-center justify-between gap-2 border-b border-divider_01 bg-white px-4">
+                <header className="flex h-16 flex-shrink-0 items-center gap-2 border-b border-divider_01 bg-ui_bg px-4 shadow-sm">
                     <button
                         type="button"
                         className="rounded-md p-1.5 text-text_2 hover:bg-ng_10 lg:hidden"
@@ -208,23 +224,67 @@ const AdminLayout: React.FC = () => {
                         <Menu className="h-5 w-5" />
                     </button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="ml-auto flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            onClick={toggleTheme}
+                            title={
+                                theme === "dark"
+                                    ? "Chuyển sang chế độ sáng"
+                                    : "Chuyển sang chế độ tối"
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-full text-text_2 transition-colors hover:bg-ng_10 hover:text-main"
+                        >
+                            {theme === "dark" ? (
+                                <Sun className="h-[18px] w-[18px]" />
+                            ) : (
+                                <Moon className="h-[18px] w-[18px]" />
+                            )}
+                        </button>
+
                         <NotificationBell />
+
+                        <span className="mx-1 h-6 w-px bg-divider_01" />
+
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-ng_10">
-                                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue_10 text-xs font-semibold text-main">
+                            <DropdownMenuTrigger className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm transition-colors hover:bg-ng_10">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-main to-primary-dark text-xs font-semibold text-white ring-2 ring-blue_10">
                                     {user?.displayName
                                         ?.charAt(0)
                                         ?.toUpperCase() || "?"}
                                 </div>
-                                <span className="font-medium">
-                                    {user?.displayName}
+                                <span className="hidden flex-col items-start leading-tight sm:flex">
+                                    <span className="font-semibold text-text_1">
+                                        {user?.displayName}
+                                    </span>
+                                    <span className="text-xs text-text_3">
+                                        {user
+                                            ? ROLE_LABEL[user.primaryRole]
+                                            : ""}
+                                    </span>
                                 </span>
+                                <ChevronDown className="h-3.5 w-3.5 text-text_3" />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>
-                                    {user ? ROLE_LABEL[user.primaryRole] : ""}
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel className="flex flex-col">
+                                    <span className="font-semibold text-text_1">
+                                        {user?.displayName}
+                                    </span>
+                                    <span className="text-xs font-normal text-text_3">
+                                        {user ? ROLE_LABEL[user.primaryRole] : ""}
+                                    </span>
                                 </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                                    <User className="mr-2 h-4 w-4" />
+                                    Hồ sơ của tôi
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => setChangePasswordOpen(true)}
+                                >
+                                    <KeyRound className="mr-2 h-4 w-4" />
+                                    Đổi mật khẩu
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleLogout}>
                                     <LogOut className="mr-2 h-4 w-4" />
@@ -239,6 +299,12 @@ const AdminLayout: React.FC = () => {
                     <Outlet />
                 </main>
             </div>
+
+            <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+            <ChangePasswordDialog
+                open={changePasswordOpen}
+                onOpenChange={setChangePasswordOpen}
+            />
         </div>
     );
 };

@@ -20,7 +20,7 @@ import {
     RequestType,
     RoleRecord,
 } from "@dts";
-import { fetchAssignableStaff } from "@service/userApi";
+import { fetchAssignableStaffByRoles } from "@service/userApi";
 import { fetchRoles } from "@service/roleApi";
 
 export interface RequestRecipientPickerProps {
@@ -40,9 +40,18 @@ export interface RequestRecipientPickerProps {
 
 /**
  * Chon nguoi nhan yeu cau - hai che do bo sung cho nhau (khong loai tru):
- * chon tung nguoi cu the, va/hoac chon theo loai nguoi dung (vai tro). Danh
- * sach nguoi/vai tro deu gioi han theo permission "{type}.assign" - chi nhung
- * ai du dieu kien nhan yeu cau loai nay moi hien ra (xem requestService.ts).
+ * chon tung nguoi cu the, va/hoac chon theo loai nguoi dung (vai tro). Ca hai
+ * deu gioi han theo CUNG mot danh sach eligibleRoleKeys (prop, lay tu
+ * meta.eligibleRolesByType[type] - xem requestService.getRequestMeta): voi
+ * loai xay dung san (pccc/security/other), day la cac vai tro co quyen
+ * "{type}.assign"; voi loai tuy chinh (RequestTypeDefinition, vd "mining"), day
+ * la allowedReceiverRoles khai bao tren chinh loai do. Truoc day tab "Nguoi
+ * dung cu the" tu goi rieng fetchAssignableStaff(`${type}.assign`) - permission
+ * nay CHI ton tai voi loai xay dung san, nen voi loai tuy chinh no goi mot
+ * permission khong ton tai (vd "mining.assign") va luon tra ve rong, khien tab
+ * nay luon trong dù tab "Loai nguoi dung" (dung eligibleRoleKeys) van hien thi
+ * dung. Sua bang cach dung chung eligibleRoleKeys (qua fetchAssignableStaffByRoles)
+ * cho ca hai tab.
  */
 const RequestRecipientPicker: React.FC<RequestRecipientPickerProps> = ({
     type,
@@ -65,11 +74,12 @@ const RequestRecipientPicker: React.FC<RequestRecipientPickerProps> = ({
 
     useEffect(() => {
         setLoadingStaff(true);
-        fetchAssignableStaff(`${type}.assign`)
+        fetchAssignableStaffByRoles(eligibleRoleKeys)
             .then(setStaff)
             .catch(() => setStaff([]))
             .finally(() => setLoadingStaff(false));
-    }, [type]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [eligibleRoleKeys.join(",")]);
 
     useEffect(() => {
         setLoadingRoles(true);

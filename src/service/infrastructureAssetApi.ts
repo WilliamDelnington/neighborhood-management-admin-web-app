@@ -1,5 +1,6 @@
-import { API } from "@constants/common";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
+    AnnouncementAttachment,
     InfrastructureAsset,
     InfrastructureAssetCondition,
     InfrastructureAssetType,
@@ -24,7 +25,7 @@ export const fetchInfrastructureAssets = (
         API.INFRASTRUCTURE_ASSETS,
         {
             page: params.page ?? 1,
-            limit: params.limit ?? 30,
+            limit: params.limit ?? DEFAULT_PAGE_SIZE,
             search: params.search,
             neighborhoodId: params.neighborhoodId,
             type: params.type,
@@ -70,3 +71,33 @@ export const updateInfrastructureAsset = (
 
 export const deleteInfrastructureAsset = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.INFRASTRUCTURE_ASSETS}/${id}`);
+
+export const fetchInfrastructureAssetAttachments = (
+    id: string,
+): Promise<AnnouncementAttachment[]> =>
+    request<AnnouncementAttachment[]>(
+        "GET",
+        `${API.INFRASTRUCTURE_ASSETS}/${id}/attachments`,
+    );
+
+export const uploadInfrastructureAssetAttachment = (
+    id: string,
+    file: File,
+): Promise<AnnouncementAttachment> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<AnnouncementAttachment>(
+        "POST",
+        `${API.INFRASTRUCTURE_ASSETS}/${id}/attachments`,
+        formData,
+    );
+};
+
+export const deleteInfrastructureAssetAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>(
+        "DELETE",
+        `${API.INFRASTRUCTURE_ASSETS}/${id}/attachments/${fileId}`,
+    );

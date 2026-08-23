@@ -12,7 +12,7 @@ const DigitalReadinessPage: React.FC = () => (
 );
 
 const Metric = ({ label, value }: { label: string; value: React.ReactNode }) => (
-    <div className="rounded-xl border border-divider_01 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
         <p className="text-xs text-text_2">{label}</p>
         <p className="mt-1 text-xl font-semibold">{value}</p>
     </div>
@@ -86,7 +86,7 @@ const DigitalReadinessContent: React.FC = () => {
                     <Link2 className="h-4 w-4 text-main" />
                     <h2 className="font-semibold">Kết nối API-First</h2>
                 </div>
-                <div className="overflow-hidden rounded-2xl border border-divider_01 bg-white shadow-sm">
+                <div className="overflow-hidden rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                     {data.providers.map(provider => (
                         <div
                             key={provider.code}
@@ -113,7 +113,7 @@ const DigitalReadinessContent: React.FC = () => {
                 </p>
             </section>
 
-            <section className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+            <section className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                 <div className="mb-2 flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-main" />
                     <h2 className="font-semibold">Bảo mật & pháp lý</h2>

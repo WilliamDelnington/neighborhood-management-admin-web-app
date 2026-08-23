@@ -14,6 +14,10 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import PageHeader from "@components/admin/PageHeader";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Meeting } from "@dts";
 import { fetchMeetings } from "@service/meetingApi";
 
@@ -38,35 +42,55 @@ const MeetingListContent: React.FC = () => {
     const canManage = usePermission("meetings.create");
 
     const [items, setItems] = useState<Meeting[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = () => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchMeetings(false)
-            .then(res => setItems(res.items))
+        fetchMeetings(false, targetPage, size)
+            .then(res => {
+                setItems(res.items);
+                setPage(res.page);
+                setTotalPages(res.totalPages);
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []);
+    useEffect(() => load(1), []);
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý cuộc họp</h1>
-                {canManage && (
-                    <Button onClick={() => navigate("/meetings/create")}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm mới
-                    </Button>
-                )}
+            <PageHeader
+                title="Quản lý cuộc họp"
+                description="Quản lý lịch và biên bản các cuộc họp."
+                action={
+                    canManage && (
+                        <Button onClick={() => navigate("/meetings/create")}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm mới
+                        </Button>
+                    )
+                }
+            />
+
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
-                {!loading && error && <ErrorState onRetry={load} />}
+                {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
                     <EmptyState label="Chưa có cuộc họp nào được tạo" />
                 )}
@@ -78,6 +102,7 @@ const MeetingListContent: React.FC = () => {
                                 <TableHead>Tên cuộc họp</TableHead>
                                 <TableHead>Thời gian / Địa điểm</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -104,12 +129,33 @@ const MeetingListContent: React.FC = () => {
                                             {m.published ? "Đã đăng" : "Nháp"}
                                         </Badge>
                                     </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/meetings/${m._id}/edit`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 )}
             </div>
+
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={load}
+                disabled={loading}
+            />
         </div>
     );
 };

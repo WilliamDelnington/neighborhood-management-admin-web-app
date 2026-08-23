@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
+import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
@@ -20,15 +21,19 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Business, VerificationStatus } from "@dts";
+import { Business, BusinessType, VerificationStatus } from "@dts";
 import { fetchBusinesses } from "@service/businessApi";
+import { fetchBusinessTypes } from "@service/businessTypeApi";
 
 const ALL_STATUS = "all";
+const ALL_BUSINESS_TYPE = "all";
 
 const BusinessListPage: React.FC = () => (
     <AdminGuard permissions={["businesses.read"]}>
@@ -53,19 +58,24 @@ const BusinessListContent: React.FC = () => {
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
+    const [businessType, setBusinessType] = useState("");
+    const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
     const [items, setItems] = useState<Business[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchBusinesses({
             page: targetPage,
+            limit: size,
             search: keyword,
             status: status || undefined,
+            businessType: businessType || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -80,20 +90,37 @@ const BusinessListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status]);
+    }, [search, status, businessType]);
+
+    useEffect(() => {
+        fetchBusinessTypes({ limit: 200, active: true })
+            .then(res => setBusinessTypes(res.items))
+            .catch(() => setBusinessTypes([]));
+    }, []);
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Hộ kinh doanh</h1>
-            </div>
+            <PageHeader
+                title="Hộ kinh doanh"
+                description="Quản lý hộ kinh doanh đăng ký hoạt động trên địa bàn."
+            />
 
-            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
-                <Input
-                    placeholder="Tìm theo tên hộ kinh doanh..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên hộ kinh doanh..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || ALL_STATUS}
                     onValueChange={v =>
@@ -119,9 +146,29 @@ const BusinessListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
+                <Select
+                    value={businessType || ALL_BUSINESS_TYPE}
+                    onValueChange={v =>
+                        setBusinessType(v === ALL_BUSINESS_TYPE ? "" : v)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả loại hình" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_BUSINESS_TYPE}>
+                            Tất cả loại hình
+                        </SelectItem>
+                        {businessTypes.map(bt => (
+                            <SelectItem key={bt._id} value={bt._id}>
+                                {bt.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -139,6 +186,7 @@ const BusinessListContent: React.FC = () => {
                                 <TableHead>Cụm</TableHead>
                                 <TableHead>Loại hình</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -153,7 +201,7 @@ const BusinessListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {b.name}
@@ -167,6 +215,22 @@ const BusinessListContent: React.FC = () => {
                                         <Badge tone={VERIFICATION_STATUS_TONE[b.status]}>
                                             {VERIFICATION_STATUS_LABEL[b.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/houses/${houseIdOf(b)}/businesses/${b._id}`,
+                                                )
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

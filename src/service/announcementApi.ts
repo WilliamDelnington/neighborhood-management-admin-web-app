@@ -34,10 +34,12 @@ export const fetchAdminAnnouncements = (
         admin: 1,
     });
 
+// KHONG dung useAuth:false - cung ly do nhu fetchMeetingDetail (meetingApi.ts):
+// ham nay chi duoc goi tu man soan/sua thong bao trong admin web app (luon da
+// dang nhap), can gui token de backend nhan dien la nhan vien (announcements.read)
+// va cho xem CA thong bao chua dang - thieu token se luon 404 voi ban nhap.
 export const fetchAnnouncementDetail = (id: string): Promise<Announcement> =>
-    request<Announcement>("GET", `${API.ANNOUNCEMENTS}/${id}`, undefined, {
-        useAuth: false,
-    });
+    request<Announcement>("GET", `${API.ANNOUNCEMENTS}/${id}`);
 
 export const createAnnouncement = (
     input: AnnouncementInput,

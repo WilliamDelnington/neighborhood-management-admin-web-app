@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
@@ -203,16 +204,17 @@ const SettingsContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Cài đặt</h1>
-            </div>
+            <PageHeader
+                title="Cài đặt"
+                description="Cấu hình chung của hệ thống."
+            />
 
             {loading && <LoadingState />}
             {!loading && error && <ErrorState onRetry={load} />}
 
             {!loading && !error && (
                 <>
-                    <div className="mb-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                    <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                         <h2 className="mb-2 text-sm font-semibold">
                             Logo ứng dụng
                         </h2>
@@ -275,7 +277,7 @@ const SettingsContent: React.FC = () => {
                     {entries.map(setting => (
                         <div
                             key={setting.key}
-                            className="mb-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm"
+                            className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm"
                         >
                             <h2 className="mb-2 text-sm font-semibold">
                                 {setting.key}
@@ -315,7 +317,7 @@ const SettingsContent: React.FC = () => {
                     ))}
 
                     {showAddForm ? (
-                        <div className="mb-3 rounded-2xl border border-divider_01 bg-white p-4 shadow-sm">
+                        <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                             <h2 className="mb-2 text-sm font-semibold">
                                 Thêm cấu hình mới
                             </h2>

@@ -37,6 +37,9 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import HeadOfHouseholdUserPicker from "@components/admin/HeadOfHouseholdUserPicker";
 import OrganizationRepresentativePanel from "@components/admin/OrganizationRepresentativePanel";
 import { AppError, Organization, ORGANIZATION_TYPE_LABEL, OrganizationType } from "@dts";
@@ -98,6 +101,7 @@ const OrganizationListContent: React.FC = () => {
     const [items, setItems] = useState<Organization[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -110,13 +114,14 @@ const OrganizationListContent: React.FC = () => {
         null,
     );
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchOrganizations({
             page: targetPage,
             search: search || undefined,
             active: active === "" ? undefined : active === "true",
+            limit: size,
         })
             .then(res => {
                 setItems(res.items);
@@ -197,19 +202,32 @@ const OrganizationListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Tổ chức (chủ nhà)</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>Thêm tổ chức</Button>
-                )}
-            </div>
+            <PageHeader
+                title="Tổ chức (chủ nhà)"
+                description="Quản lý các tổ chức đứng tên chủ sở hữu nhà thay vì cá nhân."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>Thêm tổ chức</Button>
+                    )
+                }
+            />
 
-            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
-                <Input
-                    placeholder="Tìm theo tên hoặc mã số thuế..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên hoặc mã số thuế..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={active || ACTIVE_ALL}
                     onValueChange={v =>
@@ -227,7 +245,7 @@ const OrganizationListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
@@ -242,6 +260,7 @@ const OrganizationListContent: React.FC = () => {
                                 <TableHead>Mã số thuế</TableHead>
                                 <TableHead>Người đại diện</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -252,7 +271,7 @@ const OrganizationListContent: React.FC = () => {
                                     onClick={() => canUpdate && openEditSheet(o)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * 20 + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {o.name}
@@ -271,6 +290,20 @@ const OrganizationListContent: React.FC = () => {
                                         <Badge tone={o.active ? "green" : "gray"}>
                                             {o.active ? "Hoạt động" : "Vô hiệu"}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        {canUpdate && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => openEditSheet(o)}
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -15,6 +15,7 @@ export interface BusinessInput {
     // id BusinessType, hoac null de bo chon.
     businessType?: string | null;
     ownerName?: string;
+    taxCode?: string;
     representativeUserId?: string | null;
     phone?: string;
     active?: boolean;
@@ -24,6 +25,7 @@ export interface BusinessInput {
 export const fetchBusinesses = (params?: {
     search?: string;
     status?: VerificationStatus;
+    businessType?: string;
     page?: number;
     limit?: number;
 }): Promise<PaginatedData<Business>> =>

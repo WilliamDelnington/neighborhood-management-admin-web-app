@@ -3,6 +3,8 @@ import { Download, Paperclip, Plus, RefreshCw, Trash2, Upload } from "lucide-rea
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { EmptyState, ErrorState, LoadingState } from "@components/admin/DataStates";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -31,7 +33,7 @@ import {
 } from "@components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs";
 import { Textarea } from "@components/ui/textarea";
-import { resolveAssetUrl } from "@constants/common";
+import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import {
     PERIODIC_REPORT_STATUS_LABEL,
     PERIODIC_REPORT_STATUS_TONE,
@@ -121,6 +123,7 @@ const PeriodicReportListContent: React.FC = () => {
     const [items, setItems] = useState<PeriodicReport[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [open, setOpen] = useState(false);
@@ -130,11 +133,16 @@ const PeriodicReportListContent: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [revisionNote, setRevisionNote] = useState("");
     const [uploading, setUploading] = useState(false);
+    // Bao cao chua duoc tao (chua co id) khong the goi uploadPeriodicReportAttachment
+    // ngay - file chon o man soan moi duoc giu tam o day, tai len ngay sau khi
+    // createPeriodicReport() thanh cong. Bat buoc phai co it nhat 1 file (khac
+    // Correspondence/InfrastructureAsset - tuy chon o hai noi do).
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchPeriodicReports({ page: targetPage, view })
+        fetchPeriodicReports({ page: targetPage, view, limit: size })
             .then(result => {
                 setItems(result.items);
                 setPage(result.page);
@@ -153,6 +161,7 @@ const PeriodicReportListContent: React.FC = () => {
         setSelected(null);
         setForm(EMPTY_FORM);
         setRevisionNote("");
+        setPendingFiles([]);
         setOpen(true);
         try {
             const nextContext = await fetchPeriodicReportContext();
@@ -207,6 +216,10 @@ const PeriodicReportListContent: React.FC = () => {
             toast.error("Vui lòng nhập kỳ, Tổ dân phố và nơi nhận cấp Phường");
             return;
         }
+        if (!selected && pendingFiles.length === 0) {
+            toast.error("Vui lòng đính kèm ít nhất một tệp báo cáo");
+            return;
+        }
         const payload = {
             type: form.type,
             periodStart: new Date(`${form.periodStart}T00:00:00`).toISOString(),
@@ -217,8 +230,29 @@ const PeriodicReportListContent: React.FC = () => {
         };
         try {
             setSaving(true);
-            if (selected) await updatePeriodicReport(selected._id, payload);
-            else await createPeriodicReport(payload);
+            if (selected) {
+                await updatePeriodicReport(selected._id, payload);
+            } else {
+                const created = await createPeriodicReport(payload);
+                let uploadFailures = 0;
+                for (const file of pendingFiles) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await uploadPeriodicReportAttachment(
+                        created._id,
+                        file,
+                    ).catch(() => {
+                        uploadFailures += 1;
+                    });
+                }
+                if (uploadFailures > 0) {
+                    toast.error(
+                        `Đã tạo bản nháp nhưng ${uploadFailures} tệp đính kèm tải lên thất bại - vui lòng thử lại`,
+                    );
+                    setOpen(false);
+                    load(page);
+                    return;
+                }
+            }
             toast.success("Đã lưu bản nháp và tổng hợp số liệu tự động");
             setOpen(false);
             load(page);
@@ -261,20 +295,29 @@ const PeriodicReportListContent: React.FC = () => {
                 <div><h1 className="text-lg font-semibold">Báo cáo Tổ dân phố</h1><p className="text-sm text-text_2">Số liệu nghiệp vụ được tổng hợp tự động; mỗi lần nộp tạo một phiên bản bất biến.</p></div>
                 {canAuthor && <Button onClick={() => void openCreate()}><Plus className="mr-1 h-4 w-4" /> Soạn báo cáo</Button>}
             </div>
-            <Tabs className="mb-4" value={view} onValueChange={value => setView(value as "mine" | "received")}>
-                <TabsList><TabsTrigger value="mine">Của tôi</TabsTrigger><TabsTrigger value="received">Phường nhận</TabsTrigger></TabsList>
-            </Tabs>
-            <div className="rounded-2xl border bg-white shadow-sm">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <Tabs value={view} onValueChange={value => setView(value as "mine" | "received")}>
+                    <TabsList><TabsTrigger value="mine">Của tôi</TabsTrigger><TabsTrigger value="received">Phường nhận</TabsTrigger></TabsList>
+                </Tabs>
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
+            <div className="rounded-lg border bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && <EmptyState label="Chưa có báo cáo" />}
                 {!loading && !error && items.length > 0 && (
-                    <Table><TableHeader><TableRow><TableHead className="w-12 text-center">STT</TableHead><TableHead>Loại</TableHead><TableHead>Tổ dân phố</TableHead><TableHead>Kỳ</TableHead><TableHead>{view === "mine" ? "Nơi nhận" : "Tác giả"}</TableHead><TableHead>Phiên bản</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
-                        <TableBody>{items.map((report, index) => <TableRow key={report._id} className="cursor-pointer" onClick={() => void openDetail(report)}><TableCell className="text-center text-text_2">{(page - 1) * 20 + index + 1}</TableCell><TableCell className="font-medium">{PERIODIC_REPORT_TYPE_LABEL[report.type]}</TableCell><TableCell>{refName(report.neighborhoodId)}</TableCell><TableCell>{toDateInput(report.periodStart)} → {toDateInput(report.periodEnd)}</TableCell><TableCell>{view === "mine" ? refName(report.submittedToUserId) : refName(report.authorUserId)}</TableCell><TableCell>v{report.currentVersion || 0}</TableCell><TableCell><Badge tone={PERIODIC_REPORT_STATUS_TONE[report.status]}>{PERIODIC_REPORT_STATUS_LABEL[report.status]}</Badge></TableCell></TableRow>)}</TableBody>
+                    <Table><TableHeader><TableRow><TableHead className="w-12 text-center">STT</TableHead><TableHead>Loại</TableHead><TableHead>Tổ dân phố</TableHead><TableHead>Kỳ</TableHead><TableHead>{view === "mine" ? "Nơi nhận" : "Tác giả"}</TableHead><TableHead>Phiên bản</TableHead><TableHead>Trạng thái</TableHead><TableHead className="text-right">Thao tác</TableHead></TableRow></TableHeader>
+                        <TableBody>{items.map((report, index) => <TableRow key={report._id} className="cursor-pointer" onClick={() => void openDetail(report)}><TableCell className="text-center text-text_2">{(page - 1) * pageSize + index + 1}</TableCell><TableCell className="font-medium">{PERIODIC_REPORT_TYPE_LABEL[report.type]}</TableCell><TableCell>{refName(report.neighborhoodId)}</TableCell><TableCell>{toDateInput(report.periodStart)} → {toDateInput(report.periodEnd)}</TableCell><TableCell>{view === "mine" ? refName(report.submittedToUserId) : refName(report.authorUserId)}</TableCell><TableCell>v{report.currentVersion || 0}</TableCell><TableCell><Badge tone={PERIODIC_REPORT_STATUS_TONE[report.status]}>{PERIODIC_REPORT_STATUS_LABEL[report.status]}</Badge></TableCell><TableCell className="text-right" onClick={e => e.stopPropagation()}><Button size="sm" variant="outline" onClick={() => void openDetail(report)}>Chi tiết</Button></TableCell></TableRow>)}</TableBody>
                     </Table>
                 )}
             </div>
-            {totalPages > 1 && <div className="mt-3 flex justify-end gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => load(page - 1)}>Trước</Button><span className="py-2 text-sm">{page}/{totalPages}</span><Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => load(page + 1)}>Sau</Button></div>}
+            <Pagination page={page} totalPages={totalPages} onPageChange={load} disabled={loading} />
 
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetContent className="sm:max-w-3xl">
@@ -293,7 +336,42 @@ const PeriodicReportListContent: React.FC = () => {
 
                         {([['generalSituation', 'Tình hình chung'], ['highlights', 'Vấn đề nổi bật'], ['recommendations', 'Kiến nghị'], ['proposals', 'Đề xuất']] as [keyof PeriodicReportSections, string][]).map(([key, label]) => <div key={key}><Label>{label}</Label><Textarea className="mt-1" disabled={!!selected && !canEdit} value={form.sections[key] || ""} onChange={event => setForm(current => ({ ...current, sections: { ...current.sections, [key]: event.target.value } }))} /></div>)}
 
-                        {selected && <section className="rounded-lg border p-3"><div className="mb-2 flex items-center justify-between"><h3 className="font-medium">Tệp đính kèm</h3>{canEdit && <label className="cursor-pointer"><input type="file" className="hidden" disabled={uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /><span className="inline-flex items-center text-sm text-main"><Upload className="mr-1 h-4 w-4" /> {uploading ? "Đang tải..." : "Tải lên"}</span></label>}</div>{!selected.attachments?.length ? <p className="text-sm text-text_2">Chưa có tệp</p> : selected.attachments.map(file => <div key={file._id} className="flex items-center justify-between border-t py-2 text-sm"><a className="flex items-center gap-2 text-main hover:underline" href={resolveAssetUrl(file.url)} target="_blank" rel="noreferrer"><Paperclip className="h-4 w-4" />{file.name}</a>{canEdit && <Button size="icon" variant="ghost" onClick={() => void action(() => deletePeriodicReportAttachment(selected._id, file._id), "Đã xóa tệp")}><Trash2 className="h-4 w-4" /></Button>}</div>)}</section>}
+                        {selected ? (
+                            <section className="rounded-lg border p-3"><div className="mb-2 flex items-center justify-between"><h3 className="font-medium">Tệp đính kèm</h3>{canEdit && <label className="cursor-pointer"><input type="file" className="hidden" disabled={uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /><span className="inline-flex items-center text-sm text-main"><Upload className="mr-1 h-4 w-4" /> {uploading ? "Đang tải..." : "Tải lên"}</span></label>}</div>{!selected.attachments?.length ? <p className="text-sm text-text_2">Chưa có tệp</p> : selected.attachments.map(file => <div key={file._id} className="flex items-center justify-between border-t py-2 text-sm"><a className="flex items-center gap-2 text-main hover:underline" href={resolveAssetUrl(file.url)} target="_blank" rel="noreferrer"><Paperclip className="h-4 w-4" />{file.name}</a>{canEdit && <Button size="icon" variant="ghost" onClick={() => void action(() => deletePeriodicReportAttachment(selected._id, file._id), "Đã xóa tệp")}><Trash2 className="h-4 w-4" /></Button>}</div>)}</section>
+                        ) : (
+                            <section className="rounded-lg border p-3">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <h3 className="font-medium">Tệp đính kèm (bắt buộc)</h3>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            onChange={event => {
+                                                const file = event.target.files?.[0];
+                                                if (file) setPendingFiles(prev => [...prev, file]);
+                                                event.target.value = "";
+                                            }}
+                                        />
+                                        <span className="inline-flex items-center text-sm text-main">
+                                            <Upload className="mr-1 h-4 w-4" /> Tải lên
+                                        </span>
+                                    </label>
+                                </div>
+                                <p className="mb-2 text-xs text-text_2">Tệp chọn ở đây sẽ được tải lên ngay sau khi lưu bản nháp.</p>
+                                {pendingFiles.length === 0 ? (
+                                    <p className="text-sm text-text_2">Chưa có tệp</p>
+                                ) : (
+                                    pendingFiles.map((file, index) => (
+                                        <div key={`${file.name}-${index}`} className="flex items-center justify-between border-t py-2 text-sm">
+                                            <span className="flex items-center gap-2"><Paperclip className="h-4 w-4" />{file.name}</span>
+                                            <Button size="icon" variant="ghost" onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== index))}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ))
+                                )}
+                            </section>
+                        )}
 
                         {selected?.versions && selected.versions.length > 0 && <section><h3 className="mb-2 font-medium">Lịch sử phiên bản đã nộp</h3>{selected.versions.map(version => <div key={version._id} className="flex items-center justify-between border-b py-2 text-sm"><span>v{version.version} - {new Date(version.submittedAt).toLocaleString("vi-VN")}</span>{canExport && <Button size="sm" variant="outline" onClick={() => void downloadPeriodicReportPdf(selected._id, version.version)}><Download className="mr-1 h-4 w-4" /> PDF</Button>}</div>)}</section>}
 

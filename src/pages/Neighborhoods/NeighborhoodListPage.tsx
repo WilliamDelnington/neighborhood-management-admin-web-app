@@ -30,7 +30,10 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { usePermission } from "@store/authStore";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Neighborhood, NeighborhoodStatus, Street, User } from "@dts";
 import { createNeighborhood, fetchNeighborhoods } from "@service/neighborhoodApi";
 import { fetchStreets } from "@service/streetApi";
@@ -72,6 +75,7 @@ const NeighborhoodListContent: React.FC = () => {
     const [items, setItems] = useState<Neighborhood[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -82,13 +86,13 @@ const NeighborhoodListContent: React.FC = () => {
     );
     const [submitting, setSubmitting] = useState(false);
 
-    const load = (targetPage = 1, keyword = search) => {
+    const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchNeighborhoods({
             page: targetPage,
             search: keyword,
-            limit: 30,
+            limit: size,
             status: status || undefined,
             streetId: streetId || undefined,
             filterLeaderUserId: leaderId || undefined,
@@ -143,22 +147,35 @@ const NeighborhoodListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Tổ dân phố</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm tổ dân phố
-                    </Button>
-                )}
-            </div>
+            <PageHeader
+                title="Tổ dân phố"
+                description="Quản lý các tổ dân phố và cán bộ phụ trách trong từng khu vực."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm tổ dân phố
+                        </Button>
+                    )
+                }
+            />
 
             <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <Input
-                    placeholder="Tìm theo tên hoặc mã tổ dân phố..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên hoặc mã tổ dân phố..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || STATUS_ALL}
                     onValueChange={v => setStatus(v === STATUS_ALL ? "" : v as NeighborhoodStatus)}
@@ -208,7 +225,7 @@ const NeighborhoodListContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="overflow-x-auto rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, search)} />
@@ -231,6 +248,7 @@ const NeighborhoodListContent: React.FC = () => {
                                 <TableHead>Nhiệm kỳ</TableHead>
                                 <TableHead>Số nhà</TableHead>
                                 <TableHead>Hồ sơ</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -243,7 +261,7 @@ const NeighborhoodListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * 30 + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {n.code}
@@ -288,6 +306,20 @@ const NeighborhoodListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell>{n.houseCount}</TableCell>
                                     <TableCell>{n.attachmentCount || 0}</TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/neighborhoods/${n._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

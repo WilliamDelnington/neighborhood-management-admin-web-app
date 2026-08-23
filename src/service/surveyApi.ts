@@ -1,4 +1,4 @@
-import { API } from "@constants/common";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AuditLogRecord,
     PaginatedData,
@@ -18,15 +18,26 @@ export interface SurveyInput {
     eligibleNeighborhoodIds?: string[];
     eligibleBusinessTypeIds?: string[];
     resultSummary?: string;
+    // Nguoi duoc chu khao sat (nguoi tao) uy quyen cung chinh sua/mo/dong/xoa -
+    // moi id phai la tai khoan dang co quyen "surveys.update".
+    coEditorUserIds?: string[];
+}
+
+export interface SurveyAnswerInput {
+    questionId: string;
+    selectedOptions: string[];
+    otherText?: string;
 }
 
 export const fetchSurveys = (
     openOnly = false,
+    page = 1,
+    limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedData<Survey>> =>
     request<PaginatedData<Survey>>(
         "GET",
         API.SURVEYS,
-        { openOnly: openOnly ? 1 : undefined },
+        { openOnly: openOnly ? 1 : undefined, page, limit },
         { useAuth: false },
     );
 
@@ -48,6 +59,12 @@ export const openSurvey = (id: string): Promise<Survey> =>
 
 export const closeSurvey = (id: string): Promise<Survey> =>
     request<Survey>("POST", `${API.SURVEYS}/${id}/close`);
+
+export const respondToSurvey = (
+    id: string,
+    answers: SurveyAnswerInput[],
+): Promise<null> =>
+    request<null>("POST", `${API.SURVEYS}/${id}/respond`, { answers });
 
 export const fetchSurveyResults = (id: string): Promise<SurveyResults> =>
     request<SurveyResults>("GET", `${API.SURVEYS}/${id}/results`);

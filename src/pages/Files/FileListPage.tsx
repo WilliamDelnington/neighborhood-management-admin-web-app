@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ExternalLink, Plus } from "lucide-react";
+import { ExternalLink, Paperclip, Plus, Upload, X } from "lucide-react";
+import { cn } from "@lib/utils";
 import AdminGuard from "@components/auth/AdminGuard";
 import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
@@ -42,6 +43,8 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import { AppError, FileAsset, FileAssetCategory, RoleRecord } from "@dts";
 import {
@@ -61,6 +64,12 @@ const ALL_CATEGORIES = "all";
 
 const uploaderText = (uploadedBy: FileAsset["uploadedBy"]) =>
     typeof uploadedBy === "string" ? uploadedBy : uploadedBy.displayName;
+
+// File tai len truc tiep (khac voi dan URL ngoai, vd Google Drive) luon co
+// duong dan chua "/uploads/" (xem localUpload.ts saveUploadedFile phia
+// backend) - dung de quyet dinh hien thi nhu mot tep dinh kem thay vi mot o
+// nhap URL co the sua, vi sua tay duong dan file da tai len la vo nghia.
+const isUploadedAssetUrl = (url: string) => /\/uploads\//.test(url);
 
 const FileListPage: React.FC = () => (
     <AdminGuard permissions={["files.read"]}>
@@ -101,6 +110,7 @@ const FileListContent: React.FC = () => {
     const [items, setItems] = useState<FileAsset[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -116,14 +126,16 @@ const FileListContent: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [uploadMode, setUploadMode] = useState<"link" | "upload">("link");
     const [file, setFile] = useState<File | null>(null);
+    const [dragOver, setDragOver] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [toDelete, setToDelete] = useState<FileAsset | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchFileAssets({ page: targetPage, category: category || undefined })
+        fetchFileAssets({ page: targetPage, limit: size, category: category || undefined })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -184,13 +196,27 @@ const FileListContent: React.FC = () => {
         setSheetOpen(true);
     };
 
-    const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selected = e.target.files?.[0] || null;
+    const applySelectedFile = (selected: File | null) => {
         setFile(selected);
         if (selected && !form.name.trim()) {
             setForm(prev => ({ ...prev, name: selected.name }));
         }
     };
+
+    const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+        applySelectedFile(e.target.files?.[0] || null);
+    };
+
+    const handleFileDrop = (e: React.DragEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setDragOver(false);
+        applySelectedFile(e.dataTransfer.files?.[0] || null);
+    };
+
+    const formatFileSize = (bytes: number) =>
+        bytes < 1024 * 1024
+            ? `${(bytes / 1024).toFixed(0)} KB`
+            : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
     const toggleTargetRole = (key: string, checked: boolean) => {
         setForm(prev => ({
@@ -264,6 +290,8 @@ const FileListContent: React.FC = () => {
         }
     };
 
+    const editingIsUploadedFile = !!editing && isUploadedAssetUrl(editing.url);
+
     const isFormValid =
         form.name.trim() &&
         (!editing && uploadMode === "upload" ? !!file : form.url.trim()) &&
@@ -271,14 +299,27 @@ const FileListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Biểu mẫu &amp; tệp tin</h1>
-                {canCreate && (
-                    <Button onClick={openCreateSheet}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm tệp
-                    </Button>
-                )}
+            <PageHeader
+                title="Biểu mẫu & tệp tin"
+                description="Quản lý biểu mẫu và tệp tin dùng chung."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreateSheet}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm tệp
+                        </Button>
+                    )
+                }
+            />
+
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
             </div>
 
             <Select
@@ -303,7 +344,7 @@ const FileListContent: React.FC = () => {
                 </SelectContent>
             </Select>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
@@ -480,35 +521,101 @@ const FileListContent: React.FC = () => {
                                     </div>
                                 </div>
                             )}
-                            {(editing || uploadMode === "link") && (
+                            {editing && editingIsUploadedFile && (
                                 <div className="space-y-1.5">
-                                    <Label>Đường dẫn (URL)</Label>
-                                    <Input
-                                        placeholder="https://drive.google.com/..."
-                                        value={form.url}
-                                        onChange={e =>
-                                            setForm(prev => ({
-                                                ...prev,
-                                                url: e.target.value,
-                                            }))
-                                        }
-                                    />
+                                    <Label>Tệp đính kèm</Label>
+                                    <a
+                                        href={resolveAssetUrl(form.url)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center gap-2 rounded-lg border border-divider_01 p-2 text-sm text-primary hover:underline"
+                                    >
+                                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                                        {form.name || "Xem tệp đã tải lên"}
+                                    </a>
                                 </div>
                             )}
+                            {(!editing || !editingIsUploadedFile) &&
+                                (editing || uploadMode === "link") && (
+                                    <div className="space-y-1.5">
+                                        <Label>Đường dẫn (URL)</Label>
+                                        <Input
+                                            placeholder="https://drive.google.com/..."
+                                            value={form.url}
+                                            onChange={e =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    url: e.target.value,
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                )}
                             {!editing && uploadMode === "upload" && (
                                 <div className="space-y-1.5">
                                     <Label>Tệp đính kèm</Label>
                                     <input
+                                        ref={fileInputRef}
                                         type="file"
                                         accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx"
                                         onChange={handleFileSelected}
-                                        className="block w-full text-sm text-text_2"
+                                        className="hidden"
                                     />
-                                    {file && (
-                                        <p className="text-xs text-text_2">
-                                            {file.name} (
-                                            {(file.size / 1024).toFixed(0)} KB)
-                                        </p>
+                                    {file ? (
+                                        <div className="flex items-center gap-3 rounded-lg border border-divider_01 bg-ng_10 p-3">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue_10">
+                                                <Paperclip className="h-4 w-4 text-main" />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate text-sm font-medium text-text_1">
+                                                    {file.name}
+                                                </p>
+                                                <p className="text-xs text-text_2">
+                                                    {formatFileSize(file.size)}
+                                                </p>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 shrink-0"
+                                                onClick={() => {
+                                                    applySelectedFile(null);
+                                                    if (fileInputRef.current) {
+                                                        fileInputRef.current.value = "";
+                                                    }
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            onDragOver={e => {
+                                                e.preventDefault();
+                                                setDragOver(true);
+                                            }}
+                                            onDragLeave={() => setDragOver(false)}
+                                            onDrop={handleFileDrop}
+                                            className={cn(
+                                                "flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
+                                                dragOver
+                                                    ? "border-main bg-blue_10"
+                                                    : "border-divider_01 hover:border-main/50 hover:bg-ng_10",
+                                            )}
+                                        >
+                                            <Upload className="h-6 w-6 text-text_2" />
+                                            <p className="text-sm font-medium text-text_1">
+                                                Kéo thả tệp vào đây hoặc bấm để
+                                                chọn
+                                            </p>
+                                            <p className="text-xs text-text_2">
+                                                JPG, PNG, PDF, DOC, DOCX, XLS,
+                                                XLSX
+                                            </p>
+                                        </button>
                                     )}
                                 </div>
                             )}

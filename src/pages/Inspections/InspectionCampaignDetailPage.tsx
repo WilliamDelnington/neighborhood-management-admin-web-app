@@ -5,8 +5,11 @@ import {
     Bell,
     Lock,
     Play,
+    Plus,
     RotateCcw,
+    Save,
     Send,
+    Trash2,
     UserRoundCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -14,9 +17,13 @@ import AdminGuard from "@components/auth/AdminGuard";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { Badge, type BadgeTone } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { Checkbox } from "@components/ui/checkbox";
+import { Input } from "@components/ui/input";
+import { Label } from "@components/ui/label";
+import { Textarea } from "@components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -36,6 +43,8 @@ import type {
     AppError,
     AssignableStaff,
     InspectionCampaign,
+    InspectionChecklistInputType,
+    InspectionChecklistItem,
     InspectionResultStatus,
     InspectionTarget,
 } from "@dts";
@@ -49,6 +58,8 @@ import {
     sendInspectionForm,
     submitInspectionToWard,
     transitionInspectionCampaign,
+    updateInspectionCampaignChecklist,
+    updateInspectionCampaignDetails,
 } from "@service/inspectionApi";
 
 const RESULT_STATUS: Record<InspectionResultStatus, { label: string; tone: BadgeTone }> = {
@@ -59,6 +70,28 @@ const RESULT_STATUS: Record<InspectionResultStatus, { label: string; tone: Badge
     REQUEST_REVISION: { label: "Cần bổ sung", tone: "red" },
     FIELD_CHECK_REQUIRED: { label: "Cần kiểm tra thực địa", tone: "yellow" },
 };
+
+const INPUT_TYPE_LABEL: Record<InspectionChecklistInputType, string> = {
+    BOOLEAN: "Có / Không",
+    TEXT: "Văn bản",
+    NUMBER: "Số",
+    SINGLE_SELECT: "Chọn một",
+    MULTI_SELECT: "Chọn nhiều",
+};
+
+const newItemId = () => {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return `item-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
+const emptyChecklistItem = (): InspectionChecklistItem => ({
+    itemId: newItemId(),
+    label: "",
+    inputType: "BOOLEAN",
+    required: true,
+});
 
 const houseOf = (target: InspectionTarget) =>
     typeof target.houseId === "string" ? null : target.houseId;
@@ -80,6 +113,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
     const [targets, setTargets] = useState<InspectionTarget[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [filter, setFilter] = useState("ALL");
     const [selected, setSelected] = useState<string[]>([]);
     const [collaborators, setCollaborators] = useState<AssignableStaff[]>([]);
@@ -88,8 +122,13 @@ const InspectionCampaignDetailContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [working, setWorking] = useState(false);
+    const [checklist, setChecklist] = useState<InspectionChecklistItem[]>([]);
+    const [savingChecklist, setSavingChecklist] = useState(false);
+    const [name, setName] = useState("");
+    const [purpose, setPurpose] = useState("");
+    const [savingDetails, setSavingDetails] = useState(false);
 
-    const load = async (targetPage = 1) => {
+    const load = async (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         try {
@@ -98,11 +137,15 @@ const InspectionCampaignDetailContent: React.FC = () => {
                 fetchInspectionCampaign(id),
                 fetchInspectionTargets(id, {
                     page: targetPage,
+                    limit: size,
                     resultStatus: filter !== "ALL" && !pendingFilters.includes(filter) ? filter : undefined,
                     pending: pendingFilters.includes(filter) ? filter : undefined,
                 }),
             ]);
             setCampaign(campaignData);
+            setChecklist(campaignData.checklistTemplate);
+            setName(campaignData.name);
+            setPurpose(campaignData.purpose);
             if (campaignData.availableNeighborhoods?.length === 1) {
                 setSubmissionNeighborhoodId(campaignData.availableNeighborhoods[0]._id);
             }
@@ -156,6 +199,68 @@ const InspectionCampaignDetailContent: React.FC = () => {
         );
     };
 
+    const handleSaveDetails = async () => {
+        if (name.trim().length < 3) {
+            toast.error("Tên chiến dịch quá ngắn");
+            return;
+        }
+        if (purpose.trim().length < 10) {
+            toast.error("Mục tiêu chiến dịch quá ngắn");
+            return;
+        }
+        try {
+            setSavingDetails(true);
+            await updateInspectionCampaignDetails(id, {
+                name: name.trim(),
+                purpose: purpose.trim(),
+            });
+            toast.success("Đã lưu tên và mục tiêu chiến dịch");
+            await load(page);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSavingDetails(false);
+        }
+    };
+
+    const updateChecklistItem = (
+        itemId: string,
+        patch: Partial<InspectionChecklistItem>,
+    ) => setChecklist(current => current.map(item =>
+        item.itemId === itemId ? { ...item, ...patch } : item,
+    ));
+
+    const handleSaveChecklist = async () => {
+        if (checklist.length === 0 || checklist.some(item => item.label.trim().length < 2)) {
+            toast.error("Checklist phải có ít nhất một mục hợp lệ");
+            return;
+        }
+        if (checklist.some(item =>
+            ["SINGLE_SELECT", "MULTI_SELECT"].includes(item.inputType) &&
+            (!item.options || item.options.length === 0),
+        )) {
+            toast.error("Các câu hỏi lựa chọn phải có phương án trả lời");
+            return;
+        }
+        try {
+            setSavingChecklist(true);
+            await updateInspectionCampaignChecklist(
+                id,
+                checklist.map(item => ({
+                    ...item,
+                    label: item.label.trim(),
+                    options: item.options?.map(option => option.trim()).filter(Boolean),
+                })),
+            );
+            toast.success("Đã lưu checklist");
+            await load(page);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSavingChecklist(false);
+        }
+    };
+
     if (loading && !campaign) return <LoadingState label="Đang tải chiến dịch..." />;
     if (error && !campaign) return <ErrorState onRetry={() => load(page)} />;
     if (!campaign) return null;
@@ -167,12 +272,42 @@ const InspectionCampaignDetailContent: React.FC = () => {
                     <ArrowLeft className="h-4 w-4" /> Quay lại danh sách
                 </Button>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h1 className="text-xl font-semibold">{campaign.name}</h1>
-                            <Badge tone={campaign.status === "ACTIVE" ? "blue" : "gray"}>{campaign.status}</Badge>
-                        </div>
-                        <p className="mt-2 max-w-3xl text-sm text-text_2">{campaign.purpose}</p>
+                    <div className="max-w-3xl flex-1">
+                        {campaign.status === "DRAFT" && canManage ? (
+                            <div className="space-y-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <Input
+                                        className="max-w-md text-xl font-semibold"
+                                        value={name}
+                                        onChange={event => setName(event.target.value)}
+                                    />
+                                    <Badge tone="gray">{campaign.status}</Badge>
+                                </div>
+                                <Textarea
+                                    value={purpose}
+                                    onChange={event => setPurpose(event.target.value)}
+                                />
+                                <Button
+                                    size="sm"
+                                    loading={savingDetails}
+                                    onClick={handleSaveDetails}
+                                    disabled={
+                                        name.trim() === campaign.name &&
+                                        purpose.trim() === campaign.purpose
+                                    }
+                                >
+                                    <Save className="h-4 w-4" /> Lưu tên và mục tiêu
+                                </Button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h1 className="text-xl font-semibold">{campaign.name}</h1>
+                                    <Badge tone={campaign.status === "ACTIVE" ? "blue" : "gray"}>{campaign.status}</Badge>
+                                </div>
+                                <p className="mt-2 max-w-3xl text-sm text-text_2">{campaign.purpose}</p>
+                            </>
+                        )}
                         <p className="mt-2 text-sm text-text_2">
                             Hạn: {new Date(campaign.dueAt).toLocaleDateString("vi-VN")}
                             {campaign.requiredEvidence ? " · Bắt buộc minh chứng" : ""}
@@ -269,7 +404,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
             </div>
 
             {canSubmitWard && (
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
                     <div className="text-sm font-semibold text-blue-900">
                         Nơi nhận báo cáo tổng hợp
                     </div>
@@ -308,6 +443,100 @@ const InspectionCampaignDetailContent: React.FC = () => {
                 </div>
             )}
 
+            {campaign.status === "DRAFT" && canManage && (
+                <section className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <h2 className="font-semibold">Checklist</h2>
+                            <p className="mt-1 text-xs text-text_2">
+                                Chỉnh sửa checklist khi chiến dịch còn ở bản nháp. Sau khi triển khai, Tổ dân phố không thể sửa.
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setChecklist(current => [...current, emptyChecklistItem()])}
+                        >
+                            <Plus className="h-4 w-4" /> Thêm mục
+                        </Button>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                        {checklist.map((item, index) => (
+                            <div key={item.itemId} className="rounded-lg border border-divider_01 p-4">
+                                <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+                                    <div>
+                                        <Label htmlFor={`checklist-${item.itemId}`}>Mục {index + 1}</Label>
+                                        <Input
+                                            id={`checklist-${item.itemId}`}
+                                            className="mt-2"
+                                            placeholder="Nội dung cần kiểm tra"
+                                            value={item.label}
+                                            onChange={event => updateChecklistItem(item.itemId, { label: event.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>Kiểu trả lời</Label>
+                                        <Select
+                                            value={item.inputType}
+                                            onValueChange={value => updateChecklistItem(item.itemId, {
+                                                inputType: value as InspectionChecklistInputType,
+                                                options: ["SINGLE_SELECT", "MULTI_SELECT"].includes(value)
+                                                    ? item.options || []
+                                                    : undefined,
+                                            })}
+                                        >
+                                            <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                {Object.entries(INPUT_TYPE_LABEL).map(([value, label]) => (
+                                                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="mt-6 text-red-500"
+                                        disabled={checklist.length === 1}
+                                        onClick={() => setChecklist(current => current.filter(row => row.itemId !== item.itemId))}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <div className="mt-3 flex items-center gap-2">
+                                    <Checkbox
+                                        id={`required-${item.itemId}`}
+                                        checked={item.required}
+                                        onCheckedChange={checked => updateChecklistItem(item.itemId, { required: checked === true })}
+                                    />
+                                    <Label htmlFor={`required-${item.itemId}`}>Bắt buộc trả lời</Label>
+                                </div>
+                                {["SINGLE_SELECT", "MULTI_SELECT"].includes(item.inputType) && (
+                                    <div className="mt-3">
+                                        <Label htmlFor={`options-${item.itemId}`}>Các phương án, cách nhau bằng dấu phẩy</Label>
+                                        <Input
+                                            id={`options-${item.itemId}`}
+                                            className="mt-2"
+                                            placeholder="Đạt, Chưa đạt, Không áp dụng"
+                                            value={(item.options || []).join(", ")}
+                                            onChange={event => updateChecklistItem(item.itemId, {
+                                                options: event.target.value.split(",").map(value => value.trim()),
+                                            })}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <Button loading={savingChecklist} onClick={handleSaveChecklist}>
+                            <Save className="h-4 w-4" /> Lưu checklist
+                        </Button>
+                    </div>
+                </section>
+            )}
+
             {summary && (
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                     {[
@@ -317,7 +546,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                         ["Chưa kiểm tra", summary.unchecked],
                         ["Cần bổ sung", summary.needsSupplement],
                     ].map(([label, value]) => (
-                        <div key={label} className="rounded-xl border border-divider_01 bg-white p-4 shadow-sm">
+                        <div key={label} className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                             <div className="text-2xl font-semibold">{value}</div>
                             <div className="mt-1 text-xs text-text_2">{label}</div>
                         </div>
@@ -325,21 +554,30 @@ const InspectionCampaignDetailContent: React.FC = () => {
                 </div>
             )}
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 <div className="flex flex-col gap-3 border-b border-divider_01 p-4 lg:flex-row lg:items-center lg:justify-between">
-                    <Select value={filter} onValueChange={setFilter}>
-                        <SelectTrigger className="w-full lg:w-56"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="ALL">Tất cả Nhà số</SelectItem>
-                            {Object.entries(RESULT_STATUS).map(([value, meta]) => (
-                                <SelectItem key={value} value={value}>{meta.label}</SelectItem>
-                            ))}
-                            <SelectItem value="not_sent">Chưa gửi tự khai</SelectItem>
-                            <SelectItem value="unopened">Chưa mở</SelectItem>
-                            <SelectItem value="not_submitted">Chưa submit</SelectItem>
-                            <SelectItem value="overdue">Quá hạn</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <Select value={filter} onValueChange={setFilter}>
+                            <SelectTrigger className="w-full lg:w-56"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="ALL">Tất cả Nhà số</SelectItem>
+                                {Object.entries(RESULT_STATUS).map(([value, meta]) => (
+                                    <SelectItem key={value} value={value}>{meta.label}</SelectItem>
+                                ))}
+                                <SelectItem value="not_sent">Chưa gửi tự khai</SelectItem>
+                                <SelectItem value="unopened">Chưa mở</SelectItem>
+                                <SelectItem value="not_submitted">Chưa submit</SelectItem>
+                                <SelectItem value="overdue">Quá hạn</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <PageSizeSelect
+                            value={pageSize}
+                            onChange={size => {
+                                setPageSize(size);
+                                load(1, size);
+                            }}
+                        />
+                    </div>
                     {canAssign && editable && (
                         <div className="flex flex-col gap-2 sm:flex-row">
                             <Select value={collaboratorId} onValueChange={setCollaboratorId}>
@@ -388,7 +626,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                                     return (
                                         <TableRow key={target._id}>
                                             <TableCell className="text-center text-text_2">
-                                                {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                                {(page - 1) * pageSize + index + 1}
                                             </TableCell>
                                             {canAssign && <TableCell>
                                                 <Checkbox

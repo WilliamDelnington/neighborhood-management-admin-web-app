@@ -95,6 +95,10 @@ const CorrespondenceFormContent: React.FC = () => {
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<
         string | null
     >(null);
+    // Van ban chua duoc tao (chua co id) khong the goi uploadCorrespondenceAttachment
+    // ngay (can relatedId that su) - file chon o man soan moi duoc giu tam o day,
+    // roi tai len ngay sau khi createCorrespondence() thanh cong trong handleSubmit.
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const loadDetail = () => {
@@ -221,13 +225,26 @@ const CorrespondenceFormContent: React.FC = () => {
                 navigate("/correspondences");
             } else {
                 const created = await createCorrespondence(input);
-                toast.success(
-                    "Đã tạo văn bản (bản nháp) - bạn có thể đính kèm tệp bên dưới",
-                );
-                // Chuyen sang trang sua (thay vi ve danh sach) de nguoi dung
-                // thay ngay muc "Tep dinh kem" - muc nay chi hien khi isEdit
-                // (can co id de gan file vao), nen o man tao moi se khong
-                // thay gi neu quay ve danh sach.
+                // Tai len ngay cac file da chon o man soan (pendingFiles) -
+                // chi co the goi API dinh kem SAU khi da co id that su. Dem
+                // rieng so loi de bao nguoi dung neu co file khong tai len
+                // duoc, thay vi im lang bo qua.
+                let uploadFailures = 0;
+                for (const file of pendingFiles) {
+                    // eslint-disable-next-line no-await-in-loop
+                    await uploadCorrespondenceAttachment(created._id, file).catch(
+                        () => {
+                            uploadFailures += 1;
+                        },
+                    );
+                }
+                if (uploadFailures > 0) {
+                    toast.error(
+                        `Đã tạo văn bản nhưng ${uploadFailures} tệp đính kèm tải lên thất bại - vui lòng thử lại ở trang sửa`,
+                    );
+                } else {
+                    toast.success("Đã tạo văn bản (bản nháp)");
+                }
                 navigate(`/correspondences/${created._id}/edit`);
             }
         } catch (err) {
@@ -258,7 +275,13 @@ const CorrespondenceFormContent: React.FC = () => {
     ) => {
         const file = e.target.files?.[0];
         e.target.value = "";
-        if (!file || !id) return;
+        if (!file) return;
+        // Chua co van ban (id) - chi giu tam file o local state, tai len that
+        // su sau khi tao van ban thanh cong (xem handleSubmit).
+        if (!id) {
+            setPendingFiles(prev => [...prev, file]);
+            return;
+        }
         try {
             setUploading(true);
             const asset = await uploadCorrespondenceAttachment(id, file);
@@ -269,6 +292,10 @@ const CorrespondenceFormContent: React.FC = () => {
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleRemovePendingFile = (index: number) => {
+        setPendingFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleDeleteAttachment = async (fileId: string) => {
@@ -300,7 +327,7 @@ const CorrespondenceFormContent: React.FC = () => {
                 </h1>
             </div>
 
-            <div className="max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+            <div className="max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                 {isEdit && loading && <LoadingState />}
                 {isEdit && !loading && loadError && (
                     <ErrorState onRetry={loadDetail} />
@@ -478,74 +505,105 @@ const CorrespondenceFormContent: React.FC = () => {
                             </div>
                         )}
 
-                        {isEdit && (
-                            <div className="mt-2 border-t border-divider_01 pt-4">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <h3 className="text-sm font-semibold">
-                                        Tệp đính kèm
-                                    </h3>
-                                    {canManage && status !== "da_gui" && (
+                        <div className="mt-2 border-t border-divider_01 pt-4">
+                            <div className="mb-3 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">
+                                    Tệp đính kèm
+                                </h3>
+                                {canManage && status !== "da_gui" && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        loading={uploading}
+                                        onClick={handleUploadClick}
+                                    >
+                                        <Upload className="mr-1 h-3.5 w-3.5" />
+                                        Tải lên
+                                    </Button>
+                                )}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    className="hidden"
+                                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                    onChange={handleFileSelected}
+                                />
+                            </div>
+                            {!isEdit && (
+                                <p className="mb-2 text-xs text-text_2">
+                                    Tệp chọn ở đây sẽ được tải lên ngay sau khi
+                                    lưu bản nháp.
+                                </p>
+                            )}
+                            {isEdit && attachmentsLoading && <LoadingState />}
+                            {isEdit &&
+                                !attachmentsLoading &&
+                                attachments.length === 0 &&
+                                pendingFiles.length === 0 && (
+                                    <EmptyState label="Chưa có file đính kèm" />
+                                )}
+                            {!isEdit && pendingFiles.length === 0 && (
+                                <EmptyState label="Chưa có file đính kèm" />
+                            )}
+                            {isEdit &&
+                                !attachmentsLoading &&
+                                attachments.map(a => (
+                                    <div
+                                        key={a._id}
+                                        className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
+                                    >
+                                        <a
+                                            href={resolveAssetUrl(a.url)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-2 text-primary hover:underline"
+                                        >
+                                            <Paperclip className="h-3.5 w-3.5" />
+                                            {a.name}
+                                        </a>
+                                        {canManage && status !== "da_gui" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="!text-red-500"
+                                                loading={
+                                                    deletingAttachmentId ===
+                                                    a._id
+                                                }
+                                                onClick={() =>
+                                                    handleDeleteAttachment(
+                                                        a._id,
+                                                    )
+                                                }
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                ))}
+                            {!isEdit &&
+                                pendingFiles.map((file, index) => (
+                                    <div
+                                        key={`${file.name}-${index}`}
+                                        className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <Paperclip className="h-3.5 w-3.5" />
+                                            {file.name}
+                                        </span>
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            loading={uploading}
-                                            onClick={handleUploadClick}
+                                            className="!text-red-500"
+                                            onClick={() =>
+                                                handleRemovePendingFile(index)
+                                            }
                                         >
-                                            <Upload className="mr-1 h-3.5 w-3.5" />
-                                            Tải lên
+                                            <Trash2 className="h-3.5 w-3.5" />
                                         </Button>
-                                    )}
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        className="hidden"
-                                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-                                        onChange={handleFileSelected}
-                                    />
-                                </div>
-                                {attachmentsLoading && <LoadingState />}
-                                {!attachmentsLoading &&
-                                    attachments.length === 0 && (
-                                        <EmptyState label="Chưa có file đính kèm" />
-                                    )}
-                                {!attachmentsLoading &&
-                                    attachments.map(a => (
-                                        <div
-                                            key={a._id}
-                                            className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
-                                        >
-                                            <a
-                                                href={resolveAssetUrl(a.url)}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center gap-2 text-primary hover:underline"
-                                            >
-                                                <Paperclip className="h-3.5 w-3.5" />
-                                                {a.name}
-                                            </a>
-                                            {canManage &&
-                                                status !== "da_gui" && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="!text-red-500"
-                                                    loading={
-                                                        deletingAttachmentId ===
-                                                        a._id
-                                                    }
-                                                    onClick={() =>
-                                                        handleDeleteAttachment(
-                                                            a._id,
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    ))}
-                            </div>
-                        )}
+                                    </div>
+                                ))}
+                        </div>
                     </div>
                 )}
             </div>

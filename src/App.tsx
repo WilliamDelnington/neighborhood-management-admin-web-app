@@ -60,6 +60,9 @@ const ComplaintListPage = React.lazy(
 const ComplaintDetailPage = React.lazy(
     () => import("@pages/Complaints/ComplaintDetailPage"),
 );
+const ComplaintTypeListPage = React.lazy(
+    () => import("@pages/ComplaintTypes/ComplaintTypeListPage"),
+);
 const SupportTicketListPage = React.lazy(
     () => import("@pages/SupportTickets/SupportTicketListPage"),
 );
@@ -88,11 +91,26 @@ const RequestListPage = React.lazy(
 const RequestTypeListPage = React.lazy(
     () => import("@pages/RequestTypes/RequestTypeListPage"),
 );
-const MyRequestsPage = React.lazy(
-    () => import("@pages/Requests/MyRequestsPage"),
-);
 const RequestHistoryPage = React.lazy(
     () => import("@pages/Requests/RequestHistoryPage"),
+);
+const AppointmentServiceListPage = React.lazy(
+    () => import("@pages/AppointmentServices/AppointmentServiceListPage"),
+);
+const AppointmentHolidayListPage = React.lazy(
+    () => import("@pages/AppointmentServices/AppointmentHolidayListPage"),
+);
+const AppointmentListPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentListPage"),
+);
+const AppointmentHistoryPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentHistoryPage"),
+);
+const AppointmentCheckInPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentCheckInPage"),
+);
+const AppointmentReportPage = React.lazy(
+    () => import("@pages/Appointments/AppointmentReportPage"),
 );
 const InspectionCampaignListPage = React.lazy(
     () => import("@pages/Inspections/InspectionCampaignListPage"),
@@ -121,6 +139,8 @@ const AnnouncementListPage = React.lazy(
 const AnnouncementFormPage = React.lazy(
     () => import("@pages/Announcements/AnnouncementFormPage"),
 );
+const NewsListPage = React.lazy(() => import("@pages/News/NewsListPage"));
+const NewsFormPage = React.lazy(() => import("@pages/News/NewsFormPage"));
 const CorrespondenceTypeListPage = React.lazy(
     () => import("@pages/CorrespondenceTypes/CorrespondenceTypeListPage"),
 );
@@ -177,9 +197,15 @@ const MiniAppFeaturesPage = React.lazy(
 const DocumentTypeListPage = React.lazy(
     () => import("@pages/DocumentTypes/DocumentTypeListPage"),
 );
+const RequiredDocumentSettingsPage = React.lazy(
+    () => import("@pages/RequiredDocuments/RequiredDocumentSettingsPage"),
+);
 const FileListPage = React.lazy(() => import("@pages/Files/FileListPage"));
 const AuditLogListPage = React.lazy(
     () => import("@pages/AuditLogs/AuditLogListPage"),
+);
+const UtilityAppListPage = React.lazy(
+    () => import("@pages/UtilityApps/UtilityAppListPage"),
 );
 
 const PageFallback = () => (
@@ -278,6 +304,10 @@ const App: React.FC = () => {
                             element={<ComplaintDetailPage />}
                         />
                         <Route
+                            path="/complaint-types"
+                            element={<ComplaintTypeListPage />}
+                        />
+                        <Route
                             path="/support-tickets"
                             element={<SupportTicketListPage />}
                         />
@@ -308,10 +338,34 @@ const App: React.FC = () => {
                             path="/request-types"
                             element={<RequestTypeListPage />}
                         />
-                        <Route path="/requests/my" element={<MyRequestsPage />} />
+                        <Route path="/requests/my" element={<RequestListPage />} />
                         <Route
                             path="/requests/:id/history"
                             element={<RequestHistoryPage />}
+                        />
+                        <Route
+                            path="/appointment-services"
+                            element={<AppointmentServiceListPage />}
+                        />
+                        <Route
+                            path="/appointment-holidays"
+                            element={<AppointmentHolidayListPage />}
+                        />
+                        <Route
+                            path="/appointments"
+                            element={<AppointmentListPage />}
+                        />
+                        <Route
+                            path="/appointments/check-in"
+                            element={<AppointmentCheckInPage />}
+                        />
+                        <Route
+                            path="/appointments/:id/history"
+                            element={<AppointmentHistoryPage />}
+                        />
+                        <Route
+                            path="/appointment-reports"
+                            element={<AppointmentReportPage />}
                         />
                         <Route
                             path="/inspections"
@@ -354,6 +408,15 @@ const App: React.FC = () => {
                             path="/announcements/:id/edit"
                             element={<AnnouncementFormPage />}
                         />
+                        <Route path="/news" element={<NewsListPage />} />
+                        <Route
+                            path="/news/create"
+                            element={<NewsFormPage />}
+                        />
+                        <Route
+                            path="/news/:id/edit"
+                            element={<NewsFormPage />}
+                        />
                         <Route
                             path="/correspondence-types"
                             element={<CorrespondenceTypeListPage />}
@@ -392,6 +455,10 @@ const App: React.FC = () => {
                             element={<SurveyHistoryPage />}
                         />
                         <Route path="/files" element={<FileListPage />} />
+                        <Route
+                            path="/utility-apps"
+                            element={<UtilityAppListPage />}
+                        />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/kpis" element={<KpiDashboardPage />} />
@@ -429,6 +496,10 @@ const App: React.FC = () => {
                         <Route
                             path="/document-types"
                             element={<DocumentTypeListPage />}
+                        />
+                        <Route
+                            path="/required-document-settings"
+                            element={<RequiredDocumentSettingsPage />}
                         />
                         <Route
                             path="/audit-logs"

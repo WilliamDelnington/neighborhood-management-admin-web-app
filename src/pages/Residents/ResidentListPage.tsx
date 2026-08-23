@@ -27,6 +27,8 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import { usePermission } from "@store/authStore";
 import { AppError, ResidentRecord } from "@dts";
@@ -83,6 +85,7 @@ const ResidentListContent: React.FC = () => {
     const [items, setItems] = useState<ResidentRecord[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -93,10 +96,10 @@ const ResidentListContent: React.FC = () => {
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchResidentRecords({ page: targetPage })
+        fetchResidentRecords({ page: targetPage, limit: size })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -165,17 +168,30 @@ const ResidentListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Hồ sơ cư trú</h1>
-                {canCreate && (
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm hồ sơ
-                    </Button>
-                )}
+            <PageHeader
+                title="Hồ sơ cư trú"
+                description="Quản lý hồ sơ cư trú, tạm trú/tạm vắng của cư dân."
+                action={
+                    canCreate && (
+                        <Button onClick={openCreate}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm hồ sơ
+                        </Button>
+                    )
+                }
+            />
+
+            <div className="mb-4 flex items-center justify-end gap-3">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -190,6 +206,7 @@ const ResidentListContent: React.FC = () => {
                                 <TableHead>Ngày kiểm tra</TableHead>
                                 <TableHead>Hình thức sở hữu</TableHead>
                                 <TableHead>Số người đang ở thực tế</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -202,7 +219,7 @@ const ResidentListContent: React.FC = () => {
                                     }
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {houseText(r.houseId)}
@@ -214,6 +231,20 @@ const ResidentListContent: React.FC = () => {
                                         {LOAI_SO_HUU_LABEL[r.ownershipType]}
                                     </TableCell>
                                     <TableCell>{r.renterCount || 0}</TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        {canManage && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => openEdit(r)}
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

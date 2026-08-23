@@ -1,4 +1,4 @@
-import { API } from "@constants/common";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Organization, OrganizationType, PaginatedData } from "@dts";
 import { request } from "./request";
 
@@ -12,7 +12,7 @@ export const fetchOrganizations = (
 ): Promise<PaginatedData<Organization>> =>
     request<PaginatedData<Organization>>("GET", API.ORGANIZATIONS, {
         page: params.page ?? 1,
-        limit: params.limit ?? 20,
+        limit: params.limit ?? DEFAULT_PAGE_SIZE,
         search: params.search,
         active: params.active,
     });

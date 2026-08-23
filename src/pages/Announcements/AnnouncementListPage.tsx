@@ -16,6 +16,9 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import PageHeader from "@components/admin/PageHeader";
+import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
 import {
     LOAI_THONG_BAO_LABEL,
     TRANG_THAI_THONG_BAO_LABEL,
@@ -55,35 +58,26 @@ const AnnouncementListContent: React.FC = () => {
     const [items, setItems] = useState<Announcement[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(false);
     const [publishingId, setPublishingId] = useState<string | null>(null);
 
-    const load = (targetPage = 1, currentStatus = status) => {
-        if (targetPage === 1) {
-            setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+    const load = (targetPage = 1, currentStatus = status, size = pageSize) => {
+        setLoading(true);
         setError(false);
         fetchAdminAnnouncements(
             targetPage,
-            DEFAULT_PAGE_SIZE,
+            size,
             currentStatus === "all" ? undefined : currentStatus,
         )
             .then(res => {
-                setItems(prev =>
-                    targetPage === 1 ? res.items : [...prev, ...res.items],
-                );
+                setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
             })
             .catch(() => setError(true))
-            .finally(() => {
-                setLoading(false);
-                setLoadingMore(false);
-            });
+            .finally(() => setLoading(false));
     };
 
     useEffect(() => {
@@ -107,31 +101,42 @@ const AnnouncementListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Quản lý thông báo</h1>
-                {canCreate && (
-                    <Button onClick={() => navigate("/announcements/create")}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Thêm thông báo
-                    </Button>
-                )}
+            <PageHeader
+                title="Quản lý thông báo"
+                description="Soạn và gửi thông báo đến cư dân."
+                action={
+                    canCreate && (
+                        <Button onClick={() => navigate("/announcements/create")}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Thêm thông báo
+                        </Button>
+                    )
+                }
+            />
+
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <Tabs
+                    value={status}
+                    onValueChange={value => setStatus(value as StatusFilter)}
+                >
+                    <TabsList>
+                        {STATUS_FILTERS.map(f => (
+                            <TabsTrigger key={f.key} value={f.key}>
+                                {f.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, status, size);
+                    }}
+                />
             </div>
 
-            <Tabs
-                className="mb-4"
-                value={status}
-                onValueChange={value => setStatus(value as StatusFilter)}
-            >
-                <TabsList>
-                    {STATUS_FILTERS.map(f => (
-                        <TabsTrigger key={f.key} value={f.key}>
-                            {f.label}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
-            </Tabs>
-
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
                     <ErrorState onRetry={() => load(1, status)} />
@@ -212,17 +217,12 @@ const AnnouncementListContent: React.FC = () => {
                 )}
             </div>
 
-            {!loading && !error && page < totalPages && (
-                <div className="mt-3">
-                    <Button
-                        variant="outline"
-                        disabled={loadingMore}
-                        onClick={() => load(page + 1, status)}
-                    >
-                        {loadingMore ? "Đang tải..." : "Tải thêm"}
-                    </Button>
-                </div>
-            )}
+            <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={p => load(p, status)}
+                disabled={loading}
+            />
         </div>
     );
 };

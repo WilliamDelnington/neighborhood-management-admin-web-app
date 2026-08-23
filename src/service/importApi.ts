@@ -1,4 +1,5 @@
-import { API } from "@constants/common";
+import { API, BASE_URL } from "@constants/common";
+import { useAuthStore } from "@store/authStore";
 import { request } from "./request";
 
 export interface ImportRowError {
@@ -60,3 +61,29 @@ export const applyStreetImportMapping = (
 
 export const commitStreetImport = (jobId: string): Promise<ImportJob> =>
     request<ImportJob>("POST", `${API.IMPORT}/streets/${jobId}/commit`);
+
+/**
+ * File .xlsx nhi phan, khong theo envelope JSON chuan - khong dung request(),
+ * mo truc tiep bang token qua fetch + tao link tai xuong tam thoi (giong
+ * downloadReportExcel o reportApi.ts).
+ */
+export const downloadStreetImportTemplate = async (): Promise<void> => {
+    const { token } = useAuthStore.getState();
+    const url = new URL(`${API.IMPORT}/streets/template`, BASE_URL);
+
+    const res = await fetch(url.toString(), {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) {
+        throw new Error("Không thể tải mẫu Excel");
+    }
+    const blob = await res.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = "mau-nhap-duong-pho.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+};

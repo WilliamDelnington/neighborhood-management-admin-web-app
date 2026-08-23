@@ -23,6 +23,7 @@ import {
 } from "@components/ui/sheet";
 import { LoadingState, EmptyState } from "@components/admin/DataStates";
 import RequestRecipientPicker from "@components/admin/RequestRecipientPicker";
+import TransferRequestDialog from "@components/admin/TransferRequestDialog";
 import { useAuthStore, usePermission } from "@store/authStore";
 import { resolveAssetUrl } from "@constants/common";
 import {
@@ -47,6 +48,8 @@ import {
     fetchRequestComments,
     fetchRequestMeta,
     deleteRequestAttachment,
+    initiateRequestTransfer,
+    respondToRequestTransfer,
     updateRequest,
     updateRequestFormData,
     uploadRequestAttachment,
@@ -96,6 +99,12 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
     const [confirmingUserId, setConfirmingUserId] = useState<string | null>(
         null,
     );
+
+    const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+    const [initiatingTransfer, setInitiatingTransfer] = useState(false);
+    const [respondingTransferRowId, setRespondingTransferRowId] = useState<
+        string | null
+    >(null);
 
     const [attachments, setAttachments] = useState<RequestAttachment[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(false);
@@ -234,6 +243,47 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
         }
     };
 
+    const handleInitiateTransfer = async (input: {
+        toUserId: string;
+        reason: string;
+    }) => {
+        if (!requestId) return;
+        try {
+            setInitiatingTransfer(true);
+            await initiateRequestTransfer(requestId, input);
+            toast.success("Đã gửi đề nghị chuyển tiếp yêu cầu");
+            setTransferDialogOpen(false);
+            load(requestId);
+            onUpdated?.();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setInitiatingTransfer(false);
+        }
+    };
+
+    const handleRespondTransfer = async (
+        rowId: string,
+        decision: "accept" | "reject",
+    ) => {
+        if (!requestId) return;
+        try {
+            setRespondingTransferRowId(rowId);
+            await respondToRequestTransfer(requestId, decision);
+            toast.success(
+                decision === "accept"
+                    ? "Đã chấp nhận chuyển tiếp yêu cầu"
+                    : "Đã từ chối chuyển tiếp yêu cầu",
+            );
+            load(requestId);
+            onUpdated?.();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setRespondingTransferRowId(null);
+        }
+    };
+
     const handleUploadClick = () => fileInputRef.current?.click();
 
     const handleFileSelected = async (
@@ -361,6 +411,15 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                         {creatorText(request.createdBy)}
                                     </div>
                                 </div>
+                                {request.relatedModel === "Complaint" &&
+                                    request.relatedId && (
+                                        <Link
+                                            to={`/complaints/${request.relatedId}`}
+                                            className="mt-1 block text-sm text-primary hover:underline"
+                                        >
+                                            Xem phản ánh liên quan
+                                        </Link>
+                                    )}
                                 <Link
                                     to={`/requests/${request._id}/history`}
                                     className="mt-1 inline-block text-sm text-primary hover:underline"
@@ -433,12 +492,89 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                                             </Button>
                                                         </>
                                                     )}
+                                                {currentUserId &&
+                                                    rec.userId ===
+                                                        currentUserId &&
+                                                    rec.status !==
+                                                        "resolved" &&
+                                                    !rec.transferStatus && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setTransferDialogOpen(
+                                                                    true,
+                                                                )
+                                                            }
+                                                        >
+                                                            Chuyển tiếp yêu cầu
+                                                        </Button>
+                                                    )}
+                                                {rec.transferStatus ===
+                                                    "pending" &&
+                                                    currentUserId &&
+                                                    (rec.transferToUserId ===
+                                                        currentUserId ||
+                                                        isCreator) && (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                loading={
+                                                                    respondingTransferRowId ===
+                                                                    rec._id
+                                                                }
+                                                                onClick={() =>
+                                                                    handleRespondTransfer(
+                                                                        rec._id,
+                                                                        "accept",
+                                                                    )
+                                                                }
+                                                            >
+                                                                Đồng ý nhận
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="!text-red-500"
+                                                                loading={
+                                                                    respondingTransferRowId ===
+                                                                    rec._id
+                                                                }
+                                                                onClick={() =>
+                                                                    handleRespondTransfer(
+                                                                        rec._id,
+                                                                        "reject",
+                                                                    )
+                                                                }
+                                                            >
+                                                                Từ chối
+                                                            </Button>
+                                                        </>
+                                                    )}
                                             </div>
                                             {rec.note && (
                                                 <p className="mt-1 pl-1 text-xs text-text_2">
                                                     {rec.note}
                                                 </p>
                                             )}
+                                            {rec.transferStatus ===
+                                                "pending" &&
+                                                (canManage ||
+                                                    isCreator ||
+                                                    rec.userId ===
+                                                        currentUserId ||
+                                                    rec.transferToUserId ===
+                                                        currentUserId) && (
+                                                    <p className="mt-1 pl-1 text-xs text-amber-600">
+                                                        Đang chờ chuyển cho{" "}
+                                                        {rec.transferToDisplayName ||
+                                                            "người được đề nghị"}
+                                                        {rec.transferReason
+                                                            ? ` — Lý do: ${rec.transferReason}`
+                                                            : ""}
+                                                    </p>
+                                                )}
                                         </div>
                                     ))}
                                 </div>
@@ -470,7 +606,7 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                             </div>
 
                             {formDefinition && formDefinition.fields.length > 0 && (
-                                <div className="rounded-xl border border-divider_01 p-3">
+                                <div className="rounded-lg border border-divider_01 p-3">
                                     <div className="mb-3">
                                         <h3 className="text-sm font-semibold">
                                             Dữ liệu nghiệp vụ · v{request.formSchemaVersion || 1}
@@ -741,6 +877,16 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                     )}
                 </div>
             </SheetContent>
+            {request && (
+                <TransferRequestDialog
+                    open={transferDialogOpen}
+                    onOpenChange={setTransferDialogOpen}
+                    candidateRoleKeys={request.targetRoles || []}
+                    excludeUserId={currentUserId}
+                    submitting={initiatingTransfer}
+                    onSubmit={handleInitiateTransfer}
+                />
+            )}
         </Sheet>
     );
 };

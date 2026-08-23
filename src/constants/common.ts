@@ -25,6 +25,7 @@ export const API = {
 
     HOUSES: "/api/houses",
     HOUSES_CHECK_OWNER_PHONE: "/api/houses/check-owner-phone",
+    HOUSES_GIS_OVERVIEW: "/api/houses/gis-overview",
     ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
     ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
     WARD_MANAGERS: "/api/wards/managers",
@@ -44,9 +45,11 @@ export const API = {
     DOCUMENT_TYPES: "/api/document-types",
 
     COMPLAINTS: "/api/complaints",
+    COMPLAINT_TYPES: "/api/complaint-types",
     SUPPORT_TICKETS: "/api/support-tickets",
 
     ANNOUNCEMENTS: "/api/announcements",
+    NEWS: "/api/news",
     CORRESPONDENCE_TYPES: "/api/correspondence-types",
     CORRESPONDENCES: "/api/correspondences",
     CHANGE_REQUESTS: "/api/change-requests",
@@ -60,11 +63,15 @@ export const API = {
     REQUESTS_META: "/api/requests/meta",
     REQUESTS_MY: "/api/requests/my",
     REQUEST_TYPES: "/api/request-types",
+    APPOINTMENT_SERVICES: "/api/appointment-services",
+    APPOINTMENTS: "/api/appointments",
+    APPOINTMENT_HOLIDAYS: "/api/appointment-holidays",
     INSPECTION_CAMPAIGNS: "/api/v1/neighborhood/inspection-campaigns",
     INSPECTIONS_V1: "/api/v1",
 
     FINANCE: "/api/finance",
     FILES: "/api/files",
+    UTILITY_APPS: "/api/utility-apps",
     SETTINGS: "/api/settings",
     INTEGRATION_READINESS: "/api/integrations/readiness",
 
@@ -79,4 +86,4 @@ export const API = {
     NOTIFICATIONS_READ_ALL: "/api/notifications/read-all",
 };
 
-export const DEFAULT_PAGE_SIZE = 20;
+export const DEFAULT_PAGE_SIZE = 10;

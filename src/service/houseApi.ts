@@ -1,6 +1,7 @@
 import { API } from "@constants/common";
 import {
     AuditLogRecord,
+    EntityRequiredDocumentsResult,
     FileAsset,
     House,
     HouseGisSource,
@@ -8,8 +9,17 @@ import {
     HouseStatus,
     HouseUsageType,
     PaginatedData,
+    RequiredDocumentRecord,
+    RequiredDocumentRule,
 } from "@dts";
 import { request } from "./request";
+import {
+    fetchEntityRequiredDocuments,
+    fetchRequiredDocumentRules,
+    putRequiredDocumentRules,
+    RequiredDocumentRuleInput,
+    reviewEntityDocument,
+} from "./requiredDocumentApi";
 
 export interface HouseOwnerPersonInput {
     displayName: string;
@@ -133,6 +143,30 @@ export const updateHouseGis = (
 export const deleteHouse = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.HOUSES}/${id}`);
 
+export interface HouseGisOverviewPoint {
+    houseId: string;
+    code: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number | null;
+}
+
+export interface HouseGisOverview {
+    scopeLabel: string;
+    totalHouses: number;
+    housesWithCoordinates: number;
+    points: HouseGisOverviewPoint[];
+}
+
+/**
+ * Chi 1 request backend (khong ton chi phi Google) - dung cho ca so lieu
+ * thong ke "N/M nha co toa do" (tai ngay khi vao trang) va danh sach diem cho
+ * ban do tong hop (chi ve khi bam "Xem bản đồ" - xem HouseMapPanel.tsx).
+ */
+export const fetchHouseGisOverview = (): Promise<HouseGisOverview> =>
+    request<HouseGisOverview>("GET", API.HOUSES_GIS_OVERVIEW);
+
 export const updateHouseStatus = (
     id: string,
     status: HouseStatus,
@@ -158,3 +192,34 @@ export const deleteHouseAttachment = (
     fileId: string,
 ): Promise<null> =>
     request<null>("DELETE", `${API.HOUSES}/${id}/attachments/${fileId}`);
+
+export const fetchHouseRequiredDocuments = (
+    id: string,
+): Promise<EntityRequiredDocumentsResult> =>
+    fetchEntityRequiredDocuments(API.HOUSES, id);
+
+/** Dong luat giay to bat buoc AP DUNG CHUNG cho toan bo nha so (khong phai mot nha cu the). */
+export const fetchHouseRequiredDocumentRules = (): Promise<{
+    requiredDocuments: RequiredDocumentRule[];
+}> => fetchRequiredDocumentRules(API.HOUSES);
+
+export const putHouseRequiredDocumentRules = (
+    requiredDocuments: RequiredDocumentRuleInput[],
+): Promise<{ requiredDocuments: RequiredDocumentRule[] }> =>
+    putRequiredDocumentRules(API.HOUSES, requiredDocuments);
+
+export const reviewHouseDocument = (
+    id: string,
+    documentId: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string,
+    approvalNote?: string,
+): Promise<RequiredDocumentRecord> =>
+    reviewEntityDocument(
+        API.HOUSES,
+        id,
+        documentId,
+        decision,
+        rejectionReason,
+        approvalNote,
+    );

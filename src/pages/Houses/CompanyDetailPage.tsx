@@ -20,6 +20,7 @@ import {
     DialogFooter,
 } from "@components/ui/dialog";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
+import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
     VERIFICATION_STATUS_LABEL,
@@ -29,6 +30,8 @@ import { AppError, Company, VerificationStatus, House } from "@dts";
 import {
     deleteCompany,
     fetchCompanyById,
+    fetchCompanyRequiredDocuments,
+    reviewCompanyDocument,
     updateCompany,
     updateCompanyStatus,
 } from "@service/companyApi";
@@ -58,6 +61,7 @@ const toFormValues = (c: Company): CompanyFormValues => {
     return {
         name: c.name,
         ownerName: c.ownerName || "",
+        taxCode: c.taxCode || "",
         representativeUserId: rep?._id || "",
         representativeUserLabel: rep
             ? `${rep.displayName}${rep.phone ? ` · ${rep.phone}` : ""}`
@@ -216,7 +220,7 @@ const CompanyDetailContent: React.FC = () => {
 
             {!loading && !error && company && form && (
                 <>
-                    <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {company.name}
@@ -360,6 +364,16 @@ const CompanyDetailContent: React.FC = () => {
                             </>
                         )}
                     </div>
+
+                    {companyId && (
+                        <RequiredDocumentsPanel
+                            entityId={companyId}
+                            fetchItems={fetchCompanyRequiredDocuments}
+                            onReview={reviewCompanyDocument}
+                            verifyPermission="companies.verify"
+                            onChanged={load}
+                        />
+                    )}
                 </>
             )}
 

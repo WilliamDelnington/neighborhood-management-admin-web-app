@@ -1,6 +1,20 @@
 import { API } from "@constants/common";
-import { Household, PaginatedData, VerificationStatus } from "@dts";
+import {
+    EntityRequiredDocumentsResult,
+    Household,
+    PaginatedData,
+    RequiredDocumentRecord,
+    RequiredDocumentRule,
+    VerificationStatus,
+} from "@dts";
 import { request } from "./request";
+import {
+    fetchEntityRequiredDocuments,
+    fetchRequiredDocumentRules,
+    putRequiredDocumentRules,
+    RequiredDocumentRuleInput,
+    reviewEntityDocument,
+} from "./requiredDocumentApi";
 
 export interface HouseholdInput {
     cluster: string;
@@ -51,3 +65,34 @@ export const updateHouseholdStatus = (
     note?: string,
 ): Promise<Household> =>
     request<Household>("PATCH", `${API.HOUSEHOLDS}/${id}/status`, { status, note });
+
+export const fetchHouseholdRequiredDocuments = (
+    id: string,
+): Promise<EntityRequiredDocumentsResult> =>
+    fetchEntityRequiredDocuments(API.HOUSEHOLDS, id);
+
+/** Dong luat giay to bat buoc AP DUNG CHUNG cho toan bo ho dan (khong phai mot ho cu the). */
+export const fetchHouseholdRequiredDocumentRules = (): Promise<{
+    requiredDocuments: RequiredDocumentRule[];
+}> => fetchRequiredDocumentRules(API.HOUSEHOLDS);
+
+export const putHouseholdRequiredDocumentRules = (
+    requiredDocuments: RequiredDocumentRuleInput[],
+): Promise<{ requiredDocuments: RequiredDocumentRule[] }> =>
+    putRequiredDocumentRules(API.HOUSEHOLDS, requiredDocuments);
+
+export const reviewHouseholdDocument = (
+    id: string,
+    documentId: string,
+    decision: "approved" | "rejected",
+    rejectionReason?: string,
+    approvalNote?: string,
+): Promise<RequiredDocumentRecord> =>
+    reviewEntityDocument(
+        API.HOUSEHOLDS,
+        id,
+        documentId,
+        decision,
+        rejectionReason,
+        approvalNote,
+    );

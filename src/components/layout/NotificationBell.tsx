@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import {
     DropdownMenu,
@@ -22,7 +23,42 @@ import { useAuthStore } from "@store/authStore";
 const formatTime = (value?: string) =>
     value ? new Date(value).toLocaleString("vi-VN") : "";
 
+// Duong dan xem chi tiet doi tuong ma thong bao tham chieu toi
+// (Notification.relatedModel/relatedId, xem notificationService.ts ben BE).
+// Cac model chua co man xem theo id rieng (Household/Business/Company can
+// them houseId cha, InfrastructureAsset/PeriodicReport/InspectionResult chi
+// co man danh sach) khong duoc liet ke - khi do bam thong bao chi danh dau
+// da doc, khong dieu huong.
+const RELATED_MODEL_LINK: Record<string, (id: string) => string> = {
+    Complaint: id => `/complaints/${id}`,
+    SupportTicket: id => `/support-tickets/${id}`,
+    Correspondence: id => `/correspondences/${id}`,
+    InspectionCampaign: id => `/inspections/${id}`,
+    InspectionTarget: id => `/inspections/targets/${id}`,
+    Neighborhood: id => `/neighborhoods/${id}`,
+    HouseRecord: id => `/houses/${id}`,
+    Appointment: id => `/appointments/${id}/history`,
+    PcccCheck: id => `/pccc/${id}/history`,
+    SecurityRecord: id => `/security/${id}/history`,
+    Meeting: id => `/meetings/${id}/edit`,
+    Announcement: id => `/announcements/${id}/edit`,
+    Survey: id => `/surveys/${id}/edit`,
+    Request: id => `/requests?requestId=${id}`,
+    ChangeRequest: () => "/change-requests",
+    InfrastructureAsset: () => "/infrastructure-assets",
+    PeriodicReport: () => "/periodic-reports",
+    User: () => "/users",
+};
+
+const resolveNotificationLink = (item: NotificationDeliveryItem) => {
+    const relatedModel = item.notification?.relatedModel;
+    const relatedId = item.notification?.relatedId;
+    if (!relatedModel || !relatedId) return undefined;
+    return RELATED_MODEL_LINK[relatedModel]?.(relatedId);
+};
+
 const NotificationBell: React.FC = () => {
+    const navigate = useNavigate();
     const token = useAuthStore(state => state.token);
     const [open, setOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -65,19 +101,26 @@ const NotificationBell: React.FC = () => {
     }, [open]);
 
     const handleItemClick = async (item: NotificationDeliveryItem) => {
-        if (item.readAt) return;
-        try {
-            await markNotificationRead(item.deliveryId);
-            setItems(prev =>
-                prev.map(i =>
-                    i.deliveryId === item.deliveryId
-                        ? { ...i, readAt: new Date().toISOString() }
-                        : i,
-                ),
-            );
-            setUnreadCount(prev => Math.max(0, prev - 1));
-        } catch {
-            // bo qua loi, khong lam gian doan UI
+        if (!item.readAt) {
+            try {
+                await markNotificationRead(item.deliveryId);
+                setItems(prev =>
+                    prev.map(i =>
+                        i.deliveryId === item.deliveryId
+                            ? { ...i, readAt: new Date().toISOString() }
+                            : i,
+                    ),
+                );
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            } catch {
+                // bo qua loi, khong lam gian doan UI
+            }
+        }
+
+        const link = resolveNotificationLink(item);
+        if (link) {
+            setOpen(false);
+            navigate(link);
         }
     };
 

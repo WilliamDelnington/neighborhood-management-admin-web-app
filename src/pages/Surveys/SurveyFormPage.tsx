@@ -22,7 +22,7 @@ import {
     LOAI_CAU_HOI_KHAO_SAT_LABEL,
     SURVEY_AUDIT_ACTION_LABEL,
 } from "@constants/domain";
-import { AppError, BusinessType, LoaiCauHoiKhaoSat, Neighborhood, RoleRecord, Street, SurveyQuestion } from "@dts";
+import { AppError, AssignableStaff, BusinessType, LoaiCauHoiKhaoSat, Neighborhood, RoleRecord, Street, SurveyQuestion } from "@dts";
 import {
     createSurvey,
     fetchSurveyAuditLogs,
@@ -34,6 +34,7 @@ import { fetchStreets } from "@service/streetApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
 import { fetchRoles } from "@service/roleApi";
+import { fetchAssignableStaff } from "@service/userApi";
 
 const idOf = (ref: string | { _id: string }): string =>
     typeof ref === "string" ? ref : ref._id;
@@ -85,6 +86,10 @@ const SurveyFormContent: React.FC = () => {
     const [streets, setStreets] = useState<Street[]>([]);
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
+    const [coEditorCandidates, setCoEditorCandidates] = useState<
+        AssignableStaff[]
+    >([]);
+    const [coEditorUserIds, setCoEditorUserIds] = useState<string[]>([]);
 
     const loadDetail = () => {
         if (!id) return;
@@ -114,6 +119,7 @@ const SurveyFormContent: React.FC = () => {
                 setEligibleBusinessTypeIds(
                     (s.eligibleBusinessTypeIds || []).map(idOf),
                 );
+                setCoEditorUserIds((s.coEditorUserIds || []).map(idOf));
             })
             .catch(() => setLoadError(true))
             .finally(() => setLoading(false));
@@ -137,6 +143,9 @@ const SurveyFormContent: React.FC = () => {
         fetchBusinessTypes({ limit: 200, active: true })
             .then(res => setBusinessTypes(res.items))
             .catch(() => setBusinessTypes([]));
+        fetchAssignableStaff("surveys.update")
+            .then(setCoEditorCandidates)
+            .catch(() => setCoEditorCandidates([]));
     }, []);
 
     const toggleId = (
@@ -237,6 +246,7 @@ const SurveyFormContent: React.FC = () => {
             eligibleStreetIds: eligibleAll ? [] : eligibleStreetIds,
             eligibleNeighborhoodIds: eligibleAll ? [] : eligibleNeighborhoodIds,
             eligibleBusinessTypeIds: eligibleAll ? [] : eligibleBusinessTypeIds,
+            coEditorUserIds,
         };
 
         try {
@@ -273,18 +283,18 @@ const SurveyFormContent: React.FC = () => {
 
             <div className="max-w-2xl">
                 {isEdit && loading && (
-                    <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                         <LoadingState />
                     </div>
                 )}
                 {isEdit && !loading && loadError && (
-                    <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                         <ErrorState onRetry={loadDetail} />
                     </div>
                 )}
                 {(!isEdit || (!loading && !loadError)) && (
                     <div className="flex flex-col gap-4">
-                        <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                             <div className="flex flex-col gap-4">
                                 <div className="space-y-1.5">
                                     <Label>Tên khảo sát</Label>
@@ -308,7 +318,48 @@ const SurveyFormContent: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-divider_01 bg-white p-6 shadow-sm">
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
+                            <h2 className="mb-1 text-sm font-semibold">
+                                Đồng chủ biên
+                            </h2>
+                            <p className="mb-3 text-xs text-text_2">
+                                Ngoài bạn (người tạo), chỉ những tài khoản được
+                                chọn ở đây mới được sửa/mở/đóng/xóa khảo sát
+                                này - tài khoản khác có quyền chỉnh sửa khảo
+                                sát nói chung sẽ không tự động sửa được khảo
+                                sát này.
+                            </p>
+                            <div className="flex max-h-40 flex-col gap-1.5 overflow-y-auto rounded-lg border border-divider_01 p-2">
+                                {coEditorCandidates.length === 0 && (
+                                    <span className="text-xs text-text_2">
+                                        Không có tài khoản nào khác có quyền
+                                        chỉnh sửa khảo sát
+                                    </span>
+                                )}
+                                {coEditorCandidates.map(u => (
+                                    <label
+                                        key={u.id}
+                                        className="flex items-center gap-1.5 text-sm"
+                                    >
+                                        <Checkbox
+                                            checked={coEditorUserIds.includes(
+                                                u.id,
+                                            )}
+                                            onCheckedChange={() =>
+                                                toggleId(
+                                                    coEditorUserIds,
+                                                    setCoEditorUserIds,
+                                                    u.id,
+                                                )
+                                            }
+                                        />
+                                        {u.displayName}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm">
                             <h2 className="mb-3 text-sm font-semibold">
                                 Đối tượng được trả lời
                             </h2>
@@ -476,7 +527,7 @@ const SurveyFormContent: React.FC = () => {
                                 {questions.map((q, qIndex) => (
                                     <div
                                         key={qIndex}
-                                        className="rounded-2xl border border-divider_01 bg-white p-4 shadow-sm"
+                                        className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm"
                                     >
                                         <div className="mb-2 flex items-center justify-between">
                                             <span className="text-xs font-medium text-text_2">
@@ -648,7 +699,7 @@ const SurveyFormContent: React.FC = () => {
 
             {isEdit && id && (
                 <RecordHistorySection
-                    className="mt-4 max-w-2xl rounded-2xl border border-divider_01 bg-white p-6 shadow-sm"
+                    className="mt-4 max-w-2xl rounded-lg border border-divider_01 bg-ui_bg p-6 shadow-sm"
                     fetchHistory={params => fetchSurveyAuditLogs(id, params)}
                     actionLabels={SURVEY_AUDIT_ACTION_LABEL}
                     historyHref={`/surveys/${id}/history`}

@@ -33,6 +33,8 @@ import {
     deleteBusinessAttachment,
     fetchBusinessAttachments,
     fetchBusinessById,
+    fetchRequiredDocuments,
+    reviewBusinessDocument,
     updateBusiness,
     updateBusinessStatus,
 } from "@service/businessApi";
@@ -59,6 +61,7 @@ const toFormValues = (b: Business): BusinessFormValues => {
         name: b.name,
         businessType: b.businessType?._id || "",
         ownerName: b.ownerName || "",
+        taxCode: b.taxCode || "",
         representativeUserId: rep?._id || "",
         representativeUserLabel: rep
             ? `${rep.displayName}${rep.phone ? ` · ${rep.phone}` : ""}`
@@ -252,7 +255,7 @@ const BusinessDetailContent: React.FC = () => {
 
             {!loading && !error && business && form && (
                 <>
-                    <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {business.name}
@@ -396,7 +399,10 @@ const BusinessDetailContent: React.FC = () => {
                     </div>
 
                     <RequiredDocumentsPanel
-                        businessId={business._id}
+                        entityId={business._id}
+                        fetchItems={fetchRequiredDocuments}
+                        onReview={reviewBusinessDocument}
+                        verifyPermission="businesses.verify"
                         onChanged={load}
                     />
 

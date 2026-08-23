@@ -23,6 +23,9 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AppError,
     ChangeRequest,
@@ -83,6 +86,7 @@ const ChangeRequestListContent: React.FC = () => {
     const [items, setItems] = useState<ChangeRequest[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
@@ -92,10 +96,10 @@ const ChangeRequestListContent: React.FC = () => {
     const [decisionNote, setDecisionNote] = useState("");
     const [deciding, setDeciding] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchChangeRequests(targetPage, 20, status, "staff")
+        fetchChangeRequests(targetPage, size, status, "staff")
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -161,25 +165,34 @@ const ChangeRequestListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex items-center justify-between">
-                <h1 className="text-lg font-semibold">Yêu cầu thay đổi thông tin</h1>
+            <PageHeader
+                title="Yêu cầu thay đổi thông tin"
+                description="Duyệt các yêu cầu thay đổi thông tin nhà, hộ khẩu hoặc tài khoản đã xác minh."
+            />
+
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <Tabs
+                    value={status}
+                    onValueChange={value => setStatus(value as ChangeRequestStatus)}
+                >
+                    <TabsList>
+                        {STATUS_FILTERS.map(f => (
+                            <TabsTrigger key={f.key} value={f.key}>
+                                {f.label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                </Tabs>
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
             </div>
 
-            <Tabs
-                className="mb-4"
-                value={status}
-                onValueChange={value => setStatus(value as ChangeRequestStatus)}
-            >
-                <TabsList>
-                    {STATUS_FILTERS.map(f => (
-                        <TabsTrigger key={f.key} value={f.key}>
-                            {f.label}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
-            </Tabs>
-
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (
@@ -195,6 +208,7 @@ const ChangeRequestListContent: React.FC = () => {
                                 <TableHead>Người gửi</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Ngày gửi</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -205,7 +219,7 @@ const ChangeRequestListContent: React.FC = () => {
                                     onClick={() => openDetail(item)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {(page - 1) * 20 + index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {TARGET_MODEL_LABEL[item.targetModel]}
@@ -225,6 +239,18 @@ const ChangeRequestListContent: React.FC = () => {
                                         {new Date(
                                             item.createdAt,
                                         ).toLocaleString("vi-VN")}
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => openDetail(item)}
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -49,10 +49,40 @@ export const updateComplaintStatus = (
 
 export const assignComplaint = (
     id: string,
-    assigneeId: string,
+    primaryAssigneeId: string,
     expectedCompletionDate?: string,
+    transferReason?: string,
 ): Promise<Complaint> =>
     request<Complaint>("PATCH", `${API.COMPLAINTS}/${id}/assign`, {
-        assigneeId,
+        primaryAssigneeId,
         expectedCompletionDate,
+        transferReason,
+    });
+
+// Nhan vien tu tiep nhan mot phan anh dang "moi_tiep_nhan" - tro thanh nguoi
+// phu trach chinh CUA CHINH MINH. Khac assignComplaint (chon/doi nguoi phu
+// trach cho NGUOI KHAC, dung de tai phan cong sau nay).
+export const receiveComplaint = (id: string): Promise<Complaint> =>
+    request<Complaint>("POST", `${API.COMPLAINTS}/${id}/receive`);
+
+// Nhan vien chon MOT nguoi khac lam nguoi phu trach chinh cho mot phan anh
+// dang "moi_tiep_nhan" - khac receiveComplaint (tu tiep nhan) va
+// assignComplaint (tai phan cong/chuyen trach nhiem sau buoc tiep nhan dau
+// tien).
+export const choosePersonInCharge = (
+    id: string,
+    userId: string,
+): Promise<Complaint> =>
+    request<Complaint>("POST", `${API.COMPLAINTS}/${id}/choose-assignee`, {
+        userId,
+    });
+
+// Yeu cau nguoi gui bo sung thong tin cho mot phan anh dang "moi_tiep_nhan" -
+// chuyen phan anh sang "can_bo_sung", nguoi gui tu sua phan anh de bo sung.
+export const requestComplaintInfo = (
+    id: string,
+    content: string,
+): Promise<Complaint> =>
+    request<Complaint>("POST", `${API.COMPLAINTS}/${id}/request-info`, {
+        content,
     });

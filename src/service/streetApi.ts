@@ -1,4 +1,4 @@
-import { API } from "@constants/common";
+import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import { PaginatedData, Street } from "@dts";
 import { request } from "./request";
 
@@ -14,7 +14,7 @@ export const fetchStreets = (
 ): Promise<PaginatedData<Street>> =>
     request<PaginatedData<Street>>("GET", API.STREETS, {
         page: params.page ?? 1,
-        limit: params.limit ?? 20,
+        limit: params.limit ?? DEFAULT_PAGE_SIZE,
         search: params.search,
         active: params.active,
     });

@@ -18,6 +18,8 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AuditLogRecord, PaginatedData } from "@dts";
 
 const formatDateTime = (iso: string) => {
@@ -58,15 +60,16 @@ const RecordHistoryPage: React.FC<RecordHistoryPageProps> = ({
     const [items, setItems] = useState<AuditLogRecord[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [viewing, setViewing] = useState<AuditLogRecord | null>(null);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchHistory({ page: targetPage, limit: 20 })
+        fetchHistory({ page: targetPage, limit: size })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -95,11 +98,20 @@ const RecordHistoryPage: React.FC<RecordHistoryPageProps> = ({
                 <h1 className="text-lg font-semibold">{title}</h1>
             </div>
 
-            {total > 0 && (
-                <div className="mb-2 text-xs text-text_2">{total} bản ghi</div>
-            )}
+            <div className="mb-2 flex items-center justify-between">
+                <div className="text-xs text-text_2">
+                    {total > 0 ? `${total} bản ghi` : ""}
+                </div>
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+            </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(page)} />}
                 {!loading && !error && items.length === 0 && (

@@ -35,10 +35,14 @@ export type CreateInspectionCampaignInput = {
     targetHouseIds?: string[];
 };
 
-export const fetchInspectionCampaigns = (params?: { page?: number; status?: string }) =>
+export const fetchInspectionCampaigns = (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+}) =>
     request<PaginatedData<InspectionCampaign>>("GET", API.INSPECTION_CAMPAIGNS, {
         page: params?.page || 1,
-        limit: DEFAULT_PAGE_SIZE,
+        limit: params?.limit || DEFAULT_PAGE_SIZE,
         status: params?.status,
     });
 
@@ -54,6 +58,24 @@ export const fetchInspectionCreationOptions = (neighborhoodIds: string[] = []) =
 
 export const createInspectionCampaign = (input: CreateInspectionCampaignInput) =>
     request<InspectionCampaign>("POST", `${v1}/inspection-campaigns`, input);
+
+export const updateInspectionCampaignChecklist = (
+    id: string,
+    checklistTemplate: InspectionChecklistItem[],
+) => request<InspectionCampaign>(
+    "PATCH",
+    `${v1}/inspection-campaigns/${id}`,
+    { checklistTemplate },
+);
+
+export const updateInspectionCampaignDetails = (
+    id: string,
+    input: { name: string; purpose: string },
+) => request<InspectionCampaign>(
+    "PATCH",
+    `${v1}/inspection-campaigns/${id}/details`,
+    input,
+);
 
 export const transitionInspectionCampaign = (
     id: string,

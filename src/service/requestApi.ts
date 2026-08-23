@@ -40,6 +40,8 @@ export const fetchRequests = (params?: {
     relatedModel?: string;
     relatedId?: string;
     houseId?: string;
+    // "sent" = chi yeu cau do chinh minh tao (tab "Đã gửi" - xem RequestListPage.tsx).
+    view?: "sent";
 }): Promise<PaginatedData<RequestItem>> =>
     request<PaginatedData<RequestItem>>("GET", API.REQUESTS, {
         page: params?.page || 1,
@@ -48,6 +50,7 @@ export const fetchRequests = (params?: {
         relatedModel: params?.relatedModel,
         relatedId: params?.relatedId,
         houseId: params?.houseId,
+        view: params?.view,
     });
 
 export const fetchRequestById = (id: string): Promise<RequestItem> =>
@@ -117,6 +120,24 @@ export const confirmRequestRecipient = (
         `${API.REQUESTS}/${requestId}/recipients/${userId}`,
         input,
     );
+
+export const initiateRequestTransfer = (
+    requestId: string,
+    input: { toUserId: string; reason: string },
+) =>
+    request(
+        "POST",
+        `${API.REQUESTS}/${requestId}/recipients/me/transfer`,
+        input,
+    );
+
+export const respondToRequestTransfer = (
+    requestId: string,
+    decision: "accept" | "reject",
+) =>
+    request("POST", `${API.REQUESTS}/${requestId}/transfer/respond`, {
+        decision,
+    });
 
 export const fetchRequestAuditLogs = (
     id: string,

@@ -1,4 +1,4 @@
-import { API, BASE_URL } from "@constants/common";
+import { API, BASE_URL, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     PaginatedData,
     PeriodicReport,
@@ -22,7 +22,7 @@ export const fetchPeriodicReports = (
 ): Promise<PaginatedData<PeriodicReport>> =>
     request<PaginatedData<PeriodicReport>>("GET", API.PERIODIC_REPORTS, {
         page: params.page ?? 1,
-        limit: params.limit ?? 20,
+        limit: params.limit ?? DEFAULT_PAGE_SIZE,
         status: params.status,
         view: params.view,
     });

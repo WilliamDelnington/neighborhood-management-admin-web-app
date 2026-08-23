@@ -22,20 +22,31 @@ export interface MeetingInput {
     eligibleBusinessTypeIds?: string[];
 }
 
+// admin:1 (+ token mac dinh, khong con useAuth:false) - de MeetingListPage
+// (staff, sau AdminGuard) thay CA cuoc hop chua dang (ban nhap), giong het
+// fetchAdminAnnouncements. Thieu co nay, danh sach chi tra ve cuoc hop da
+// dang (publicOnly=true) - cuoc hop vua tao (mac dinh chua dang) se khong
+// hien ra trong danh sach quan tri, dung nhu bao cao cua nguoi dung.
 export const fetchMeetings = (
     upcomingOnly?: boolean,
+    page = 1,
+    limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedData<Meeting>> =>
-    request<PaginatedData<Meeting>>(
-        "GET",
-        API.MEETINGS,
-        { upcomingOnly },
-        { useAuth: false },
-    );
-
-export const fetchMeetingDetail = (id: string): Promise<Meeting> =>
-    request<Meeting>("GET", `${API.MEETINGS}/${id}`, undefined, {
-        useAuth: false,
+    request<PaginatedData<Meeting>>("GET", API.MEETINGS, {
+        upcomingOnly,
+        admin: 1,
+        page,
+        limit,
     });
+
+// KHONG dung useAuth:false - ham nay chi duoc goi tu man soan/sua cuoc hop
+// trong admin web app (luon da dang nhap, sau AdminGuard), can gui token de
+// backend nhan dien la nhan vien (meetings.read) va cho xem CA cuoc hop chua
+// dang (ban nhap) - xem GET /api/meetings/[id] (isStaff qua requireUser).
+// Thieu token khien backend luon coi la khach an danh (publicOnly=true), nen
+// cuoc hop vua tao (mac dinh published=false) bao 404 ngay sau khi tao xong.
+export const fetchMeetingDetail = (id: string): Promise<Meeting> =>
+    request<Meeting>("GET", `${API.MEETINGS}/${id}`);
 
 export const createMeeting = (input: MeetingInput): Promise<Meeting> =>
     request<Meeting>("POST", API.MEETINGS, input);

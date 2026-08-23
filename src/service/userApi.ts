@@ -128,6 +128,7 @@ export interface CreateHouseOwnerParams {
     phone: string;
     displayName: string;
     address?: string;
+    idNumber: string;
     role?: CreatableStaffRole;
     // TAM THOI: dat mat khau luc tao (thay OTP/Zalo, hien chua san sang do can
     // duyet mau tin truoc - xem LoginPage.tsx o mini app).

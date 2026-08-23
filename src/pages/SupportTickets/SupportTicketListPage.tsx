@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
+import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
@@ -20,13 +21,15 @@ import {
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
+import PageHeader from "@components/admin/PageHeader";
+import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { LoaiYeuCauHoTro, SupportTicket, TrangThaiYeuCauHoTro } from "@dts";
 import {
     LOAI_YEU_CAU_HO_TRO_LABEL,
     TRANG_THAI_YEU_CAU_HO_TRO_LABEL,
     TRANG_THAI_YEU_CAU_HO_TRO_TONE,
 } from "@constants/domain";
-import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { fetchSupportTickets } from "@service/supportTicketApi";
 
 const ALL_STATUS = "all";
@@ -53,14 +56,16 @@ const SupportTicketListContent: React.FC = () => {
     const [items, setItems] = useState<SupportTicket[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const load = (targetPage = 1) => {
+    const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchSupportTickets({
             page: targetPage,
+            limit: size,
             status: status || undefined,
             type: type || undefined,
             search: search || undefined,
@@ -112,16 +117,26 @@ const SupportTicketListContent: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4">
-                <h1 className="text-lg font-semibold">Yêu cầu hỗ trợ</h1>
-            </div>
-
-            <Input
-                className="mb-4 max-w-sm"
-                placeholder="Tìm theo mã yêu cầu, tiêu đề..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
+            <PageHeader
+                title="Yêu cầu hỗ trợ"
+                description="Tiếp nhận và xử lý yêu cầu hỗ trợ từ cư dân."
             />
+
+            <div className="mb-4 flex items-center gap-2">
+                <PageSizeSelect
+                    value={pageSize}
+                    onChange={size => {
+                        setPageSize(size);
+                        load(1, size);
+                    }}
+                />
+                <Input
+                    className="max-w-sm flex-1"
+                    placeholder="Tìm theo mã yêu cầu, tiêu đề..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+            </div>
 
             <div className="mb-4 grid grid-cols-2 gap-3">
                 <Select
@@ -168,7 +183,7 @@ const SupportTicketListContent: React.FC = () => {
                 </Select>
             </div>
 
-            <div className="rounded-2xl border border-divider_01 bg-white shadow-sm">
+            <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
@@ -182,6 +197,7 @@ const SupportTicketListContent: React.FC = () => {
                                 <TableHead>Mã — Tiêu đề</TableHead>
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -216,6 +232,20 @@ const SupportTicketListContent: React.FC = () => {
                                                 ]
                                             }
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/support-tickets/${t._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

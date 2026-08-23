@@ -40,6 +40,7 @@ import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import HouseOwnershipPanel from "@components/admin/HouseOwnershipPanel";
 import TransferNeighborhoodDialog from "@components/admin/TransferNeighborhoodDialog";
 import HouseGisPanel from "@components/admin/HouseGisPanel";
+import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
 import {
     VERIFICATION_STATUS_LABEL,
@@ -70,6 +71,8 @@ import {
     fetchHouseById,
     fetchHouseCompanies,
     fetchHouseHouseholds,
+    fetchHouseRequiredDocuments,
+    reviewHouseDocument,
     updateHouse,
     updateHouseStatus,
 } from "@service/houseApi";
@@ -421,8 +424,10 @@ const HouseDetailContent: React.FC = () => {
     };
 
     const handleCreateHousehold = async () => {
-        if (!houseId || !isHouseholdFormValid(householdForm)) {
-            toast.error("Vui lòng nhập đầy đủ cụm dân cư, địa chỉ, chủ hộ");
+        if (!houseId || !isHouseholdFormValid(householdForm, "create")) {
+            toast.error(
+                "Vui lòng nhập đầy đủ cụm dân cư, địa chỉ, chủ hộ, số điện thoại",
+            );
             return;
         }
         try {
@@ -632,7 +637,7 @@ const HouseDetailContent: React.FC = () => {
 
             {!loading && !error && house && form && (
                 <>
-                    <div className="rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-3 flex items-center justify-between">
                             <h2 className="text-lg font-semibold">
                                 {house.code}
@@ -849,7 +854,7 @@ const HouseDetailContent: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="mt-4 rounded-2xl bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg bg-ui_bg p-5 shadow-sm">
                         <HouseGisPanel house={house} onUpdated={setHouse} />
                     </div>
 
@@ -860,7 +865,7 @@ const HouseDetailContent: React.FC = () => {
                         />
                     )}
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">
                                 Hộ dân trong nhà
@@ -927,7 +932,7 @@ const HouseDetailContent: React.FC = () => {
                             ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">
                                 Hộ kinh doanh
@@ -982,7 +987,7 @@ const HouseDetailContent: React.FC = () => {
                             ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">Công ty</h2>
                             {canCreateCompany && (
@@ -1032,7 +1037,7 @@ const HouseDetailContent: React.FC = () => {
                             ))}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-divider_01 bg-white p-5 shadow-sm">
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
                             <h2 className="text-base font-semibold">
                                 Đơn vị sử dụng
@@ -1094,6 +1099,16 @@ const HouseDetailContent: React.FC = () => {
                         deletingId={deletingAttachmentId}
                         onDelete={handleDeleteAttachment}
                     />
+
+                    {houseId && (
+                        <RequiredDocumentsPanel
+                            entityId={houseId}
+                            fetchItems={fetchHouseRequiredDocuments}
+                            onReview={reviewHouseDocument}
+                            verifyPermission="houses.verify"
+                            onChanged={load}
+                        />
+                    )}
 
                     {houseId && (
                         <RecordHistorySection
@@ -1221,6 +1236,7 @@ const HouseDetailContent: React.FC = () => {
                             values={householdForm}
                             onChange={setHouseholdForm}
                             lockedCluster={house?.cluster}
+                            mode="create"
                         />
                     </div>
                     <SheetFooter>
