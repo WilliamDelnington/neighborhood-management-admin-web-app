@@ -122,8 +122,17 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                     "Quản lý thông tin nhà số, chủ nhà và trạng thái xác minh.",
             },
             {
+                key: "households",
+                label: "Hộ dân",
+                path: "/households",
+                icon: Users,
+                permission: "households.read",
+                description:
+                    "Xem danh sách các hộ dân đang sinh sống trên địa bàn.",
+            },
+            {
                 key: "organizations",
-                label: "Tổ chức (chủ nhà)",
+                label: "Tổ chức (chủ sở hữu)",
                 path: "/organizations",
                 icon: Building2,
                 permission: "organizations.read",

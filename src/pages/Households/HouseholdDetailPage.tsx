@@ -142,7 +142,7 @@ const HouseholdDetailContent: React.FC = () => {
     >(null);
     const [deletingCitizen, setDeletingCitizen] = useState(false);
 
-    const backPath = houseId ? `/houses/${houseId}` : "/houses";
+    const backPath = houseId ? `/houses/${houseId}` : "/households";
 
     const load = () => {
         if (!id) return;

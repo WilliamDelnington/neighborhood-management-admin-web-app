@@ -9,6 +9,7 @@ import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import { resolveAssetUrl } from "@constants/common";
+import { MODULES, ModuleItem } from "@constants/modules";
 import { AppError } from "@dts";
 import {
     deleteAppLogo,
@@ -16,6 +17,11 @@ import {
     upsertSetting,
     uploadAppLogo,
 } from "@service/settingsApi";
+
+// Setting dung chung de admin ghi de mo ta hien thi tren cac muc menu sidebar
+// (constants/modules.ts) ma khong can sua code - xem SectionDescriptionsPanel
+// ben duoi va cach AdminLayout.tsx doc lai gia tri nay.
+const SECTION_DESCRIPTIONS_KEY = "section_descriptions";
 
 type EditableSetting = {
     key: string;
@@ -91,6 +97,16 @@ const SettingsContent: React.FC = () => {
     const [removingLogo, setRemovingLogo] = useState(false);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
+    const [sectionDescOverrides, setSectionDescOverrides] = useState<
+        Record<string, string>
+    >({});
+    const [sectionDescDrafts, setSectionDescDrafts] = useState<
+        Record<string, string>
+    >({});
+    const [savingSectionKey, setSavingSectionKey] = useState<string | null>(
+        null,
+    );
+
     const load = () => {
         setLoading(true);
         setError(false);
@@ -98,11 +114,27 @@ const SettingsContent: React.FC = () => {
             .then(data => {
                 const mapped: Record<string, EditableSetting> = {};
                 Object.entries(data || {}).forEach(([key, value]) => {
+                    // section_descriptions co man chinh sua rieng
+                    // (SectionDescriptionsPanel) - khong hien lai duoi dang
+                    // JSON tho trong danh sach cau hinh chung.
+                    if (key === SECTION_DESCRIPTIONS_KEY) return;
                     mapped[key] = buildEditable(key, value);
                 });
                 setSettings(mapped);
                 const rawLogo = data?.app_logo_url;
                 setLogoUrl(typeof rawLogo === "string" ? rawLogo : null);
+
+                const rawOverrides = data?.[SECTION_DESCRIPTIONS_KEY];
+                const overrides =
+                    rawOverrides && typeof rawOverrides === "object"
+                        ? (rawOverrides as Record<string, string>)
+                        : {};
+                setSectionDescOverrides(overrides);
+                const drafts: Record<string, string> = {};
+                MODULES.forEach(m => {
+                    drafts[m.key] = overrides[m.key] ?? m.description ?? "";
+                });
+                setSectionDescDrafts(drafts);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -166,6 +198,44 @@ const SettingsContent: React.FC = () => {
         } finally {
             setSavingKey(null);
         }
+    };
+
+    const handleSectionDescChange = (key: string, text: string) => {
+        setSectionDescDrafts(prev => ({ ...prev, [key]: text }));
+    };
+
+    const saveSectionDescOverrides = async (
+        key: string,
+        overrides: Record<string, string>,
+    ) => {
+        try {
+            setSavingSectionKey(key);
+            await upsertSetting(SECTION_DESCRIPTIONS_KEY, overrides);
+            setSectionDescOverrides(overrides);
+            toast.success("Đã lưu mô tả mục menu");
+        } catch (err) {
+            toast.error((err as AppError).message || "Có lỗi xảy ra");
+        } finally {
+            setSavingSectionKey(null);
+        }
+    };
+
+    const handleSaveSectionDesc = (module: ModuleItem) => {
+        const text = (sectionDescDrafts[module.key] || "").trim();
+        saveSectionDescOverrides(module.key, {
+            ...sectionDescOverrides,
+            [module.key]: text,
+        });
+    };
+
+    const handleResetSectionDesc = (module: ModuleItem) => {
+        const next = { ...sectionDescOverrides };
+        delete next[module.key];
+        setSectionDescDrafts(prev => ({
+            ...prev,
+            [module.key]: module.description || "",
+        }));
+        saveSectionDescOverrides(module.key, next);
     };
 
     const handleAddNew = async () => {
@@ -265,6 +335,81 @@ const SettingsContent: React.FC = () => {
                             />
                         </div>
                     </div>
+
+                    <details className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
+                        <summary className="cursor-pointer text-sm font-semibold">
+                            Mô tả các mục menu
+                        </summary>
+                        <p className="mb-3 mt-2 text-xs text-text_2">
+                            Sửa lại phần mô tả hiển thị cho từng mục trong
+                            menu điều hướng, không cần sửa code. Để trống và
+                            lưu, hoặc bấm &quot;Khôi phục mặc định&quot; để
+                            quay lại mô tả gốc.
+                        </p>
+                        <div className="space-y-3">
+                            {MODULES.map(m => {
+                                const isOverridden =
+                                    sectionDescOverrides[m.key] !== undefined;
+                                return (
+                                    <div
+                                        key={m.key}
+                                        className="rounded-md border border-divider_01 p-3"
+                                    >
+                                        <div className="mb-1.5 flex items-center justify-between">
+                                            <span className="text-sm font-medium">
+                                                {m.label}
+                                            </span>
+                                            {isOverridden && (
+                                                <span className="text-xs text-text_2">
+                                                    Đã tuỳ chỉnh
+                                                </span>
+                                            )}
+                                        </div>
+                                        <Textarea
+                                            rows={2}
+                                            value={sectionDescDrafts[m.key] || ""}
+                                            onChange={e =>
+                                                handleSectionDescChange(
+                                                    m.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <div className="mt-2 flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                loading={
+                                                    savingSectionKey === m.key
+                                                }
+                                                onClick={() =>
+                                                    handleSaveSectionDesc(m)
+                                                }
+                                            >
+                                                Lưu
+                                            </Button>
+                                            {isOverridden && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    loading={
+                                                        savingSectionKey ===
+                                                        m.key
+                                                    }
+                                                    onClick={() =>
+                                                        handleResetSectionDesc(
+                                                            m,
+                                                        )
+                                                    }
+                                                >
+                                                    Khôi phục mặc định
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </details>
 
                     {entries.length === 0 && !showAddForm && (
                         <EmptyState
