@@ -15,6 +15,7 @@ import { useThemeStore } from "@store/themeStore";
 import { ROLE_LABEL } from "@constants/domain";
 import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
+import { fetchPublicSettings } from "@service/settingsApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
 import AppBrand from "./AppBrand";
@@ -66,6 +67,27 @@ const AdminLayout: React.FC = () => {
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
         loadExpandedGroups,
     );
+    const [descOverrides, setDescOverrides] = useState<Record<string, string>>(
+        {},
+    );
+
+    // Mo ta tuy chinh cho tung muc menu (xem SettingsPage.tsx) - cong khai qua
+    // fetchPublicSettings nen ap dung cho moi vai tro dang nhap, khong chi
+    // admin. Loi bo qua: giu mo ta mac dinh trong constants/modules.ts.
+    useEffect(() => {
+        fetchPublicSettings()
+            .then(data => {
+                const raw = data?.section_descriptions;
+                if (raw && typeof raw === "object") {
+                    setDescOverrides(raw as Record<string, string>);
+                }
+            })
+            .catch(() => {
+                // bo qua loi mang, giu mo ta mac dinh
+            });
+    }, []);
+
+    const descriptionOf = (m: ModuleItem) => descOverrides[m.key] ?? m.description;
 
     const hasPermission = (m: ModuleItem) =>
         !!user?.permissions?.includes(m.permission);
@@ -152,6 +174,7 @@ const AdminLayout: React.FC = () => {
                             key={m.key}
                             to={m.path}
                             end={m.path === "/"}
+                            title={descriptionOf(m)}
                             onClick={() => setSidebarOpen(false)}
                             className={({ isActive }) =>
                                 cn(
@@ -191,6 +214,7 @@ const AdminLayout: React.FC = () => {
                                             <NavLink
                                                 key={m.key}
                                                 to={m.path}
+                                                title={descriptionOf(m)}
                                                 onClick={() =>
                                                     setSidebarOpen(false)
                                                 }

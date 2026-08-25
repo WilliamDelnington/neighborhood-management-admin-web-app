@@ -45,6 +45,9 @@ const HouseDetailPage = React.lazy(
 const HouseHistoryPage = React.lazy(
     () => import("@pages/Houses/HouseHistoryPage"),
 );
+const HouseholdListPage = React.lazy(
+    () => import("@pages/Households/HouseholdListPage"),
+);
 const HouseholdDetailPage = React.lazy(
     () => import("@pages/Households/HouseholdDetailPage"),
 );
@@ -282,6 +285,14 @@ const App: React.FC = () => {
                         <Route
                             path="/houses/:houseId/history"
                             element={<HouseHistoryPage />}
+                        />
+                        <Route
+                            path="/households"
+                            element={<HouseholdListPage />}
+                        />
+                        <Route
+                            path="/households/:id"
+                            element={<HouseholdDetailPage />}
                         />
                         <Route
                             path="/houses/:houseId/households/:id"

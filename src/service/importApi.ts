@@ -13,6 +13,19 @@ export interface StreetImportPreviewRow {
     active: boolean;
 }
 
+// Xem HOUSE_COLUMNS/previewHouseImport o backend importService.ts - "address"
+// duoc backend tu suy ra tu "Phân khu/dãy" + "Mã căn/hộ" (khong co cot dia chi
+// rieng trong Phieu thu thap), "ownerName"/"ownerPhone" chi co gia tri khi ca
+// hai hop le (se tao tai khoan chu nha luc commit).
+export interface HouseImportPreviewRow {
+    code: string;
+    cluster: string;
+    address: string;
+    ownerName?: string;
+    ownerPhone?: string;
+    note?: string;
+}
+
 export type ImportJobStatus =
     | "awaiting_mapping"
     | "previewing"
@@ -20,7 +33,9 @@ export type ImportJobStatus =
     | "committed"
     | "failed";
 
-export interface ImportJob {
+// T = kieu tung dong trong previewData - moi loai import (street/house/...)
+// co hinh dang rieng, xem StreetImportPreviewRow/HouseImportPreviewRow.
+export interface ImportJob<T = StreetImportPreviewRow> {
     _id: string;
     type: string;
     status: ImportJobStatus;
@@ -31,7 +46,7 @@ export interface ImportJob {
     suggestedMapping: Record<string, string>;
     columnMapping: Record<string, string>;
     rowErrors: ImportRowError[];
-    previewData: StreetImportPreviewRow[];
+    previewData: T[];
     committedCount: number;
     createdAt: string;
     updatedAt: string;
@@ -61,6 +76,33 @@ export const applyStreetImportMapping = (
 
 export const commitStreetImport = (jobId: string): Promise<ImportJob> =>
     request<ImportJob>("POST", `${API.IMPORT}/streets/${jobId}/commit`);
+
+export const uploadHouseImportFile = (
+    file: File,
+    options?: { defaultCluster?: string; neighborhoodId?: string },
+): Promise<ImportJob<HouseImportPreviewRow>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (options?.defaultCluster) {
+        formData.append("defaultCluster", options.defaultCluster);
+    }
+    if (options?.neighborhoodId) {
+        formData.append("neighborhoodId", options.neighborhoodId);
+    }
+    return request<ImportJob<HouseImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/houses`,
+        formData,
+    );
+};
+
+export const commitHouseImport = (
+    jobId: string,
+): Promise<ImportJob<HouseImportPreviewRow>> =>
+    request<ImportJob<HouseImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/houses/${jobId}/commit`,
+    );
 
 /**
  * File .xlsx nhi phan, khong theo envelope JSON chuan - khong dung request(),

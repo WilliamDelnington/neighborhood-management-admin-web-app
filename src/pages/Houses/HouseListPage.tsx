@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -48,6 +48,7 @@ import HouseForm, {
     isHouseFormValid,
     toHouseInput,
 } from "./HouseForm";
+import HouseImportSheet from "./HouseImportSheet";
 
 const HouseListPage: React.FC = () => (
     <AdminGuard permissions={["houses.read"]}>
@@ -62,6 +63,10 @@ const HouseListContent: React.FC = () => {
     const [searchParams] = useSearchParams();
     const neighborhoodId = searchParams.get("neighborhoodId") || undefined;
     const canCreate = usePermission("houses.create");
+    // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
+    // /api/import/houses), KHAC voi "houses.create" ma to truong cung co -
+    // phai kiem tra rieng de khong hien nut cho vai tro se bi 403 khi bam.
+    const canImport = usePermission("imports.manage");
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
@@ -75,6 +80,7 @@ const HouseListContent: React.FC = () => {
     const [createVisible, setCreateVisible] = useState(false);
     const [form, setForm] = useState<HouseFormValues>(EMPTY_HOUSE_FORM);
     const [submitting, setSubmitting] = useState(false);
+    const [importVisible, setImportVisible] = useState(false);
 
     const load = (
         targetPage = 1,
@@ -137,11 +143,24 @@ const HouseListContent: React.FC = () => {
                 title="Quản lý nhà số"
                 description="Quản lý thông tin nhà số, chủ nhà và trạng thái xác minh."
                 action={
-                    canCreate && (
-                        <Button onClick={openCreate}>
-                            <Plus className="mr-1 h-4 w-4" />
-                            Thêm nhà số
-                        </Button>
+                    (canCreate || canImport) && (
+                        <div className="flex gap-2">
+                            {canImport && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setImportVisible(true)}
+                                >
+                                    <UploadCloud className="mr-1 h-4 w-4" />
+                                    Nhập từ Excel
+                                </Button>
+                            )}
+                            {canCreate && (
+                                <Button onClick={openCreate}>
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    Thêm nhà số
+                                </Button>
+                            )}
+                        </div>
                     )
                 }
             />
@@ -290,6 +309,12 @@ const HouseListContent: React.FC = () => {
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
+
+            <HouseImportSheet
+                open={importVisible}
+                onOpenChange={setImportVisible}
+                onImported={() => load(1, search)}
+            />
         </div>
     );
 };
