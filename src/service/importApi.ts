@@ -13,10 +13,11 @@ export interface StreetImportPreviewRow {
     active: boolean;
 }
 
-// Xem HOUSE_COLUMNS/previewHouseImport o backend importService.ts - "address"
-// duoc backend tu suy ra tu "Phân khu/dãy" + "Mã căn/hộ" (khong co cot dia chi
-// rieng trong Phieu thu thap), "ownerName"/"ownerPhone" chi co gia tri khi ca
-// hai hop le (se tao tai khoan chu nha luc commit).
+// Xem HOUSE_COLUMNS/applyHouseImportMapping o backend importService.ts -
+// "address" duoc backend tu suy ra tu cot da mapping cho "Phân khu/dãy" +
+// "Mã căn/hộ" (khong co cot dia chi rieng trong Phieu thu thap),
+// "ownerName"/"ownerPhone" chi co gia tri khi ca hai hop le (se tao tai
+// khoan chu nha luc commit).
 export interface HouseImportPreviewRow {
     code: string;
     cluster: string;
@@ -24,6 +25,29 @@ export interface HouseImportPreviewRow {
     ownerName?: string;
     ownerPhone?: string;
     note?: string;
+}
+
+// Mapping cot Excel -> truong du lieu House, do nguoi dung xac nhan o buoc
+// "chon cot" sau khi upload - chi "code" bat buoc, cac truong con lai tuy
+// chon (bo trong = khong dung cot nao). defaultCluster/neighborhoodId KHONG
+// phai cot trong file - la gia tri nhap/chon MOT LAN cho ca file, dung khi
+// "subZone" khong duoc chon hoac o rong o mot so dong.
+export interface HouseColumnMapping {
+    code: string;
+    subZone?: string;
+    ownerName?: string;
+    ownerPhone?: string;
+    headOfHousehold?: string;
+    contactPhone?: string;
+    usageType?: string;
+    residenceStatus?: string;
+    hasBusiness?: string;
+    memberCount?: string;
+    landStatus?: string;
+    lotCodeCrossCheck?: string;
+    note?: string;
+    defaultCluster?: string;
+    neighborhoodId?: string;
 }
 
 export type ImportJobStatus =
@@ -79,22 +103,25 @@ export const commitStreetImport = (jobId: string): Promise<ImportJob> =>
 
 export const uploadHouseImportFile = (
     file: File,
-    options?: { defaultCluster?: string; neighborhoodId?: string },
 ): Promise<ImportJob<HouseImportPreviewRow>> => {
     const formData = new FormData();
     formData.append("file", file);
-    if (options?.defaultCluster) {
-        formData.append("defaultCluster", options.defaultCluster);
-    }
-    if (options?.neighborhoodId) {
-        formData.append("neighborhoodId", options.neighborhoodId);
-    }
     return request<ImportJob<HouseImportPreviewRow>>(
         "POST",
         `${API.IMPORT}/houses`,
         formData,
     );
 };
+
+export const applyHouseImportMapping = (
+    jobId: string,
+    mapping: HouseColumnMapping,
+): Promise<ImportJob<HouseImportPreviewRow>> =>
+    request<ImportJob<HouseImportPreviewRow>>(
+        "PUT",
+        `${API.IMPORT}/houses/${jobId}/mapping`,
+        mapping,
+    );
 
 export const commitHouseImport = (
     jobId: string,
