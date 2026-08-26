@@ -103,6 +103,19 @@ export const revokeUserSession = (id: string): Promise<null> =>
     request<null>("POST", `${API.USERS}/${id}/revoke-session`);
 
 /**
+ * Dat lai mat khau cho MOT tai khoan bat ky (khac doi mat khau cua chinh
+ * minh) - quyen rieng "users.reset_password", gioi han theo pham vi to dan
+ * pho neu actor la to truong/to pho (giong users.lock) - xem POST
+ * /api/users/:id/reset-password o backend. Tu dong thu hoi phien dang nhap
+ * cu cua tai khoan do (sessionVersion +1).
+ */
+export const resetUserPassword = (
+    id: string,
+    password: string,
+): Promise<null> =>
+    request<null>("POST", `${API.USERS}/${id}/reset-password`, { password });
+
+/**
  * Khoa/mo tai khoan chu nha - quyen HEP hon updateUser (users.update):
  * chi doi status, gioi han theo pham vi to dan pho neu actor la to truong
  * (users.lock, khong phai users.update) - xem PATCH /api/users/:id/lock o

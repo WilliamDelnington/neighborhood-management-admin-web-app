@@ -324,13 +324,22 @@ const NeighborhoodDetailContent: React.FC = () => {
 
     const handleAssignLeader = async () => {
         if (!id || !leaderToAssign) return;
+        // To truong khong con la mot phan cong "doc lap" voi nhiem ky nua -
+        // bat buoc phai co nhiem ky dang hoat dong duoc chon truoc khi gan
+        // (xem ghi chu o assignLeaderSchema/assignNeighborhoodLeader o backend).
+        if (!selectedTermId) {
+            toast.error(
+                "Vui lòng tạo và chọn nhiệm kỳ đang hoạt động trước khi gán tổ trưởng",
+            );
+            return;
+        }
         try {
             setAssigningLeader(true);
             const updated = await assignNeighborhoodLeader(
                 id,
                 leaderToAssign,
                 undefined,
-                selectedTermId ? { termId: selectedTermId } : undefined,
+                { termId: selectedTermId },
             );
             setNeighborhood(updated);
             setLeaderToAssign("");
@@ -362,13 +371,20 @@ const NeighborhoodDetailContent: React.FC = () => {
 
     const handleAssignColeader = async () => {
         if (!id || !coleaderToAssign) return;
+        // Cung quy tac voi to truong - xem ghi chu trong handleAssignLeader.
+        if (!selectedTermId) {
+            toast.error(
+                "Vui lòng tạo và chọn nhiệm kỳ đang hoạt động trước khi gán tổ phó",
+            );
+            return;
+        }
         try {
             setAssigningColeader(true);
             await assignNeighborhoodColeader(
                 id,
                 coleaderToAssign,
                 undefined,
-                selectedTermId ? { termId: selectedTermId } : undefined,
+                { termId: selectedTermId },
             );
             setColeaderToAssign("");
             loadColeaders();
@@ -756,7 +772,10 @@ const NeighborhoodDetailContent: React.FC = () => {
                         </h2>
                         {canManage && assignableTerms.length > 0 && (
                             <div className="mb-3 max-w-md space-y-1.5">
-                                <Label>Nhiệm kỳ áp dụng cho phân công mới</Label>
+                                <Label>
+                                    Nhiệm kỳ áp dụng cho phân công mới{" "}
+                                    <span className="text-red-500">*</span>
+                                </Label>
                                 <Select value={selectedTermId} onValueChange={setSelectedTermId}>
                                     <SelectTrigger><SelectValue placeholder="Chọn nhiệm kỳ" /></SelectTrigger>
                                     <SelectContent>
@@ -767,6 +786,21 @@ const NeighborhoodDetailContent: React.FC = () => {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <p className="text-xs text-text_2">
+                                    Bắt buộc phải chọn một nhiệm kỳ trước khi
+                                    gán tổ trưởng/tổ phó mới - tổ trưởng/tổ
+                                    phó luôn gắn với một nhiệm kỳ cụ thể, khi
+                                    nhiệm kỳ kết thúc họ sẽ tự động thôi quản
+                                    lý tổ dân phố này.
+                                </p>
+                            </div>
+                        )}
+                        {canManage && assignableTerms.length === 0 && (
+                            <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                                Tổ dân phố này chưa có nhiệm kỳ đang hoạt
+                                động. Vui lòng tạo và kích hoạt một nhiệm kỳ ở
+                                mục &quot;Nhiệm kỳ&quot; bên trên trước khi có
+                                thể gán tổ trưởng/tổ phó.
                             </div>
                         )}
                         {neighborhood.leaderUserId ? (
@@ -840,7 +874,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                                 </div>
                                 <Button
                                     loading={assigningLeader}
-                                    disabled={!leaderToAssign}
+                                    disabled={!leaderToAssign || !selectedTermId}
                                     onClick={handleAssignLeader}
                                 >
                                     Gán
@@ -935,7 +969,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                                 </div>
                                 <Button
                                     loading={assigningColeader}
-                                    disabled={!coleaderToAssign}
+                                    disabled={!coleaderToAssign || !selectedTermId}
                                     onClick={handleAssignColeader}
                                 >
                                     Gán

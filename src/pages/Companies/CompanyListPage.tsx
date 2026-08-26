@@ -28,10 +28,12 @@ import {
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Company, VerificationStatus } from "@dts";
+import { BusinessType, Company, VerificationStatus } from "@dts";
 import { fetchCompanies } from "@service/companyApi";
+import { fetchBusinessTypes } from "@service/businessTypeApi";
 
 const ALL_STATUS = "all";
+const ALL_BUSINESS_TYPE = "all";
 
 const CompanyListPage: React.FC = () => (
     <AdminGuard permissions={["companies.read"]}>
@@ -56,6 +58,8 @@ const CompanyListContent: React.FC = () => {
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
+    const [businessType, setBusinessType] = useState("");
+    const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
     const [items, setItems] = useState<Company[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -71,6 +75,7 @@ const CompanyListContent: React.FC = () => {
             limit: size,
             search: keyword,
             status: status || undefined,
+            businessType: businessType || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -85,7 +90,13 @@ const CompanyListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status]);
+    }, [search, status, businessType]);
+
+    useEffect(() => {
+        fetchBusinessTypes({ limit: 200, active: true })
+            .then(res => setBusinessTypes(res.items))
+            .catch(() => setBusinessTypes([]));
+    }, []);
 
     return (
         <div>
@@ -94,7 +105,7 @@ const CompanyListContent: React.FC = () => {
                 description="Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn."
             />
 
-            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -135,6 +146,26 @@ const CompanyListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
+                <Select
+                    value={businessType || ALL_BUSINESS_TYPE}
+                    onValueChange={v =>
+                        setBusinessType(v === ALL_BUSINESS_TYPE ? "" : v)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả loại hình" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_BUSINESS_TYPE}>
+                            Tất cả loại hình
+                        </SelectItem>
+                        {businessTypes.map(bt => (
+                            <SelectItem key={bt._id} value={bt._id}>
+                                {bt.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
@@ -154,6 +185,7 @@ const CompanyListContent: React.FC = () => {
                                 <TableHead>Nhà số</TableHead>
                                 <TableHead>Cụm</TableHead>
                                 <TableHead>Tổ chức liên kết</TableHead>
+                                <TableHead>Loại hình kinh doanh</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
@@ -182,6 +214,16 @@ const CompanyListContent: React.FC = () => {
                                         typeof c.organizationId === "object"
                                             ? c.organizationId.name
                                             : "—"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {(c.businessTypeIds || [])
+                                            .map(bt =>
+                                                typeof bt === "object"
+                                                    ? bt.name
+                                                    : null,
+                                            )
+                                            .filter(Boolean)
+                                            .join(", ") || "Chưa phân loại"}
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>

@@ -553,8 +553,8 @@ type PopulatedFileAssetSummary = {
 };
 type PopulatedActor = { _id: string; displayName: string };
 
-// Mirror cua Business nhung khong co businessType/quy trinh giay to rieng -
-// xem models/Company.ts o backend.
+// Mirror cua Business nhung khong co quy trinh giay to rieng (khong co
+// CompanyDocument) - xem models/Company.ts o backend.
 export type Company = {
     _id: string;
     name: string;
@@ -567,6 +567,9 @@ export type Company = {
     // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
     // ghi chu tren models/Company.ts o backend.
     organizationId?: { _id: string; name: string } | string | null;
+    // Nhieu loai hinh kinh doanh cung luc (khac Business.businessType - mot
+    // gia tri duy nhat) - xem ghi chu tren models/Company.ts o backend.
+    businessTypeIds?: ({ _id: string; name: string } | string)[];
     phone?: string;
     active: boolean;
     status: VerificationStatus;
