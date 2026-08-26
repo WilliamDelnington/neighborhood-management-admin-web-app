@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, ArrowLeftRight } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
     Sheet,
@@ -29,9 +29,11 @@ import {
 import { AppError, Neighborhood } from "@dts";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import {
+    HouseColumnMapping,
     HouseImportPreviewRow,
     ImportJob,
     uploadHouseImportFile,
+    applyHouseImportMapping,
     commitHouseImport,
 } from "@service/importApi";
 
@@ -43,19 +45,52 @@ interface HouseImportSheetProps {
 
 const NONE_VALUE = "__none__";
 
+// Nhan hien thi cho tung truong co the mapping - "required" chi ap dung cho
+// "code" ("Mã căn/hộ"), con lai deu tuy chon (bo qua = khong dung cot nao,
+// xem houseImportMappingSchema o backend).
+const HOUSE_MAPPING_FIELDS: {
+    key: keyof HouseColumnMapping;
+    label: string;
+    required?: boolean;
+}[] = [
+    { key: "code", label: "Mã căn/hộ", required: true },
+    { key: "subZone", label: "Phân khu/dãy" },
+    { key: "ownerName", label: "Chủ sở hữu đứng tên" },
+    { key: "ownerPhone", label: "SĐT chủ sở hữu" },
+    { key: "headOfHousehold", label: "Chủ hộ/người đang sử dụng" },
+    { key: "contactPhone", label: "SĐT/Zalo liên hệ" },
+    { key: "usageType", label: "Loại hình sử dụng" },
+    { key: "residenceStatus", label: "Tình trạng cư trú" },
+    { key: "hasBusiness", label: "Có kinh doanh" },
+    { key: "memberCount", label: "Số nhân khẩu" },
+    { key: "landStatus", label: "Trạng thái đất" },
+    { key: "lotCodeCrossCheck", label: "Đối chiếu mã lô" },
+    { key: "note", label: "Ghi chú" },
+];
+
+type MappingForm = Record<keyof HouseColumnMapping, string>;
+
+const EMPTY_MAPPING: MappingForm = HOUSE_MAPPING_FIELDS.reduce(
+    (acc, f) => ({ ...acc, [f.key]: "" }),
+    {} as MappingForm,
+);
+
 const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
     open,
     onOpenChange,
     onImported,
 }) => {
     const [file, setFile] = useState<File | null>(null);
-    const [defaultCluster, setDefaultCluster] = useState("");
-    const [neighborhoodId, setNeighborhoodId] = useState("");
-    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [job, setJob] = useState<ImportJob<HouseImportPreviewRow> | null>(
         null,
     );
+    const [mapping, setMapping] = useState<MappingForm>(EMPTY_MAPPING);
+    const [defaultCluster, setDefaultCluster] = useState("");
+    const [neighborhoodId, setNeighborhoodId] = useState("");
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
+    const [showMapping, setShowMapping] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
 
     useEffect(() => {
@@ -67,10 +102,13 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
 
     const reset = () => {
         setFile(null);
+        setJob(null);
+        setMapping(EMPTY_MAPPING);
         setDefaultCluster("");
         setNeighborhoodId("");
-        setJob(null);
+        setShowMapping(false);
         setUploading(false);
+        setApplying(false);
         setCommitting(false);
     };
 
@@ -81,6 +119,8 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setJob(null);
+        setMapping(EMPTY_MAPPING);
+        setShowMapping(false);
         setFile(e.target.files?.[0] || null);
     };
 
@@ -88,11 +128,42 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         if (!file) return;
         try {
             setUploading(true);
-            const result = await uploadHouseImportFile(file, {
-                defaultCluster: defaultCluster.trim() || undefined,
-                neighborhoodId: neighborhoodId || undefined,
-            });
+            const result = await uploadHouseImportFile(file);
             setJob(result);
+            const suggested = { ...EMPTY_MAPPING };
+            HOUSE_MAPPING_FIELDS.forEach(f => {
+                suggested[f.key] = result.suggestedMapping[f.key] || "";
+            });
+            setMapping(suggested);
+            setShowMapping(true);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleApplyMapping = async () => {
+        if (!job || !mapping.code) return;
+        try {
+            setApplying(true);
+            const payload: Partial<Record<keyof HouseColumnMapping, string>> =
+                { code: mapping.code };
+            HOUSE_MAPPING_FIELDS.forEach(f => {
+                if (f.key === "code") return;
+                if (mapping[f.key]) payload[f.key] = mapping[f.key];
+            });
+            if (defaultCluster.trim()) {
+                payload.defaultCluster = defaultCluster.trim();
+            }
+            if (neighborhoodId) payload.neighborhoodId = neighborhoodId;
+
+            const result = await applyHouseImportMapping(
+                job._id,
+                payload as HouseColumnMapping,
+            );
+            setJob(result);
+            setShowMapping(false);
             if (result.rowErrors.length > 0) {
                 toast.error(
                     `Có ${result.rowErrors.length} dòng không hợp lệ, vui lòng kiểm tra lại`,
@@ -105,7 +176,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
-            setUploading(false);
+            setApplying(false);
         }
     };
 
@@ -125,8 +196,13 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         }
     };
 
+    const canApplyMapping = !!mapping.code;
     const canCommit =
-        !!job && job.status !== "committed" && job.rowErrors.length === 0;
+        !!job &&
+        !showMapping &&
+        job.status !== "committed" &&
+        job.status !== "awaiting_mapping" &&
+        job.rowErrors.length === 0;
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -138,17 +214,81 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                     {!job && (
                         <>
                             <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
-                                Dùng cho file theo mẫu &quot;Phiếu thu thập
-                                thông tin hộ gia đình/căn hộ/cơ sở kinh
-                                doanh&quot; (cột &quot;Mã căn/hộ&quot;,
+                                Tải lên file Excel bất kỳ có dòng tiêu đề ở
+                                hàng đầu tiên. Sau khi tải lên, bạn sẽ chọn cột
+                                nào tương ứng với &quot;Mã căn/hộ&quot;,
                                 &quot;Chủ sở hữu đứng tên&quot;, &quot;SĐT chủ
-                                sở hữu&quot;...). Mã căn/hộ được giữ nguyên làm
-                                mã nhà (không tự sinh mã). Nếu chủ sở hữu có cả
+                                sở hữu&quot;... — không cần tên cột phải khớp
+                                chính xác. Mã căn/hộ được giữ nguyên làm mã
+                                nhà (không tự sinh mã). Nếu chủ sở hữu có cả
                                 tên và số điện thoại hợp lệ, hệ thống sẽ tạo
                                 luôn tài khoản chủ nhà.
                             </div>
+                            <div>
+                                <input
+                                    type="file"
+                                    accept=".xlsx"
+                                    onChange={handleFileChange}
+                                    className="block w-full text-sm text-text_1 file:mr-3 file:rounded-lg file:border-0 file:bg-main file:px-3 file:py-2 file:text-sm file:text-white"
+                                />
+                            </div>
+                        </>
+                    )}
 
-                            <div className="space-y-1">
+                    {job && showMapping && (
+                        <div className="space-y-4">
+                            <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
+                                Đã đọc {job.totalRows} dòng dữ liệu với các cột:{" "}
+                                {job.headers.join(", ")}. Chỉ &quot;Mã
+                                căn/hộ&quot; là bắt buộc — các trường khác có
+                                thể để &quot;Không dùng&quot; nếu file không
+                                có cột tương ứng.
+                            </div>
+
+                            {HOUSE_MAPPING_FIELDS.map(f => (
+                                <div key={f.key} className="space-y-1">
+                                    <label
+                                        htmlFor={`mapping-${f.key}`}
+                                        className="text-sm font-medium"
+                                    >
+                                        Cột &quot;{f.label}&quot;
+                                        {f.required && (
+                                            <span className="text-red-500">
+                                                {" "}
+                                                *
+                                            </span>
+                                        )}
+                                    </label>
+                                    <Select
+                                        value={mapping[f.key] || NONE_VALUE}
+                                        onValueChange={v =>
+                                            setMapping(prev => ({
+                                                ...prev,
+                                                [f.key]:
+                                                    v === NONE_VALUE ? "" : v,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger id={`mapping-${f.key}`}>
+                                            <SelectValue placeholder="Chọn cột..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {!f.required && (
+                                                <SelectItem value={NONE_VALUE}>
+                                                    Không dùng
+                                                </SelectItem>
+                                            )}
+                                            {job.headers.map(h => (
+                                                <SelectItem key={h} value={h}>
+                                                    {h}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ))}
+
+                            <div className="space-y-1 border-t border-divider_01 pt-4">
                                 <Label>Cụm dân cư mặc định (nếu có)</Label>
                                 <Input
                                     placeholder="Dùng khi cột 'Phân khu/dãy' để trống ở một số dòng"
@@ -158,7 +298,6 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                     }
                                 />
                             </div>
-
                             <div className="space-y-1">
                                 <Label>Tổ dân phố (nếu có)</Label>
                                 <Select
@@ -184,20 +323,10 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                     </SelectContent>
                                 </Select>
                             </div>
-
-                            <div>
-                                <Label>File Excel (.xlsx)</Label>
-                                <input
-                                    type="file"
-                                    accept=".xlsx"
-                                    onChange={handleFileChange}
-                                    className="mt-1 block w-full text-sm text-text_1 file:mr-3 file:rounded-lg file:border-0 file:bg-main file:px-3 file:py-2 file:text-sm file:text-white"
-                                />
-                            </div>
-                        </>
+                        </div>
                     )}
 
-                    {job && (
+                    {job && !showMapping && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
                                 <span>
@@ -208,9 +337,10 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={reset}
+                                    onClick={() => setShowMapping(true)}
                                 >
-                                    Tải file khác
+                                    <ArrowLeftRight className="mr-1 h-3.5 w-3.5" />
+                                    Chọn lại cột
                                 </Button>
                             </div>
 
@@ -278,10 +408,20 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                             onClick={handleUpload}
                         >
                             <UploadCloud className="mr-1 h-4 w-4" />
-                            Tải lên và kiểm tra
+                            Tải lên
                         </Button>
                     )}
-                    {job && (
+                    {job && showMapping && (
+                        <Button
+                            className="w-full"
+                            disabled={!canApplyMapping}
+                            loading={applying}
+                            onClick={handleApplyMapping}
+                        >
+                            Xem trước
+                        </Button>
+                    )}
+                    {job && !showMapping && (
                         <Button
                             className="w-full"
                             disabled={!canCommit}
