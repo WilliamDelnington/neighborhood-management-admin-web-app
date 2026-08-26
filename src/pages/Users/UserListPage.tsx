@@ -42,6 +42,7 @@ import {
     CreatableStaffRole,
     fetchUsers,
     lockUserAccount,
+    resetUserPassword,
     revokeUserRole,
     revokeUserSession,
     updateUser,
@@ -106,6 +107,10 @@ const UserListContent: React.FC = () => {
     const canFullUpdate = usePermission("users.update");
     const canAssignRoles = usePermission("users.assign_roles");
     const canCreateAccount = usePermission("users.create");
+    // Quyen rieng, KHAC canFullUpdate - to truong/to pho co users.reset_password
+    // (gioi han theo pham vi to dan pho o backend) nhung khong co users.update -
+    // xem systemRoles.ts.
+    const canResetPassword = usePermission("users.reset_password");
     const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     // to truong khong co roles.read - goi fetchRoles se luon 403. Danh sach
     // nay chi phuc vu bo loc theo vai tro + man gan vai tro (da an voi to
@@ -148,6 +153,8 @@ const UserListContent: React.FC = () => {
         null,
     );
     const [revokingSession, setRevokingSession] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [resettingPassword, setResettingPassword] = useState(false);
 
     const [managedNeighborhoods, setManagedNeighborhoods] = useState<
         Neighborhood[]
@@ -291,6 +298,7 @@ const UserListContent: React.FC = () => {
         setStatusReason("");
         setRoleToAssign("resident");
         setNeighborhoodToAssign("");
+        setNewPassword("");
         loadNeighborhoodSections(user);
         setWardProvinceCode(user.provinceCode ? String(user.provinceCode) : "");
         setWardProvinceName(user.provinceName || "");
@@ -466,6 +474,22 @@ const UserListContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setRevokingSession(false);
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!selectedUser || newPassword.trim().length < 6) return;
+        try {
+            setResettingPassword(true);
+            await resetUserPassword(selectedUser.id, newPassword.trim());
+            toast.success(
+                "Đã đặt lại mật khẩu, tài khoản này sẽ phải đăng nhập lại",
+            );
+            setNewPassword("");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setResettingPassword(false);
         }
     };
 
@@ -910,6 +934,36 @@ const UserListContent: React.FC = () => {
                                         </Button>
                                     </div>
                                 </div>
+                            )}
+
+                            {canResetPassword && (
+                            <div className="mt-5 border-t border-divider_01 pt-4">
+                                <Label>Đặt lại mật khẩu</Label>
+                                <p className="mb-2 mt-1 text-xs text-text_2">
+                                    Dùng khi tài khoản chưa có mật khẩu (vd tạo
+                                    qua Nhập Excel) hoặc chủ tài khoản quên mật
+                                    khẩu và cần được hỗ trợ. Sau khi đặt lại,
+                                    tài khoản sẽ phải đăng nhập lại bằng mật
+                                    khẩu mới.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="text"
+                                        placeholder="Mật khẩu mới (ít nhất 6 ký tự)"
+                                        value={newPassword}
+                                        onChange={e =>
+                                            setNewPassword(e.target.value)
+                                        }
+                                    />
+                                    <Button
+                                        disabled={newPassword.trim().length < 6}
+                                        loading={resettingPassword}
+                                        onClick={handleResetPassword}
+                                    >
+                                        Đặt lại
+                                    </Button>
+                                </div>
+                            </div>
                             )}
 
                             {canFullUpdate && (
