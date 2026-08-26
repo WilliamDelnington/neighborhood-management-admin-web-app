@@ -6,6 +6,7 @@ import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
+import { Checkbox } from "@components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -21,6 +22,13 @@ import {
     SheetFooter,
 } from "@components/ui/sheet";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@components/ui/dialog";
+import {
     Table,
     TableBody,
     TableCell,
@@ -29,6 +37,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import FilterableSelect from "@components/admin/FilterableSelect";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import HouseMapPanel from "@components/admin/HouseMapPanel";
@@ -40,8 +49,15 @@ import {
     HOUSE_STATUS_LABEL,
     HOUSE_STATUS_TONE,
 } from "@constants/domain";
-import { House, HouseStatus, AppError } from "@dts";
-import { createHouse, fetchHouses } from "@service/houseApi";
+import { House, HouseStatus, Neighborhood, AppError } from "@dts";
+import {
+    BulkHouseActionResult,
+    bulkAssignHouseNeighborhood,
+    bulkUpdateHouseStatus,
+    createHouse,
+    fetchHouses,
+} from "@service/houseApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import HouseForm, {
     EMPTY_HOUSE_FORM,
     HouseFormValues,
@@ -58,6 +74,23 @@ const HouseListPage: React.FC = () => (
 
 const ALL_STATUSES = "all";
 
+/** Bao ket qua thao tac hang loat qua toast - thanh cong het thi 1 dong, co
+ * loi thi liet ke ly do tung nha that bai (toi da 3 dong, con lai gom số
+ * lượng) de khong tran toast qua dai. */
+function reportBulkResult(result: BulkHouseActionResult, verb: string) {
+    if (result.failed.length === 0) {
+        toast.success(`Đã ${verb} ${result.succeededIds.length} nhà số`);
+        return;
+    }
+    const shown = result.failed.slice(0, 3).map(f => f.message);
+    const more = result.failed.length > 3 ? ` và ${result.failed.length - 3} lỗi khác` : "";
+    toast.error(
+        `${verb.charAt(0).toUpperCase()}${verb.slice(1)} thành công ${result.succeededIds.length}/${
+            result.succeededIds.length + result.failed.length
+        } nhà số. Lỗi: ${shown.join("; ")}${more}`,
+    );
+}
+
 const HouseListContent: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -67,6 +100,10 @@ const HouseListContent: React.FC = () => {
     // /api/import/houses), KHAC voi "houses.create" ma to truong cung co -
     // phai kiem tra rieng de khong hien nut cho vai tro se bi 403 khi bam.
     const canImport = usePermission("imports.manage");
+    // Rieng cho cac thao tac hang loat - "Gán tổ dân phố" can houses.update,
+    // "Duyệt đã chọn" can houses.verify (giong endpoint don le tuong ung).
+    const canBulkAssignNeighborhood = usePermission("houses.update");
+    const canBulkVerify = usePermission("houses.verify");
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
@@ -81,6 +118,16 @@ const HouseListContent: React.FC = () => {
     const [form, setForm] = useState<HouseFormValues>(EMPTY_HOUSE_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
+
+    // Chon nhieu dong de thao tac hang loat (vd gan to dan pho cho cac nha
+    // nhap tu Excel con thieu, duyet nhanh cac nha dang cho duyet).
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
+    const [bulkNeighborhoodDialogOpen, setBulkNeighborhoodDialogOpen] =
+        useState(false);
+    const [bulkNeighborhoodId, setBulkNeighborhoodId] = useState("");
+    const [bulkAssigning, setBulkAssigning] = useState(false);
+    const [bulkVerifying, setBulkVerifying] = useState(false);
 
     const load = (
         targetPage = 1,
@@ -101,6 +148,7 @@ const HouseListContent: React.FC = () => {
                 setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
+                setSelectedIds([]);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -111,6 +159,65 @@ const HouseListContent: React.FC = () => {
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search, status, neighborhoodId]);
+
+    useEffect(() => {
+        if (!canBulkAssignNeighborhood) return;
+        fetchNeighborhoods({ active: true, limit: 200 })
+            .then(res => setNeighborhoods(res.items))
+            .catch(() => setNeighborhoods([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canBulkAssignNeighborhood]);
+
+    const allOnPageSelected =
+        items.length > 0 && items.every(h => selectedIds.includes(h._id));
+    const toggleSelectAll = (checked: boolean) => {
+        setSelectedIds(checked ? items.map(h => h._id) : []);
+    };
+    const toggleSelectOne = (id: string, checked: boolean) => {
+        setSelectedIds(current =>
+            checked ? [...current, id] : current.filter(item => item !== id),
+        );
+    };
+
+    const handleBulkAssignNeighborhood = async () => {
+        if (!bulkNeighborhoodId || selectedIds.length === 0) return;
+        try {
+            setBulkAssigning(true);
+            const result = await bulkAssignHouseNeighborhood(
+                selectedIds,
+                bulkNeighborhoodId,
+            );
+            reportBulkResult(result, "gán tổ dân phố cho");
+            setBulkNeighborhoodDialogOpen(false);
+            setBulkNeighborhoodId("");
+            load(page, search, status);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setBulkAssigning(false);
+        }
+    };
+
+    const handleBulkVerify = async () => {
+        if (selectedIds.length === 0) return;
+        if (
+            !window.confirm(
+                `Duyệt ${selectedIds.length} nhà số đã chọn? Chỉ những nhà đang "Chờ duyệt" mới được xử lý.`,
+            )
+        ) {
+            return;
+        }
+        try {
+            setBulkVerifying(true);
+            const result = await bulkUpdateHouseStatus(selectedIds, "verified");
+            reportBulkResult(result, "duyệt");
+            load(page, search, status);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setBulkVerifying(false);
+        }
+    };
 
     const openCreate = () => {
         setForm(EMPTY_HOUSE_FORM);
@@ -216,6 +323,41 @@ const HouseListContent: React.FC = () => {
                 </Select>
             </div>
 
+            {selectedIds.length > 0 && (canBulkAssignNeighborhood || canBulkVerify) && (
+                <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-divider_01 bg-bg_2 px-3 py-2 text-sm">
+                    <span className="font-medium">
+                        Đã chọn {selectedIds.length} nhà số
+                    </span>
+                    {canBulkAssignNeighborhood && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setBulkNeighborhoodDialogOpen(true)}
+                        >
+                            Gán tổ dân phố
+                        </Button>
+                    )}
+                    {canBulkVerify && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            loading={bulkVerifying}
+                            onClick={handleBulkVerify}
+                        >
+                            Duyệt đã chọn
+                        </Button>
+                    )}
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto"
+                        onClick={() => setSelectedIds([])}
+                    >
+                        Bỏ chọn
+                    </Button>
+                </div>
+            )}
+
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
@@ -228,6 +370,16 @@ const HouseListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                {(canBulkAssignNeighborhood || canBulkVerify) && (
+                                    <TableHead className="w-10">
+                                        <Checkbox
+                                            checked={allOnPageSelected}
+                                            onCheckedChange={checked =>
+                                                toggleSelectAll(checked === true)
+                                            }
+                                        />
+                                    </TableHead>
+                                )}
                                 <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã nhà</TableHead>
                                 <TableHead>Địa chỉ</TableHead>
@@ -244,6 +396,16 @@ const HouseListContent: React.FC = () => {
                                     className="cursor-pointer"
                                     onClick={() => navigate(`/houses/${h._id}`)}
                                 >
+                                    {(canBulkAssignNeighborhood || canBulkVerify) && (
+                                        <TableCell onClick={e => e.stopPropagation()}>
+                                            <Checkbox
+                                                checked={selectedIds.includes(h._id)}
+                                                onCheckedChange={checked =>
+                                                    toggleSelectOne(h._id, checked === true)
+                                                }
+                                            />
+                                        </TableCell>
+                                    )}
                                     <TableCell className="text-center text-text_2">
                                         {(page - 1) * pageSize + index + 1}
                                     </TableCell>
@@ -330,6 +492,51 @@ const HouseListContent: React.FC = () => {
                 onOpenChange={setImportVisible}
                 onImported={() => load(1, search)}
             />
+
+            <Dialog
+                open={bulkNeighborhoodDialogOpen}
+                onOpenChange={open => {
+                    setBulkNeighborhoodDialogOpen(open);
+                    if (!open) setBulkNeighborhoodId("");
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            Gán tổ dân phố cho {selectedIds.length} nhà số
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-xs text-text_2">
+                        Nhà số đã xác thực sẽ không được gán qua đây (phải gửi
+                        yêu cầu thay đổi thông tin) - kết quả sẽ báo rõ nhà nào
+                        thành công/thất bại.
+                    </p>
+                    <FilterableSelect
+                        label="Tổ dân phố"
+                        placeholder="Chọn tổ dân phố..."
+                        searchPlaceholder="Tìm theo tên tổ dân phố..."
+                        items={neighborhoods}
+                        getId={n => n._id}
+                        getLabel={n => n.name}
+                        value={bulkNeighborhoodId}
+                        valueLabel={
+                            neighborhoods.find(n => n._id === bulkNeighborhoodId)
+                                ?.name
+                        }
+                        onChange={id => setBulkNeighborhoodId(id || "")}
+                    />
+                    <DialogFooter>
+                        <Button
+                            className="w-full"
+                            disabled={!bulkNeighborhoodId}
+                            loading={bulkAssigning}
+                            onClick={handleBulkAssignNeighborhood}
+                        >
+                            Gán tổ dân phố
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

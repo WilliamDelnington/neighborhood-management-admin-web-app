@@ -174,6 +174,41 @@ export const updateHouseStatus = (
 ): Promise<House> =>
     request<House>("PATCH", `${API.HOUSES}/${id}/status`, { status, note });
 
+// Ket qua thao tac hang loat - moi nha duoc xu ly RIENG o backend (khong loi
+// nao lam dung ca lo), nen ket qua tra ve id nao thanh cong/that bai kem ly
+// do, thay vi chi mot true/false chung.
+export interface BulkHouseActionResult {
+    succeededIds: string[];
+    failed: { id: string; message: string }[];
+}
+
+// Gan mot to dan pho cho nhieu nha so cung luc (vd nha nhap tu Excel con
+// thieu to dan pho) - nha da "verified" se rot vao "failed" (phai di qua yeu
+// cau thay doi thong tin), xem houseRecordService.bulkAssignHouseNeighborhood
+// o backend.
+export const bulkAssignHouseNeighborhood = (
+    ids: string[],
+    neighborhoodId: string,
+): Promise<BulkHouseActionResult> =>
+    request<BulkHouseActionResult>("PATCH", API.HOUSES_BULK_NEIGHBORHOOD, {
+        ids,
+        neighborhoodId,
+    });
+
+// Duyet/tu choi/yeu cau cap nhat hang loat (vd duyet nhanh cac nha dang "Chờ
+// duyệt") - nha khong o dung trang thai nguon se rot vao "failed", xem
+// houseRecordService.bulkTransitionHouseRecordStatus o backend.
+export const bulkUpdateHouseStatus = (
+    ids: string[],
+    status: HouseStatus,
+    note?: string,
+): Promise<BulkHouseActionResult> =>
+    request<BulkHouseActionResult>("PATCH", API.HOUSES_BULK_STATUS, {
+        ids,
+        status,
+        note,
+    });
+
 export const fetchHouseAuditLogs = (
     id: string,
     params?: { page?: number; limit?: number },

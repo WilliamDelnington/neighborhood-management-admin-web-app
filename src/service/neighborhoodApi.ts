@@ -9,7 +9,6 @@ import {
     NeighborhoodColeaderAssignment,
     NeighborhoodStatus,
     NeighborhoodTerm,
-    NeighborhoodTermStatus,
     PaginatedData,
 } from "@dts";
 import { request } from "./request";
@@ -141,8 +140,22 @@ export interface NeighborhoodTermInput {
     name: string;
     startAt: string;
     endAt: string;
-    status: NeighborhoodTermStatus;
     notes?: string;
+    // true = nut "Lưu nháp" (luon DRAFT); false/khong gui = nut "Tạo" (tu
+    // tinh NOT_STARTED/IN_PROGRESS/ENDED theo ngay o backend) - xem
+    // resolveTermStatusByDate trong neighborhoodService.ts.
+    saveAsDraft?: boolean;
+}
+
+export interface UpdateNeighborhoodTermInput {
+    name?: string;
+    startAt?: string;
+    endAt?: string;
+    notes?: string;
+    // Chi co tac dung khi nhiem ky dang DRAFT - true = luu thong tin VA
+    // chuyen sang NOT_STARTED/IN_PROGRESS (nut "Tạo" khi sua ban nhap);
+    // false/khong gui = chi luu thong tin, van la DRAFT (nut "Lưu nháp").
+    finalize?: boolean;
 }
 
 export const fetchNeighborhoodTerms = (id: string): Promise<NeighborhoodTerm[]> =>
@@ -157,12 +170,45 @@ export const createNeighborhoodTerm = (
 export const updateNeighborhoodTerm = (
     neighborhoodId: string,
     termId: string,
-    input: Partial<NeighborhoodTermInput>,
+    input: UpdateNeighborhoodTermInput,
 ): Promise<NeighborhoodTerm> =>
     request<NeighborhoodTerm>(
         "PATCH",
         `${API.NEIGHBORHOODS}/${neighborhoodId}/terms/${termId}`,
         input,
+    );
+
+// Chi xoa duoc nhiem ky DRAFT (backend chan 409 cho cac trang thai khac).
+export const deleteNeighborhoodTerm = (
+    neighborhoodId: string,
+    termId: string,
+): Promise<null> =>
+    request<null>(
+        "DELETE",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/terms/${termId}`,
+    );
+
+// Huy mot nhiem ky CHUA bat dau (NOT_STARTED -> CANCELLED) - khong can ly do.
+export const cancelNeighborhoodTerm = (
+    neighborhoodId: string,
+    termId: string,
+): Promise<NeighborhoodTerm> =>
+    request<NeighborhoodTerm>(
+        "POST",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/terms/${termId}/cancel`,
+    );
+
+// Ket thuc SOM mot nhiem ky dang dien ra (IN_PROGRESS -> ENDED) - ly do BAT
+// BUOC (khac ket thuc dung han, tu dong khong can hanh dong).
+export const endNeighborhoodTermEarly = (
+    neighborhoodId: string,
+    termId: string,
+    reason: string,
+): Promise<NeighborhoodTerm> =>
+    request<NeighborhoodTerm>(
+        "POST",
+        `${API.NEIGHBORHOODS}/${neighborhoodId}/terms/${termId}/end-early`,
+        { reason },
     );
 
 export const fetchNeighborhoodHistory = (

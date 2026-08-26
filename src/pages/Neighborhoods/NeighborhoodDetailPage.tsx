@@ -17,6 +17,13 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@components/ui/dialog";
+import {
     LoadingState,
     EmptyState,
     ErrorState,
@@ -41,9 +48,12 @@ import {
     assignNeighborhoodColeader,
     assignNeighborhoodCollaborator,
     assignNeighborhoodLeader,
+    cancelNeighborhoodTerm,
     createNeighborhoodAttachment,
     createNeighborhoodTerm,
     deleteNeighborhoodAttachment,
+    deleteNeighborhoodTerm,
+    endNeighborhoodTermEarly,
     fetchNeighborhoodAttachments,
     fetchNeighborhoodById,
     fetchNeighborhoodColeaders,
@@ -100,11 +110,14 @@ const formatDate = (iso?: string) => {
 };
 
 const TERM_STATUS_LABEL: Record<NeighborhoodTermStatus, string> = {
-    PLANNED: "Dự kiến",
-    ACTIVE: "Đang diễn ra",
+    DRAFT: "Nháp",
+    NOT_STARTED: "Chưa bắt đầu",
+    IN_PROGRESS: "Đang diễn ra",
     ENDED: "Đã kết thúc",
     CANCELLED: "Đã hủy",
 };
+
+const EMPTY_TERM_FORM = { name: "", startAt: "", endAt: "", notes: "" };
 
 const COLLABORATOR_SCOPE_LABEL: Record<NeighborhoodCollaboratorScope, string> = {
     WHOLE_NEIGHBORHOOD: "Toàn Tổ",
@@ -152,14 +165,24 @@ const NeighborhoodDetailContent: React.FC = () => {
     const [terms, setTerms] = useState<NeighborhoodTerm[]>([]);
     const [termsLoading, setTermsLoading] = useState(true);
     const [termFormOpen, setTermFormOpen] = useState(false);
-    const [termForm, setTermForm] = useState({
-        name: "",
-        startAt: "",
-        endAt: "",
-        status: "PLANNED" as NeighborhoodTermStatus,
-        notes: "",
-    });
+    // null = dang tao moi; co gia tri = dang sua mot nhiem ky DRAFT/NOT_STARTED
+    // co san (xem handleOpenEditTerm) - quyet dinh goi createNeighborhoodTerm
+    // hay updateNeighborhoodTerm trong handleSaveTerm.
+    const [editingTerm, setEditingTerm] = useState<NeighborhoodTerm | null>(
+        null,
+    );
+    const [termForm, setTermForm] = useState(EMPTY_TERM_FORM);
     const [savingTerm, setSavingTerm] = useState(false);
+    const [cancellingTermId, setCancellingTermId] = useState<string | null>(
+        null,
+    );
+    const [deletingTermId, setDeletingTermId] = useState<string | null>(null);
+    // Dialog "Kết thúc sớm" - ly do la bat buoc, xem handleConfirmEndTermEarly.
+    const [endEarlyTerm, setEndEarlyTerm] = useState<NeighborhoodTerm | null>(
+        null,
+    );
+    const [endEarlyReason, setEndEarlyReason] = useState("");
+    const [endingEarly, setEndingEarly] = useState(false);
     const [selectedTermId, setSelectedTermId] = useState("");
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
@@ -242,7 +265,9 @@ const NeighborhoodDetailContent: React.FC = () => {
         fetchNeighborhoodTerms(id)
             .then(items => {
                 setTerms(items);
-                const activeTerm = items.find(term => term.status === "ACTIVE");
+                const activeTerm = items.find(
+                    term => term.status === "IN_PROGRESS",
+                );
                 setSelectedTermId(current => current || activeTerm?._id || "");
             })
             .catch(() => setTerms([]))
@@ -397,23 +422,62 @@ const NeighborhoodDetailContent: React.FC = () => {
         }
     };
 
-    const handleCreateTerm = async () => {
+    const handleOpenCreateTerm = () => {
+        setEditingTerm(null);
+        setTermForm(EMPTY_TERM_FORM);
+        setTermFormOpen(true);
+    };
+
+    // Chi goi duoc voi nhiem ky DRAFT hoac NOT_STARTED (nut "Sửa" chi hien
+    // voi hai trang thai nay - xem cac cho render ben duoi).
+    const handleOpenEditTerm = (term: NeighborhoodTerm) => {
+        setEditingTerm(term);
+        setTermForm({
+            name: term.name,
+            startAt: term.startAt.slice(0, 10),
+            endAt: term.endAt.slice(0, 10),
+            notes: term.notes || "",
+        });
+        setTermFormOpen(true);
+    };
+
+    const handleCloseTermForm = () => {
+        setTermFormOpen(false);
+        setEditingTerm(null);
+        setTermForm(EMPTY_TERM_FORM);
+    };
+
+    // finalize=false -> nut "Lưu nháp" (tao/giu DRAFT); finalize=true -> nut
+    // "Tạo" (tao moi voi trang thai tu tinh theo ngay, hoac chuyen mot DRAFT
+    // dang sua sang NOT_STARTED/IN_PROGRESS).
+    const handleSaveTerm = async (finalize: boolean) => {
         if (!id || !termForm.name.trim() || !termForm.startAt || !termForm.endAt) {
             toast.error("Vui lòng nhập đủ tên và thời gian nhiệm kỳ");
             return;
         }
         try {
             setSavingTerm(true);
-            await createNeighborhoodTerm(id, {
-                ...termForm,
+            const fields = {
                 name: termForm.name.trim(),
+                startAt: termForm.startAt,
+                endAt: termForm.endAt,
                 notes: termForm.notes.trim() || undefined,
-            });
-            setTermForm({ name: "", startAt: "", endAt: "", status: "PLANNED", notes: "" });
-            setTermFormOpen(false);
+            };
+            if (editingTerm) {
+                await updateNeighborhoodTerm(id, editingTerm._id, {
+                    ...fields,
+                    ...(editingTerm.status === "DRAFT" ? { finalize } : {}),
+                });
+            } else {
+                await createNeighborhoodTerm(id, {
+                    ...fields,
+                    saveAsDraft: !finalize,
+                });
+            }
+            handleCloseTermForm();
             loadTerms();
             loadOrganizationHistory();
-            toast.success("Đã tạo nhiệm kỳ");
+            toast.success(finalize ? "Đã tạo nhiệm kỳ" : "Đã lưu nháp nhiệm kỳ");
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -421,17 +485,64 @@ const NeighborhoodDetailContent: React.FC = () => {
         }
     };
 
-    const handleEndTerm = async (term: NeighborhoodTerm) => {
+    const handleDeleteTerm = async (term: NeighborhoodTerm) => {
         if (!id) return;
+        if (!window.confirm(`Xóa nhiệm kỳ "${term.name}"? Không thể hoàn tác.`)) {
+            return;
+        }
         try {
-            await updateNeighborhoodTerm(id, term._id, { status: "ENDED" });
+            setDeletingTermId(term._id);
+            await deleteNeighborhoodTerm(id, term._id);
+            loadTerms();
+            loadOrganizationHistory();
+            toast.success("Đã xóa nhiệm kỳ");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingTermId(null);
+        }
+    };
+
+    const handleCancelTerm = async (term: NeighborhoodTerm) => {
+        if (!id) return;
+        if (!window.confirm(`Hủy nhiệm kỳ "${term.name}"?`)) return;
+        try {
+            setCancellingTermId(term._id);
+            await cancelNeighborhoodTerm(id, term._id);
+            loadTerms();
+            loadOrganizationHistory();
+            toast.success("Đã hủy nhiệm kỳ");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setCancellingTermId(null);
+        }
+    };
+
+    const handleConfirmEndTermEarly = async () => {
+        if (!id || !endEarlyTerm) return;
+        if (!endEarlyReason.trim()) {
+            toast.error("Vui lòng nhập lý do kết thúc sớm");
+            return;
+        }
+        try {
+            setEndingEarly(true);
+            await endNeighborhoodTermEarly(
+                id,
+                endEarlyTerm._id,
+                endEarlyReason.trim(),
+            );
+            setEndEarlyTerm(null);
+            setEndEarlyReason("");
             loadTerms();
             load();
             loadColeaders();
             loadOrganizationHistory();
-            toast.success("Đã kết thúc nhiệm kỳ và thu hồi phân công liên quan");
+            toast.success("Đã kết thúc sớm nhiệm kỳ và thu hồi phân công liên quan");
         } catch (err) {
             toast.error((err as AppError).message);
+        } finally {
+            setEndingEarly(false);
         }
     };
 
@@ -546,7 +657,7 @@ const NeighborhoodDetailContent: React.FC = () => {
     const otherCandidateColeaders = candidateColeaders.filter(
         u => !coleaders.some(c => c.coleaderUserId?._id === u.id),
     );
-    const assignableTerms = terms.filter(term => term.status === "ACTIVE");
+    const assignableTerms = terms.filter(term => term.status === "IN_PROGRESS");
     const activeLeaderAssignment = history.find(item => !item.unassignedAt);
 
     return (
@@ -685,11 +796,19 @@ const NeighborhoodDetailContent: React.FC = () => {
                             <div>
                                 <h2 className="text-base font-semibold">Nhiệm kỳ</h2>
                                 <p className="text-xs text-text_2">
-                                    Kết thúc nhiệm kỳ sẽ thu hồi phân công, không xóa tài khoản hoặc lịch sử.
+                                    Kết thúc nhiệm kỳ (dù đúng hạn hay sớm) sẽ thu hồi phân công, không xóa tài khoản hoặc lịch sử.
                                 </p>
                             </div>
                             {canManage && (
-                                <Button size="sm" variant="outline" onClick={() => setTermFormOpen(value => !value)}>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        termFormOpen
+                                            ? handleCloseTermForm()
+                                            : handleOpenCreateTerm()
+                                    }
+                                >
                                     <Plus className="mr-1 h-4 w-4" /> Thêm nhiệm kỳ
                                 </Button>
                             )}
@@ -708,23 +827,37 @@ const NeighborhoodDetailContent: React.FC = () => {
                                     <Label>Đến ngày</Label>
                                     <Input type="date" value={termForm.endAt} onChange={e => setTermForm({ ...termForm, endAt: e.target.value })} />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label>Trạng thái</Label>
-                                    <Select value={termForm.status} onValueChange={value => setTermForm({ ...termForm, status: value as NeighborhoodTermStatus })}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="PLANNED">Dự kiến</SelectItem>
-                                            <SelectItem value="ACTIVE">Đang diễn ra</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1.5">
+                                <div className="space-y-1.5 md:col-span-2">
                                     <Label>Ghi chú</Label>
                                     <Input value={termForm.notes} onChange={e => setTermForm({ ...termForm, notes: e.target.value })} />
                                 </div>
-                                <div className="md:col-span-2">
-                                    <Button loading={savingTerm} onClick={handleCreateTerm}>Lưu nhiệm kỳ</Button>
+                                <div className="flex gap-2 md:col-span-2">
+                                    <Button
+                                        variant="outline"
+                                        loading={savingTerm}
+                                        onClick={() => handleSaveTerm(false)}
+                                    >
+                                        Lưu nháp
+                                    </Button>
+                                    <Button
+                                        loading={savingTerm}
+                                        onClick={() => handleSaveTerm(true)}
+                                    >
+                                        Tạo
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="ml-auto"
+                                        onClick={handleCloseTermForm}
+                                    >
+                                        Hủy
+                                    </Button>
                                 </div>
+                                <p className="text-xs text-text_2 md:col-span-2">
+                                    &quot;Lưu nháp&quot;: chưa công bố, vẫn sửa/xóa được tự
+                                    do. &quot;Tạo&quot;: công bố nhiệm kỳ - trạng thái tự
+                                    xác định theo ngày (Chưa bắt đầu/Đang diễn ra).
+                                </p>
                             </div>
                         )}
                         {termsLoading && <LoadingState />}
@@ -735,14 +868,100 @@ const NeighborhoodDetailContent: React.FC = () => {
                                     <div className="font-medium">{term.name}</div>
                                     <div className="text-xs text-text_2">
                                         {formatDate(term.startAt)} → {formatDate(term.endAt)} · {TERM_STATUS_LABEL[term.status]}
+                                        {term.status === "ENDED" && term.endedEarly && (
+                                            <> (kết thúc sớm{term.endReason ? `: ${term.endReason}` : ""})</>
+                                        )}
                                     </div>
                                 </div>
-                                {canManage && term.status === "ACTIVE" && (
-                                    <Button size="sm" variant="outline" onClick={() => handleEndTerm(term)}>Kết thúc</Button>
+                                {canManage && (
+                                    <div className="flex gap-2">
+                                        {(term.status === "DRAFT" || term.status === "NOT_STARTED") && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleOpenEditTerm(term)}
+                                            >
+                                                Sửa
+                                            </Button>
+                                        )}
+                                        {term.status === "DRAFT" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="!text-red-500"
+                                                loading={deletingTermId === term._id}
+                                                onClick={() => handleDeleteTerm(term)}
+                                            >
+                                                Xóa
+                                            </Button>
+                                        )}
+                                        {term.status === "NOT_STARTED" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="!text-red-500"
+                                                loading={cancellingTermId === term._id}
+                                                onClick={() => handleCancelTerm(term)}
+                                            >
+                                                Hủy
+                                            </Button>
+                                        )}
+                                        {term.status === "IN_PROGRESS" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setEndEarlyTerm(term);
+                                                    setEndEarlyReason("");
+                                                }}
+                                            >
+                                                Kết thúc sớm
+                                            </Button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         ))}
                     </div>
+
+                    <Dialog
+                        open={!!endEarlyTerm}
+                        onOpenChange={open => {
+                            if (!open) {
+                                setEndEarlyTerm(null);
+                                setEndEarlyReason("");
+                            }
+                        }}
+                    >
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Kết thúc sớm nhiệm kỳ &quot;{endEarlyTerm?.name}&quot;
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-1.5">
+                                <Label>
+                                    Lý do kết thúc sớm{" "}
+                                    <span className="text-red-500">*</span>
+                                </Label>
+                                <Textarea
+                                    value={endEarlyReason}
+                                    onChange={e => setEndEarlyReason(e.target.value)}
+                                    placeholder="VD: Tổ trưởng chuyển nơi ở, không thể tiếp tục đảm nhiệm..."
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    className="w-full"
+                                    disabled={!endEarlyReason.trim()}
+                                    loading={endingEarly}
+                                    onClick={handleConfirmEndTermEarly}
+                                >
+                                    Xác nhận kết thúc sớm
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">Hồ sơ quyết định / ranh giới</h2>

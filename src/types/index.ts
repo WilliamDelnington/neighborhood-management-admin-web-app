@@ -388,9 +388,14 @@ export type Neighborhood = {
 };
 
 export type NeighborhoodStatus = "ACTIVE" | "INACTIVE" | "MERGED" | "CLOSED";
+// Vong doi: DRAFT -> NOT_STARTED|IN_PROGRESS|ENDED (finalize/tu dong theo
+// ngay) -> IN_PROGRESS -> ENDED (dung han, tu dong, hoac ket thuc som, thu
+// cong + bat buoc ly do) | NOT_STARTED -> CANCELLED (huy thu cong). Chi DRAFT
+// moi xoa duoc - xem models/NeighborhoodTerm.ts o backend.
 export type NeighborhoodTermStatus =
-    | "PLANNED"
-    | "ACTIVE"
+    | "DRAFT"
+    | "NOT_STARTED"
+    | "IN_PROGRESS"
     | "ENDED"
     | "CANCELLED";
 
@@ -402,6 +407,11 @@ export type NeighborhoodTerm = {
     endAt: string;
     status: NeighborhoodTermStatus;
     notes?: string;
+    // Chi co y nghia khi status = ENDED - phan biet ket thuc dung han (tu
+    // dong) voi ket thuc som (thu cong, xem endReason).
+    endedEarly?: boolean;
+    // BAT BUOC khi ket thuc som, khong dung cho cac chuyen trang thai khac.
+    endReason?: string;
     createdAt: string;
     updatedAt: string;
 };
