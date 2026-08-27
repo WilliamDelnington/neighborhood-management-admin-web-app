@@ -145,6 +145,12 @@ export interface NeighborhoodTermInput {
     // tinh NOT_STARTED/IN_PROGRESS/ENDED theo ngay o backend) - xem
     // resolveTermStatusByDate trong neighborhoodService.ts.
     saveAsDraft?: boolean;
+    // To truong/to pho DUOC CHI DINH ngay luc tao - chi thuc su tao phan
+    // cong khi nhiem ky IN_PROGRESS (ngay lap tuc neu startAt <= hom nay,
+    // hoac sau nay khi den ngay/finalize) - xem models/NeighborhoodTerm.ts o
+    // backend. null/khong gui = chua chi dinh.
+    leaderUserId?: string | null;
+    coleaderUserId?: string | null;
 }
 
 export interface UpdateNeighborhoodTermInput {
@@ -156,6 +162,8 @@ export interface UpdateNeighborhoodTermInput {
     // chuyen sang NOT_STARTED/IN_PROGRESS (nut "Tạo" khi sua ban nhap);
     // false/khong gui = chi luu thong tin, van la DRAFT (nut "Lưu nháp").
     finalize?: boolean;
+    leaderUserId?: string | null;
+    coleaderUserId?: string | null;
 }
 
 export const fetchNeighborhoodTerms = (id: string): Promise<NeighborhoodTerm[]> =>

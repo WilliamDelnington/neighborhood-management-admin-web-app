@@ -412,6 +412,12 @@ export type NeighborhoodTerm = {
     endedEarly?: boolean;
     // BAT BUOC khi ket thuc som, khong dung cho cac chuyen trang thai khac.
     endReason?: string;
+    // To truong/to pho DUOC CHI DINH cho nhiem ky nay (chon ngay tren form
+    // tao/sua) - chi thuc su tro thanh phan cong (huong quan ly that su, xem
+    // NeighborhoodLeaderAssignment/NeighborhoodColeaderAssignment) khi nhiem
+    // ky chuyen sang IN_PROGRESS - xem models/NeighborhoodTerm.ts o backend.
+    leaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
+    coleaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     createdAt: string;
     updatedAt: string;
 };

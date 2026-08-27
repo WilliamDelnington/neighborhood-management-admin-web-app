@@ -117,7 +117,16 @@ const TERM_STATUS_LABEL: Record<NeighborhoodTermStatus, string> = {
     CANCELLED: "Đã hủy",
 };
 
-const EMPTY_TERM_FORM = { name: "", startAt: "", endAt: "", notes: "" };
+const NONE_LEADER_VALUE = "__none__";
+
+const EMPTY_TERM_FORM = {
+    name: "",
+    startAt: "",
+    endAt: "",
+    notes: "",
+    leaderUserId: "",
+    coleaderUserId: "",
+};
 
 const COLLABORATOR_SCOPE_LABEL: Record<NeighborhoodCollaboratorScope, string> = {
     WHOLE_NEIGHBORHOOD: "Toàn Tổ",
@@ -437,6 +446,14 @@ const NeighborhoodDetailContent: React.FC = () => {
             startAt: term.startAt.slice(0, 10),
             endAt: term.endAt.slice(0, 10),
             notes: term.notes || "",
+            leaderUserId:
+                term.leaderUserId && typeof term.leaderUserId === "object"
+                    ? term.leaderUserId._id
+                    : term.leaderUserId || "",
+            coleaderUserId:
+                term.coleaderUserId && typeof term.coleaderUserId === "object"
+                    ? term.coleaderUserId._id
+                    : term.coleaderUserId || "",
         });
         setTermFormOpen(true);
     };
@@ -462,6 +479,8 @@ const NeighborhoodDetailContent: React.FC = () => {
                 startAt: termForm.startAt,
                 endAt: termForm.endAt,
                 notes: termForm.notes.trim() || undefined,
+                leaderUserId: termForm.leaderUserId || null,
+                coleaderUserId: termForm.coleaderUserId || null,
             };
             if (editingTerm) {
                 await updateNeighborhoodTerm(id, editingTerm._id, {
@@ -827,6 +846,72 @@ const NeighborhoodDetailContent: React.FC = () => {
                                     <Label>Đến ngày</Label>
                                     <Input type="date" value={termForm.endAt} onChange={e => setTermForm({ ...termForm, endAt: e.target.value })} />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <Label>Tổ trưởng (nếu có)</Label>
+                                    <Select
+                                        value={termForm.leaderUserId || NONE_LEADER_VALUE}
+                                        onValueChange={value =>
+                                            setTermForm({
+                                                ...termForm,
+                                                leaderUserId:
+                                                    value === NONE_LEADER_VALUE
+                                                        ? ""
+                                                        : value,
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Chưa chỉ định" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE_LEADER_VALUE}>
+                                                Chưa chỉ định
+                                            </SelectItem>
+                                            {candidateLeaders.map(u => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.displayName}
+                                                    {u.phone ? ` · ${u.phone}` : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label>Tổ phó (nếu có)</Label>
+                                    <Select
+                                        value={termForm.coleaderUserId || NONE_LEADER_VALUE}
+                                        onValueChange={value =>
+                                            setTermForm({
+                                                ...termForm,
+                                                coleaderUserId:
+                                                    value === NONE_LEADER_VALUE
+                                                        ? ""
+                                                        : value,
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Chưa chỉ định" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE_LEADER_VALUE}>
+                                                Chưa chỉ định
+                                            </SelectItem>
+                                            {candidateColeaders.map(u => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.displayName}
+                                                    {u.phone ? ` · ${u.phone}` : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <p className="text-xs text-text_2 md:col-span-2">
+                                    Nếu nhiệm kỳ &quot;Đang diễn ra&quot; ngay khi
+                                    tạo, tổ trưởng/tổ phó được gán ngay lập tức;
+                                    nếu &quot;Chưa bắt đầu&quot;, hệ thống tự
+                                    gán khi đến ngày bắt đầu.
+                                </p>
                                 <div className="space-y-1.5 md:col-span-2">
                                     <Label>Ghi chú</Label>
                                     <Input value={termForm.notes} onChange={e => setTermForm({ ...termForm, notes: e.target.value })} />
@@ -872,6 +957,19 @@ const NeighborhoodDetailContent: React.FC = () => {
                                             <> (kết thúc sớm{term.endReason ? `: ${term.endReason}` : ""})</>
                                         )}
                                     </div>
+                                    {(term.leaderUserId || term.coleaderUserId) && (
+                                        <div className="text-xs text-text_2">
+                                            {term.leaderUserId &&
+                                                typeof term.leaderUserId === "object" && (
+                                                    <>Tổ trưởng: {term.leaderUserId.displayName}</>
+                                                )}
+                                            {term.leaderUserId && term.coleaderUserId && " · "}
+                                            {term.coleaderUserId &&
+                                                typeof term.coleaderUserId === "object" && (
+                                                    <>Tổ phó: {term.coleaderUserId.displayName}</>
+                                                )}
+                                        </div>
+                                    )}
                                 </div>
                                 {canManage && (
                                     <div className="flex gap-2">
