@@ -45,7 +45,6 @@ import {
     User,
 } from "@dts";
 import {
-    assignNeighborhoodColeader,
     assignNeighborhoodCollaborator,
     cancelNeighborhoodTerm,
     createNeighborhoodAttachment,
@@ -60,7 +59,6 @@ import {
     fetchNeighborhoodLeaderHistory,
     fetchNeighborhoodHistory,
     fetchNeighborhoodTerms,
-    unassignNeighborhoodColeader,
     unassignNeighborhoodCollaborator,
     updateNeighborhoodTerm,
     updateNeighborhood,
@@ -159,16 +157,13 @@ const NeighborhoodDetailContent: React.FC = () => {
     const [history, setHistory] = useState<NeighborhoodLeaderAssignment[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
 
+    // Van con dung o form tao/sua nhiem ky (picker "Tổ phó") - viec gan/bo
+    // gan truc tiep da bi xoa khoi trang nay, xem ghi chu o the "Tổ phó".
     const [candidateColeaders, setCandidateColeaders] = useState<User[]>([]);
     const [coleaders, setColeaders] = useState<NeighborhoodColeaderAssignment[]>(
         [],
     );
     const [coleadersLoading, setColeadersLoading] = useState(true);
-    const [coleaderToAssign, setColeaderToAssign] = useState("");
-    const [assigningColeader, setAssigningColeader] = useState(false);
-    const [unassigningColeaderId, setUnassigningColeaderId] = useState<
-        string | null
-    >(null);
     const [terms, setTerms] = useState<NeighborhoodTerm[]>([]);
     const [termsLoading, setTermsLoading] = useState(true);
     const [termFormOpen, setTermFormOpen] = useState(false);
@@ -190,7 +185,6 @@ const NeighborhoodDetailContent: React.FC = () => {
     );
     const [endEarlyReason, setEndEarlyReason] = useState("");
     const [endingEarly, setEndingEarly] = useState(false);
-    const [selectedTermId, setSelectedTermId] = useState("");
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
@@ -270,13 +264,7 @@ const NeighborhoodDetailContent: React.FC = () => {
         if (!id) return;
         setTermsLoading(true);
         fetchNeighborhoodTerms(id)
-            .then(items => {
-                setTerms(items);
-                const activeTerm = items.find(
-                    term => term.status === "IN_PROGRESS",
-                );
-                setSelectedTermId(current => current || activeTerm?._id || "");
-            })
+            .then(setTerms)
             .catch(() => setTerms([]))
             .finally(() => setTermsLoading(false));
     };
@@ -351,34 +339,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setSaving(false);
-        }
-    };
-
-    const handleAssignColeader = async () => {
-        if (!id || !coleaderToAssign) return;
-        // Cung quy tac voi to truong - xem ghi chu trong handleAssignLeader.
-        if (!selectedTermId) {
-            toast.error(
-                "Vui lòng tạo và chọn nhiệm kỳ đang hoạt động trước khi gán tổ phó",
-            );
-            return;
-        }
-        try {
-            setAssigningColeader(true);
-            await assignNeighborhoodColeader(
-                id,
-                coleaderToAssign,
-                undefined,
-                { termId: selectedTermId },
-            );
-            setColeaderToAssign("");
-            loadColeaders();
-            loadOrganizationHistory();
-            toast.success("Đã gán tổ phó");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigningColeader(false);
         }
     };
 
@@ -554,21 +514,6 @@ const NeighborhoodDetailContent: React.FC = () => {
         }
     };
 
-    const handleUnassignColeader = async (coleaderUserId: string) => {
-        if (!id) return;
-        try {
-            setUnassigningColeaderId(coleaderUserId);
-            await unassignNeighborhoodColeader(id, coleaderUserId);
-            loadColeaders();
-            loadOrganizationHistory();
-            toast.success("Đã bỏ gán tổ phó");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningColeaderId(null);
-        }
-    };
-
     const handleAssignCollaborator = async () => {
         if (!id || !collaboratorForm.collaboratorUserId) {
             toast.error("Vui lòng chọn cộng tác viên");
@@ -620,11 +565,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             setUnassigningCollaboratorId(null);
         }
     };
-
-    const otherCandidateColeaders = candidateColeaders.filter(
-        u => !coleaders.some(c => c.coleaderUserId?._id === u.id),
-    );
-    const assignableTerms = terms.filter(term => term.status === "IN_PROGRESS");
 
     return (
         <div>
@@ -1062,38 +1002,12 @@ const NeighborhoodDetailContent: React.FC = () => {
                         <h2 className="mb-2 text-base font-semibold">
                             Tổ phó
                         </h2>
-                        {canManage && assignableTerms.length > 0 && (
-                            <div className="mb-3 max-w-md space-y-1.5">
-                                <Label>
-                                    Nhiệm kỳ áp dụng cho phân công mới{" "}
-                                    <span className="text-red-500">*</span>
-                                </Label>
-                                <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                                    <SelectTrigger><SelectValue placeholder="Chọn nhiệm kỳ" /></SelectTrigger>
-                                    <SelectContent>
-                                        {assignableTerms.map(term => (
-                                            <SelectItem key={term._id} value={term._id}>
-                                                {term.name} · {formatDate(term.endAt)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-xs text-text_2">
-                                    Bắt buộc phải chọn một nhiệm kỳ trước khi
-                                    thêm tổ phó mới - tổ phó luôn gắn với một
-                                    nhiệm kỳ cụ thể, khi nhiệm kỳ kết thúc họ
-                                    sẽ tự động thôi quản lý tổ dân phố này.
-                                </p>
-                            </div>
-                        )}
-                        {canManage && assignableTerms.length === 0 && (
-                            <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-                                Tổ dân phố này chưa có nhiệm kỳ đang hoạt
-                                động. Vui lòng tạo và kích hoạt một nhiệm kỳ ở
-                                mục &quot;Nhiệm kỳ&quot; bên trên trước khi có
-                                thể thêm tổ phó.
-                            </div>
-                        )}
+                        <p className="mb-3 text-xs text-text_2">
+                            Tổ phó được chỉ định ngay trên form tạo/sửa nhiệm
+                            kỳ (mục &quot;Nhiệm kỳ&quot; bên trên) - kết thúc
+                            nhiệm kỳ (đúng hạn hoặc sớm) sẽ tự động thôi quản
+                            lý.
+                        </p>
                         {coleadersLoading && <LoadingState />}
                         {!coleadersLoading && coleaders.length === 0 && (
                             <div className="mb-2 text-xs text-text_2">
@@ -1104,85 +1018,24 @@ const NeighborhoodDetailContent: React.FC = () => {
                             coleaders.map(c => (
                                 <div
                                     key={c._id}
-                                    className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
+                                    className="border-b border-divider_01 py-2 text-sm last:border-0"
                                 >
-                                    <div className="text-sm">
-                                        <div className="font-medium">
-                                            {c.coleaderUserId?.displayName ||
-                                                "(tài khoản đã xóa)"}
-                                        </div>
-                                        {c.coleaderUserId?.phone && (
-                                            <div className="text-xs text-text_2">
-                                                {c.coleaderUserId.phone}
-                                            </div>
-                                        )}
-                                        {c.termId && (
-                                            <div className="text-xs text-text_2">
-                                                {c.termId.name} · đến {formatDate(c.endAt)}
-                                            </div>
-                                        )}
+                                    <div className="font-medium">
+                                        {c.coleaderUserId?.displayName ||
+                                            "(tài khoản đã xóa)"}
                                     </div>
-                                    {canManage && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            loading={
-                                                unassigningColeaderId ===
-                                                c.coleaderUserId?._id
-                                            }
-                                            onClick={() =>
-                                                c.coleaderUserId &&
-                                                handleUnassignColeader(
-                                                    c.coleaderUserId._id,
-                                                )
-                                            }
-                                        >
-                                            Bỏ gán
-                                        </Button>
+                                    {c.coleaderUserId?.phone && (
+                                        <div className="text-xs text-text_2">
+                                            {c.coleaderUserId.phone}
+                                        </div>
+                                    )}
+                                    {c.termId && (
+                                        <div className="text-xs text-text_2">
+                                            {c.termId.name} · đến {formatDate(c.endAt)}
+                                        </div>
                                     )}
                                 </div>
                             ))}
-
-                        {canManage && (
-                            <div className="mt-3 flex items-end gap-2">
-                                <div className="flex-1 space-y-1.5">
-                                    <Label>Thêm tổ phó</Label>
-                                    <Select
-                                        value={coleaderToAssign}
-                                        onValueChange={setColeaderToAssign}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Chọn tài khoản tổ phó" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {otherCandidateColeaders.map(u => (
-                                                <SelectItem
-                                                    key={u.id}
-                                                    value={u.id}
-                                                >
-                                                    {u.displayName}
-                                                    {u.phone
-                                                        ? ` · ${u.phone}`
-                                                        : ""}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-text_2">
-                                        Một tổ dân phố có thể có nhiều tổ phó,
-                                        nhưng một người chỉ có thể là tổ phó
-                                        của một tổ tại một thời điểm.
-                                    </p>
-                                </div>
-                                <Button
-                                    loading={assigningColeader}
-                                    disabled={!coleaderToAssign || !selectedTermId}
-                                    onClick={handleAssignColeader}
-                                >
-                                    Gán
-                                </Button>
-                            </div>
-                        )}
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
