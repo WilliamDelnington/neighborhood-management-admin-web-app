@@ -47,7 +47,6 @@ import {
 import {
     assignNeighborhoodColeader,
     assignNeighborhoodCollaborator,
-    assignNeighborhoodLeader,
     cancelNeighborhoodTerm,
     createNeighborhoodAttachment,
     createNeighborhoodTerm,
@@ -153,10 +152,9 @@ const NeighborhoodDetailContent: React.FC = () => {
     const [form, setForm] = useState<NeighborhoodFormValues | null>(null);
     const [saving, setSaving] = useState(false);
 
+    // Van con dung o form tao/sua nhiem ky (picker "Tổ trưởng") - viec gan/bo
+    // gan truc tiep da bi xoa khoi trang nay, xem ghi chu o the "Nhiệm kỳ".
     const [candidateLeaders, setCandidateLeaders] = useState<User[]>([]);
-    const [leaderToAssign, setLeaderToAssign] = useState("");
-    const [assigningLeader, setAssigningLeader] = useState(false);
-    const [unassigningLeader, setUnassigningLeader] = useState(false);
 
     const [history, setHistory] = useState<NeighborhoodLeaderAssignment[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
@@ -353,53 +351,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setSaving(false);
-        }
-    };
-
-    const handleAssignLeader = async () => {
-        if (!id || !leaderToAssign) return;
-        // To truong khong con la mot phan cong "doc lap" voi nhiem ky nua -
-        // bat buoc phai co nhiem ky dang hoat dong duoc chon truoc khi gan
-        // (xem ghi chu o assignLeaderSchema/assignNeighborhoodLeader o backend).
-        if (!selectedTermId) {
-            toast.error(
-                "Vui lòng tạo và chọn nhiệm kỳ đang hoạt động trước khi gán tổ trưởng",
-            );
-            return;
-        }
-        try {
-            setAssigningLeader(true);
-            const updated = await assignNeighborhoodLeader(
-                id,
-                leaderToAssign,
-                undefined,
-                { termId: selectedTermId },
-            );
-            setNeighborhood(updated);
-            setLeaderToAssign("");
-            loadHistory();
-            loadOrganizationHistory();
-            toast.success("Đã gán tổ trưởng");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigningLeader(false);
-        }
-    };
-
-    const handleUnassignLeader = async () => {
-        if (!id) return;
-        try {
-            setUnassigningLeader(true);
-            const updated = await assignNeighborhoodLeader(id, null);
-            setNeighborhood(updated);
-            loadHistory();
-            loadOrganizationHistory();
-            toast.success("Đã bỏ gán tổ trưởng");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningLeader(false);
         }
     };
 
@@ -670,14 +621,10 @@ const NeighborhoodDetailContent: React.FC = () => {
         }
     };
 
-    const otherCandidates = candidateLeaders.filter(
-        u => u.id !== neighborhood?.leaderUserId?._id,
-    );
     const otherCandidateColeaders = candidateColeaders.filter(
         u => !coleaders.some(c => c.coleaderUserId?._id === u.id),
     );
     const assignableTerms = terms.filter(term => term.status === "IN_PROGRESS");
-    const activeLeaderAssignment = history.find(item => !item.unassignedAt);
 
     return (
         <div>
@@ -1085,7 +1032,35 @@ const NeighborhoodDetailContent: React.FC = () => {
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">
-                            Thông tin tổ trưởng
+                            Tổ trưởng hiện tại
+                        </h2>
+                        <p className="mb-3 text-xs text-text_2">
+                            Tổ trưởng được chỉ định ngay trên form tạo/sửa
+                            nhiệm ky (mục &quot;Nhiệm kỳ&quot; bên trên) - kết
+                            thúc nhiệm kỳ (đúng hạn hoặc sớm) sẽ tự động thôi
+                            quản lý, xem đầy đủ lịch sử bên dưới.
+                        </p>
+                        {neighborhood.leaderUserId ? (
+                            <div className="text-sm">
+                                <div className="font-medium">
+                                    {neighborhood.leaderUserId.displayName}
+                                </div>
+                                {neighborhood.leaderUserId.phone && (
+                                    <div className="text-xs text-text_2">
+                                        {neighborhood.leaderUserId.phone}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-xs text-text_2">
+                                Chưa có tổ trưởng
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
+                        <h2 className="mb-2 text-base font-semibold">
+                            Tổ phó
                         </h2>
                         {canManage && assignableTerms.length > 0 && (
                             <div className="mb-3 max-w-md space-y-1.5">
@@ -1105,10 +1080,9 @@ const NeighborhoodDetailContent: React.FC = () => {
                                 </Select>
                                 <p className="text-xs text-text_2">
                                     Bắt buộc phải chọn một nhiệm kỳ trước khi
-                                    gán tổ trưởng/tổ phó mới - tổ trưởng/tổ
-                                    phó luôn gắn với một nhiệm kỳ cụ thể, khi
-                                    nhiệm kỳ kết thúc họ sẽ tự động thôi quản
-                                    lý tổ dân phố này.
+                                    thêm tổ phó mới - tổ phó luôn gắn với một
+                                    nhiệm kỳ cụ thể, khi nhiệm kỳ kết thúc họ
+                                    sẽ tự động thôi quản lý tổ dân phố này.
                                 </p>
                             </div>
                         )}
@@ -1117,93 +1091,9 @@ const NeighborhoodDetailContent: React.FC = () => {
                                 Tổ dân phố này chưa có nhiệm kỳ đang hoạt
                                 động. Vui lòng tạo và kích hoạt một nhiệm kỳ ở
                                 mục &quot;Nhiệm kỳ&quot; bên trên trước khi có
-                                thể gán tổ trưởng/tổ phó.
+                                thể thêm tổ phó.
                             </div>
                         )}
-                        {neighborhood.leaderUserId ? (
-                            <div className="flex items-center justify-between border-b border-divider_01 py-2">
-                                <div className="text-sm">
-                                    <div className="font-medium">
-                                        {neighborhood.leaderUserId.displayName}
-                                    </div>
-                                    {neighborhood.leaderUserId.phone && (
-                                        <div className="text-xs text-text_2">
-                                            {neighborhood.leaderUserId.phone}
-                                        </div>
-                                    )}
-                                    {activeLeaderAssignment?.termId && (
-                                        <div className="text-xs text-text_2">
-                                            {activeLeaderAssignment.termId.name} · đến {formatDate(activeLeaderAssignment.endAt)}
-                                        </div>
-                                    )}
-                                </div>
-                                {canManage && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        loading={unassigningLeader}
-                                        onClick={handleUnassignLeader}
-                                    >
-                                        Bỏ gán
-                                    </Button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="mb-2 text-xs text-text_2">
-                                Chưa có tổ trưởng
-                            </div>
-                        )}
-
-                        {canManage && (
-                            <div className="mt-3 flex items-end gap-2">
-                                <div className="flex-1 space-y-1.5">
-                                    <Label>
-                                        {neighborhood.leaderUserId
-                                            ? "Đổi sang tổ trưởng khác"
-                                            : "Gán tổ trưởng"}
-                                    </Label>
-                                    <Select
-                                        value={leaderToAssign}
-                                        onValueChange={setLeaderToAssign}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Chọn tài khoản tổ trưởng" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {otherCandidates.map(u => (
-                                                <SelectItem
-                                                    key={u.id}
-                                                    value={u.id}
-                                                >
-                                                    {u.displayName}
-                                                    {u.phone
-                                                        ? ` · ${u.phone}`
-                                                        : ""}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-text_2">
-                                        Nếu tài khoản này đang phụ trách tổ dân
-                                        phố khác, họ sẽ được chuyển sang tổ
-                                        này.
-                                    </p>
-                                </div>
-                                <Button
-                                    loading={assigningLeader}
-                                    disabled={!leaderToAssign || !selectedTermId}
-                                    onClick={handleAssignLeader}
-                                >
-                                    Gán
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <h2 className="mb-2 text-base font-semibold">
-                            Tổ phó
-                        </h2>
                         {coleadersLoading && <LoadingState />}
                         {!coleadersLoading && coleaders.length === 0 && (
                             <div className="mb-2 text-xs text-text_2">

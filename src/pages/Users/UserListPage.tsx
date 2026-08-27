@@ -48,10 +48,7 @@ import {
     updateUser,
 } from "@service/userApi";
 import { fetchRoles } from "@service/roleApi";
-import {
-    assignNeighborhoodLeader,
-    fetchNeighborhoods,
-} from "@service/neighborhoodApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import {
     fetchProvinces,
     fetchWardsByProvince,
@@ -159,14 +156,6 @@ const UserListContent: React.FC = () => {
     const [managedNeighborhoods, setManagedNeighborhoods] = useState<
         Neighborhood[]
     >([]);
-    const [availableNeighborhoods, setAvailableNeighborhoods] = useState<
-        Neighborhood[]
-    >([]);
-    const [neighborhoodToAssign, setNeighborhoodToAssign] = useState("");
-    const [assigningNeighborhood, setAssigningNeighborhood] = useState(false);
-    const [unassigningNeighborhoodId, setUnassigningNeighborhoodId] = useState<
-        string | null
-    >(null);
 
     // Pham vi phuong/xa cho can bo UBND va bi thu. `wardCode` la ma dinh danh
     // on dinh tu danh muc hanh chinh, dung kem ten de hien thi.
@@ -278,15 +267,11 @@ const UserListContent: React.FC = () => {
     const loadNeighborhoodSections = (user: User) => {
         if (!user.roles.includes(NEIGHBORHOOD_LEADER_ROLE)) {
             setManagedNeighborhoods([]);
-            setAvailableNeighborhoods([]);
             return;
         }
         fetchNeighborhoods({ leaderUserId: user.id })
             .then(res => setManagedNeighborhoods(res.items))
             .catch(() => setManagedNeighborhoods([]));
-        fetchNeighborhoods({ active: true, limit: 30 })
-            .then(res => setAvailableNeighborhoods(res.items))
-            .catch(() => setAvailableNeighborhoods([]));
     };
 
     const openManageSheet = (user: User) => {
@@ -297,7 +282,6 @@ const UserListContent: React.FC = () => {
         setOriginalStatus(user.status);
         setStatusReason("");
         setRoleToAssign("resident");
-        setNeighborhoodToAssign("");
         setNewPassword("");
         loadNeighborhoodSections(user);
         setWardProvinceCode(user.provinceCode ? String(user.provinceCode) : "");
@@ -413,35 +397,6 @@ const UserListContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setRevokingRole(null);
-        }
-    };
-
-    const handleAssignNeighborhood = async () => {
-        if (!selectedUser || !neighborhoodToAssign) return;
-        try {
-            setAssigningNeighborhood(true);
-            await assignNeighborhoodLeader(neighborhoodToAssign, selectedUser.id);
-            toast.success("Đã gán tổ dân phố phụ trách");
-            setNeighborhoodToAssign("");
-            loadNeighborhoodSections(selectedUser);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigningNeighborhood(false);
-        }
-    };
-
-    const handleUnassignNeighborhood = async (neighborhoodId: string) => {
-        if (!selectedUser) return;
-        try {
-            setUnassigningNeighborhoodId(neighborhoodId);
-            await assignNeighborhoodLeader(neighborhoodId, null);
-            toast.success("Đã bỏ gán tổ dân phố");
-            loadNeighborhoodSections(selectedUser);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningNeighborhoodId(null);
         }
     };
 
@@ -829,62 +784,13 @@ const UserListContent: React.FC = () => {
                                                     ({n.code})
                                                 </span>
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                loading={
-                                                    unassigningNeighborhoodId ===
-                                                    n._id
-                                                }
-                                                onClick={() =>
-                                                    handleUnassignNeighborhood(
-                                                        n._id,
-                                                    )
-                                                }
-                                            >
-                                                Bỏ gán
-                                            </Button>
                                         </div>
                                     ))}
-
-                                    <div className="mt-3 flex items-end gap-2">
-                                        <div className="flex-1">
-                                            <FilterableSelect
-                                                label="Gán tổ dân phố mới"
-                                                placeholder="Chọn tổ dân phố"
-                                                searchPlaceholder="Tìm theo tên tổ dân phố..."
-                                                items={availableNeighborhoods.filter(
-                                                    n =>
-                                                        !managedNeighborhoods.some(
-                                                            m =>
-                                                                m._id ===
-                                                                n._id,
-                                                        ),
-                                                )}
-                                                getId={n => n._id}
-                                                getLabel={n =>
-                                                    `${n.name} (${n.code})`
-                                                }
-                                                getSubLabel={n =>
-                                                    n.leaderUserId
-                                                        ? `Đang có tổ trưởng: ${n.leaderUserId.displayName}`
-                                                        : ""
-                                                }
-                                                value={neighborhoodToAssign}
-                                                onChange={id =>
-                                                    setNeighborhoodToAssign(
-                                                        id || "",
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                        <Button
-                                            loading={assigningNeighborhood}
-                                            disabled={!neighborhoodToAssign}
-                                            onClick={handleAssignNeighborhood}
-                                        >
-                                            Gán
-                                        </Button>
+                                    <div className="mt-2 text-xs text-text_2">
+                                        Việc phân công tổ trưởng được thực
+                                        hiện khi tạo/sửa nhiệm kỳ ở trang
+                                        thông tin tổ dân phố, không thực hiện
+                                        ở đây.
                                     </div>
                                 </div>
                             )}
