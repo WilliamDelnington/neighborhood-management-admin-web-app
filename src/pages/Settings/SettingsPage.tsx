@@ -17,10 +17,13 @@ import {
     upsertSetting,
     uploadAppLogo,
 } from "@service/settingsApi";
+import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
 
 // Setting dung chung de admin ghi de mo ta hien thi tren cac muc menu sidebar
-// (constants/modules.ts) ma khong can sua code - xem SectionDescriptionsPanel
-// ben duoi va cach AdminLayout.tsx doc lai gia tri nay.
+// (constants/modules.ts) VA phan mo ta dau trang cua tung trang tuong ung
+// (PageHeader.tsx tu suy ra module theo route hien tai) ma khong can sua code
+// - xem SectionDescriptionsPanel ben duoi va sectionDescriptionsStore.ts (cache
+// dung chung ma AdminLayout.tsx/PageHeader.tsx doc lai gia tri nay).
 const SECTION_DESCRIPTIONS_KEY = "section_descriptions";
 
 type EditableSetting = {
@@ -204,6 +207,10 @@ const SettingsContent: React.FC = () => {
         setSectionDescDrafts(prev => ({ ...prev, [key]: text }));
     };
 
+    const setSharedSectionDescOverrides = useSectionDescriptionsStore(
+        state => state.setOverrides,
+    );
+
     const saveSectionDescOverrides = async (
         key: string,
         overrides: Record<string, string>,
@@ -212,6 +219,10 @@ const SettingsContent: React.FC = () => {
             setSavingSectionKey(key);
             await upsertSetting(SECTION_DESCRIPTIONS_KEY, overrides);
             setSectionDescOverrides(overrides);
+            // Cap nhat ngay cache dung chung de sidebar/PageHeader o cac trang
+            // khac phan anh mo ta moi ma khong can doi lan fetchPublicSettings
+            // tiep theo - xem sectionDescriptionsStore.ts.
+            setSharedSectionDescOverrides(overrides);
             toast.success("Đã lưu mô tả mục menu");
         } catch (err) {
             toast.error((err as AppError).message || "Có lỗi xảy ra");
@@ -341,10 +352,10 @@ const SettingsContent: React.FC = () => {
                             Mô tả các mục menu
                         </summary>
                         <p className="mb-3 mt-2 text-xs text-text_2">
-                            Sửa lại phần mô tả hiển thị cho từng mục trong
-                            menu điều hướng, không cần sửa code. Để trống và
-                            lưu, hoặc bấm &quot;Khôi phục mặc định&quot; để
-                            quay lại mô tả gốc.
+                            Sửa lại phần mô tả hiển thị cho từng mục trong menu
+                            điều hướng và phần mô tả đầu trang tương ứng, không
+                            cần sửa code. Để trống và lưu, hoặc bấm &quot;Khôi
+                            phục mặc định&quot; để quay lại mô tả gốc.
                         </p>
                         <div className="space-y-3">
                             {MODULES.map(m => {

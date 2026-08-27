@@ -106,6 +106,10 @@ export interface HouseFormValues {
     // models/HouseRecord.ts o backend.
     usageTypes: HouseUsageType[];
     otherUsageNote: string;
+    // So khai bao cu tru (cong an cap) - dung de tu dong dien vao ho so cu tru
+    // khi chon nha nay (xem ResidentForm.tsx). Nam trong HOUSE_RECORD_PROTECTED_FIELDS
+    // o backend nen sau khi nha da "verified" phai sua qua ChangeRequest.
+    residenceDeclarationNumber: string;
     note: string;
     // Loai chu nha - chi co y nghia luc tao moi, backend khong ho tro doi loai
     // chu nha sau khi da tao (xem houseRecordService.createHouseRecord).
@@ -147,6 +151,7 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
     physicalStatus: "",
     usageTypes: ["household"],
     otherUsageNote: "",
+    residenceDeclarationNumber: "",
     note: "",
     ownerKind: "none",
     ownerName: "",
@@ -181,6 +186,8 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
         physicalStatus: values.physicalStatus || undefined,
         usageTypes: values.usageTypes,
         otherUsageNote: values.otherUsageNote.trim() || undefined,
+        residenceDeclarationNumber:
+            values.residenceDeclarationNumber.trim() || undefined,
         note: values.note.trim() || undefined,
         ownerKind: values.ownerKind,
         owner:
@@ -563,6 +570,16 @@ const HouseForm: React.FC<HouseFormProps> = ({
                     placeholder="Mục đích sử dụng khác (nếu có)"
                     value={values.otherUsageNote}
                     onChange={e => set("otherUsageNote", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Số khai báo cư trú</Label>
+                <Input
+                    placeholder="Số khai báo cư trú (nếu có)"
+                    value={values.residenceDeclarationNumber}
+                    onChange={e =>
+                        set("residenceDeclarationNumber", e.target.value)
+                    }
                 />
             </div>
             {(canAttachOwner || canPickOrganization) && (

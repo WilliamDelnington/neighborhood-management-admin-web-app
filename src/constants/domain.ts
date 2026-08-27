@@ -353,9 +353,9 @@ export const SECURITY_AUDIT_ACTION_LABEL: Record<string, string> = {
 };
 
 export const RESIDENT_AUDIT_ACTION_LABEL: Record<string, string> = {
-    "resident.create": "Tạo hồ sơ cư trú",
+    "resident.create": "Tạo kiểm tra cư trú",
     "resident.update": "Cập nhật thông tin",
-    "resident.delete": "Xóa hồ sơ cư trú",
+    "resident.delete": "Xóa kiểm tra cư trú",
 };
 
 export const REQUEST_TYPE_LABEL: Record<string, string> = {

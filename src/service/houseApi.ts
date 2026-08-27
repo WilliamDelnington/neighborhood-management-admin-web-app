@@ -56,6 +56,7 @@ export interface HouseInput {
     usageTypes?: HouseUsageType[];
     otherUsageNote?: string;
     note?: string;
+    residenceDeclarationNumber?: string;
     gisLatitude?: number | null;
     gisLongitude?: number | null;
     gisAccuracyMeters?: number | null;

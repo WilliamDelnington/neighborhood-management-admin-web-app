@@ -141,12 +141,12 @@ export const MODULE_GROUPS: ModuleGroup[] = [
             },
             {
                 key: "residents",
-                label: "Hồ sơ cư trú",
+                label: "Kiểm tra cư trú",
                 path: "/residents",
                 icon: Users,
                 permission: "residents.read",
                 description:
-                    "Quản lý hồ sơ cư trú, tạm trú/tạm vắng của cư dân.",
+                    "Quản lý kiểm tra cư trú, tạm trú/tạm vắng của cư dân.",
             },
         ],
     },
@@ -547,3 +547,19 @@ export const MODULES: ModuleItem[] = [
     ...TOP_LEVEL_MODULES,
     ...MODULE_GROUPS.flatMap(g => g.items),
 ];
+
+// Tim module co path khop voi mot pathname hien tai (khop dung hoac la tien
+// to segment - vd "/requests/my" khop voi module "requests" o "/requests").
+// Uu tien path dai nhat neu co nhieu module cung khop (vd "/users/new-house-owner"
+// phai khop voi "create_house_owner" chu khong phai "users"). Dung boi
+// PageHeader de tu suy ra section_descriptions key ma khong can moi trang tu
+// khai bao lai - xem SettingsPage.tsx (SectionDescriptionsPanel).
+export function findModuleKeyForPath(pathname: string): string | undefined {
+    const matches = MODULES.filter(
+        m => pathname === m.path || pathname.startsWith(`${m.path}/`),
+    );
+    if (matches.length === 0) return undefined;
+    return matches.reduce((best, m) =>
+        m.path.length > best.path.length ? m : best,
+    ).key;
+}

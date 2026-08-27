@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@store/authStore";
 import { useThemeStore } from "@store/themeStore";
+import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
 import { ROLE_LABEL } from "@constants/domain";
 import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
-import { fetchPublicSettings } from "@service/settingsApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
 import AppBrand from "./AppBrand";
@@ -67,25 +67,19 @@ const AdminLayout: React.FC = () => {
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
         loadExpandedGroups,
     );
-    const [descOverrides, setDescOverrides] = useState<Record<string, string>>(
-        {},
+    // Mo ta tuy chinh cho tung muc menu (xem SettingsPage.tsx) - dung chung
+    // cache voi PageHeader.tsx (xem store/sectionDescriptionsStore.ts) thay vi
+    // tu fetchPublicSettings rieng, tranh goi lai nhieu lan khong can thiet.
+    // Cong khai nen ap dung cho moi vai tro dang nhap, khong chi admin. Loi bo
+    // qua: giu mo ta mac dinh trong constants/modules.ts.
+    const descOverrides = useSectionDescriptionsStore(state => state.overrides);
+    const descOverridesLoaded = useSectionDescriptionsStore(
+        state => state.loaded,
     );
-
-    // Mo ta tuy chinh cho tung muc menu (xem SettingsPage.tsx) - cong khai qua
-    // fetchPublicSettings nen ap dung cho moi vai tro dang nhap, khong chi
-    // admin. Loi bo qua: giu mo ta mac dinh trong constants/modules.ts.
+    const loadDescOverrides = useSectionDescriptionsStore(state => state.load);
     useEffect(() => {
-        fetchPublicSettings()
-            .then(data => {
-                const raw = data?.section_descriptions;
-                if (raw && typeof raw === "object") {
-                    setDescOverrides(raw as Record<string, string>);
-                }
-            })
-            .catch(() => {
-                // bo qua loi mang, giu mo ta mac dinh
-            });
-    }, []);
+        if (!descOverridesLoaded) loadDescOverrides();
+    }, [descOverridesLoaded, loadDescOverrides]);
 
     const descriptionOf = (m: ModuleItem) => descOverrides[m.key] ?? m.description;
 

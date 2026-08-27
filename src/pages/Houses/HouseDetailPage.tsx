@@ -135,6 +135,7 @@ const toFormValues = (h: House): HouseFormValues => ({
     physicalStatus: h.physicalStatus || "",
     usageTypes: h.usageTypes || [],
     otherUsageNote: h.otherUsageNote || "",
+    residenceDeclarationNumber: h.residenceDeclarationNumber || "",
     note: h.note || "",
     // Khong the doi chu nha sau khi tao (xem HouseForm.tsx) - khong can dien lai.
     ownerKind: "none",
@@ -718,6 +719,13 @@ const HouseDetailContent: React.FC = () => {
                                                 ? [house.otherUsageNote]
                                                 : []),
                                         ].join(", ") || "Chưa khai báo"
+                                    }
+                                />
+                                <InfoRow
+                                    label="Số khai báo cư trú"
+                                    value={
+                                        house.residenceDeclarationNumber ||
+                                        "Chưa khai báo"
                                     }
                                 />
                                 <InfoRow
