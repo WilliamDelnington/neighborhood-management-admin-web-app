@@ -50,6 +50,25 @@ export interface HouseColumnMapping {
     neighborhoodId?: string;
 }
 
+// Xem CITIZEN_COLUMNS/previewCitizenImport o backend importService.ts - khac
+// voi House/Street, import nhan khau dung BO NHAN COT CO DINH (khong co buoc
+// "chon cot" - file phai dung dung ten cot tieng Viet nay o hang dau tien).
+export interface CitizenImportPreviewRow {
+    fullName: string;
+    phone?: string;
+    cccd?: string;
+    birthDate?: string;
+    gender: string;
+    relationToHead?: string;
+    householdId?: string;
+    residenceType: string;
+    isElderly: boolean;
+    isChild: boolean;
+    isDisabledOrSupportNeeded: boolean;
+    isPartyMember: boolean;
+    isUnionMember: boolean;
+}
+
 export type ImportJobStatus =
     | "awaiting_mapping"
     | "previewing"
@@ -129,6 +148,26 @@ export const commitHouseImport = (
     request<ImportJob<HouseImportPreviewRow>>(
         "POST",
         `${API.IMPORT}/houses/${jobId}/commit`,
+    );
+
+export const uploadCitizenImportFile = (
+    file: File,
+): Promise<ImportJob<CitizenImportPreviewRow>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<ImportJob<CitizenImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/citizens`,
+        formData,
+    );
+};
+
+export const commitCitizenImport = (
+    jobId: string,
+): Promise<ImportJob<CitizenImportPreviewRow>> =>
+    request<ImportJob<CitizenImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/citizens/${jobId}/commit`,
     );
 
 /**

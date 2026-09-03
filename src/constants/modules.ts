@@ -37,6 +37,7 @@ import {
     CalendarCheck,
     CalendarOff,
     Newspaper,
+    Contact,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -129,6 +130,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "households.read",
                 description:
                     "Xem danh sách các hộ dân đang sinh sống trên địa bàn.",
+            },
+            {
+                key: "citizens",
+                label: "Nhân khẩu",
+                path: "/citizens",
+                icon: Contact,
+                permission: "citizens.read",
+                description:
+                    "Xem danh sách nhân khẩu thuộc các hộ dân trên địa bàn.",
             },
             {
                 key: "organizations",
