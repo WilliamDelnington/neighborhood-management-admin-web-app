@@ -11,6 +11,7 @@ import {
 } from "@components/ui/sheet";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
+import { Checkbox } from "@components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -87,6 +88,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
     const [mapping, setMapping] = useState<MappingForm>(EMPTY_MAPPING);
     const [defaultCluster, setDefaultCluster] = useState("");
     const [neighborhoodId, setNeighborhoodId] = useState("");
+    const [createHouseholds, setCreateHouseholds] = useState(false);
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [showMapping, setShowMapping] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -106,6 +108,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         setMapping(EMPTY_MAPPING);
         setDefaultCluster("");
         setNeighborhoodId("");
+        setCreateHouseholds(false);
         setShowMapping(false);
         setUploading(false);
         setApplying(false);
@@ -158,9 +161,14 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
             }
             if (neighborhoodId) payload.neighborhoodId = neighborhoodId;
 
+            const finalPayload: HouseColumnMapping = {
+                ...(payload as HouseColumnMapping),
+                ...(createHouseholds ? { createHouseholds: true } : {}),
+            };
+
             const result = await applyHouseImportMapping(
                 job._id,
-                payload as HouseColumnMapping,
+                finalPayload,
             );
             setJob(result);
             setShowMapping(false);
@@ -323,6 +331,28 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <label
+                                htmlFor="createHouseholds"
+                                className="flex items-start gap-2 rounded-lg border border-divider_01 bg-surface_2 p-3 text-sm"
+                            >
+                                <Checkbox
+                                    id="createHouseholds"
+                                    checked={createHouseholds}
+                                    onCheckedChange={checked =>
+                                        setCreateHouseholds(checked === true)
+                                    }
+                                />
+                                <span>
+                                    Cũng tạo hộ dân từ dữ liệu này
+                                    <span className="mt-0.5 block text-xs font-normal text-text_2">
+                                        Với mỗi dòng có &quot;Chủ hộ/người
+                                        đang sử dụng&quot;, tạo thêm một hộ
+                                        dân liên kết với nhà số đó. Chỉ bật
+                                        khi file thực sự có dữ liệu hộ dân
+                                        (không chỉ dữ liệu nhà).
+                                    </span>
+                                </span>
+                            </label>
                         </div>
                     )}
 

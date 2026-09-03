@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud, RotateCcw } from "lucide-react";
+import { UploadCloud, ArrowLeftRight } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
     Sheet,
@@ -9,6 +9,13 @@ import {
     SheetTitle,
     SheetFooter,
 } from "@components/ui/sheet";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import {
     Table,
     TableBody,
@@ -20,9 +27,11 @@ import {
 import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { AppError } from "@dts";
 import {
+    CitizenColumnMapping,
     CitizenImportPreviewRow,
     ImportJob,
     uploadCitizenImportFile,
+    applyCitizenImportMapping,
     commitCitizenImport,
 } from "@service/importApi";
 
@@ -32,24 +41,41 @@ interface CitizenImportSheetProps {
     onImported: () => void;
 }
 
-// Import nhan khau dung bo nhan cot CO DINH o backend (xem CITIZEN_COLUMNS
-// trong importService.ts) - khong co buoc "chon cot" nhu House/Street, nen
-// chi can liet ke dung ten cot bat buoc de nguoi dung tu chuan bi file.
-const REQUIRED_HEADERS = [
-    "Họ tên",
-    "Mã hộ",
-    "Số điện thoại",
-    "CCCD",
-    "Ngày sinh",
-    "Giới tính",
-    "Quan hệ với chủ hộ",
-    "Thường trú/Tạm trú",
-    "Người cao tuổi",
-    "Trẻ em",
-    "Người khuyết tật",
-    "Đảng viên",
-    "Đoàn viên",
+const NONE_VALUE = "__none__";
+
+// Nhan hien thi cho tung truong co the mapping - "required" chi ap dung cho
+// "fullName" ("Họ tên"). "householdCode"/"houseCode" khong danh dau required
+// rieng le (khong cot nao BAT BUOC phai co) nhung PHAI chon it nhat MOT
+// trong hai - kiem tra rieng o canApplyMapping/backend
+// (citizenImportMappingSchema), vi day la dieu kien "mot trong hai", khong
+// phai "ca hai deu bat buoc".
+const CITIZEN_MAPPING_FIELDS: {
+    key: keyof CitizenColumnMapping;
+    label: string;
+    required?: boolean;
+}[] = [
+    { key: "fullName", label: "Họ tên", required: true },
+    { key: "householdCode", label: "Mã hộ" },
+    { key: "houseCode", label: "Mã căn/hộ" },
+    { key: "phone", label: "Số điện thoại" },
+    { key: "cccd", label: "CCCD" },
+    { key: "birthDate", label: "Ngày sinh" },
+    { key: "gender", label: "Giới tính" },
+    { key: "relationToHead", label: "Quan hệ với chủ hộ" },
+    { key: "residenceType", label: "Thường trú/Tạm trú" },
+    { key: "isElderly", label: "Người cao tuổi" },
+    { key: "isChild", label: "Trẻ em" },
+    { key: "isDisabledOrSupportNeeded", label: "Người khuyết tật" },
+    { key: "isPartyMember", label: "Đảng viên" },
+    { key: "isUnionMember", label: "Đoàn viên" },
 ];
+
+type MappingForm = Record<keyof CitizenColumnMapping, string>;
+
+const EMPTY_MAPPING: MappingForm = CITIZEN_MAPPING_FIELDS.reduce(
+    (acc, f) => ({ ...acc, [f.key]: "" }),
+    {} as MappingForm,
+);
 
 const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
     open,
@@ -60,13 +86,19 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
     const [job, setJob] = useState<ImportJob<CitizenImportPreviewRow> | null>(
         null,
     );
+    const [mapping, setMapping] = useState<MappingForm>(EMPTY_MAPPING);
+    const [showMapping, setShowMapping] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
 
     const reset = () => {
         setFile(null);
         setJob(null);
+        setMapping(EMPTY_MAPPING);
+        setShowMapping(false);
         setUploading(false);
+        setApplying(false);
         setCommitting(false);
     };
 
@@ -77,6 +109,8 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setJob(null);
+        setMapping(EMPTY_MAPPING);
+        setShowMapping(false);
         setFile(e.target.files?.[0] || null);
     };
 
@@ -86,6 +120,38 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
             setUploading(true);
             const result = await uploadCitizenImportFile(file);
             setJob(result);
+            const suggested = { ...EMPTY_MAPPING };
+            CITIZEN_MAPPING_FIELDS.forEach(f => {
+                suggested[f.key] = result.suggestedMapping[f.key] || "";
+            });
+            setMapping(suggested);
+            setShowMapping(true);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleApplyMapping = async () => {
+        if (!job || !mapping.fullName) return;
+        if (!mapping.householdCode && !mapping.houseCode) return;
+        try {
+            setApplying(true);
+            const payload: Partial<CitizenColumnMapping> = {
+                fullName: mapping.fullName,
+            };
+            CITIZEN_MAPPING_FIELDS.forEach(f => {
+                if (f.required) return;
+                if (mapping[f.key]) payload[f.key] = mapping[f.key];
+            });
+
+            const result = await applyCitizenImportMapping(
+                job._id,
+                payload as CitizenColumnMapping,
+            );
+            setJob(result);
+            setShowMapping(false);
             if (result.rowErrors.length > 0) {
                 toast.error(
                     `Có ${result.rowErrors.length} dòng không hợp lệ, vui lòng kiểm tra lại`,
@@ -98,7 +164,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
-            setUploading(false);
+            setApplying(false);
         }
     };
 
@@ -118,8 +184,14 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         }
     };
 
+    const canApplyMapping =
+        !!mapping.fullName && (!!mapping.householdCode || !!mapping.houseCode);
     const canCommit =
-        !!job && job.status !== "committed" && job.rowErrors.length === 0;
+        !!job &&
+        !showMapping &&
+        job.status !== "committed" &&
+        job.status !== "awaiting_mapping" &&
+        job.rowErrors.length === 0;
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -131,12 +203,14 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                     {!job && (
                         <>
                             <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
-                                Tải lên file Excel có hàng tiêu đề đầu tiên
-                                dùng đúng các tên cột sau (thứ tự tuỳ ý):{" "}
-                                {REQUIRED_HEADERS.map(h => `"${h}"`).join(", ")}
-                                . &quot;Họ tên&quot; và &quot;Mã hộ&quot; là bắt
-                                buộc — &quot;Mã hộ&quot; phải khớp với mã một
-                                hộ dân đã có trong hệ thống.
+                                Tải lên file Excel bất kỳ có dòng tiêu đề ở
+                                hàng đầu tiên. Sau khi tải lên, bạn sẽ chọn cột
+                                nào tương ứng với &quot;Họ tên&quot;,
+                                &quot;Mã hộ&quot;... — không cần tên cột phải
+                                khớp chính xác. Để liên kết nhân khẩu với hộ
+                                dân, dùng &quot;Mã hộ&quot; (nếu file có sẵn mã
+                                hộ) hoặc &quot;Mã căn/hộ&quot; (mã nhà số — hệ
+                                thống sẽ tự tìm hộ dân đang gắn với nhà đó).
                             </div>
                             <div>
                                 <input
@@ -149,7 +223,63 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                         </>
                     )}
 
-                    {job && (
+                    {job && showMapping && (
+                        <div className="space-y-4">
+                            <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
+                                Đã đọc {job.totalRows} dòng dữ liệu với các cột:{" "}
+                                {job.headers.join(", ")}. &quot;Họ tên&quot; là
+                                bắt buộc, và cần chọn ít nhất một trong
+                                &quot;Mã hộ&quot; / &quot;Mã căn/hộ&quot; —
+                                các trường khác có thể để &quot;Không dùng&quot;
+                                nếu file không có cột tương ứng.
+                            </div>
+
+                            {CITIZEN_MAPPING_FIELDS.map(f => (
+                                <div key={f.key} className="space-y-1">
+                                    <label
+                                        htmlFor={`mapping-${f.key}`}
+                                        className="text-sm font-medium"
+                                    >
+                                        Cột &quot;{f.label}&quot;
+                                        {f.required && (
+                                            <span className="text-red-500">
+                                                {" "}
+                                                *
+                                            </span>
+                                        )}
+                                    </label>
+                                    <Select
+                                        value={mapping[f.key] || NONE_VALUE}
+                                        onValueChange={v =>
+                                            setMapping(prev => ({
+                                                ...prev,
+                                                [f.key]:
+                                                    v === NONE_VALUE ? "" : v,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger id={`mapping-${f.key}`}>
+                                            <SelectValue placeholder="Chọn cột..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {!f.required && (
+                                                <SelectItem value={NONE_VALUE}>
+                                                    Không dùng
+                                                </SelectItem>
+                                            )}
+                                            {job.headers.map(h => (
+                                                <SelectItem key={h} value={h}>
+                                                    {h}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {job && !showMapping && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
                                 <span>
@@ -160,10 +290,10 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setJob(null)}
+                                    onClick={() => setShowMapping(true)}
                                 >
-                                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
-                                    Chọn file khác
+                                    <ArrowLeftRight className="mr-1 h-3.5 w-3.5" />
+                                    Chọn lại cột
                                 </Button>
                             </div>
 
@@ -235,7 +365,17 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                             Tải lên
                         </Button>
                     )}
-                    {job && (
+                    {job && showMapping && (
+                        <Button
+                            className="w-full"
+                            disabled={!canApplyMapping}
+                            loading={applying}
+                            onClick={handleApplyMapping}
+                        >
+                            Xem trước
+                        </Button>
+                    )}
+                    {job && !showMapping && (
                         <Button
                             className="w-full"
                             disabled={!canCommit}

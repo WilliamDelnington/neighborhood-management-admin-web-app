@@ -48,11 +48,12 @@ export interface HouseColumnMapping {
     note?: string;
     defaultCluster?: string;
     neighborhoodId?: string;
+    // KHONG phai cot trong file - tick chon MOT LAN cho ca file. Khi bat, moi
+    // dong CO ten chu ho se duoc tao them mot Household lien ket qua houseId
+    // (xem ghi chu chi tiet o commitHouseImport backend) - mac dinh TAT.
+    createHouseholds?: boolean;
 }
 
-// Xem CITIZEN_COLUMNS/previewCitizenImport o backend importService.ts - khac
-// voi House/Street, import nhan khau dung BO NHAN COT CO DINH (khong co buoc
-// "chon cot" - file phai dung dung ten cot tieng Viet nay o hang dau tien).
 // Xem BUSINESS_COLUMNS/applyBusinessImportMapping o backend importService.ts -
 // "houseId" duoc backend tu doi chieu tu cot "Mã nhà" voi HouseRecord da ton
 // tai (khong tu tao nha moi nhu House import), "businessTypeId" duoc doi
@@ -84,6 +85,29 @@ export interface CitizenImportPreviewRow {
     isDisabledOrSupportNeeded: boolean;
     isPartyMember: boolean;
     isUnionMember: boolean;
+}
+
+// Mapping cot Excel -> truong du lieu Citizen (nhan khau), do nguoi dung xac
+// nhan o buoc "chon cot" sau khi upload - "fullName" bat buoc, va PHAI chon
+// it nhat MOT trong "householdCode"/"houseCode" de lien ket toi ho dan (xem
+// citizenImportMappingSchema/applyCitizenImportMapping o backend) -
+// "houseCode" ("Mã căn/hộ") danh cho file chi ghi ma nha, khong co ma ho
+// rieng - he thong se tu tim ho dan DANG lien ket voi nha do.
+export interface CitizenColumnMapping {
+    fullName: string;
+    phone?: string;
+    cccd?: string;
+    birthDate?: string;
+    gender?: string;
+    relationToHead?: string;
+    householdCode?: string;
+    houseCode?: string;
+    residenceType?: string;
+    isElderly?: string;
+    isChild?: string;
+    isDisabledOrSupportNeeded?: string;
+    isPartyMember?: string;
+    isUnionMember?: string;
 }
 
 export type ImportJobStatus =
@@ -222,6 +246,16 @@ export const uploadCitizenImportFile = (
         formData,
     );
 };
+
+export const applyCitizenImportMapping = (
+    jobId: string,
+    mapping: CitizenColumnMapping,
+): Promise<ImportJob<CitizenImportPreviewRow>> =>
+    request<ImportJob<CitizenImportPreviewRow>>(
+        "PUT",
+        `${API.IMPORT}/citizens/${jobId}/mapping`,
+        mapping,
+    );
 
 export const commitCitizenImport = (
     jobId: string,
