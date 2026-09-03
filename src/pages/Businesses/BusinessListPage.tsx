@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -12,6 +14,13 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetFooter,
+} from "@components/ui/sheet";
+import {
     Table,
     TableBody,
     TableCell,
@@ -23,14 +32,22 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import { usePermission } from "@store/authStore";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Business, BusinessType, VerificationStatus } from "@dts";
-import { fetchBusinesses } from "@service/businessApi";
+import { AppError, Business, BusinessType, House, VerificationStatus } from "@dts";
+import { createBusiness, fetchBusinesses } from "@service/businessApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
+import BusinessForm, {
+    EMPTY_BUSINESS_FORM,
+    BusinessFormValues,
+    isBusinessFormValid,
+    toBusinessInput,
+} from "../Houses/BusinessForm";
+import BusinessImportSheet from "./BusinessImportSheet";
 
 const ALL_STATUS = "all";
 const ALL_BUSINESS_TYPE = "all";
@@ -55,6 +72,10 @@ const houseLabelOf = (b: Business): string => {
 
 const BusinessListContent: React.FC = () => {
     const navigate = useNavigate();
+    const canCreate = usePermission("businesses.create");
+    // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage", khac
+    // voi "businesses.create" - xem ghi chu tuong tu o HouseListPage.tsx.
+    const canImport = usePermission("imports.manage");
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
@@ -66,6 +87,13 @@ const BusinessListContent: React.FC = () => {
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+
+    const [createVisible, setCreateVisible] = useState(false);
+    const [form, setForm] = useState<BusinessFormValues>(EMPTY_BUSINESS_FORM);
+    const [createHouseId, setCreateHouseId] = useState("");
+    const [createHouseLabel, setCreateHouseLabel] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [importVisible, setImportVisible] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -98,11 +126,61 @@ const BusinessListContent: React.FC = () => {
             .catch(() => setBusinessTypes([]));
     }, []);
 
+    const openCreate = () => {
+        setForm(EMPTY_BUSINESS_FORM);
+        setCreateHouseId("");
+        setCreateHouseLabel("");
+        setCreateVisible(true);
+    };
+
+    const handleCreate = async () => {
+        if (!createHouseId) {
+            toast.error("Vui lòng chọn nhà số");
+            return;
+        }
+        if (!isBusinessFormValid(form)) {
+            toast.error("Vui lòng nhập tên hộ kinh doanh");
+            return;
+        }
+        try {
+            setSubmitting(true);
+            await createBusiness(toBusinessInput(form, createHouseId));
+            toast.success("Đã thêm hộ kinh doanh mới");
+            setCreateVisible(false);
+            load(1, search);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Hộ kinh doanh"
                 description="Quản lý hộ kinh doanh đăng ký hoạt động trên địa bàn."
+                action={
+                    (canCreate || canImport) && (
+                        <div className="flex gap-2">
+                            {canImport && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setImportVisible(true)}
+                                >
+                                    <UploadCloud className="mr-1 h-4 w-4" />
+                                    Nhập từ Excel
+                                </Button>
+                            )}
+                            {canCreate && (
+                                <Button onClick={openCreate}>
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    Thêm hộ kinh doanh
+                                </Button>
+                            )}
+                        </div>
+                    )
+                }
             />
 
             <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -247,6 +325,45 @@ const BusinessListContent: React.FC = () => {
                     disabled={loading}
                 />
             )}
+
+            <Sheet open={createVisible} onOpenChange={setCreateVisible}>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>Thêm hộ kinh doanh</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto py-4">
+                        <BusinessForm
+                            values={form}
+                            onChange={setForm}
+                            housePicker={{
+                                value: createHouseId,
+                                valueLabel: createHouseLabel,
+                                onChange: (houseId, house: House) => {
+                                    setCreateHouseId(houseId);
+                                    setCreateHouseLabel(
+                                        `${house.code} — ${house.address}`,
+                                    );
+                                },
+                            }}
+                        />
+                    </div>
+                    <SheetFooter>
+                        <Button
+                            className="w-full"
+                            loading={submitting}
+                            onClick={handleCreate}
+                        >
+                            Lưu hộ kinh doanh
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+
+            <BusinessImportSheet
+                open={importVisible}
+                onOpenChange={setImportVisible}
+                onImported={() => load(1, search)}
+            />
         </div>
     );
 };

@@ -53,6 +53,23 @@ export interface HouseColumnMapping {
 // Xem CITIZEN_COLUMNS/previewCitizenImport o backend importService.ts - khac
 // voi House/Street, import nhan khau dung BO NHAN COT CO DINH (khong co buoc
 // "chon cot" - file phai dung dung ten cot tieng Viet nay o hang dau tien).
+// Xem BUSINESS_COLUMNS/applyBusinessImportMapping o backend importService.ts -
+// "houseId" duoc backend tu doi chieu tu cot "Mã nhà" voi HouseRecord da ton
+// tai (khong tu tao nha moi nhu House import), "businessTypeId" duoc doi
+// chieu tu cot "Loại hình kinh doanh" (neu co chon cot va co gia tri).
+export interface BusinessImportPreviewRow {
+    name: string;
+    houseCode: string;
+    houseId: string;
+    businessTypeId?: string;
+    businessTypeName?: string;
+    ownerName?: string;
+    taxCode?: string;
+    phone?: string;
+    active: boolean;
+    note?: string;
+}
+
 export interface CitizenImportPreviewRow {
     fullName: string;
     phone?: string;
@@ -99,6 +116,20 @@ export interface StreetColumnMapping {
     name: string;
     code?: string;
     active?: string;
+}
+
+// Mapping cot Excel -> truong du lieu Business (ho kinh doanh), do nguoi
+// dung xac nhan o buoc "chon cot" sau khi upload - "name"/"houseCode" bat
+// buoc, cac truong con lai tuy chon (bo trong = khong dung cot nao).
+export interface BusinessColumnMapping {
+    name: string;
+    houseCode: string;
+    businessTypeName?: string;
+    ownerName?: string;
+    taxCode?: string;
+    phone?: string;
+    active?: string;
+    note?: string;
 }
 
 export const uploadStreetImportFile = (file: File): Promise<ImportJob> => {
@@ -148,6 +179,36 @@ export const commitHouseImport = (
     request<ImportJob<HouseImportPreviewRow>>(
         "POST",
         `${API.IMPORT}/houses/${jobId}/commit`,
+    );
+
+export const uploadBusinessImportFile = (
+    file: File,
+): Promise<ImportJob<BusinessImportPreviewRow>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<ImportJob<BusinessImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/businesses`,
+        formData,
+    );
+};
+
+export const applyBusinessImportMapping = (
+    jobId: string,
+    mapping: BusinessColumnMapping,
+): Promise<ImportJob<BusinessImportPreviewRow>> =>
+    request<ImportJob<BusinessImportPreviewRow>>(
+        "PUT",
+        `${API.IMPORT}/businesses/${jobId}/mapping`,
+        mapping,
+    );
+
+export const commitBusinessImport = (
+    jobId: string,
+): Promise<ImportJob<BusinessImportPreviewRow>> =>
+    request<ImportJob<BusinessImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/businesses/${jobId}/commit`,
     );
 
 export const uploadCitizenImportFile = (

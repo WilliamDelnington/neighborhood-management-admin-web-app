@@ -11,7 +11,8 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import RepresentativeUserPicker from "@components/admin/RepresentativeUserPicker";
-import { BusinessType, User } from "@dts";
+import HousePicker from "@components/admin/HousePicker";
+import { BusinessType, House, User } from "@dts";
 import { BusinessInput } from "@service/businessApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
 
@@ -65,12 +66,27 @@ export function isBusinessFormValid(values: BusinessFormValues): boolean {
 interface BusinessFormProps {
     values: BusinessFormValues;
     onChange: (values: BusinessFormValues) => void;
+    /**
+     * Chi truyen khi form duoc dung DOC LAP (vd tao moi tu trang danh sach Hộ
+     * kinh doanh) - luc do phai chon nha vi khong co san houseId tu ngu canh
+     * (khac khi dung trong HouseDetailPage, houseId da co san nen khong can
+     * chon lai).
+     */
+    housePicker?: {
+        value: string;
+        valueLabel: string;
+        onChange: (houseId: string, house: House) => void;
+    };
 }
 
 /**
  * Bo truong dung chung cho tao moi/chinh sua ho kinh doanh trong mot nha so.
  */
-const BusinessForm: React.FC<BusinessFormProps> = ({ values, onChange }) => {
+const BusinessForm: React.FC<BusinessFormProps> = ({
+    values,
+    onChange,
+    housePicker,
+}) => {
     const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
 
     const set = <K extends keyof BusinessFormValues>(
@@ -86,6 +102,13 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ values, onChange }) => {
 
     return (
         <div className="flex flex-col gap-4">
+            {housePicker && (
+                <HousePicker
+                    value={housePicker.value}
+                    valueLabel={housePicker.valueLabel}
+                    onChange={housePicker.onChange}
+                />
+            )}
             <div className="space-y-1.5">
                 <Label>Tên hộ kinh doanh</Label>
                 <Input
