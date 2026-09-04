@@ -30,6 +30,13 @@ export interface HouseImportPreviewRow {
     ownerName?: string;
     ownerPhone?: string;
     note?: string;
+    // Chi duoc DUNG khi mapping.createHouseholds=true (xem commitHouseImport
+    // o backend) - van duoc backend tinh san trong moi truong hop de hien thi
+    // truoc ("preview") cho nguoi dung xem se dien gi vao Household, du co
+    // bat tuy chon hay chua.
+    householdHeadOfHousehold?: string;
+    householdPhone?: string;
+    hasBusinessSignal?: boolean;
 }
 
 // Mapping cot Excel -> truong du lieu House, do nguoi dung xac nhan o buoc

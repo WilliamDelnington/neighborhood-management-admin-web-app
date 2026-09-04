@@ -195,7 +195,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
-            <SheetContent>
+            <SheetContent className="flex w-full flex-col sm:max-w-3xl lg:max-w-[calc(100vw-320px)]">
                 <SheetHeader>
                     <SheetTitle>Nhập nhân khẩu từ Excel</SheetTitle>
                 </SheetHeader>

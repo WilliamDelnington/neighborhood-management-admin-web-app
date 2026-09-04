@@ -189,7 +189,7 @@ const BusinessImportSheet: React.FC<BusinessImportSheetProps> = ({
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
-            <SheetContent>
+            <SheetContent className="flex w-full flex-col sm:max-w-3xl lg:max-w-[calc(100vw-320px)]">
                 <SheetHeader>
                     <SheetTitle>Nhập hộ kinh doanh từ Excel</SheetTitle>
                 </SheetHeader>

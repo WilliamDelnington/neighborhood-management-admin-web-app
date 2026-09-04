@@ -171,7 +171,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
-            <SheetContent>
+            <SheetContent className="flex w-full flex-col sm:max-w-3xl lg:max-w-[calc(100vw-320px)]">
                 <SheetHeader>
                     <SheetTitle>Nhập đường/phố từ Excel</SheetTitle>
                 </SheetHeader>

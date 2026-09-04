@@ -215,7 +215,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
-            <SheetContent>
+            <SheetContent className="flex w-full flex-col sm:max-w-3xl lg:max-w-[calc(100vw-320px)]">
                 <SheetHeader>
                     <SheetTitle>Nhập nhà số từ Excel</SheetTitle>
                 </SheetHeader>
@@ -394,8 +394,15 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                             <TableHead>Trạng thái</TableHead>
                                             <TableHead>Cụm dân cư</TableHead>
                                             <TableHead>Chủ sở hữu</TableHead>
-                                            <TableHead>SĐT</TableHead>
+                                            <TableHead>SĐT chủ sở hữu</TableHead>
                                             <TableHead>Tạo tài khoản</TableHead>
+                                            {createHouseholds && (
+                                                <>
+                                                    <TableHead>Chủ hộ dân</TableHead>
+                                                    <TableHead>SĐT hộ dân</TableHead>
+                                                    <TableHead>Có kinh doanh</TableHead>
+                                                </>
+                                            )}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -434,6 +441,27 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                                         ? "Có"
                                                         : "Không"}
                                                 </TableCell>
+                                                {createHouseholds && (
+                                                    <>
+                                                        <TableCell>
+                                                            {row.householdHeadOfHousehold ||
+                                                                "—"}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {row.householdPhone ||
+                                                                "—"}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {row.hasBusinessSignal ? (
+                                                                <Badge tone="yellow">
+                                                                    Có
+                                                                </Badge>
+                                                            ) : (
+                                                                "Không"
+                                                            )}
+                                                        </TableCell>
+                                                    </>
+                                                )}
                                             </TableRow>
                                         ))}
                                     </TableBody>
