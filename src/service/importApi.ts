@@ -17,11 +17,16 @@ export interface StreetImportPreviewRow {
 // "address" duoc backend tu suy ra tu cot da mapping cho "Phân khu/dãy" +
 // "Mã căn/hộ" (khong co cot dia chi rieng trong Phieu thu thap),
 // "ownerName"/"ownerPhone" chi co gia tri khi ca hai hop le (se tao tai
-// khoan chu nha luc commit).
+// khoan chu nha luc commit). "existingHouseId" co gia tri khi "Mã căn/hộ" cua
+// dong nay DA TON TAI trong he thong - dong do se duoc COMMIT nhu mot lan
+// "cập nhật" (chi dien vao truong dang trong tren House/Household da co,
+// khong tao trung/ghi de - xem mergeIntoExistingHouse o backend) thay vi tao
+// moi; cluster/address luc do khong duoc dung nen co the rong.
 export interface HouseImportPreviewRow {
     code: string;
-    cluster: string;
-    address: string;
+    cluster?: string;
+    address?: string;
+    existingHouseId?: string;
     ownerName?: string;
     ownerPhone?: string;
     note?: string;

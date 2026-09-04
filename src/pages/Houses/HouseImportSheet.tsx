@@ -12,6 +12,7 @@ import {
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
+import { Badge } from "@components/ui/badge";
 import {
     Select,
     SelectContent,
@@ -390,6 +391,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                         <TableRow>
                                             <TableHead className="w-12 text-center">STT</TableHead>
                                             <TableHead>Mã nhà</TableHead>
+                                            <TableHead>Trạng thái</TableHead>
                                             <TableHead>Cụm dân cư</TableHead>
                                             <TableHead>Chủ sở hữu</TableHead>
                                             <TableHead>SĐT</TableHead>
@@ -407,7 +409,18 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                                     {row.code}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {row.cluster}
+                                                    {row.existingHouseId ? (
+                                                        <Badge tone="blue">
+                                                            Cập nhật
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge tone="green">
+                                                            Mới
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.cluster || "—"}
                                                 </TableCell>
                                                 <TableCell>
                                                     {row.ownerName || "—"}
