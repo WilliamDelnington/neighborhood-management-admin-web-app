@@ -28,12 +28,14 @@ import {
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { BusinessType, Company, VerificationStatus } from "@dts";
+import { BusinessType, Company, CompanyType, VerificationStatus } from "@dts";
 import { fetchCompanies } from "@service/companyApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
+import { fetchCompanyTypes } from "@service/companyTypeApi";
 
 const ALL_STATUS = "all";
 const ALL_BUSINESS_TYPE = "all";
+const ALL_COMPANY_TYPE = "all";
 
 const CompanyListPage: React.FC = () => (
     <AdminGuard permissions={["companies.read"]}>
@@ -60,6 +62,8 @@ const CompanyListContent: React.FC = () => {
     const [status, setStatus] = useState<VerificationStatus | "">("");
     const [businessType, setBusinessType] = useState("");
     const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
+    const [companyType, setCompanyType] = useState("");
+    const [companyTypes, setCompanyTypes] = useState<CompanyType[]>([]);
     const [items, setItems] = useState<Company[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -76,6 +80,7 @@ const CompanyListContent: React.FC = () => {
             search: keyword,
             status: status || undefined,
             businessType: businessType || undefined,
+            companyType: companyType || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -90,12 +95,15 @@ const CompanyListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status, businessType]);
+    }, [search, status, businessType, companyType]);
 
     useEffect(() => {
         fetchBusinessTypes({ limit: 200, active: true })
             .then(res => setBusinessTypes(res.items))
             .catch(() => setBusinessTypes([]));
+        fetchCompanyTypes({ limit: 200, active: true })
+            .then(res => setCompanyTypes(res.items))
+            .catch(() => setCompanyTypes([]));
     }, []);
 
     return (
@@ -105,7 +113,7 @@ const CompanyListContent: React.FC = () => {
                 description="Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn."
             />
 
-            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -166,6 +174,26 @@ const CompanyListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
+                <Select
+                    value={companyType || ALL_COMPANY_TYPE}
+                    onValueChange={v =>
+                        setCompanyType(v === ALL_COMPANY_TYPE ? "" : v)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả loại hình DN" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_COMPANY_TYPE}>
+                            Tất cả loại hình DN
+                        </SelectItem>
+                        {companyTypes.map(ct => (
+                            <SelectItem key={ct._id} value={ct._id}>
+                                {ct.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
@@ -186,6 +214,7 @@ const CompanyListContent: React.FC = () => {
                                 <TableHead>Cụm</TableHead>
                                 <TableHead>Tổ chức liên kết</TableHead>
                                 <TableHead>Loại hình kinh doanh</TableHead>
+                                <TableHead>Loại hình DN</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
@@ -224,6 +253,12 @@ const CompanyListContent: React.FC = () => {
                                             )
                                             .filter(Boolean)
                                             .join(", ") || "Chưa phân loại"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {c.companyTypeId &&
+                                        typeof c.companyTypeId === "object"
+                                            ? c.companyTypeId.name
+                                            : "Chưa chọn"}
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>

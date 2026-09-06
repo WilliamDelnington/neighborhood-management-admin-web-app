@@ -129,13 +129,14 @@ export const lockUserAccount = (
 ): Promise<User> =>
     request<User>("PATCH", `${API.USERS}/${id}/lock`, { status, statusReason });
 
-// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai
-// CHI admin moi duoc chon (kiem tra o backend, xem userService.createHouseOwnerByStaff).
-export type CreatableStaffRole =
-    | "house_owner"
-    | "neighborhood_leader"
-    | "neighborhood_coleader"
-    | "neighborhood_collaborator";
+// house_owner mo cho bat ky ai co quyen "users.create"; cac vai tro con lai
+// (vai tro he thong nhu neighborhood_leader/coleader/collaborator, hoac vai
+// tro tuy chinh admin them qua man Quan ly vai tro) CHI admin moi duoc chon -
+// kiem tra o backend, xem userService.createHouseOwnerByStaff. Vai tro la du
+// lieu dong (xem RoleRecord) nen khong con la union tinh - danh sach hien thi
+// duoc loc dong tu fetchRoles(), tru cac key trong
+// ACCOUNT_CREATION_RESERVED_ROLE_KEYS (xem constants/domain.ts).
+export type CreatableStaffRole = Role;
 
 export interface CreateHouseOwnerParams {
     phone: string;

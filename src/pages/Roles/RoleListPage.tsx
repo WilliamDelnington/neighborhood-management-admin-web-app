@@ -41,7 +41,7 @@ import {
     RequestType,
     RoleRecord,
 } from "@dts";
-import { NHOM_PHAN_ANH_LABEL, REQUEST_TYPE_LABEL } from "@constants/domain";
+import { NHOM_PHAN_ANH_LABEL } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     createRole,
@@ -92,9 +92,7 @@ const RoleListContent: React.FC = () => {
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
     const [requestTypeOptions, setRequestTypeOptions] = useState<
         Array<{ key: RequestType; name: string }>
-    >(
-        Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({ key, name })),
-    );
+    >([]);
     const [complaintCategoryOptions, setComplaintCategoryOptions] = useState<
         Array<{ key: NhomPhanAnh; name: string }>
     >(
@@ -128,16 +126,12 @@ const RoleListContent: React.FC = () => {
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
-                setRequestTypeOptions([
-                    ...Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({
-                        key,
-                        name,
-                    })),
-                    ...customTypes.items.map(type => ({
+                setRequestTypeOptions(
+                    customTypes.items.map(type => ({
                         key: type.key,
                         name: type.name,
                     })),
-                ]);
+                );
                 setComplaintCategoryOptions(
                     complaintTypes.items.map(type => ({
                         key: type.key,

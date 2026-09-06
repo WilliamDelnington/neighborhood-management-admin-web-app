@@ -50,6 +50,7 @@ import {
     fetchRequests,
     updateMyRequestStatus,
 } from "@service/requestApi";
+import { fetchRequestTypeDefinitions } from "@service/requestTypeApi";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import RequestDetailSheet from "./RequestDetailSheet";
 
@@ -155,6 +156,9 @@ const RequestListContent: React.FC = () => {
  */
 const SentRequestsTab: React.FC<{ reloadKey: number }> = ({ reloadKey }) => {
     const [type, setType] = useState<RequestType | "">("");
+    const [typeOptions, setTypeOptions] = useState<
+        { key: string; name: string }[]
+    >([]);
     const [items, setItems] = useState<RequestItem[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -169,6 +173,16 @@ const SentRequestsTab: React.FC<{ reloadKey: number }> = ({ reloadKey }) => {
         if (requestId) setDetailId(requestId);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
+
+    useEffect(() => {
+        fetchRequestTypeDefinitions({ active: true, limit: 200 })
+            .then(res =>
+                setTypeOptions(
+                    res.items.map(item => ({ key: item.key, name: item.name })),
+                ),
+            )
+            .catch(() => setTypeOptions([]));
+    }, []);
 
     const closeDetail = (open: boolean) => {
         if (open) return;
@@ -216,13 +230,11 @@ const SentRequestsTab: React.FC<{ reloadKey: number }> = ({ reloadKey }) => {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={ALL_TYPES}>Tất cả loại yêu cầu</SelectItem>
-                        {(Object.entries(REQUEST_TYPE_LABEL) as [RequestType, string][]).map(
-                            ([key, label]) => (
-                                <SelectItem key={key} value={key}>
-                                    {label}
-                                </SelectItem>
-                            ),
-                        )}
+                        {typeOptions.map(opt => (
+                            <SelectItem key={opt.key} value={opt.key}>
+                                {opt.name}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
                 <PageSizeSelect
@@ -356,6 +368,9 @@ const SentRequestsTab: React.FC<{ reloadKey: number }> = ({ reloadKey }) => {
  */
 const AllRequestsTab: React.FC = () => {
     const [type, setType] = useState<RequestType | "">("");
+    const [typeOptions, setTypeOptions] = useState<
+        { key: string; name: string }[]
+    >([]);
     const [items, setItems] = useState<RequestItem[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -382,6 +397,16 @@ const AllRequestsTab: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [type]);
 
+    useEffect(() => {
+        fetchRequestTypeDefinitions({ active: true, limit: 200 })
+            .then(res =>
+                setTypeOptions(
+                    res.items.map(item => ({ key: item.key, name: item.name })),
+                ),
+            )
+            .catch(() => setTypeOptions([]));
+    }, []);
+
     return (
         <div>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -396,13 +421,11 @@ const AllRequestsTab: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={ALL_TYPES}>Tất cả loại yêu cầu</SelectItem>
-                        {(Object.entries(REQUEST_TYPE_LABEL) as [RequestType, string][]).map(
-                            ([key, label]) => (
-                                <SelectItem key={key} value={key}>
-                                    {label}
-                                </SelectItem>
-                            ),
-                        )}
+                        {typeOptions.map(opt => (
+                            <SelectItem key={opt.key} value={opt.key}>
+                                {opt.name}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
                 <PageSizeSelect
@@ -535,6 +558,9 @@ const AllRequestsTab: React.FC = () => {
 const AssignedRequestsTab: React.FC = () => {
     const [status, setStatus] = useState<RequestStatus | "">("");
     const [type, setType] = useState<RequestType | "">("");
+    const [typeOptions, setTypeOptions] = useState<
+        { key: string; name: string }[]
+    >([]);
     const [overdueOnly, setOverdueOnly] = useState(false);
     const [items, setItems] = useState<MyRequestItem[]>([]);
     const [page, setPage] = useState(1);
@@ -558,6 +584,16 @@ const AssignedRequestsTab: React.FC = () => {
         if (requestId) setDetailRequestId(requestId);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
+
+    useEffect(() => {
+        fetchRequestTypeDefinitions({ active: true, limit: 200 })
+            .then(res =>
+                setTypeOptions(
+                    res.items.map(item => ({ key: item.key, name: item.name })),
+                ),
+            )
+            .catch(() => setTypeOptions([]));
+    }, []);
 
     const closeDetail = (open: boolean) => {
         if (open) return;
@@ -665,14 +701,9 @@ const AssignedRequestsTab: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={ALL}>Tất cả loại yêu cầu</SelectItem>
-                        {(
-                            Object.entries(REQUEST_TYPE_LABEL) as [
-                                RequestType,
-                                string,
-                            ][]
-                        ).map(([key, label]) => (
-                            <SelectItem key={key} value={key}>
-                                {label}
+                        {typeOptions.map(opt => (
+                            <SelectItem key={opt.key} value={opt.key}>
+                                {opt.name}
                             </SelectItem>
                         ))}
                     </SelectContent>

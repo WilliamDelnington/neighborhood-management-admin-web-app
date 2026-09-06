@@ -34,7 +34,13 @@ import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
-import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
+import {
+    ACCOUNT_CREATION_RESERVED_ROLE_KEYS,
+    NEIGHBORHOOD_TERM_ROLE_KEYS,
+    ROLE_LABEL,
+    USER_STATUS_LABEL,
+    USER_STATUS_TONE,
+} from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     assignUserRole,
@@ -81,15 +87,6 @@ const EMPTY_CREATE_FORM: CreateAccountForm = {
     role: "house_owner",
 };
 
-// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai chi
-// hien voi admin (backend cung tu choi neu khong phai admin - xem
-// userService.createHouseOwnerByStaff).
-const CREATE_STAFF_ONLY_ROLES: CreatableStaffRole[] = [
-    "neighborhood_leader",
-    "neighborhood_coleader",
-    "neighborhood_collaborator",
-];
-
 const UserListPage: React.FC = () => (
     <AdminGuard permissions={["users.read"]}>
         <UserListContent />
@@ -123,6 +120,19 @@ const UserListContent: React.FC = () => {
         [roles],
     );
     const roleLabel = (key: Role) => roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
+    // Cac vai tro (ngoai house_owner, luon hien rieng) duoc phep chon khi "Tạo
+    // tài khoản" - loc dong tu danh sach Role dang active thay vi liet ke cung
+    // 3 vai tro co dinh, de vai tro tuy chinh admin them qua man Quan ly vai
+    // trò (vd social_cultral_leader) tu dong xuat hien ma khong can sua code.
+    const createStaffOnlyRoles = React.useMemo(
+        () =>
+            roles.filter(
+                r =>
+                    r.key !== "house_owner" &&
+                    !ACCOUNT_CREATION_RESERVED_ROLE_KEYS.includes(r.key),
+            ),
+        [roles],
+    );
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -220,7 +230,7 @@ const UserListContent: React.FC = () => {
                 role: createForm.role,
                 password: createForm.password.trim(),
             });
-            toast.success(`Đã tạo tài khoản ${ROLE_LABEL[createForm.role]} mới`);
+            toast.success(`Đã tạo tài khoản ${roleLabel(createForm.role)} mới`);
             setLastCreatedPhone(createForm.phone.trim());
             setCreateForm(EMPTY_CREATE_FORM);
             load(page, search);
@@ -914,12 +924,12 @@ const UserListContent: React.FC = () => {
                                 <strong>{lastCreatedPhone}</strong>. Đăng nhập
                                 trong Mini App bằng số điện thoại và mật khẩu
                                 vừa đặt.
-                                {CREATE_STAFF_ONLY_ROLES.includes(createForm.role) && (
+                                {NEIGHBORHOOD_TERM_ROLE_KEYS.includes(createForm.role) && (
                                     <>
                                         {" "}
                                         Vào trang chi tiết Tổ dân phố để gán
                                         tài khoản này làm{" "}
-                                        {ROLE_LABEL[createForm.role]} của một
+                                        {roleLabel(createForm.role)} của một
                                         tổ cụ thể.
                                     </>
                                 )}
@@ -944,9 +954,9 @@ const UserListContent: React.FC = () => {
                                         <SelectItem value="house_owner">
                                             {ROLE_LABEL.house_owner}
                                         </SelectItem>
-                                        {CREATE_STAFF_ONLY_ROLES.map(r => (
-                                            <SelectItem key={r} value={r}>
-                                                {ROLE_LABEL[r]}
+                                        {createStaffOnlyRoles.map(r => (
+                                            <SelectItem key={r.key} value={r.key}>
+                                                {r.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

@@ -155,6 +155,19 @@ export type BusinessType = {
     updatedAt: string;
 };
 
+// Loai hinh doanh nghiep (phap ly) - CHI danh cho Company, khac BusinessType
+// (nganh nghe kinh doanh, dung chung voi Business) - khong co requiredDocuments
+// rieng, xem ghi chu tren models/Company.ts o backend.
+export type CompanyType = {
+    _id: string;
+    name: string;
+    description?: string;
+    active: boolean;
+    sortOrder: number;
+    createdAt: string;
+    updatedAt: string;
+};
+
 export type HouseStatus =
     | "unverified"
     | "pending"
@@ -586,6 +599,9 @@ export type Company = {
     // Nhieu loai hinh kinh doanh cung luc (khac Business.businessType - mot
     // gia tri duy nhat) - xem ghi chu tren models/Company.ts o backend.
     businessTypeIds?: ({ _id: string; name: string } | string)[];
+    // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
+    // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
+    companyTypeId?: { _id: string; name: string } | string | null;
     phone?: string;
     active: boolean;
     status: VerificationStatus;

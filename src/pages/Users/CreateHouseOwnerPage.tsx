@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import PageHeader from "@components/admin/PageHeader";
@@ -13,9 +13,14 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import { useAuthStore } from "@store/authStore";
-import { ROLE_LABEL } from "@constants/domain";
-import { AppError } from "@dts";
+import {
+    ACCOUNT_CREATION_RESERVED_ROLE_KEYS,
+    NEIGHBORHOOD_TERM_ROLE_KEYS,
+    ROLE_LABEL,
+} from "@constants/domain";
+import { AppError, RoleRecord } from "@dts";
 import { createHouseOwner, CreatableStaffRole } from "@service/userApi";
+import { fetchRoles } from "@service/roleApi";
 
 type FormState = {
     phone: string;
@@ -34,16 +39,6 @@ const EMPTY_FORM: FormState = {
     password: "",
     role: "house_owner",
 };
-
-// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai chi
-// hien voi admin (backend cung tu choi neu khong phai admin - xem
-// userService.createHouseOwnerByStaff) - day la cac vai tro pham vi rong (to
-// truong/to pho) hoac can gan vao mot To dan pho cu the sau khi tao.
-const STAFF_ONLY_ROLES: CreatableStaffRole[] = [
-    "neighborhood_leader",
-    "neighborhood_coleader",
-    "neighborhood_collaborator",
-];
 
 const CreateHouseOwnerPage: React.FC = () => (
     <AdminGuard permissions={["users.create"]}>
@@ -72,6 +67,34 @@ const CreateHouseOwnerContent: React.FC = () => {
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
     const [lastCreatedPhone, setLastCreatedPhone] = useState<string | null>(null);
+    const [roles, setRoles] = useState<RoleRecord[]>([]);
+
+    useEffect(() => {
+        if (!isAdmin) return;
+        fetchRoles({ active: true, limit: 100 })
+            .then(res => setRoles(res.items))
+            .catch(() => setRoles([]));
+    }, [isAdmin]);
+
+    const roleNameByKey = useMemo(
+        () => Object.fromEntries(roles.map(r => [r.key, r.name])),
+        [roles],
+    );
+    const roleLabel = (key: CreatableStaffRole) =>
+        roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
+    // Vai tro (ngoai house_owner) duoc phep chon - loc dong tu Role dang
+    // active, tru cac key trong ACCOUNT_CREATION_RESERVED_ROLE_KEYS, de vai
+    // tro tuy chinh admin them qua man Quan ly vai trò tu dong xuat hien ma
+    // khong can sua code (xem cung logic o UserListPage.tsx).
+    const staffOnlyRoles = useMemo(
+        () =>
+            roles.filter(
+                r =>
+                    r.key !== "house_owner" &&
+                    !ACCOUNT_CREATION_RESERVED_ROLE_KEYS.includes(r.key),
+            ),
+        [roles],
+    );
 
     const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
         setForm(prev => ({ ...prev, [key]: value }));
@@ -99,7 +122,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                 role: form.role,
                 password: form.password.trim(),
             });
-            toast.success(`Đã tạo tài khoản ${ROLE_LABEL[form.role]} mới`);
+            toast.success(`Đã tạo tài khoản ${roleLabel(form.role)} mới`);
             setLastCreatedPhone(form.phone.trim());
             setForm(EMPTY_FORM);
         } catch (err) {
@@ -121,11 +144,11 @@ const CreateHouseOwnerContent: React.FC = () => {
                     Đã tạo tài khoản với số điện thoại <strong>{lastCreatedPhone}</strong>.
                     Đăng nhập trong Mini App bằng số điện thoại và mật khẩu
                     vừa đặt.
-                    {STAFF_ONLY_ROLES.includes(form.role) && (
+                    {NEIGHBORHOOD_TERM_ROLE_KEYS.includes(form.role) && (
                         <>
                             {" "}
                             Vào trang chi tiết Tổ dân phố để gán tài khoản này
-                            làm {ROLE_LABEL[form.role]} của một tổ cụ thể.
+                            làm {roleLabel(form.role)} của một tổ cụ thể.
                         </>
                     )}
                 </div>
@@ -149,9 +172,9 @@ const CreateHouseOwnerContent: React.FC = () => {
                                     <SelectItem value="house_owner">
                                         {ROLE_LABEL.house_owner}
                                     </SelectItem>
-                                    {STAFF_ONLY_ROLES.map(role => (
-                                        <SelectItem key={role} value={role}>
-                                            {ROLE_LABEL[role]}
+                                    {staffOnlyRoles.map(r => (
+                                        <SelectItem key={r.key} value={r.key}>
+                                            {r.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

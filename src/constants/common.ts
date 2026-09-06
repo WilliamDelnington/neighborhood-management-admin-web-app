@@ -43,6 +43,7 @@ export const API = {
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",
     COMPANIES: "/api/companies",
+    COMPANY_TYPES: "/api/company-types",
     USAGE_UNITS: "/api/usage-units",
     DOCUMENT_TYPES: "/api/document-types",
 

@@ -192,6 +192,9 @@ const ChangeRequestListPage = React.lazy(
 const BusinessTypeListPage = React.lazy(
     () => import("@pages/BusinessTypes/BusinessTypeListPage"),
 );
+const CompanyTypeListPage = React.lazy(
+    () => import("@pages/CompanyTypes/CompanyTypeListPage"),
+);
 const BusinessListPage = React.lazy(
     () => import("@pages/Businesses/BusinessListPage"),
 );
@@ -509,6 +512,10 @@ const App: React.FC = () => {
                         <Route
                             path="/business-types"
                             element={<BusinessTypeListPage />}
+                        />
+                        <Route
+                            path="/company-types"
+                            element={<CompanyTypeListPage />}
                         />
                         <Route
                             path="/document-types"

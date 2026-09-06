@@ -91,6 +91,11 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
     const [neighborhoodId, setNeighborhoodId] = useState("");
     const [createHouseholds, setCreateHouseholds] = useState(false);
     const [defaultPassword, setDefaultPassword] = useState("");
+    // Sheet nguon da chon de doc (chi co y nghia khi file co nhieu hon 1
+    // sheet - xem job.availableSheetNames/job.sourceSheetName). Rong = de
+    // backend tu chon sheet dau tien (mac dinh, giu hanh vi cu cho file chi
+    // co 1 sheet).
+    const [sheetName, setSheetName] = useState("");
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [showMapping, setShowMapping] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -112,6 +117,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         setNeighborhoodId("");
         setCreateHouseholds(false);
         setDefaultPassword("");
+        setSheetName("");
         setShowMapping(false);
         setUploading(false);
         setApplying(false);
@@ -127,14 +133,18 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         setJob(null);
         setMapping(EMPTY_MAPPING);
         setShowMapping(false);
+        setSheetName("");
         setFile(e.target.files?.[0] || null);
     };
 
-    const handleUpload = async () => {
+    const handleUpload = async (overrideSheetName?: string) => {
         if (!file) return;
         try {
             setUploading(true);
-            const result = await uploadHouseImportFile(file);
+            const result = await uploadHouseImportFile(
+                file,
+                overrideSheetName || sheetName || undefined,
+            );
             setJob(result);
             const suggested = { ...EMPTY_MAPPING };
             HOUSE_MAPPING_FIELDS.forEach(f => {
@@ -147,6 +157,15 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         } finally {
             setUploading(false);
         }
+    };
+
+    // Doc lai file DA CHON voi mot sheet khac - dung khi sheet mac dinh (dau
+    // tien) khong phai sheet nguoi dung can (xem banner "File co nhieu
+    // sheet" ben duoi). Tao mot job MOI (giong tai file lai), khong sua job
+    // cu.
+    const handleRereadWithSheet = (nextSheetName: string) => {
+        setSheetName(nextSheetName);
+        handleUpload(nextSheetName);
     };
 
     const handleApplyMapping = async () => {
@@ -251,6 +270,36 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                 />
                             </div>
                         </>
+                    )}
+
+                    {job && job.availableSheetNames.length > 1 && (
+                        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                            <p>
+                                File này có {job.availableSheetNames.length}{" "}
+                                sheet: {job.availableSheetNames.join(", ")}.
+                                Đang đọc dữ liệu từ sheet{" "}
+                                <strong>&quot;{job.sourceSheetName}&quot;</strong>.
+                                Nếu đây không phải sheet chứa dữ liệu nhà số,
+                                chọn đúng sheet bên dưới rồi tải lên lại.
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    value={job.sourceSheetName}
+                                    onValueChange={handleRereadWithSheet}
+                                >
+                                    <SelectTrigger className="h-8 bg-white text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {job.availableSheetNames.map(name => (
+                                            <SelectItem key={name} value={name}>
+                                                {name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     )}
 
                     {job && showMapping && (
@@ -504,7 +553,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                             className="w-full"
                             disabled={!file}
                             loading={uploading}
-                            onClick={handleUpload}
+                            onClick={() => handleUpload()}
                         >
                             <UploadCloud className="mr-1 h-4 w-4" />
                             Tải lên
