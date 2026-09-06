@@ -64,6 +64,11 @@ export interface HouseColumnMapping {
     // dong CO ten chu ho se duoc tao them mot Household lien ket qua houseId
     // (xem ghi chu chi tiet o commitHouseImport backend) - mac dinh TAT.
     createHouseholds?: boolean;
+    // KHONG phai cot trong file - admin nhap MOT LAN cho ca file. Khi co, moi
+    // tai khoan chu nha MOI tao trong lan import nay duoc dat mat khau nay,
+    // va bat buoc doi mat khau ngay lan dang nhap dau tien (xem
+    // User.mustChangePassword o backend).
+    defaultPassword?: string;
 }
 
 // Xem BUSINESS_COLUMNS/applyBusinessImportMapping o backend importService.ts -

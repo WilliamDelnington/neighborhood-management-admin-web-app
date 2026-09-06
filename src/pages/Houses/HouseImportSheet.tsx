@@ -90,6 +90,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
     const [defaultCluster, setDefaultCluster] = useState("");
     const [neighborhoodId, setNeighborhoodId] = useState("");
     const [createHouseholds, setCreateHouseholds] = useState(false);
+    const [defaultPassword, setDefaultPassword] = useState("");
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [showMapping, setShowMapping] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -110,6 +111,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         setDefaultCluster("");
         setNeighborhoodId("");
         setCreateHouseholds(false);
+        setDefaultPassword("");
         setShowMapping(false);
         setUploading(false);
         setApplying(false);
@@ -149,6 +151,10 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
 
     const handleApplyMapping = async () => {
         if (!job || !mapping.code) return;
+        if (defaultPassword.trim() && defaultPassword.trim().length < 6) {
+            toast.error("Mật khẩu mặc định phải có ít nhất 6 ký tự");
+            return;
+        }
         try {
             setApplying(true);
             const payload: Partial<Record<keyof HouseColumnMapping, string>> =
@@ -165,6 +171,9 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
             const finalPayload: HouseColumnMapping = {
                 ...(payload as HouseColumnMapping),
                 ...(createHouseholds ? { createHouseholds: true } : {}),
+                ...(defaultPassword.trim()
+                    ? { defaultPassword: defaultPassword.trim() }
+                    : {}),
             };
 
             const result = await applyHouseImportMapping(
@@ -354,6 +363,25 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                     </span>
                                 </span>
                             </label>
+                            <div className="space-y-1">
+                                <Label>Mật khẩu mặc định cho chủ nhà mới (nếu có)</Label>
+                                <Input
+                                    type="text"
+                                    placeholder="Để trống = tài khoản chủ nhà chưa đăng nhập được, gán sau"
+                                    value={defaultPassword}
+                                    onChange={e =>
+                                        setDefaultPassword(e.target.value)
+                                    }
+                                />
+                                <p className="text-xs text-text_2">
+                                    Áp dụng cho MỌI tài khoản chủ nhà mới tạo
+                                    trong lần nhập này (không ảnh hưởng tài
+                                    khoản đã có sẵn). Vì nhiều tài khoản dùng
+                                    chung một mật khẩu, mỗi tài khoản sẽ bị
+                                    bắt buộc đổi mật khẩu ngay lần đăng nhập
+                                    đầu tiên.
+                                </p>
+                            </div>
                         </div>
                     )}
 
