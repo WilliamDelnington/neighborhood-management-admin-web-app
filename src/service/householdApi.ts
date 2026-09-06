@@ -38,6 +38,7 @@ export const fetchHouseholds = (params?: {
     cluster?: string;
     houseId?: string;
     unassigned?: boolean;
+    status?: VerificationStatus;
 }): Promise<PaginatedData<Household>> =>
     request<PaginatedData<Household>>("GET", API.HOUSEHOLDS, params);
 

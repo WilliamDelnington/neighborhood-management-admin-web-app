@@ -7,6 +7,7 @@ import { fetchMe } from "@service/authApi";
 import AdminGuard from "@components/auth/AdminGuard";
 import RequireNeighborhoodAssignment from "@components/auth/RequireNeighborhoodAssignment";
 import AdminLayout from "@components/layout/AdminLayout";
+import DocumentMeta from "@components/layout/DocumentMeta";
 import LoginPage from "@pages/Login/LoginPage";
 
 const DashboardPage = React.lazy(
@@ -45,8 +46,14 @@ const HouseDetailPage = React.lazy(
 const HouseHistoryPage = React.lazy(
     () => import("@pages/Houses/HouseHistoryPage"),
 );
+const HouseholdListPage = React.lazy(
+    () => import("@pages/Households/HouseholdListPage"),
+);
 const HouseholdDetailPage = React.lazy(
     () => import("@pages/Households/HouseholdDetailPage"),
+);
+const CitizenListPage = React.lazy(
+    () => import("@pages/Citizens/CitizenListPage"),
 );
 const BusinessDetailPage = React.lazy(
     () => import("@pages/Houses/BusinessDetailPage"),
@@ -235,6 +242,7 @@ const App: React.FC = () => {
     return (
         <BrowserRouter>
             <Toaster richColors position="top-right" />
+            <DocumentMeta />
             <Suspense fallback={<PageFallback />}>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />
@@ -284,9 +292,18 @@ const App: React.FC = () => {
                             element={<HouseHistoryPage />}
                         />
                         <Route
+                            path="/households"
+                            element={<HouseholdListPage />}
+                        />
+                        <Route
+                            path="/households/:id"
+                            element={<HouseholdDetailPage />}
+                        />
+                        <Route
                             path="/houses/:houseId/households/:id"
                             element={<HouseholdDetailPage />}
                         />
+                        <Route path="/citizens" element={<CitizenListPage />} />
                         <Route
                             path="/houses/:houseId/businesses/:businessId"
                             element={<BusinessDetailPage />}

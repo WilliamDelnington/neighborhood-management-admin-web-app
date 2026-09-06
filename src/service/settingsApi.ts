@@ -34,3 +34,18 @@ export const uploadAppLogo = (file: File): Promise<AppLogoSetting> => {
 
 export const deleteAppLogo = (): Promise<AppLogoSetting> =>
     request<AppLogoSetting>("DELETE", `${API.SETTINGS}/logo`);
+
+// Biểu tượng tab trình duyệt (favicon) - tương tự app_logo_url ở trên, thay
+// thế "/favicon.svg" mặc định nếu admin đã tải ảnh lên. Xem DocumentMeta.tsx.
+export const uploadAppFavicon = (file: File): Promise<AppLogoSetting> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<AppLogoSetting>(
+        "POST",
+        `${API.SETTINGS}/favicon`,
+        formData,
+    );
+};
+
+export const deleteAppFavicon = (): Promise<AppLogoSetting> =>
+    request<AppLogoSetting>("DELETE", `${API.SETTINGS}/favicon`);

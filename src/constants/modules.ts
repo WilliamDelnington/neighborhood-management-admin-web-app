@@ -37,6 +37,7 @@ import {
     CalendarCheck,
     CalendarOff,
     Newspaper,
+    Contact,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -122,8 +123,26 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                     "Quản lý thông tin nhà số, chủ nhà và trạng thái xác minh.",
             },
             {
+                key: "households",
+                label: "Hộ dân",
+                path: "/households",
+                icon: Users,
+                permission: "households.read",
+                description:
+                    "Xem danh sách các hộ dân đang sinh sống trên địa bàn.",
+            },
+            {
+                key: "citizens",
+                label: "Nhân khẩu",
+                path: "/citizens",
+                icon: Contact,
+                permission: "citizens.read",
+                description:
+                    "Xem danh sách nhân khẩu thuộc các hộ dân trên địa bàn.",
+            },
+            {
                 key: "organizations",
-                label: "Tổ chức (chủ nhà)",
+                label: "Tổ chức (chủ sở hữu)",
                 path: "/organizations",
                 icon: Building2,
                 permission: "organizations.read",
@@ -132,12 +151,12 @@ export const MODULE_GROUPS: ModuleGroup[] = [
             },
             {
                 key: "residents",
-                label: "Hồ sơ cư trú",
+                label: "Kiểm tra cư trú",
                 path: "/residents",
                 icon: Users,
                 permission: "residents.read",
                 description:
-                    "Quản lý hồ sơ cư trú, tạm trú/tạm vắng của cư dân.",
+                    "Quản lý kiểm tra cư trú, tạm trú/tạm vắng của cư dân.",
             },
         ],
     },
@@ -538,3 +557,23 @@ export const MODULES: ModuleItem[] = [
     ...TOP_LEVEL_MODULES,
     ...MODULE_GROUPS.flatMap(g => g.items),
 ];
+
+// Tim module co path khop voi mot pathname hien tai (khop dung hoac la tien
+// to segment - vd "/requests/my" khop voi module "requests" o "/requests").
+// Uu tien path dai nhat neu co nhieu module cung khop (vd "/users/new-house-owner"
+// phai khop voi "create_house_owner" chu khong phai "users"). Dung boi
+// PageHeader/DocumentMeta de tu suy ra module (mo ta/nhan) tu route hien tai
+// ma khong can moi trang tu khai bao lai.
+export function findModuleForPath(pathname: string): ModuleItem | undefined {
+    const matches = MODULES.filter(
+        m => pathname === m.path || pathname.startsWith(`${m.path}/`),
+    );
+    if (matches.length === 0) return undefined;
+    return matches.reduce((best, m) =>
+        m.path.length > best.path.length ? m : best,
+    );
+}
+
+export function findModuleKeyForPath(pathname: string): string | undefined {
+    return findModuleForPath(pathname)?.key;
+}

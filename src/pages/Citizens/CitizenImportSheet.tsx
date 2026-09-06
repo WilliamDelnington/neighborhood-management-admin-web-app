@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud, ArrowLeftRight, FileDown } from "lucide-react";
+import { UploadCloud, ArrowLeftRight } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
     Sheet,
@@ -24,17 +24,18 @@ import {
     TableHeader,
     TableRow,
 } from "@components/ui/table";
-import { Badge } from "@components/ui/badge";
+import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { AppError } from "@dts";
 import {
+    CitizenColumnMapping,
+    CitizenImportPreviewRow,
     ImportJob,
-    uploadStreetImportFile,
-    applyStreetImportMapping,
-    commitStreetImport,
-    downloadStreetImportTemplate,
+    uploadCitizenImportFile,
+    applyCitizenImportMapping,
+    commitCitizenImport,
 } from "@service/importApi";
 
-interface StreetImportSheetProps {
+interface CitizenImportSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onImported: () => void;
@@ -42,25 +43,52 @@ interface StreetImportSheetProps {
 
 const NONE_VALUE = "__none__";
 
-interface MappingForm {
-    name: string;
-    code: string;
-    active: string;
-}
+// Nhan hien thi cho tung truong co the mapping - "required" chi ap dung cho
+// "fullName" ("Họ tên"). "householdCode"/"houseCode" khong danh dau required
+// rieng le (khong cot nao BAT BUOC phai co) nhung PHAI chon it nhat MOT
+// trong hai - kiem tra rieng o canApplyMapping/backend
+// (citizenImportMappingSchema), vi day la dieu kien "mot trong hai", khong
+// phai "ca hai deu bat buoc".
+const CITIZEN_MAPPING_FIELDS: {
+    key: keyof CitizenColumnMapping;
+    label: string;
+    required?: boolean;
+}[] = [
+    { key: "fullName", label: "Họ tên", required: true },
+    { key: "householdCode", label: "Mã hộ" },
+    { key: "houseCode", label: "Mã căn/hộ" },
+    { key: "phone", label: "Số điện thoại" },
+    { key: "cccd", label: "CCCD" },
+    { key: "birthDate", label: "Ngày sinh" },
+    { key: "gender", label: "Giới tính" },
+    { key: "relationToHead", label: "Quan hệ với chủ hộ" },
+    { key: "residenceType", label: "Thường trú/Tạm trú" },
+    { key: "isElderly", label: "Người cao tuổi" },
+    { key: "isChild", label: "Trẻ em" },
+    { key: "isDisabledOrSupportNeeded", label: "Người khuyết tật" },
+    { key: "isPartyMember", label: "Đảng viên" },
+    { key: "isUnionMember", label: "Đoàn viên" },
+];
 
-const EMPTY_MAPPING: MappingForm = { name: "", code: "", active: "" };
+type MappingForm = Record<keyof CitizenColumnMapping, string>;
 
-const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
+const EMPTY_MAPPING: MappingForm = CITIZEN_MAPPING_FIELDS.reduce(
+    (acc, f) => ({ ...acc, [f.key]: "" }),
+    {} as MappingForm,
+);
+
+const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
     open,
     onOpenChange,
     onImported,
 }) => {
     const [file, setFile] = useState<File | null>(null);
-    const [job, setJob] = useState<ImportJob | null>(null);
+    const [job, setJob] = useState<ImportJob<CitizenImportPreviewRow> | null>(
+        null,
+    );
     const [mapping, setMapping] = useState<MappingForm>(EMPTY_MAPPING);
     const [showMapping, setShowMapping] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [downloadingTemplate, setDownloadingTemplate] = useState(false);
     const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
 
@@ -86,28 +114,17 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         setFile(e.target.files?.[0] || null);
     };
 
-    const handleDownloadTemplate = async () => {
-        try {
-            setDownloadingTemplate(true);
-            await downloadStreetImportTemplate();
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setDownloadingTemplate(false);
-        }
-    };
-
     const handleUpload = async () => {
         if (!file) return;
         try {
             setUploading(true);
-            const result = await uploadStreetImportFile(file);
+            const result = await uploadCitizenImportFile(file);
             setJob(result);
-            setMapping({
-                name: result.suggestedMapping.name || "",
-                code: result.suggestedMapping.code || "",
-                active: result.suggestedMapping.active || "",
+            const suggested = { ...EMPTY_MAPPING };
+            CITIZEN_MAPPING_FIELDS.forEach(f => {
+                suggested[f.key] = result.suggestedMapping[f.key] || "";
             });
+            setMapping(suggested);
             setShowMapping(true);
         } catch (err) {
             toast.error((err as AppError).message);
@@ -117,14 +134,22 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
     };
 
     const handleApplyMapping = async () => {
-        if (!job || !mapping.name) return;
+        if (!job || !mapping.fullName) return;
+        if (!mapping.householdCode && !mapping.houseCode) return;
         try {
             setApplying(true);
-            const result = await applyStreetImportMapping(job._id, {
-                name: mapping.name,
-                code: mapping.code || undefined,
-                active: mapping.active || undefined,
+            const payload: Partial<CitizenColumnMapping> = {
+                fullName: mapping.fullName,
+            };
+            CITIZEN_MAPPING_FIELDS.forEach(f => {
+                if (f.required) return;
+                if (mapping[f.key]) payload[f.key] = mapping[f.key];
             });
+
+            const result = await applyCitizenImportMapping(
+                job._id,
+                payload as CitizenColumnMapping,
+            );
             setJob(result);
             setShowMapping(false);
             if (result.rowErrors.length > 0) {
@@ -147,10 +172,8 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         if (!job) return;
         try {
             setCommitting(true);
-            const result = await commitStreetImport(job._id);
-            toast.success(
-                `Đã nhập thành công ${result.committedCount} đường/phố`,
-            );
+            const result = await commitCitizenImport(job._id);
+            toast.success(`Đã nhập thành công ${result.committedCount} nhân khẩu`);
             reset();
             onOpenChange(false);
             onImported();
@@ -161,7 +184,8 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         }
     };
 
-    const canApplyMapping = !!mapping.name;
+    const canApplyMapping =
+        !!mapping.fullName && (!!mapping.householdCode || !!mapping.houseCode);
     const canCommit =
         !!job &&
         !showMapping &&
@@ -173,7 +197,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         <Sheet open={open} onOpenChange={handleOpenChange}>
             <SheetContent className="flex w-full flex-col sm:max-w-3xl lg:max-w-[calc(100vw-320px)]">
                 <SheetHeader>
-                    <SheetTitle>Nhập đường/phố từ Excel</SheetTitle>
+                    <SheetTitle>Nhập nhân khẩu từ Excel</SheetTitle>
                 </SheetHeader>
                 <div className="flex-1 space-y-4 overflow-y-auto py-4">
                     {!job && (
@@ -181,19 +205,13 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                             <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
                                 Tải lên file Excel bất kỳ có dòng tiêu đề ở
                                 hàng đầu tiên. Sau khi tải lên, bạn sẽ chọn cột
-                                nào tương ứng với tên, mã và trạng thái đường/
-                                phố — không cần tên cột phải khớp chính xác.
+                                nào tương ứng với &quot;Họ tên&quot;,
+                                &quot;Mã hộ&quot;... — không cần tên cột phải
+                                khớp chính xác. Để liên kết nhân khẩu với hộ
+                                dân, dùng &quot;Mã hộ&quot; (nếu file có sẵn mã
+                                hộ) hoặc &quot;Mã căn/hộ&quot; (mã nhà số — hệ
+                                thống sẽ tự tìm hộ dân đang gắn với nhà đó).
                             </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="w-full"
-                                loading={downloadingTemplate}
-                                onClick={handleDownloadTemplate}
-                            >
-                                <FileDown className="mr-1 h-4 w-4" />
-                                Tải mẫu Excel
-                            </Button>
                             <div>
                                 <input
                                     type="file"
@@ -209,103 +227,55 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                         <div className="space-y-4">
                             <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
                                 Đã đọc {job.totalRows} dòng dữ liệu với các cột:{" "}
-                                {job.headers.join(", ")}. Vui lòng chọn cột
-                                tương ứng cho từng trường bên dưới.
+                                {job.headers.join(", ")}. &quot;Họ tên&quot; là
+                                bắt buộc, và cần chọn ít nhất một trong
+                                &quot;Mã hộ&quot; / &quot;Mã căn/hộ&quot; —
+                                các trường khác có thể để &quot;Không dùng&quot;
+                                nếu file không có cột tương ứng.
                             </div>
 
-                            <div className="space-y-1">
-                                <label
-                                    htmlFor="mapping-name"
-                                    className="text-sm font-medium"
-                                >
-                                    Cột tên đường/phố{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <Select
-                                    value={mapping.name}
-                                    onValueChange={v =>
-                                        setMapping(prev => ({
-                                            ...prev,
-                                            name: v,
-                                        }))
-                                    }
-                                >
-                                    <SelectTrigger id="mapping-name">
-                                        <SelectValue placeholder="Chọn cột..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {job.headers.map(h => (
-                                            <SelectItem key={h} value={h}>
-                                                {h}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-1">
-                                <label
-                                    htmlFor="mapping-code"
-                                    className="text-sm font-medium"
-                                >
-                                    Cột mã đường/phố
-                                </label>
-                                <Select
-                                    value={mapping.code || NONE_VALUE}
-                                    onValueChange={v =>
-                                        setMapping(prev => ({
-                                            ...prev,
-                                            code: v === NONE_VALUE ? "" : v,
-                                        }))
-                                    }
-                                >
-                                    <SelectTrigger id="mapping-code">
-                                        <SelectValue placeholder="Chọn cột..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE_VALUE}>
-                                            Không dùng (tự sinh mã)
-                                        </SelectItem>
-                                        {job.headers.map(h => (
-                                            <SelectItem key={h} value={h}>
-                                                {h}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-1">
-                                <label
-                                    htmlFor="mapping-active"
-                                    className="text-sm font-medium"
-                                >
-                                    Cột trạng thái
-                                </label>
-                                <Select
-                                    value={mapping.active || NONE_VALUE}
-                                    onValueChange={v =>
-                                        setMapping(prev => ({
-                                            ...prev,
-                                            active: v === NONE_VALUE ? "" : v,
-                                        }))
-                                    }
-                                >
-                                    <SelectTrigger id="mapping-active">
-                                        <SelectValue placeholder="Chọn cột..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE_VALUE}>
-                                            Không dùng (mặc định đang hoạt động)
-                                        </SelectItem>
-                                        {job.headers.map(h => (
-                                            <SelectItem key={h} value={h}>
-                                                {h}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {CITIZEN_MAPPING_FIELDS.map(f => (
+                                <div key={f.key} className="space-y-1">
+                                    <label
+                                        htmlFor={`mapping-${f.key}`}
+                                        className="text-sm font-medium"
+                                    >
+                                        Cột &quot;{f.label}&quot;
+                                        {f.required && (
+                                            <span className="text-red-500">
+                                                {" "}
+                                                *
+                                            </span>
+                                        )}
+                                    </label>
+                                    <Select
+                                        value={mapping[f.key] || NONE_VALUE}
+                                        onValueChange={v =>
+                                            setMapping(prev => ({
+                                                ...prev,
+                                                [f.key]:
+                                                    v === NONE_VALUE ? "" : v,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger id={`mapping-${f.key}`}>
+                                            <SelectValue placeholder="Chọn cột..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {!f.required && (
+                                                <SelectItem value={NONE_VALUE}>
+                                                    Không dùng
+                                                </SelectItem>
+                                            )}
+                                            {job.headers.map(h => (
+                                                <SelectItem key={h} value={h}>
+                                                    {h}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ))}
                         </div>
                     )}
 
@@ -342,36 +312,38 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="w-12 text-center">STT</TableHead>
-                                            <TableHead>Tên</TableHead>
-                                            <TableHead>Mã</TableHead>
-                                            <TableHead>Trạng thái</TableHead>
+                                            <TableHead>Họ tên</TableHead>
+                                            <TableHead>SĐT</TableHead>
+                                            <TableHead>Giới tính</TableHead>
+                                            <TableHead>Loại cư trú</TableHead>
+                                            <TableHead>Quan hệ với chủ hộ</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {job.previewData.map((row, idx) => (
                                             // eslint-disable-next-line react/no-array-index-key
-                                            <TableRow key={`${row.code}-${idx}`}>
+                                            <TableRow key={`${row.fullName}-${idx}`}>
                                                 <TableCell className="text-center text-text_2">
                                                     {idx + 1}
                                                 </TableCell>
-                                                <TableCell>
-                                                    {row.name}
-                                                </TableCell>
                                                 <TableCell className="font-medium">
-                                                    {row.code}
+                                                    {row.fullName}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        tone={
-                                                            row.active
-                                                                ? "green"
-                                                                : "gray"
-                                                        }
-                                                    >
-                                                        {row.active
-                                                            ? "Đang hoạt động"
-                                                            : "Ngừng hoạt động"}
-                                                    </Badge>
+                                                    {row.phone || "—"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {GIOI_TINH_LABEL[
+                                                        row.gender as keyof typeof GIOI_TINH_LABEL
+                                                    ] || row.gender}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {LOAI_CU_TRU_LABEL[
+                                                        row.residenceType as keyof typeof LOAI_CU_TRU_LABEL
+                                                    ] || row.residenceType}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.relationToHead || "—"}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -410,7 +382,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                             loading={committing}
                             onClick={handleCommit}
                         >
-                            Xác nhận nhập {job.validRows} đường/phố
+                            Xác nhận nhập {job.validRows} nhân khẩu
                         </Button>
                     )}
                 </SheetFooter>
@@ -419,4 +391,4 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
     );
 };
 
-export default StreetImportSheet;
+export default CitizenImportSheet;

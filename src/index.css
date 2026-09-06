@@ -98,3 +98,25 @@
         @apply bg-app-bg text-foreground font-sans;
     }
 }
+
+/* Kieu dang cho noi dung tin tuc dang HTML (RichTextEditor va noi dung da
+ * luu) - dung chung cho ca vung soan thao va cac noi dung xem lai. */
+.rich-content p {
+    margin: 0 0 0.75em;
+}
+.rich-content p:last-child {
+    margin-bottom: 0;
+}
+.rich-content img {
+    display: block;
+    margin: 0.75em 0;
+    max-width: 100%;
+    border-radius: 0.5rem;
+}
+.rich-content .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: rgb(var(--c-text-3));
+    pointer-events: none;
+}

@@ -6,8 +6,11 @@ import AdminGuard from "@components/auth/AdminGuard";
 import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
-import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
+import RichTextEditor, {
+    RichTextEditorHandle,
+    isRichContentEmpty,
+} from "@components/admin/RichTextEditor";
 import { Checkbox } from "@components/ui/checkbox";
 import {
     Select,
@@ -61,8 +64,11 @@ const NewsFormContent: React.FC = () => {
     const [deletingImageUrl, setDeletingImageUrl] = useState<string | null>(
         null,
     );
+    const [uploadingContentImage, setUploadingContentImage] = useState(false);
     const coverInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
+    const contentImageInputRef = useRef<HTMLInputElement>(null);
+    const richEditorRef = useRef<RichTextEditorHandle>(null);
 
     const loadDetail = () => {
         if (!id) return;
@@ -88,7 +94,7 @@ const NewsFormContent: React.FC = () => {
     }, [id]);
 
     const handleSubmit = async () => {
-        if (!title.trim() || !content.trim()) {
+        if (!title.trim() || isRichContentEmpty(content)) {
             toast.error("Vui lòng nhập tiêu đề và nội dung");
             return;
         }
@@ -169,6 +175,37 @@ const NewsFormContent: React.FC = () => {
         }
     };
 
+    const handleInsertContentImageClick = () => {
+        if (!id) {
+            toast.error("Vui lòng lưu bản nháp trước khi chèn ảnh");
+            return;
+        }
+        contentImageInputRef.current?.click();
+    };
+
+    const handleContentImageSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file || !id) return;
+        try {
+            setUploadingContentImage(true);
+            const news = await uploadNewsImage(id, file, false);
+            setImages(news.images || []);
+            const uploadedUrl = news.images?.[news.images.length - 1];
+            if (uploadedUrl) {
+                richEditorRef.current?.insertImage(
+                    resolveAssetUrl(uploadedUrl),
+                );
+            }
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploadingContentImage(false);
+        }
+    };
+
     const handleDeleteImage = async (url: string) => {
         if (!id) return;
         try {
@@ -217,11 +254,27 @@ const NewsFormContent: React.FC = () => {
 
                         <div className="space-y-1.5">
                             <Label>Nội dung</Label>
-                            <Textarea
-                                placeholder="Nội dung tin tức"
-                                rows={6}
+                            <RichTextEditor
+                                ref={richEditorRef}
                                 value={content}
-                                onChange={e => setContent(e.target.value)}
+                                onChange={setContent}
+                                placeholder="Nội dung tin tức"
+                                onInsertImageClick={
+                                    handleInsertContentImageClick
+                                }
+                                insertImageDisabled={uploadingContentImage}
+                                insertImageTitle={
+                                    isEdit
+                                        ? "Chèn ảnh vào bài viết"
+                                        : "Lưu bản nháp trước khi chèn ảnh"
+                                }
+                            />
+                            <input
+                                ref={contentImageInputRef}
+                                type="file"
+                                className="hidden"
+                                accept=".jpg,.jpeg,.png"
+                                onChange={handleContentImageSelected}
                             />
                         </div>
 

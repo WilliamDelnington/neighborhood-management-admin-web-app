@@ -47,10 +47,18 @@ const TYPE_LABEL: Record<AppointmentHolidayType, string> = {
 
 type DateMode = "solar" | "lunar";
 
+// So ngay lien tiep toi da cho phep khai bao mot lan, tranh go nham nam/thang
+// roi tao hang tram ban ghi.
+const MAX_RANGE_DAYS = 31;
+
 type FormState = {
     dateMode: DateMode;
     // Duong lich - dung khi dateMode="solar".
     solarDate: string;
+    // Ngay ket thuc (tuy chon) - chi dung khi tao moi o che do duong lich, de
+    // khai bao mot khoang ngay lien tiep (vd nghi le nhieu ngay) thay vi phai
+    // tao tung ban ghi rieng. Bo trong = chi 1 ngay.
+    rangeEndDate: string;
     // Am lich - dung khi dateMode="lunar", quy doi sang duong lich truoc khi luu.
     lunarDay: string;
     lunarMonth: string;
@@ -64,6 +72,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
     dateMode: "solar",
     solarDate: "",
+    rangeEndDate: "",
     lunarDay: "",
     lunarMonth: "",
     lunarYear: String(new Date().getFullYear()),
@@ -72,6 +81,25 @@ const EMPTY_FORM: FormState = {
     type: "le",
     note: "",
 };
+
+// Sinh danh sach ngay (YYYY-MM-DD, bao gom ca hai dau) tu start den end. Dung
+// Date local (khong qua UTC) de tranh lech ngay do timezone.
+function buildDateRange(start: string, end: string): string[] {
+    const [sy, sm, sd] = start.split("-").map(Number);
+    const [ey, em, ed] = end.split("-").map(Number);
+    const cursor = new Date(sy, sm - 1, sd);
+    const last = new Date(ey, em - 1, ed);
+    const dates: string[] = [];
+    while (cursor.getTime() <= last.getTime() && dates.length <= MAX_RANGE_DAYS) {
+        dates.push(
+            `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(
+                cursor.getDate(),
+            ).padStart(2, "0")}`,
+        );
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    return dates;
+}
 
 const AppointmentHolidayListPage: React.FC = () => (
     <AdminGuard permissions={["appointments.read"]}>
@@ -153,6 +181,14 @@ const AppointmentHolidayListContent: React.FC = () => {
             );
             return;
         }
+        const isRange =
+            !editing &&
+            form.dateMode === "solar" &&
+            form.rangeEndDate.trim() !== "";
+        if (isRange && form.rangeEndDate < resolvedSolarDate) {
+            toast.error("Ngày kết thúc phải sau ngày bắt đầu");
+            return;
+        }
         try {
             setSaving(true);
             if (editing?._id) {
@@ -163,6 +199,32 @@ const AppointmentHolidayListContent: React.FC = () => {
                     note: form.note.trim() || undefined,
                 });
                 toast.success("Đã cập nhật ngày nghỉ/lễ");
+            } else if (isRange) {
+                const dates = buildDateRange(resolvedSolarDate, form.rangeEndDate);
+                if (dates.length > MAX_RANGE_DAYS) {
+                    toast.error(`Khoảng ngày tối đa ${MAX_RANGE_DAYS} ngày`);
+                    setSaving(false);
+                    return;
+                }
+                const results = await Promise.allSettled(
+                    dates.map(date =>
+                        createAppointmentHoliday({
+                            date,
+                            name: form.name.trim(),
+                            type: form.type,
+                            note: form.note.trim() || undefined,
+                        }),
+                    ),
+                );
+                const succeeded = results.filter(r => r.status === "fulfilled").length;
+                const failed = results.length - succeeded;
+                if (failed === 0) {
+                    toast.success(`Đã khai báo ${succeeded} ngày nghỉ/lễ`);
+                } else {
+                    toast.warning(
+                        `Đã khai báo ${succeeded}/${results.length} ngày (${failed} ngày bị trùng hoặc lỗi)`,
+                    );
+                }
             } else {
                 await createAppointmentHoliday({
                     date: resolvedSolarDate,
@@ -329,7 +391,9 @@ const AppointmentHolidayListContent: React.FC = () => {
                         </div>
                         {form.dateMode === "solar" ? (
                             <div>
-                                <Label>Ngày (dương lịch)</Label>
+                                <Label>
+                                    {editing ? "Ngày (dương lịch)" : "Từ ngày (dương lịch)"}
+                                </Label>
                                 <Input
                                     className="mt-1"
                                     type="date"
@@ -341,6 +405,29 @@ const AppointmentHolidayListContent: React.FC = () => {
                                         }))
                                     }
                                 />
+                                {!editing && (
+                                    <>
+                                        <Label className="mt-3 block">
+                                            Đến ngày (bỏ trống nếu chỉ 1 ngày)
+                                        </Label>
+                                        <Input
+                                            className="mt-1"
+                                            type="date"
+                                            min={form.solarDate || undefined}
+                                            value={form.rangeEndDate}
+                                            onChange={event =>
+                                                setForm(current => ({
+                                                    ...current,
+                                                    rangeEndDate: event.target.value,
+                                                }))
+                                            }
+                                        />
+                                        <p className="mt-1 text-xs text-text_2">
+                                            Khai báo nhiều ngày liên tiếp (vd. nghỉ lễ 5
+                                            ngày) cùng lúc, không cần tạo từng ngày.
+                                        </p>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <div>

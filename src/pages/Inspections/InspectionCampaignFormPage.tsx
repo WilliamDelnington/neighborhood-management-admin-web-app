@@ -137,7 +137,7 @@ const InspectionCampaignFormContent: React.FC = () => {
         }
         if (checklist.some(item =>
             ["SINGLE_SELECT", "MULTI_SELECT"].includes(item.inputType) &&
-            (!item.options || item.options.length === 0),
+            !(item.options || []).some(option => option.trim().length > 0),
         )) return "Các câu hỏi lựa chọn phải có phương án trả lời";
         if (selectedNeighborhoodIds.length === 0) return "Chọn ít nhất một Tổ dân phố";
         if (selectedHouseIds.length === 0) return "Chọn ít nhất một Nhà số";
@@ -301,20 +301,55 @@ const InspectionCampaignFormContent: React.FC = () => {
                                 />
                                 <Label htmlFor={`required-${item.itemId}`}>Bắt buộc trả lời</Label>
                             </div>
-                            {["SINGLE_SELECT", "MULTI_SELECT"].includes(item.inputType) && (
-                                <div className="mt-3">
-                                    <Label htmlFor={`options-${item.itemId}`}>Các phương án, cách nhau bằng dấu phẩy</Label>
-                                    <Input
-                                        id={`options-${item.itemId}`}
-                                        className="mt-2"
-                                        placeholder="Đạt, Chưa đạt, Không áp dụng"
-                                        value={(item.options || []).join(", ")}
-                                        onChange={event => updateChecklist(item.itemId, {
-                                            options: event.target.value.split(",").map(value => value.trim()),
-                                        })}
-                                    />
-                                </div>
-                            )}
+                            {["SINGLE_SELECT", "MULTI_SELECT"].includes(item.inputType) && (() => {
+                                const displayedOptions = item.options && item.options.length > 0
+                                    ? item.options
+                                    : [""];
+                                return (
+                                    <div className="mt-3">
+                                        <Label>Các phương án trả lời</Label>
+                                        <div className="mt-2 space-y-2">
+                                            {displayedOptions.map((option, optionIndex) => (
+                                                <div key={optionIndex} className="flex items-center gap-2">
+                                                    <Input
+                                                        className="flex-1"
+                                                        placeholder={`Phương án ${optionIndex + 1}`}
+                                                        value={option}
+                                                        onChange={event => {
+                                                            const nextOptions = [...displayedOptions];
+                                                            nextOptions[optionIndex] = event.target.value;
+                                                            updateChecklist(item.itemId, { options: nextOptions });
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="text-red-500"
+                                                        disabled={displayedOptions.length <= 1}
+                                                        onClick={() => updateChecklist(item.itemId, {
+                                                            options: displayedOptions.filter((_, i) => i !== optionIndex),
+                                                        })}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-2"
+                                            onClick={() => updateChecklist(item.itemId, {
+                                                options: [...displayedOptions, ""],
+                                            })}
+                                        >
+                                            <Plus className="h-4 w-4" /> Thêm phương án
+                                        </Button>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ))}
                 </div>

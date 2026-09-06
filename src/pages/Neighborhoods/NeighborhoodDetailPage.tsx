@@ -17,6 +17,13 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@components/ui/dialog";
+import {
     LoadingState,
     EmptyState,
     ErrorState,
@@ -38,12 +45,13 @@ import {
     User,
 } from "@dts";
 import {
-    assignNeighborhoodColeader,
     assignNeighborhoodCollaborator,
-    assignNeighborhoodLeader,
+    cancelNeighborhoodTerm,
     createNeighborhoodAttachment,
     createNeighborhoodTerm,
     deleteNeighborhoodAttachment,
+    deleteNeighborhoodTerm,
+    endNeighborhoodTermEarly,
     fetchNeighborhoodAttachments,
     fetchNeighborhoodById,
     fetchNeighborhoodColeaders,
@@ -51,7 +59,6 @@ import {
     fetchNeighborhoodLeaderHistory,
     fetchNeighborhoodHistory,
     fetchNeighborhoodTerms,
-    unassignNeighborhoodColeader,
     unassignNeighborhoodCollaborator,
     updateNeighborhoodTerm,
     updateNeighborhood,
@@ -100,10 +107,22 @@ const formatDate = (iso?: string) => {
 };
 
 const TERM_STATUS_LABEL: Record<NeighborhoodTermStatus, string> = {
-    PLANNED: "Dự kiến",
-    ACTIVE: "Đang diễn ra",
+    DRAFT: "Nháp",
+    NOT_STARTED: "Chưa bắt đầu",
+    IN_PROGRESS: "Đang diễn ra",
     ENDED: "Đã kết thúc",
     CANCELLED: "Đã hủy",
+};
+
+const NONE_LEADER_VALUE = "__none__";
+
+const EMPTY_TERM_FORM = {
+    name: "",
+    startAt: "",
+    endAt: "",
+    notes: "",
+    leaderUserId: "",
+    coleaderUserId: "",
 };
 
 const COLLABORATOR_SCOPE_LABEL: Record<NeighborhoodCollaboratorScope, string> = {
@@ -131,36 +150,41 @@ const NeighborhoodDetailContent: React.FC = () => {
     const [form, setForm] = useState<NeighborhoodFormValues | null>(null);
     const [saving, setSaving] = useState(false);
 
+    // Van con dung o form tao/sua nhiem ky (picker "Tổ trưởng") - viec gan/bo
+    // gan truc tiep da bi xoa khoi trang nay, xem ghi chu o the "Nhiệm kỳ".
     const [candidateLeaders, setCandidateLeaders] = useState<User[]>([]);
-    const [leaderToAssign, setLeaderToAssign] = useState("");
-    const [assigningLeader, setAssigningLeader] = useState(false);
-    const [unassigningLeader, setUnassigningLeader] = useState(false);
 
     const [history, setHistory] = useState<NeighborhoodLeaderAssignment[]>([]);
     const [historyLoading, setHistoryLoading] = useState(true);
 
+    // Van con dung o form tao/sua nhiem ky (picker "Tổ phó") - viec gan/bo
+    // gan truc tiep da bi xoa khoi trang nay, xem ghi chu o the "Tổ phó".
     const [candidateColeaders, setCandidateColeaders] = useState<User[]>([]);
     const [coleaders, setColeaders] = useState<NeighborhoodColeaderAssignment[]>(
         [],
     );
     const [coleadersLoading, setColeadersLoading] = useState(true);
-    const [coleaderToAssign, setColeaderToAssign] = useState("");
-    const [assigningColeader, setAssigningColeader] = useState(false);
-    const [unassigningColeaderId, setUnassigningColeaderId] = useState<
-        string | null
-    >(null);
     const [terms, setTerms] = useState<NeighborhoodTerm[]>([]);
     const [termsLoading, setTermsLoading] = useState(true);
     const [termFormOpen, setTermFormOpen] = useState(false);
-    const [termForm, setTermForm] = useState({
-        name: "",
-        startAt: "",
-        endAt: "",
-        status: "PLANNED" as NeighborhoodTermStatus,
-        notes: "",
-    });
+    // null = dang tao moi; co gia tri = dang sua mot nhiem ky DRAFT/NOT_STARTED
+    // co san (xem handleOpenEditTerm) - quyet dinh goi createNeighborhoodTerm
+    // hay updateNeighborhoodTerm trong handleSaveTerm.
+    const [editingTerm, setEditingTerm] = useState<NeighborhoodTerm | null>(
+        null,
+    );
+    const [termForm, setTermForm] = useState(EMPTY_TERM_FORM);
     const [savingTerm, setSavingTerm] = useState(false);
-    const [selectedTermId, setSelectedTermId] = useState("");
+    const [cancellingTermId, setCancellingTermId] = useState<string | null>(
+        null,
+    );
+    const [deletingTermId, setDeletingTermId] = useState<string | null>(null);
+    // Dialog "Kết thúc sớm" - ly do la bat buoc, xem handleConfirmEndTermEarly.
+    const [endEarlyTerm, setEndEarlyTerm] = useState<NeighborhoodTerm | null>(
+        null,
+    );
+    const [endEarlyReason, setEndEarlyReason] = useState("");
+    const [endingEarly, setEndingEarly] = useState(false);
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
@@ -240,11 +264,7 @@ const NeighborhoodDetailContent: React.FC = () => {
         if (!id) return;
         setTermsLoading(true);
         fetchNeighborhoodTerms(id)
-            .then(items => {
-                setTerms(items);
-                const activeTerm = items.find(term => term.status === "ACTIVE");
-                setSelectedTermId(current => current || activeTerm?._id || "");
-            })
+            .then(setTerms)
             .catch(() => setTerms([]))
             .finally(() => setTermsLoading(false));
     };
@@ -322,82 +342,72 @@ const NeighborhoodDetailContent: React.FC = () => {
         }
     };
 
-    const handleAssignLeader = async () => {
-        if (!id || !leaderToAssign) return;
-        try {
-            setAssigningLeader(true);
-            const updated = await assignNeighborhoodLeader(
-                id,
-                leaderToAssign,
-                undefined,
-                selectedTermId ? { termId: selectedTermId } : undefined,
-            );
-            setNeighborhood(updated);
-            setLeaderToAssign("");
-            loadHistory();
-            loadOrganizationHistory();
-            toast.success("Đã gán tổ trưởng");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigningLeader(false);
-        }
+    const handleOpenCreateTerm = () => {
+        setEditingTerm(null);
+        setTermForm(EMPTY_TERM_FORM);
+        setTermFormOpen(true);
     };
 
-    const handleUnassignLeader = async () => {
-        if (!id) return;
-        try {
-            setUnassigningLeader(true);
-            const updated = await assignNeighborhoodLeader(id, null);
-            setNeighborhood(updated);
-            loadHistory();
-            loadOrganizationHistory();
-            toast.success("Đã bỏ gán tổ trưởng");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningLeader(false);
-        }
+    // Chi goi duoc voi nhiem ky DRAFT hoac NOT_STARTED (nut "Sửa" chi hien
+    // voi hai trang thai nay - xem cac cho render ben duoi).
+    const handleOpenEditTerm = (term: NeighborhoodTerm) => {
+        setEditingTerm(term);
+        setTermForm({
+            name: term.name,
+            startAt: term.startAt.slice(0, 10),
+            endAt: term.endAt.slice(0, 10),
+            notes: term.notes || "",
+            leaderUserId:
+                term.leaderUserId && typeof term.leaderUserId === "object"
+                    ? term.leaderUserId._id
+                    : term.leaderUserId || "",
+            coleaderUserId:
+                term.coleaderUserId && typeof term.coleaderUserId === "object"
+                    ? term.coleaderUserId._id
+                    : term.coleaderUserId || "",
+        });
+        setTermFormOpen(true);
     };
 
-    const handleAssignColeader = async () => {
-        if (!id || !coleaderToAssign) return;
-        try {
-            setAssigningColeader(true);
-            await assignNeighborhoodColeader(
-                id,
-                coleaderToAssign,
-                undefined,
-                selectedTermId ? { termId: selectedTermId } : undefined,
-            );
-            setColeaderToAssign("");
-            loadColeaders();
-            loadOrganizationHistory();
-            toast.success("Đã gán tổ phó");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigningColeader(false);
-        }
+    const handleCloseTermForm = () => {
+        setTermFormOpen(false);
+        setEditingTerm(null);
+        setTermForm(EMPTY_TERM_FORM);
     };
 
-    const handleCreateTerm = async () => {
+    // finalize=false -> nut "Lưu nháp" (tao/giu DRAFT); finalize=true -> nut
+    // "Tạo" (tao moi voi trang thai tu tinh theo ngay, hoac chuyen mot DRAFT
+    // dang sua sang NOT_STARTED/IN_PROGRESS).
+    const handleSaveTerm = async (finalize: boolean) => {
         if (!id || !termForm.name.trim() || !termForm.startAt || !termForm.endAt) {
             toast.error("Vui lòng nhập đủ tên và thời gian nhiệm kỳ");
             return;
         }
         try {
             setSavingTerm(true);
-            await createNeighborhoodTerm(id, {
-                ...termForm,
+            const fields = {
                 name: termForm.name.trim(),
+                startAt: termForm.startAt,
+                endAt: termForm.endAt,
                 notes: termForm.notes.trim() || undefined,
-            });
-            setTermForm({ name: "", startAt: "", endAt: "", status: "PLANNED", notes: "" });
-            setTermFormOpen(false);
+                leaderUserId: termForm.leaderUserId || null,
+                coleaderUserId: termForm.coleaderUserId || null,
+            };
+            if (editingTerm) {
+                await updateNeighborhoodTerm(id, editingTerm._id, {
+                    ...fields,
+                    ...(editingTerm.status === "DRAFT" ? { finalize } : {}),
+                });
+            } else {
+                await createNeighborhoodTerm(id, {
+                    ...fields,
+                    saveAsDraft: !finalize,
+                });
+            }
+            handleCloseTermForm();
             loadTerms();
             loadOrganizationHistory();
-            toast.success("Đã tạo nhiệm kỳ");
+            toast.success(finalize ? "Đã tạo nhiệm kỳ" : "Đã lưu nháp nhiệm kỳ");
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -405,17 +415,64 @@ const NeighborhoodDetailContent: React.FC = () => {
         }
     };
 
-    const handleEndTerm = async (term: NeighborhoodTerm) => {
+    const handleDeleteTerm = async (term: NeighborhoodTerm) => {
         if (!id) return;
+        if (!window.confirm(`Xóa nhiệm kỳ "${term.name}"? Không thể hoàn tác.`)) {
+            return;
+        }
         try {
-            await updateNeighborhoodTerm(id, term._id, { status: "ENDED" });
+            setDeletingTermId(term._id);
+            await deleteNeighborhoodTerm(id, term._id);
+            loadTerms();
+            loadOrganizationHistory();
+            toast.success("Đã xóa nhiệm kỳ");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeletingTermId(null);
+        }
+    };
+
+    const handleCancelTerm = async (term: NeighborhoodTerm) => {
+        if (!id) return;
+        if (!window.confirm(`Hủy nhiệm kỳ "${term.name}"?`)) return;
+        try {
+            setCancellingTermId(term._id);
+            await cancelNeighborhoodTerm(id, term._id);
+            loadTerms();
+            loadOrganizationHistory();
+            toast.success("Đã hủy nhiệm kỳ");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setCancellingTermId(null);
+        }
+    };
+
+    const handleConfirmEndTermEarly = async () => {
+        if (!id || !endEarlyTerm) return;
+        if (!endEarlyReason.trim()) {
+            toast.error("Vui lòng nhập lý do kết thúc sớm");
+            return;
+        }
+        try {
+            setEndingEarly(true);
+            await endNeighborhoodTermEarly(
+                id,
+                endEarlyTerm._id,
+                endEarlyReason.trim(),
+            );
+            setEndEarlyTerm(null);
+            setEndEarlyReason("");
             loadTerms();
             load();
             loadColeaders();
             loadOrganizationHistory();
-            toast.success("Đã kết thúc nhiệm kỳ và thu hồi phân công liên quan");
+            toast.success("Đã kết thúc sớm nhiệm kỳ và thu hồi phân công liên quan");
         } catch (err) {
             toast.error((err as AppError).message);
+        } finally {
+            setEndingEarly(false);
         }
     };
 
@@ -454,21 +511,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setDeletingAttachmentId(null);
-        }
-    };
-
-    const handleUnassignColeader = async (coleaderUserId: string) => {
-        if (!id) return;
-        try {
-            setUnassigningColeaderId(coleaderUserId);
-            await unassignNeighborhoodColeader(id, coleaderUserId);
-            loadColeaders();
-            loadOrganizationHistory();
-            toast.success("Đã bỏ gán tổ phó");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningColeaderId(null);
         }
     };
 
@@ -523,15 +565,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             setUnassigningCollaboratorId(null);
         }
     };
-
-    const otherCandidates = candidateLeaders.filter(
-        u => u.id !== neighborhood?.leaderUserId?._id,
-    );
-    const otherCandidateColeaders = candidateColeaders.filter(
-        u => !coleaders.some(c => c.coleaderUserId?._id === u.id),
-    );
-    const assignableTerms = terms.filter(term => term.status === "ACTIVE");
-    const activeLeaderAssignment = history.find(item => !item.unassignedAt);
 
     return (
         <div>
@@ -669,11 +702,19 @@ const NeighborhoodDetailContent: React.FC = () => {
                             <div>
                                 <h2 className="text-base font-semibold">Nhiệm kỳ</h2>
                                 <p className="text-xs text-text_2">
-                                    Kết thúc nhiệm kỳ sẽ thu hồi phân công, không xóa tài khoản hoặc lịch sử.
+                                    Kết thúc nhiệm kỳ (dù đúng hạn hay sớm) sẽ thu hồi phân công, không xóa tài khoản hoặc lịch sử.
                                 </p>
                             </div>
                             {canManage && (
-                                <Button size="sm" variant="outline" onClick={() => setTermFormOpen(value => !value)}>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        termFormOpen
+                                            ? handleCloseTermForm()
+                                            : handleOpenCreateTerm()
+                                    }
+                                >
                                     <Plus className="mr-1 h-4 w-4" /> Thêm nhiệm kỳ
                                 </Button>
                             )}
@@ -693,22 +734,102 @@ const NeighborhoodDetailContent: React.FC = () => {
                                     <Input type="date" value={termForm.endAt} onChange={e => setTermForm({ ...termForm, endAt: e.target.value })} />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label>Trạng thái</Label>
-                                    <Select value={termForm.status} onValueChange={value => setTermForm({ ...termForm, status: value as NeighborhoodTermStatus })}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <Label>Tổ trưởng (nếu có)</Label>
+                                    <Select
+                                        value={termForm.leaderUserId || NONE_LEADER_VALUE}
+                                        onValueChange={value =>
+                                            setTermForm({
+                                                ...termForm,
+                                                leaderUserId:
+                                                    value === NONE_LEADER_VALUE
+                                                        ? ""
+                                                        : value,
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Chưa chỉ định" />
+                                        </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="PLANNED">Dự kiến</SelectItem>
-                                            <SelectItem value="ACTIVE">Đang diễn ra</SelectItem>
+                                            <SelectItem value={NONE_LEADER_VALUE}>
+                                                Chưa chỉ định
+                                            </SelectItem>
+                                            {candidateLeaders.map(u => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.displayName}
+                                                    {u.phone ? ` · ${u.phone}` : ""}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-1.5">
+                                    <Label>Tổ phó (nếu có)</Label>
+                                    <Select
+                                        value={termForm.coleaderUserId || NONE_LEADER_VALUE}
+                                        onValueChange={value =>
+                                            setTermForm({
+                                                ...termForm,
+                                                coleaderUserId:
+                                                    value === NONE_LEADER_VALUE
+                                                        ? ""
+                                                        : value,
+                                            })
+                                        }
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Chưa chỉ định" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={NONE_LEADER_VALUE}>
+                                                Chưa chỉ định
+                                            </SelectItem>
+                                            {candidateColeaders.map(u => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.displayName}
+                                                    {u.phone ? ` · ${u.phone}` : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <p className="text-xs text-text_2 md:col-span-2">
+                                    Nếu nhiệm kỳ &quot;Đang diễn ra&quot; ngay khi
+                                    tạo, tổ trưởng/tổ phó được gán ngay lập tức;
+                                    nếu &quot;Chưa bắt đầu&quot;, hệ thống tự
+                                    gán khi đến ngày bắt đầu.
+                                </p>
+                                <div className="space-y-1.5 md:col-span-2">
                                     <Label>Ghi chú</Label>
                                     <Input value={termForm.notes} onChange={e => setTermForm({ ...termForm, notes: e.target.value })} />
                                 </div>
-                                <div className="md:col-span-2">
-                                    <Button loading={savingTerm} onClick={handleCreateTerm}>Lưu nhiệm kỳ</Button>
+                                <div className="flex gap-2 md:col-span-2">
+                                    <Button
+                                        variant="outline"
+                                        loading={savingTerm}
+                                        onClick={() => handleSaveTerm(false)}
+                                    >
+                                        Lưu nháp
+                                    </Button>
+                                    <Button
+                                        loading={savingTerm}
+                                        onClick={() => handleSaveTerm(true)}
+                                    >
+                                        Tạo
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="ml-auto"
+                                        onClick={handleCloseTermForm}
+                                    >
+                                        Hủy
+                                    </Button>
                                 </div>
+                                <p className="text-xs text-text_2 md:col-span-2">
+                                    &quot;Lưu nháp&quot;: chưa công bố, vẫn sửa/xóa được tự
+                                    do. &quot;Tạo&quot;: công bố nhiệm kỳ - trạng thái tự
+                                    xác định theo ngày (Chưa bắt đầu/Đang diễn ra).
+                                </p>
                             </div>
                         )}
                         {termsLoading && <LoadingState />}
@@ -719,14 +840,113 @@ const NeighborhoodDetailContent: React.FC = () => {
                                     <div className="font-medium">{term.name}</div>
                                     <div className="text-xs text-text_2">
                                         {formatDate(term.startAt)} → {formatDate(term.endAt)} · {TERM_STATUS_LABEL[term.status]}
+                                        {term.status === "ENDED" && term.endedEarly && (
+                                            <> (kết thúc sớm{term.endReason ? `: ${term.endReason}` : ""})</>
+                                        )}
                                     </div>
+                                    {(term.leaderUserId || term.coleaderUserId) && (
+                                        <div className="text-xs text-text_2">
+                                            {term.leaderUserId &&
+                                                typeof term.leaderUserId === "object" && (
+                                                    <>Tổ trưởng: {term.leaderUserId.displayName}</>
+                                                )}
+                                            {term.leaderUserId && term.coleaderUserId && " · "}
+                                            {term.coleaderUserId &&
+                                                typeof term.coleaderUserId === "object" && (
+                                                    <>Tổ phó: {term.coleaderUserId.displayName}</>
+                                                )}
+                                        </div>
+                                    )}
                                 </div>
-                                {canManage && term.status === "ACTIVE" && (
-                                    <Button size="sm" variant="outline" onClick={() => handleEndTerm(term)}>Kết thúc</Button>
+                                {canManage && (
+                                    <div className="flex gap-2">
+                                        {(term.status === "DRAFT" || term.status === "NOT_STARTED") && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleOpenEditTerm(term)}
+                                            >
+                                                Sửa
+                                            </Button>
+                                        )}
+                                        {term.status === "DRAFT" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="!text-red-500"
+                                                loading={deletingTermId === term._id}
+                                                onClick={() => handleDeleteTerm(term)}
+                                            >
+                                                Xóa
+                                            </Button>
+                                        )}
+                                        {term.status === "NOT_STARTED" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="!text-red-500"
+                                                loading={cancellingTermId === term._id}
+                                                onClick={() => handleCancelTerm(term)}
+                                            >
+                                                Hủy
+                                            </Button>
+                                        )}
+                                        {term.status === "IN_PROGRESS" && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setEndEarlyTerm(term);
+                                                    setEndEarlyReason("");
+                                                }}
+                                            >
+                                                Kết thúc sớm
+                                            </Button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         ))}
                     </div>
+
+                    <Dialog
+                        open={!!endEarlyTerm}
+                        onOpenChange={open => {
+                            if (!open) {
+                                setEndEarlyTerm(null);
+                                setEndEarlyReason("");
+                            }
+                        }}
+                    >
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    Kết thúc sớm nhiệm kỳ &quot;{endEarlyTerm?.name}&quot;
+                                </DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-1.5">
+                                <Label>
+                                    Lý do kết thúc sớm{" "}
+                                    <span className="text-red-500">*</span>
+                                </Label>
+                                <Textarea
+                                    value={endEarlyReason}
+                                    onChange={e => setEndEarlyReason(e.target.value)}
+                                    placeholder="VD: Tổ trưởng chuyển nơi ở, không thể tiếp tục đảm nhiệm..."
+                                />
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    className="w-full"
+                                    disabled={!endEarlyReason.trim()}
+                                    loading={endingEarly}
+                                    onClick={handleConfirmEndTermEarly}
+                                >
+                                    Xác nhận kết thúc sớm
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">Hồ sơ quyết định / ranh giới</h2>
@@ -752,99 +972,28 @@ const NeighborhoodDetailContent: React.FC = () => {
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">
-                            Thông tin tổ trưởng
+                            Tổ trưởng hiện tại
                         </h2>
-                        {canManage && assignableTerms.length > 0 && (
-                            <div className="mb-3 max-w-md space-y-1.5">
-                                <Label>Nhiệm kỳ áp dụng cho phân công mới</Label>
-                                <Select value={selectedTermId} onValueChange={setSelectedTermId}>
-                                    <SelectTrigger><SelectValue placeholder="Chọn nhiệm kỳ" /></SelectTrigger>
-                                    <SelectContent>
-                                        {assignableTerms.map(term => (
-                                            <SelectItem key={term._id} value={term._id}>
-                                                {term.name} · {formatDate(term.endAt)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        <p className="mb-3 text-xs text-text_2">
+                            Tổ trưởng được chỉ định ngay trên form tạo/sửa
+                            nhiệm ky (mục &quot;Nhiệm kỳ&quot; bên trên) - kết
+                            thúc nhiệm kỳ (đúng hạn hoặc sớm) sẽ tự động thôi
+                            quản lý, xem đầy đủ lịch sử bên dưới.
+                        </p>
                         {neighborhood.leaderUserId ? (
-                            <div className="flex items-center justify-between border-b border-divider_01 py-2">
-                                <div className="text-sm">
-                                    <div className="font-medium">
-                                        {neighborhood.leaderUserId.displayName}
-                                    </div>
-                                    {neighborhood.leaderUserId.phone && (
-                                        <div className="text-xs text-text_2">
-                                            {neighborhood.leaderUserId.phone}
-                                        </div>
-                                    )}
-                                    {activeLeaderAssignment?.termId && (
-                                        <div className="text-xs text-text_2">
-                                            {activeLeaderAssignment.termId.name} · đến {formatDate(activeLeaderAssignment.endAt)}
-                                        </div>
-                                    )}
+                            <div className="text-sm">
+                                <div className="font-medium">
+                                    {neighborhood.leaderUserId.displayName}
                                 </div>
-                                {canManage && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        loading={unassigningLeader}
-                                        onClick={handleUnassignLeader}
-                                    >
-                                        Bỏ gán
-                                    </Button>
+                                {neighborhood.leaderUserId.phone && (
+                                    <div className="text-xs text-text_2">
+                                        {neighborhood.leaderUserId.phone}
+                                    </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="mb-2 text-xs text-text_2">
+                            <div className="text-xs text-text_2">
                                 Chưa có tổ trưởng
-                            </div>
-                        )}
-
-                        {canManage && (
-                            <div className="mt-3 flex items-end gap-2">
-                                <div className="flex-1 space-y-1.5">
-                                    <Label>
-                                        {neighborhood.leaderUserId
-                                            ? "Đổi sang tổ trưởng khác"
-                                            : "Gán tổ trưởng"}
-                                    </Label>
-                                    <Select
-                                        value={leaderToAssign}
-                                        onValueChange={setLeaderToAssign}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Chọn tài khoản tổ trưởng" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {otherCandidates.map(u => (
-                                                <SelectItem
-                                                    key={u.id}
-                                                    value={u.id}
-                                                >
-                                                    {u.displayName}
-                                                    {u.phone
-                                                        ? ` · ${u.phone}`
-                                                        : ""}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-text_2">
-                                        Nếu tài khoản này đang phụ trách tổ dân
-                                        phố khác, họ sẽ được chuyển sang tổ
-                                        này.
-                                    </p>
-                                </div>
-                                <Button
-                                    loading={assigningLeader}
-                                    disabled={!leaderToAssign}
-                                    onClick={handleAssignLeader}
-                                >
-                                    Gán
-                                </Button>
                             </div>
                         )}
                     </div>
@@ -853,6 +1002,12 @@ const NeighborhoodDetailContent: React.FC = () => {
                         <h2 className="mb-2 text-base font-semibold">
                             Tổ phó
                         </h2>
+                        <p className="mb-3 text-xs text-text_2">
+                            Tổ phó được chỉ định ngay trên form tạo/sửa nhiệm
+                            kỳ (mục &quot;Nhiệm kỳ&quot; bên trên) - kết thúc
+                            nhiệm kỳ (đúng hạn hoặc sớm) sẽ tự động thôi quản
+                            lý.
+                        </p>
                         {coleadersLoading && <LoadingState />}
                         {!coleadersLoading && coleaders.length === 0 && (
                             <div className="mb-2 text-xs text-text_2">
@@ -863,85 +1018,24 @@ const NeighborhoodDetailContent: React.FC = () => {
                             coleaders.map(c => (
                                 <div
                                     key={c._id}
-                                    className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
+                                    className="border-b border-divider_01 py-2 text-sm last:border-0"
                                 >
-                                    <div className="text-sm">
-                                        <div className="font-medium">
-                                            {c.coleaderUserId?.displayName ||
-                                                "(tài khoản đã xóa)"}
-                                        </div>
-                                        {c.coleaderUserId?.phone && (
-                                            <div className="text-xs text-text_2">
-                                                {c.coleaderUserId.phone}
-                                            </div>
-                                        )}
-                                        {c.termId && (
-                                            <div className="text-xs text-text_2">
-                                                {c.termId.name} · đến {formatDate(c.endAt)}
-                                            </div>
-                                        )}
+                                    <div className="font-medium">
+                                        {c.coleaderUserId?.displayName ||
+                                            "(tài khoản đã xóa)"}
                                     </div>
-                                    {canManage && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            loading={
-                                                unassigningColeaderId ===
-                                                c.coleaderUserId?._id
-                                            }
-                                            onClick={() =>
-                                                c.coleaderUserId &&
-                                                handleUnassignColeader(
-                                                    c.coleaderUserId._id,
-                                                )
-                                            }
-                                        >
-                                            Bỏ gán
-                                        </Button>
+                                    {c.coleaderUserId?.phone && (
+                                        <div className="text-xs text-text_2">
+                                            {c.coleaderUserId.phone}
+                                        </div>
+                                    )}
+                                    {c.termId && (
+                                        <div className="text-xs text-text_2">
+                                            {c.termId.name} · đến {formatDate(c.endAt)}
+                                        </div>
                                     )}
                                 </div>
                             ))}
-
-                        {canManage && (
-                            <div className="mt-3 flex items-end gap-2">
-                                <div className="flex-1 space-y-1.5">
-                                    <Label>Thêm tổ phó</Label>
-                                    <Select
-                                        value={coleaderToAssign}
-                                        onValueChange={setColeaderToAssign}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Chọn tài khoản tổ phó" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {otherCandidateColeaders.map(u => (
-                                                <SelectItem
-                                                    key={u.id}
-                                                    value={u.id}
-                                                >
-                                                    {u.displayName}
-                                                    {u.phone
-                                                        ? ` · ${u.phone}`
-                                                        : ""}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-xs text-text_2">
-                                        Một tổ dân phố có thể có nhiều tổ phó,
-                                        nhưng một người chỉ có thể là tổ phó
-                                        của một tổ tại một thời điểm.
-                                    </p>
-                                </div>
-                                <Button
-                                    loading={assigningColeader}
-                                    disabled={!coleaderToAssign}
-                                    onClick={handleAssignColeader}
-                                >
-                                    Gán
-                                </Button>
-                            </div>
-                        )}
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">

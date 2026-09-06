@@ -42,15 +42,13 @@ import {
     CreatableStaffRole,
     fetchUsers,
     lockUserAccount,
+    resetUserPassword,
     revokeUserRole,
     revokeUserSession,
     updateUser,
 } from "@service/userApi";
 import { fetchRoles } from "@service/roleApi";
-import {
-    assignNeighborhoodLeader,
-    fetchNeighborhoods,
-} from "@service/neighborhoodApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import {
     fetchProvinces,
     fetchWardsByProvince,
@@ -106,6 +104,10 @@ const UserListContent: React.FC = () => {
     const canFullUpdate = usePermission("users.update");
     const canAssignRoles = usePermission("users.assign_roles");
     const canCreateAccount = usePermission("users.create");
+    // Quyen rieng, KHAC canFullUpdate - to truong/to pho co users.reset_password
+    // (gioi han theo pham vi to dan pho o backend) nhung khong co users.update -
+    // xem systemRoles.ts.
+    const canResetPassword = usePermission("users.reset_password");
     const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     // to truong khong co roles.read - goi fetchRoles se luon 403. Danh sach
     // nay chi phuc vu bo loc theo vai tro + man gan vai tro (da an voi to
@@ -148,18 +150,12 @@ const UserListContent: React.FC = () => {
         null,
     );
     const [revokingSession, setRevokingSession] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [resettingPassword, setResettingPassword] = useState(false);
 
     const [managedNeighborhoods, setManagedNeighborhoods] = useState<
         Neighborhood[]
     >([]);
-    const [availableNeighborhoods, setAvailableNeighborhoods] = useState<
-        Neighborhood[]
-    >([]);
-    const [neighborhoodToAssign, setNeighborhoodToAssign] = useState("");
-    const [assigningNeighborhood, setAssigningNeighborhood] = useState(false);
-    const [unassigningNeighborhoodId, setUnassigningNeighborhoodId] = useState<
-        string | null
-    >(null);
 
     // Pham vi phuong/xa cho can bo UBND va bi thu. `wardCode` la ma dinh danh
     // on dinh tu danh muc hanh chinh, dung kem ten de hien thi.
@@ -271,15 +267,11 @@ const UserListContent: React.FC = () => {
     const loadNeighborhoodSections = (user: User) => {
         if (!user.roles.includes(NEIGHBORHOOD_LEADER_ROLE)) {
             setManagedNeighborhoods([]);
-            setAvailableNeighborhoods([]);
             return;
         }
         fetchNeighborhoods({ leaderUserId: user.id })
             .then(res => setManagedNeighborhoods(res.items))
             .catch(() => setManagedNeighborhoods([]));
-        fetchNeighborhoods({ active: true, limit: 30 })
-            .then(res => setAvailableNeighborhoods(res.items))
-            .catch(() => setAvailableNeighborhoods([]));
     };
 
     const openManageSheet = (user: User) => {
@@ -290,7 +282,7 @@ const UserListContent: React.FC = () => {
         setOriginalStatus(user.status);
         setStatusReason("");
         setRoleToAssign("resident");
-        setNeighborhoodToAssign("");
+        setNewPassword("");
         loadNeighborhoodSections(user);
         setWardProvinceCode(user.provinceCode ? String(user.provinceCode) : "");
         setWardProvinceName(user.provinceName || "");
@@ -408,35 +400,6 @@ const UserListContent: React.FC = () => {
         }
     };
 
-    const handleAssignNeighborhood = async () => {
-        if (!selectedUser || !neighborhoodToAssign) return;
-        try {
-            setAssigningNeighborhood(true);
-            await assignNeighborhoodLeader(neighborhoodToAssign, selectedUser.id);
-            toast.success("Đã gán tổ dân phố phụ trách");
-            setNeighborhoodToAssign("");
-            loadNeighborhoodSections(selectedUser);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigningNeighborhood(false);
-        }
-    };
-
-    const handleUnassignNeighborhood = async (neighborhoodId: string) => {
-        if (!selectedUser) return;
-        try {
-            setUnassigningNeighborhoodId(neighborhoodId);
-            await assignNeighborhoodLeader(neighborhoodId, null);
-            toast.success("Đã bỏ gán tổ dân phố");
-            loadNeighborhoodSections(selectedUser);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningNeighborhoodId(null);
-        }
-    };
-
     const handleSaveWard = async () => {
         if (!selectedUser) return;
         try {
@@ -466,6 +429,22 @@ const UserListContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setRevokingSession(false);
+        }
+    };
+
+    const handleResetPassword = async () => {
+        if (!selectedUser || newPassword.trim().length < 6) return;
+        try {
+            setResettingPassword(true);
+            await resetUserPassword(selectedUser.id, newPassword.trim());
+            toast.success(
+                "Đã đặt lại mật khẩu, tài khoản này sẽ phải đăng nhập lại",
+            );
+            setNewPassword("");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setResettingPassword(false);
         }
     };
 
@@ -805,62 +784,13 @@ const UserListContent: React.FC = () => {
                                                     ({n.code})
                                                 </span>
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                loading={
-                                                    unassigningNeighborhoodId ===
-                                                    n._id
-                                                }
-                                                onClick={() =>
-                                                    handleUnassignNeighborhood(
-                                                        n._id,
-                                                    )
-                                                }
-                                            >
-                                                Bỏ gán
-                                            </Button>
                                         </div>
                                     ))}
-
-                                    <div className="mt-3 flex items-end gap-2">
-                                        <div className="flex-1">
-                                            <FilterableSelect
-                                                label="Gán tổ dân phố mới"
-                                                placeholder="Chọn tổ dân phố"
-                                                searchPlaceholder="Tìm theo tên tổ dân phố..."
-                                                items={availableNeighborhoods.filter(
-                                                    n =>
-                                                        !managedNeighborhoods.some(
-                                                            m =>
-                                                                m._id ===
-                                                                n._id,
-                                                        ),
-                                                )}
-                                                getId={n => n._id}
-                                                getLabel={n =>
-                                                    `${n.name} (${n.code})`
-                                                }
-                                                getSubLabel={n =>
-                                                    n.leaderUserId
-                                                        ? `Đang có tổ trưởng: ${n.leaderUserId.displayName}`
-                                                        : ""
-                                                }
-                                                value={neighborhoodToAssign}
-                                                onChange={id =>
-                                                    setNeighborhoodToAssign(
-                                                        id || "",
-                                                    )
-                                                }
-                                            />
-                                        </div>
-                                        <Button
-                                            loading={assigningNeighborhood}
-                                            disabled={!neighborhoodToAssign}
-                                            onClick={handleAssignNeighborhood}
-                                        >
-                                            Gán
-                                        </Button>
+                                    <div className="mt-2 text-xs text-text_2">
+                                        Việc phân công tổ trưởng được thực
+                                        hiện khi tạo/sửa nhiệm kỳ ở trang
+                                        thông tin tổ dân phố, không thực hiện
+                                        ở đây.
                                     </div>
                                 </div>
                             )}
@@ -923,6 +853,36 @@ const UserListContent: React.FC = () => {
                                         </Button>
                                     </div>
                                 </div>
+                            )}
+
+                            {canResetPassword && (
+                            <div className="mt-5 border-t border-divider_01 pt-4">
+                                <Label>Đặt lại mật khẩu</Label>
+                                <p className="mb-2 mt-1 text-xs text-text_2">
+                                    Dùng khi tài khoản chưa có mật khẩu (vd tạo
+                                    qua Nhập Excel) hoặc chủ tài khoản quên mật
+                                    khẩu và cần được hỗ trợ. Sau khi đặt lại,
+                                    tài khoản sẽ phải đăng nhập lại bằng mật
+                                    khẩu mới.
+                                </p>
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="text"
+                                        placeholder="Mật khẩu mới (ít nhất 6 ký tự)"
+                                        value={newPassword}
+                                        onChange={e =>
+                                            setNewPassword(e.target.value)
+                                        }
+                                    />
+                                    <Button
+                                        disabled={newPassword.trim().length < 6}
+                                        loading={resettingPassword}
+                                        onClick={handleResetPassword}
+                                    >
+                                        Đặt lại
+                                    </Button>
+                                </div>
+                            </div>
                             )}
 
                             {canFullUpdate && (

@@ -203,7 +203,7 @@ const OrganizationListContent: React.FC = () => {
     return (
         <div>
             <PageHeader
-                title="Tổ chức (chủ nhà)"
+                title="Tổ chức (chủ sở hữu)"
                 description="Quản lý các tổ chức đứng tên chủ sở hữu nhà thay vì cá nhân."
                 action={
                     canCreate && (

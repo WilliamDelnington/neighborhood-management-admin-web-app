@@ -9,13 +9,36 @@ import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import { resolveAssetUrl } from "@constants/common";
+import { MODULES, ModuleItem } from "@constants/modules";
 import { AppError } from "@dts";
 import {
+    deleteAppFavicon,
     deleteAppLogo,
     fetchAllSettings,
     upsertSetting,
+    uploadAppFavicon,
     uploadAppLogo,
 } from "@service/settingsApi";
+import { useAppBrandStore } from "@store/appBrandStore";
+import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
+
+// Setting dung chung de admin ghi de mo ta hien thi tren cac muc menu sidebar
+// (constants/modules.ts) VA phan mo ta dau trang cua tung trang tuong ung
+// (PageHeader.tsx tu suy ra module theo route hien tai) ma khong can sua code
+// - xem SectionDescriptionsPanel ben duoi va sectionDescriptionsStore.ts (cache
+// dung chung ma AdminLayout.tsx/PageHeader.tsx doc lai gia tri nay).
+const SECTION_DESCRIPTIONS_KEY = "section_descriptions";
+const APP_LOGO_KEY = "app_logo_url";
+const APP_TAB_TITLE_KEY = "app_tab_title";
+const APP_FAVICON_KEY = "app_favicon_url";
+// Cac key co man chinh sua rieng (Logo / Tab trinh duyet / section_descriptions
+// o duoi) - an khoi danh sach cau hinh chung de tranh hien trung lap.
+const HIDDEN_SETTING_KEYS = new Set([
+    SECTION_DESCRIPTIONS_KEY,
+    APP_LOGO_KEY,
+    APP_TAB_TITLE_KEY,
+    APP_FAVICON_KEY,
+]);
 
 type EditableSetting = {
     key: string;
@@ -91,6 +114,25 @@ const SettingsContent: React.FC = () => {
     const [removingLogo, setRemovingLogo] = useState(false);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
+    const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+    const [uploadingFavicon, setUploadingFavicon] = useState(false);
+    const [removingFavicon, setRemovingFavicon] = useState(false);
+    const faviconInputRef = useRef<HTMLInputElement>(null);
+    const [tabTitle, setTabTitle] = useState("");
+    const [savingTabTitle, setSavingTabTitle] = useState(false);
+
+    const setSharedBrand = useAppBrandStore(state => state.setBrand);
+
+    const [sectionDescOverrides, setSectionDescOverrides] = useState<
+        Record<string, string>
+    >({});
+    const [sectionDescDrafts, setSectionDescDrafts] = useState<
+        Record<string, string>
+    >({});
+    const [savingSectionKey, setSavingSectionKey] = useState<string | null>(
+        null,
+    );
+
     const load = () => {
         setLoading(true);
         setError(false);
@@ -98,11 +140,31 @@ const SettingsContent: React.FC = () => {
             .then(data => {
                 const mapped: Record<string, EditableSetting> = {};
                 Object.entries(data || {}).forEach(([key, value]) => {
+                    // Cac key co man chinh sua rieng (xem HIDDEN_SETTING_KEYS)
+                    // - khong hien lai duoi dang JSON tho trong danh sach cau
+                    // hinh chung.
+                    if (HIDDEN_SETTING_KEYS.has(key)) return;
                     mapped[key] = buildEditable(key, value);
                 });
                 setSettings(mapped);
-                const rawLogo = data?.app_logo_url;
+                const rawLogo = data?.[APP_LOGO_KEY];
                 setLogoUrl(typeof rawLogo === "string" ? rawLogo : null);
+                const rawFavicon = data?.[APP_FAVICON_KEY];
+                setFaviconUrl(typeof rawFavicon === "string" ? rawFavicon : null);
+                const rawTabTitle = data?.[APP_TAB_TITLE_KEY];
+                setTabTitle(typeof rawTabTitle === "string" ? rawTabTitle : "");
+
+                const rawOverrides = data?.[SECTION_DESCRIPTIONS_KEY];
+                const overrides =
+                    rawOverrides && typeof rawOverrides === "object"
+                        ? (rawOverrides as Record<string, string>)
+                        : {};
+                setSectionDescOverrides(overrides);
+                const drafts: Record<string, string> = {};
+                MODULES.forEach(m => {
+                    drafts[m.key] = overrides[m.key] ?? m.description ?? "";
+                });
+                setSectionDescDrafts(drafts);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -122,6 +184,7 @@ const SettingsContent: React.FC = () => {
             setUploadingLogo(true);
             const setting = await uploadAppLogo(file);
             setLogoUrl(setting.value);
+            setSharedBrand({ logoUrl: setting.value });
             toast.success("Đã cập nhật logo");
         } catch (err) {
             toast.error((err as AppError).message);
@@ -135,11 +198,61 @@ const SettingsContent: React.FC = () => {
             setRemovingLogo(true);
             await deleteAppLogo();
             setLogoUrl(null);
+            setSharedBrand({ logoUrl: null });
             toast.success("Đã xóa logo, quay về chữ mặc định");
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
             setRemovingLogo(false);
+        }
+    };
+
+    const handleFaviconUploadClick = () => faviconInputRef.current?.click();
+
+    const handleFaviconFileSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        try {
+            setUploadingFavicon(true);
+            const setting = await uploadAppFavicon(file);
+            setFaviconUrl(setting.value);
+            setSharedBrand({ faviconUrl: setting.value });
+            toast.success("Đã cập nhật biểu tượng tab");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploadingFavicon(false);
+        }
+    };
+
+    const handleRemoveFavicon = async () => {
+        try {
+            setRemovingFavicon(true);
+            await deleteAppFavicon();
+            setFaviconUrl(null);
+            setSharedBrand({ faviconUrl: null });
+            toast.success("Đã xóa biểu tượng tab, quay về mặc định");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setRemovingFavicon(false);
+        }
+    };
+
+    const handleSaveTabTitle = async () => {
+        const text = tabTitle.trim();
+        try {
+            setSavingTabTitle(true);
+            await upsertSetting(APP_TAB_TITLE_KEY, text);
+            setSharedBrand({ tabTitle: text || null });
+            toast.success("Đã lưu tiêu đề tab");
+        } catch (err) {
+            toast.error((err as AppError).message || "Có lỗi xảy ra");
+        } finally {
+            setSavingTabTitle(false);
         }
     };
 
@@ -166,6 +279,52 @@ const SettingsContent: React.FC = () => {
         } finally {
             setSavingKey(null);
         }
+    };
+
+    const handleSectionDescChange = (key: string, text: string) => {
+        setSectionDescDrafts(prev => ({ ...prev, [key]: text }));
+    };
+
+    const setSharedSectionDescOverrides = useSectionDescriptionsStore(
+        state => state.setOverrides,
+    );
+
+    const saveSectionDescOverrides = async (
+        key: string,
+        overrides: Record<string, string>,
+    ) => {
+        try {
+            setSavingSectionKey(key);
+            await upsertSetting(SECTION_DESCRIPTIONS_KEY, overrides);
+            setSectionDescOverrides(overrides);
+            // Cap nhat ngay cache dung chung de sidebar/PageHeader o cac trang
+            // khac phan anh mo ta moi ma khong can doi lan fetchPublicSettings
+            // tiep theo - xem sectionDescriptionsStore.ts.
+            setSharedSectionDescOverrides(overrides);
+            toast.success("Đã lưu mô tả mục menu");
+        } catch (err) {
+            toast.error((err as AppError).message || "Có lỗi xảy ra");
+        } finally {
+            setSavingSectionKey(null);
+        }
+    };
+
+    const handleSaveSectionDesc = (module: ModuleItem) => {
+        const text = (sectionDescDrafts[module.key] || "").trim();
+        saveSectionDescOverrides(module.key, {
+            ...sectionDescOverrides,
+            [module.key]: text,
+        });
+    };
+
+    const handleResetSectionDesc = (module: ModuleItem) => {
+        const next = { ...sectionDescOverrides };
+        delete next[module.key];
+        setSectionDescDrafts(prev => ({
+            ...prev,
+            [module.key]: module.description || "",
+        }));
+        saveSectionDescOverrides(module.key, next);
     };
 
     const handleAddNew = async () => {
@@ -265,6 +424,156 @@ const SettingsContent: React.FC = () => {
                             />
                         </div>
                     </div>
+
+                    <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
+                        <h2 className="mb-2 text-sm font-semibold">
+                            Tab trình duyệt
+                        </h2>
+                        <p className="mb-3 text-xs text-text_2">
+                            Đổi tiêu đề và biểu tượng hiển thị trên tab trình
+                            duyệt. Tiêu đề mục đang xem sẽ được thêm phía
+                            trước, ví dụ &quot;Cài đặt - {tabTitle || "Quản trị Tổ dân phố Hòa Bình"}
+                            &quot;.
+                        </p>
+
+                        <div className="mb-4 flex items-end gap-2">
+                            <div className="flex-1">
+                                <Label>Tiêu đề tab</Label>
+                                <Input
+                                    className="mt-1"
+                                    placeholder="Quản trị Tổ dân phố Hòa Bình"
+                                    value={tabTitle}
+                                    onChange={e => setTabTitle(e.target.value)}
+                                />
+                            </div>
+                            <Button
+                                size="sm"
+                                loading={savingTabTitle}
+                                onClick={handleSaveTabTitle}
+                            >
+                                Lưu
+                            </Button>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            {faviconUrl ? (
+                                <img
+                                    src={resolveAssetUrl(faviconUrl)}
+                                    alt="Biểu tượng tab hiện tại"
+                                    className="h-10 w-10 rounded-lg border border-divider_01 object-contain p-1"
+                                />
+                            ) : (
+                                <span className="text-sm text-text_2">
+                                    Chưa có biểu tượng riêng, đang dùng mặc
+                                    định
+                                </span>
+                            )}
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                loading={uploadingFavicon}
+                                onClick={handleFaviconUploadClick}
+                            >
+                                <Upload className="mr-1 h-3.5 w-3.5" />
+                                {faviconUrl
+                                    ? "Đổi biểu tượng"
+                                    : "Tải biểu tượng lên"}
+                            </Button>
+                            {faviconUrl && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="!text-red-500"
+                                    loading={removingFavicon}
+                                    onClick={handleRemoveFavicon}
+                                >
+                                    Xóa biểu tượng
+                                </Button>
+                            )}
+                            <input
+                                ref={faviconInputRef}
+                                type="file"
+                                className="hidden"
+                                accept=".ico,.png,.svg,.webp"
+                                onChange={handleFaviconFileSelected}
+                            />
+                        </div>
+                    </div>
+
+                    <details className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
+                        <summary className="cursor-pointer text-sm font-semibold">
+                            Mô tả các mục menu
+                        </summary>
+                        <p className="mb-3 mt-2 text-xs text-text_2">
+                            Sửa lại phần mô tả hiển thị cho từng mục trong menu
+                            điều hướng và phần mô tả đầu trang tương ứng, không
+                            cần sửa code. Để trống và lưu, hoặc bấm &quot;Khôi
+                            phục mặc định&quot; để quay lại mô tả gốc.
+                        </p>
+                        <div className="space-y-3">
+                            {MODULES.map(m => {
+                                const isOverridden =
+                                    sectionDescOverrides[m.key] !== undefined;
+                                return (
+                                    <div
+                                        key={m.key}
+                                        className="rounded-md border border-divider_01 p-3"
+                                    >
+                                        <div className="mb-1.5 flex items-center justify-between">
+                                            <span className="text-sm font-medium">
+                                                {m.label}
+                                            </span>
+                                            {isOverridden && (
+                                                <span className="text-xs text-text_2">
+                                                    Đã tuỳ chỉnh
+                                                </span>
+                                            )}
+                                        </div>
+                                        <Textarea
+                                            rows={2}
+                                            value={sectionDescDrafts[m.key] || ""}
+                                            onChange={e =>
+                                                handleSectionDescChange(
+                                                    m.key,
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <div className="mt-2 flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                loading={
+                                                    savingSectionKey === m.key
+                                                }
+                                                onClick={() =>
+                                                    handleSaveSectionDesc(m)
+                                                }
+                                            >
+                                                Lưu
+                                            </Button>
+                                            {isOverridden && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    loading={
+                                                        savingSectionKey ===
+                                                        m.key
+                                                    }
+                                                    onClick={() =>
+                                                        handleResetSectionDesc(
+                                                            m,
+                                                        )
+                                                    }
+                                                >
+                                                    Khôi phục mặc định
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </details>
 
                     {entries.length === 0 && !showAddForm && (
                         <EmptyState

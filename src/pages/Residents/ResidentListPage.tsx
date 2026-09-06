@@ -136,10 +136,10 @@ const ResidentListContent: React.FC = () => {
             setSubmitting(true);
             if (editingId) {
                 await updateResidentRecord(editingId, toResidentInput(form));
-                toast.success("Đã cập nhật hồ sơ cư trú");
+                toast.success("Đã cập nhật kiểm tra cư trú");
             } else {
                 await createResidentRecord(toResidentInput(form));
-                toast.success("Đã thêm hồ sơ cư trú");
+                toast.success("Đã thêm kiểm tra cư trú");
             }
             setFormVisible(false);
             load(1);
@@ -155,7 +155,7 @@ const ResidentListContent: React.FC = () => {
         try {
             setDeleting(true);
             await deleteResidentRecord(confirmDeleteId);
-            toast.success("Đã xóa hồ sơ cư trú");
+            toast.success("Đã xóa kiểm tra cư trú");
             setConfirmDeleteId(null);
             setFormVisible(false);
             load(1);
@@ -169,13 +169,13 @@ const ResidentListContent: React.FC = () => {
     return (
         <div>
             <PageHeader
-                title="Hồ sơ cư trú"
-                description="Quản lý hồ sơ cư trú, tạm trú/tạm vắng của cư dân."
+                title="Kiểm tra cư trú"
+                description="Quản lý kiểm tra cư trú, tạm trú/tạm vắng của cư dân."
                 action={
                     canCreate && (
                         <Button onClick={openCreate}>
                             <Plus className="mr-1 h-4 w-4" />
-                            Thêm hồ sơ
+                            Thêm kiểm tra
                         </Button>
                     )
                 }
@@ -195,7 +195,7 @@ const ResidentListContent: React.FC = () => {
                 {loading && <LoadingState />}
                 {!loading && error && <ErrorState onRetry={() => load(1)} />}
                 {!loading && !error && items.length === 0 && (
-                    <EmptyState label="Chưa có hồ sơ cư trú nào" />
+                    <EmptyState label="Chưa có kiểm tra cư trú nào" />
                 )}
                 {!loading && !error && items.length > 0 && (
                     <Table>
@@ -265,7 +265,7 @@ const ResidentListContent: React.FC = () => {
                 <SheetContent>
                     <SheetHeader>
                         <SheetTitle>
-                            {editingId ? "Sửa hồ sơ cư trú" : "Thêm hồ sơ cư trú"}
+                            {editingId ? "Sửa kiểm tra cư trú" : "Thêm kiểm tra cư trú"}
                         </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
@@ -289,7 +289,7 @@ const ResidentListContent: React.FC = () => {
                                 className="w-full"
                                 onClick={() => setConfirmDeleteId(editingId)}
                             >
-                                Xóa hồ sơ
+                                Xóa kiểm tra
                             </Button>
                         )}
                         <Button
@@ -297,7 +297,7 @@ const ResidentListContent: React.FC = () => {
                             loading={submitting}
                             onClick={handleSubmit}
                         >
-                            {editingId ? "Lưu thay đổi" : "Thêm hồ sơ"}
+                            {editingId ? "Lưu thay đổi" : "Thêm kiểm tra"}
                         </Button>
                     </SheetFooter>
                 </SheetContent>
@@ -309,11 +309,11 @@ const ResidentListContent: React.FC = () => {
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Xóa hồ sơ cư trú?</DialogTitle>
+                        <DialogTitle>Xóa kiểm tra cư trú?</DialogTitle>
                     </DialogHeader>
                     <p className="text-sm text-text_2">
-                        Bạn có chắc muốn xóa hồ sơ này? Hành động này không thể
-                        hoàn tác.
+                        Bạn có chắc muốn xóa kiểm tra này? Hành động này không
+                        thể hoàn tác.
                     </p>
                     <DialogFooter>
                         <Button

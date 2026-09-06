@@ -26,6 +26,8 @@ export const API = {
     HOUSES: "/api/houses",
     HOUSES_CHECK_OWNER_PHONE: "/api/houses/check-owner-phone",
     HOUSES_GIS_OVERVIEW: "/api/houses/gis-overview",
+    HOUSES_BULK_NEIGHBORHOOD: "/api/houses/bulk-neighborhood",
+    HOUSES_BULK_STATUS: "/api/houses/bulk-status",
     ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
     ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
     WARD_MANAGERS: "/api/wards/managers",

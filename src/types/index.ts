@@ -388,9 +388,14 @@ export type Neighborhood = {
 };
 
 export type NeighborhoodStatus = "ACTIVE" | "INACTIVE" | "MERGED" | "CLOSED";
+// Vong doi: DRAFT -> NOT_STARTED|IN_PROGRESS|ENDED (finalize/tu dong theo
+// ngay) -> IN_PROGRESS -> ENDED (dung han, tu dong, hoac ket thuc som, thu
+// cong + bat buoc ly do) | NOT_STARTED -> CANCELLED (huy thu cong). Chi DRAFT
+// moi xoa duoc - xem models/NeighborhoodTerm.ts o backend.
 export type NeighborhoodTermStatus =
-    | "PLANNED"
-    | "ACTIVE"
+    | "DRAFT"
+    | "NOT_STARTED"
+    | "IN_PROGRESS"
     | "ENDED"
     | "CANCELLED";
 
@@ -402,6 +407,17 @@ export type NeighborhoodTerm = {
     endAt: string;
     status: NeighborhoodTermStatus;
     notes?: string;
+    // Chi co y nghia khi status = ENDED - phan biet ket thuc dung han (tu
+    // dong) voi ket thuc som (thu cong, xem endReason).
+    endedEarly?: boolean;
+    // BAT BUOC khi ket thuc som, khong dung cho cac chuyen trang thai khac.
+    endReason?: string;
+    // To truong/to pho DUOC CHI DINH cho nhiem ky nay (chon ngay tren form
+    // tao/sua) - chi thuc su tro thanh phan cong (huong quan ly that su, xem
+    // NeighborhoodLeaderAssignment/NeighborhoodColeaderAssignment) khi nhiem
+    // ky chuyen sang IN_PROGRESS - xem models/NeighborhoodTerm.ts o backend.
+    leaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
+    coleaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
     createdAt: string;
     updatedAt: string;
 };
@@ -553,8 +569,8 @@ type PopulatedFileAssetSummary = {
 };
 type PopulatedActor = { _id: string; displayName: string };
 
-// Mirror cua Business nhung khong co businessType/quy trinh giay to rieng -
-// xem models/Company.ts o backend.
+// Mirror cua Business nhung khong co quy trinh giay to rieng (khong co
+// CompanyDocument) - xem models/Company.ts o backend.
 export type Company = {
     _id: string;
     name: string;
@@ -567,6 +583,9 @@ export type Company = {
     // Lien ket tuy chon toi mot Organization co san (khong bat buoc) - xem
     // ghi chu tren models/Company.ts o backend.
     organizationId?: { _id: string; name: string } | string | null;
+    // Nhieu loai hinh kinh doanh cung luc (khac Business.businessType - mot
+    // gia tri duy nhat) - xem ghi chu tren models/Company.ts o backend.
+    businessTypeIds?: ({ _id: string; name: string } | string)[];
     phone?: string;
     active: boolean;
     status: VerificationStatus;

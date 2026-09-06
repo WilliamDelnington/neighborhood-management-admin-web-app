@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
-import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
@@ -24,43 +23,36 @@ import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import {
+    LOAI_SO_HUU_LABEL,
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { BusinessType, Company, VerificationStatus } from "@dts";
-import { fetchCompanies } from "@service/companyApi";
-import { fetchBusinessTypes } from "@service/businessTypeApi";
+import { Household, VerificationStatus } from "@dts";
+import { fetchHouseholds } from "@service/householdApi";
 
 const ALL_STATUS = "all";
-const ALL_BUSINESS_TYPE = "all";
+const ALL_ASSIGNMENT = "all";
+const UNASSIGNED = "unassigned";
 
-const CompanyListPage: React.FC = () => (
-    <AdminGuard permissions={["companies.read"]}>
-        <CompanyListContent />
+const HouseholdListPage: React.FC = () => (
+    <AdminGuard permissions={["households.read"]}>
+        <HouseholdListContent />
     </AdminGuard>
 );
 
-const houseIdOf = (c: Company): string => {
-    if (!c.houseId) return "";
-    return typeof c.houseId === "string" ? c.houseId : c.houseId._id;
+const houseLabelOf = (h: Household): string => {
+    if (!h.houseId) return "Chưa gán";
+    return typeof h.houseId === "string" ? h.houseId : `${h.houseId.code} — ${h.houseId.address}`;
 };
 
-const houseLabelOf = (c: Company): string => {
-    if (!c.houseId) return "Không xác định";
-    return typeof c.houseId === "string"
-        ? c.houseId
-        : `${c.houseId.code} — ${c.houseId.address}`;
-};
-
-const CompanyListContent: React.FC = () => {
+const HouseholdListContent: React.FC = () => {
     const navigate = useNavigate();
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
-    const [businessType, setBusinessType] = useState("");
-    const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
-    const [items, setItems] = useState<Company[]>([]);
+    const [assignment, setAssignment] = useState<"" | typeof UNASSIGNED>("");
+    const [items, setItems] = useState<Household[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -70,12 +62,12 @@ const CompanyListContent: React.FC = () => {
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchCompanies({
+        fetchHouseholds({
             page: targetPage,
             limit: size,
             search: keyword,
+            unassigned: assignment === UNASSIGNED ? true : undefined,
             status: status || undefined,
-            businessType: businessType || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -90,19 +82,13 @@ const CompanyListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status, businessType]);
-
-    useEffect(() => {
-        fetchBusinessTypes({ limit: 200, active: true })
-            .then(res => setBusinessTypes(res.items))
-            .catch(() => setBusinessTypes([]));
-    }, []);
+    }, [search, status, assignment]);
 
     return (
         <div>
             <PageHeader
-                title="Công ty"
-                description="Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn."
+                title="Hộ dân"
+                description="Xem danh sách các hộ dân đang sinh sống trên địa bàn."
             />
 
             <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -116,7 +102,7 @@ const CompanyListContent: React.FC = () => {
                     />
                     <Input
                         className="flex-1"
-                        placeholder="Tìm theo tên công ty..."
+                        placeholder="Tìm theo mã hộ, chủ hộ, địa chỉ..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
@@ -147,23 +133,21 @@ const CompanyListContent: React.FC = () => {
                     </SelectContent>
                 </Select>
                 <Select
-                    value={businessType || ALL_BUSINESS_TYPE}
+                    value={assignment || ALL_ASSIGNMENT}
                     onValueChange={v =>
-                        setBusinessType(v === ALL_BUSINESS_TYPE ? "" : v)
+                        setAssignment(v === ALL_ASSIGNMENT ? "" : (v as typeof UNASSIGNED))
                     }
                 >
                     <SelectTrigger>
-                        <SelectValue placeholder="Tất cả loại hình" />
+                        <SelectValue placeholder="Tất cả" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={ALL_BUSINESS_TYPE}>
-                            Tất cả loại hình
+                        <SelectItem value={ALL_ASSIGNMENT}>
+                            Tất cả (đã gán và chưa gán nhà)
                         </SelectItem>
-                        {businessTypes.map(bt => (
-                            <SelectItem key={bt._id} value={bt._id}>
-                                {bt.name}
-                            </SelectItem>
-                        ))}
+                        <SelectItem value={UNASSIGNED}>
+                            Chưa gán nhà số
+                        </SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -174,77 +158,46 @@ const CompanyListContent: React.FC = () => {
                     <ErrorState onRetry={() => load(1, search)} />
                 )}
                 {!loading && !error && items.length === 0 && (
-                    <EmptyState label="Chưa có công ty nào" />
+                    <EmptyState label="Chưa có hộ dân nào" />
                 )}
                 {!loading && !error && items.length > 0 && (
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-12 text-center">STT</TableHead>
-                                <TableHead>Tên công ty</TableHead>
+                                <TableHead>Mã hộ</TableHead>
+                                <TableHead>Chủ hộ</TableHead>
+                                <TableHead>Cụm dân cư</TableHead>
                                 <TableHead>Nhà số</TableHead>
-                                <TableHead>Cụm</TableHead>
-                                <TableHead>Tổ chức liên kết</TableHead>
-                                <TableHead>Loại hình kinh doanh</TableHead>
+                                <TableHead>Hình thức sở hữu</TableHead>
+                                <TableHead>Số nhân khẩu</TableHead>
                                 <TableHead>Trạng thái</TableHead>
-                                <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map((c, index) => (
+                            {items.map((h, index) => (
                                 <TableRow
-                                    key={c._id}
+                                    key={h._id}
                                     className="cursor-pointer"
-                                    onClick={() =>
-                                        navigate(
-                                            `/houses/${houseIdOf(c)}/companies/${c._id}`,
-                                        )
-                                    }
+                                    onClick={() => navigate(`/households/${h._id}`)}
                                 >
                                     <TableCell className="text-center text-text_2">
                                         {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        {c.name}
+                                        {h.code}
                                     </TableCell>
-                                    <TableCell>{houseLabelOf(c)}</TableCell>
-                                    <TableCell>{c.cluster}</TableCell>
+                                    <TableCell>{h.headOfHousehold}</TableCell>
+                                    <TableCell>{h.cluster}</TableCell>
+                                    <TableCell>{houseLabelOf(h)}</TableCell>
                                     <TableCell>
-                                        {c.organizationId &&
-                                        typeof c.organizationId === "object"
-                                            ? c.organizationId.name
-                                            : "—"}
+                                        {LOAI_SO_HUU_LABEL[h.ownershipType]}
                                     </TableCell>
+                                    <TableCell>{h.memberCount}</TableCell>
                                     <TableCell>
-                                        {(c.businessTypeIds || [])
-                                            .map(bt =>
-                                                typeof bt === "object"
-                                                    ? bt.name
-                                                    : null,
-                                            )
-                                            .filter(Boolean)
-                                            .join(", ") || "Chưa phân loại"}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>
-                                            {VERIFICATION_STATUS_LABEL[c.status]}
+                                        <Badge tone={VERIFICATION_STATUS_TONE[h.status]}>
+                                            {VERIFICATION_STATUS_LABEL[h.status]}
                                         </Badge>
-                                    </TableCell>
-                                    <TableCell
-                                        className="text-right"
-                                        onClick={e => e.stopPropagation()}
-                                    >
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() =>
-                                                navigate(
-                                                    `/houses/${houseIdOf(c)}/companies/${c._id}`,
-                                                )
-                                            }
-                                        >
-                                            Chi tiết
-                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -265,4 +218,4 @@ const CompanyListContent: React.FC = () => {
     );
 };
 
-export default CompanyListPage;
+export default HouseholdListPage;
