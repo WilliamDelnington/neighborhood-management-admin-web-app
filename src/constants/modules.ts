@@ -192,6 +192,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 description:
                     "Quản lý danh mục loại hình kinh doanh áp dụng cho hộ kinh doanh và công ty.",
             },
+            {
+                key: "company_types",
+                label: "Loại hình doanh nghiệp",
+                path: "/company-types",
+                icon: Briefcase,
+                permission: "company_types.read",
+                description:
+                    "Quản lý danh mục loại hình doanh nghiệp áp dụng cho công ty.",
+            },
         ],
     },
     {

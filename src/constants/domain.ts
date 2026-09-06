@@ -55,6 +55,37 @@ export const ROLE_LABEL: Record<Role, string> = {
     admin: "Quản trị viên",
 };
 
+// Vai tro KHONG duoc phep xuat hien trong "Tạo tài khoản" du duoc cau hinh
+// vao allowedCreatableRoles cua vai tro nao - dung o RoleListPage.tsx de an
+// khoi danh sach checkbox "Vai trò được phép tạo" khi sửa một Role (chọn các
+// vai trò này cũng vô nghĩa vì backend luôn từ chối - xem
+// ACCOUNT_CREATION_RESERVED_ROLE_KEYS/userService.getCreatableRolesForActor).
+// Cac vai tro nay gan vao TAI KHOAN DA CO SAN qua cac luong khac (vd "Gán vai
+// trò mới" trong UserListPage, hoặc gán cán bộ ở WardManagementPage) thay vì
+// tạo tài khoản phone+password mới. Phải khớp với
+// ACCOUNT_CREATION_RESERVED_ROLE_KEYS ở backend (validators/user.ts).
+export const ACCOUNT_CREATION_RESERVED_ROLE_KEYS: Role[] = [
+    "admin",
+    "household_head",
+    "secretary",
+    "regional_police",
+    "people_committee_official",
+];
+
+// 3 vai tro CO DINH duoc gan vao mot nhiem ky To dan pho cu the qua trang chi
+// tiet To dan pho (xem neighborhoodService.ts - assignNeighborhoodLeader/
+// assignNeighborhoodColeader/kiem tra neighborhood_collaborator, deu hardcode
+// dung 3 key nay, KHONG doc tu Role collection). Vai tro tuy chinh admin them
+// sau nay (vd social_cultral_leader) chua co man gan theo nhiem ky tuong tu -
+// dung rieng danh sach nay (khac ACCOUNT_CREATION_RESERVED_ROLE_KEYS o tren)
+// de chi hien goi y "vào trang Tổ dân phố để gán" cho dung 3 vai tro thuc su
+// co man do, tranh gay hieu lam voi vai tro tuy chinh.
+export const NEIGHBORHOOD_TERM_ROLE_KEYS: Role[] = [
+    "neighborhood_leader",
+    "neighborhood_coleader",
+    "neighborhood_collaborator",
+];
+
 // Danh sach nhom phan anh 10 loai cu (truoc khi co ComplaintTypeDefinition
 // quan tri duoc qua man Loai phan anh). Chi con dung lam gia tri khoi tao
 // truoc khi goi API xong, va lam fallback nhan cho key khong tim thay trong

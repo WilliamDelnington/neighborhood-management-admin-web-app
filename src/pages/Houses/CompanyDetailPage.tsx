@@ -71,6 +71,10 @@ const toFormValues = (c: Company): CompanyFormValues => {
         businessTypeIds: (c.businessTypeIds || [])
             .map(bt => (typeof bt === "object" ? bt._id : bt))
             .filter(Boolean),
+        companyTypeId:
+            c.companyTypeId && typeof c.companyTypeId === "object"
+                ? c.companyTypeId._id
+                : c.companyTypeId || "",
         phone: c.phone || "",
         active: c.active,
         note: c.note || "",
@@ -283,6 +287,15 @@ const CompanyDetailContent: React.FC = () => {
                                             )
                                             .filter(Boolean)
                                             .join(", ") || "Chưa phân loại"
+                                    }
+                                />
+                                <InfoRow
+                                    label="Loại hình doanh nghiệp"
+                                    value={
+                                        company.companyTypeId &&
+                                        typeof company.companyTypeId === "object"
+                                            ? company.companyTypeId.name
+                                            : "Chưa chọn"
                                     }
                                 />
                                 <InfoRow

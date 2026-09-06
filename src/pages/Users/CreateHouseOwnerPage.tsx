@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import PageHeader from "@components/admin/PageHeader";
@@ -12,10 +12,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import { useAuthStore } from "@store/authStore";
-import { ROLE_LABEL } from "@constants/domain";
-import { AppError } from "@dts";
-import { createHouseOwner, CreatableStaffRole } from "@service/userApi";
+import { NEIGHBORHOOD_TERM_ROLE_KEYS, ROLE_LABEL } from "@constants/domain";
+import { AppError, Role } from "@dts";
+import {
+    createHouseOwner,
+    CreatableStaffRole,
+    fetchCreatableRoles,
+} from "@service/userApi";
 
 type FormState = {
     phone: string;
@@ -35,16 +38,6 @@ const EMPTY_FORM: FormState = {
     role: "house_owner",
 };
 
-// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai chi
-// hien voi admin (backend cung tu choi neu khong phai admin - xem
-// userService.createHouseOwnerByStaff) - day la cac vai tro pham vi rong (to
-// truong/to pho) hoac can gan vao mot To dan pho cu the sau khi tao.
-const STAFF_ONLY_ROLES: CreatableStaffRole[] = [
-    "neighborhood_leader",
-    "neighborhood_coleader",
-    "neighborhood_collaborator",
-];
-
 const CreateHouseOwnerPage: React.FC = () => (
     <AdminGuard permissions={["users.create"]}>
         <CreateHouseOwnerContent />
@@ -54,9 +47,9 @@ const CreateHouseOwnerPage: React.FC = () => (
 /**
  * Man rieng (khong dung chung UserListPage - trang do doi hoi quyen
  * "users.read", von liet ke TOAN BO tai khoan he thong khong loc theo to dan
- * pho) de to truong/admin tao tai khoan chu ho (hoac to truong/to pho/cong
- * tac vien To dan pho, admin-only) ma khong bi cap them quyen xem het moi
- * nguoi dung.
+ * pho) de bat ky ai co "users.create" (to truong/to pho/admin/vai tro tuy
+ * chinh...) tao tai khoan chu ho (hoac vai tro khac neu duoc phep - xem
+ * fetchCreatableRoles) ma khong bi cap them quyen xem het moi nguoi dung.
  *
  * Tai khoan dang nhap bang chinh so dien thoai + mat khau duoc dat o day (TAM
  * THOI dung phone+password thay OTP/Zalo - dang nhap Zalo da bi go khoi
@@ -68,10 +61,30 @@ const CreateHouseOwnerPage: React.FC = () => (
  * pho/cong tac vien" tren trang chi tiet To dan pho sau khi tao.
  */
 const CreateHouseOwnerContent: React.FC = () => {
-    const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
     const [lastCreatedPhone, setLastCreatedPhone] = useState<string | null>(null);
+    // Vai tro duoc phep chon khi "Tạo tài khoản" - LUON goi tu backend
+    // (fetchCreatableRoles, xem userService.getCreatableRolesForActor), KHONG
+    // tu suy luan lai o client - xem cung logic o UserListPage.tsx. Trang nay
+    // da doi hoi "users.create" qua AdminGuard nen goi thang, khong can gate
+    // them theo isAdmin.
+    const [creatableRoles, setCreatableRoles] = useState<
+        { key: Role; name: string }[]
+    >([]);
+
+    useEffect(() => {
+        fetchCreatableRoles()
+            .then(setCreatableRoles)
+            .catch(() => setCreatableRoles([]));
+    }, []);
+
+    const roleNameByKey = useMemo(
+        () => Object.fromEntries(creatableRoles.map(r => [r.key, r.name])),
+        [creatableRoles],
+    );
+    const roleLabel = (key: CreatableStaffRole) =>
+        roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
 
     const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
         setForm(prev => ({ ...prev, [key]: value }));
@@ -99,7 +112,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                 role: form.role,
                 password: form.password.trim(),
             });
-            toast.success(`Đã tạo tài khoản ${ROLE_LABEL[form.role]} mới`);
+            toast.success(`Đã tạo tài khoản ${roleLabel(form.role)} mới`);
             setLastCreatedPhone(form.phone.trim());
             setForm(EMPTY_FORM);
         } catch (err) {
@@ -121,11 +134,11 @@ const CreateHouseOwnerContent: React.FC = () => {
                     Đã tạo tài khoản với số điện thoại <strong>{lastCreatedPhone}</strong>.
                     Đăng nhập trong Mini App bằng số điện thoại và mật khẩu
                     vừa đặt.
-                    {STAFF_ONLY_ROLES.includes(form.role) && (
+                    {NEIGHBORHOOD_TERM_ROLE_KEYS.includes(form.role) && (
                         <>
                             {" "}
                             Vào trang chi tiết Tổ dân phố để gán tài khoản này
-                            làm {ROLE_LABEL[form.role]} của một tổ cụ thể.
+                            làm {roleLabel(form.role)} của một tổ cụ thể.
                         </>
                     )}
                 </div>
@@ -133,7 +146,7 @@ const CreateHouseOwnerContent: React.FC = () => {
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                 <div className="flex flex-col gap-4">
-                    {isAdmin && (
+                    {creatableRoles.length > 1 && (
                         <div className="space-y-1.5">
                             <Label>Vai trò</Label>
                             <Select
@@ -146,12 +159,9 @@ const CreateHouseOwnerContent: React.FC = () => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="house_owner">
-                                        {ROLE_LABEL.house_owner}
-                                    </SelectItem>
-                                    {STAFF_ONLY_ROLES.map(role => (
-                                        <SelectItem key={role} value={role}>
-                                            {ROLE_LABEL[role]}
+                                    {creatableRoles.map(r => (
+                                        <SelectItem key={r.key} value={r.key}>
+                                            {r.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

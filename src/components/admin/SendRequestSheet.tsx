@@ -178,8 +178,14 @@ const SendRequestSheet: React.FC<SendRequestSheetProps> = ({
                 houseRole: form.houseRole || undefined,
                 targetHouseNeighborhoodLeader:
                     form.targetHouseNeighborhoodLeader || undefined,
+                // Chi gui formData khi dinh nghia THUC SU co truong nhap
+                // (fields.length > 0) - khong con dung "builtIn" de quyet
+                // dinh, vi loai built-in (pccc/security/other/task) gio la
+                // RequestTypeDefinition that va co the duoc gan them truong
+                // tuy chinh qua man quan ly (isBuiltIn=true khong con nghia
+                // la "khong co bieu mau").
                 formData:
-                    selectedDefinition && !selectedDefinition.builtIn
+                    selectedDefinition && selectedDefinition.fields.length > 0
                         ? form.formData
                         : undefined,
             });

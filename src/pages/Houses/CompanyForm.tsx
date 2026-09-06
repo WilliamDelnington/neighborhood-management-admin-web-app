@@ -3,11 +3,21 @@ import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import RepresentativeUserPicker from "@components/admin/RepresentativeUserPicker";
 import OrganizationPicker from "@components/admin/OrganizationPicker";
-import { BusinessType, Organization, User } from "@dts";
+import { BusinessType, CompanyType, Organization, User } from "@dts";
 import { CompanyInput } from "@service/companyApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
+import { fetchCompanyTypes } from "@service/companyTypeApi";
+
+const NO_COMPANY_TYPE = "none";
 
 export interface CompanyFormValues {
     name: string;
@@ -22,6 +32,9 @@ export interface CompanyFormValues {
     // Nhieu loai hinh kinh doanh cung luc (khac Business - mot gia tri duy
     // nhat) - xem ghi chu tren models/Company.ts o backend.
     businessTypeIds: string[];
+    // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
+    // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
+    companyTypeId: string;
     phone: string;
     active: boolean;
     note: string;
@@ -36,6 +49,7 @@ export const EMPTY_COMPANY_FORM: CompanyFormValues = {
     organizationId: "",
     organizationLabel: "",
     businessTypeIds: [],
+    companyTypeId: "",
     phone: "",
     active: true,
     note: "",
@@ -53,6 +67,7 @@ export function toCompanyInput(
         representativeUserId: values.representativeUserId || null,
         organizationId: values.organizationId || null,
         businessTypeIds: values.businessTypeIds,
+        companyTypeId: values.companyTypeId || null,
         phone: values.phone.trim() || undefined,
         active: values.active,
         note: values.note.trim() || undefined,
@@ -76,6 +91,7 @@ interface CompanyFormProps {
  */
 const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
     const [businessTypes, setBusinessTypes] = useState<BusinessType[]>([]);
+    const [companyTypes, setCompanyTypes] = useState<CompanyType[]>([]);
 
     const set = <K extends keyof CompanyFormValues>(
         key: K,
@@ -86,6 +102,9 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
         fetchBusinessTypes({ active: true, limit: 100 })
             .then(res => setBusinessTypes(res.items))
             .catch(() => setBusinessTypes([]));
+        fetchCompanyTypes({ active: true, limit: 100 })
+            .then(res => setCompanyTypes(res.items))
+            .catch(() => setCompanyTypes([]));
     }, []);
 
     return (
@@ -133,6 +152,29 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
                         </p>
                     )}
                 </div>
+            </div>
+            <div className="space-y-1.5">
+                <Label>Loại hình doanh nghiệp</Label>
+                <Select
+                    value={values.companyTypeId || NO_COMPANY_TYPE}
+                    onValueChange={v =>
+                        set("companyTypeId", v === NO_COMPANY_TYPE ? "" : v)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại hình doanh nghiệp" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={NO_COMPANY_TYPE}>
+                            Chưa chọn
+                        </SelectItem>
+                        {companyTypes.map(ct => (
+                            <SelectItem key={ct._id} value={ct._id}>
+                                {ct.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-1.5">
                 <Label>Người đại diện</Label>

@@ -34,12 +34,18 @@ import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
-import { ROLE_LABEL, USER_STATUS_LABEL, USER_STATUS_TONE } from "@constants/domain";
+import {
+    NEIGHBORHOOD_TERM_ROLE_KEYS,
+    ROLE_LABEL,
+    USER_STATUS_LABEL,
+    USER_STATUS_TONE,
+} from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     assignUserRole,
     createHouseOwner,
     CreatableStaffRole,
+    fetchCreatableRoles,
     fetchUsers,
     lockUserAccount,
     resetUserPassword,
@@ -53,7 +59,7 @@ import {
     fetchProvinces,
     fetchWardsByProvince,
 } from "@service/administrativeDivisionApi";
-import { usePermission, useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 
 const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
 const PEOPLE_COMMITTEE_OFFICIAL_ROLE = "people_committee_official";
@@ -81,15 +87,6 @@ const EMPTY_CREATE_FORM: CreateAccountForm = {
     role: "house_owner",
 };
 
-// house_owner mo cho bat ky ai co quyen "users.create"; 3 vai tro con lai chi
-// hien voi admin (backend cung tu choi neu khong phai admin - xem
-// userService.createHouseOwnerByStaff).
-const CREATE_STAFF_ONLY_ROLES: CreatableStaffRole[] = [
-    "neighborhood_leader",
-    "neighborhood_coleader",
-    "neighborhood_collaborator",
-];
-
 const UserListPage: React.FC = () => (
     <AdminGuard permissions={["users.read"]}>
         <UserListContent />
@@ -108,7 +105,6 @@ const UserListContent: React.FC = () => {
     // (gioi han theo pham vi to dan pho o backend) nhung khong co users.update -
     // xem systemRoles.ts.
     const canResetPassword = usePermission("users.reset_password");
-    const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     // to truong khong co roles.read - goi fetchRoles se luon 403. Danh sach
     // nay chi phuc vu bo loc theo vai tro + man gan vai tro (da an voi to
     // truong qua canAssignRoles), nen bo qua hoan toan thay vi goi roi bo ket
@@ -118,9 +114,25 @@ const UserListContent: React.FC = () => {
     const [role, setRole] = useState<Role | "">("");
     const [items, setItems] = useState<User[]>([]);
     const [roles, setRoles] = useState<RoleRecord[]>([]);
+    // Vai tro duoc phep chon khi "Tạo tài khoản" - LUON goi tu backend
+    // (fetchCreatableRoles, xem userService.getCreatableRolesForActor), KHONG
+    // tu suy luan lai o client: phu thuoc permission dong (Role.
+    // allowedCreatableRoles) cua CHINH actor dang dang nhap, khong chi admin
+    // moi thay - vd neighborhood_leader duoc admin cap quyen tao them
+    // social_cultral_leader se thay dung 2 lua chon (house_owner + vai tro do).
+    const [creatableRoles, setCreatableRoles] = useState<
+        { key: Role; name: string }[]
+    >([]);
     const roleNameByKey = React.useMemo(
-        () => Object.fromEntries(roles.map(r => [r.key, r.name])),
-        [roles],
+        () =>
+            Object.fromEntries([
+                // to truong khong co roles.read nen `roles` co the rong -
+                // creatableRoles (chi doi hoi users.create) la nguon du phong
+                // de van hien dung ten vai tro tuy chinh trong toast/goi y.
+                ...creatableRoles.map(r => [r.key, r.name]),
+                ...roles.map(r => [r.key, r.name]),
+            ]),
+        [roles, creatableRoles],
     );
     const roleLabel = (key: Role) => roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
     const [page, setPage] = useState(1);
@@ -220,7 +232,7 @@ const UserListContent: React.FC = () => {
                 role: createForm.role,
                 password: createForm.password.trim(),
             });
-            toast.success(`Đã tạo tài khoản ${ROLE_LABEL[createForm.role]} mới`);
+            toast.success(`Đã tạo tài khoản ${roleLabel(createForm.role)} mới`);
             setLastCreatedPhone(createForm.phone.trim());
             setCreateForm(EMPTY_CREATE_FORM);
             load(page, search);
@@ -244,6 +256,14 @@ const UserListContent: React.FC = () => {
             .catch(() => setRoles([]));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canReadRoles]);
+
+    useEffect(() => {
+        if (!canCreateAccount) return;
+        fetchCreatableRoles()
+            .then(setCreatableRoles)
+            .catch(() => setCreatableRoles([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canCreateAccount]);
 
     useEffect(() => {
         if (!canFullUpdate) return;
@@ -914,18 +934,18 @@ const UserListContent: React.FC = () => {
                                 <strong>{lastCreatedPhone}</strong>. Đăng nhập
                                 trong Mini App bằng số điện thoại và mật khẩu
                                 vừa đặt.
-                                {CREATE_STAFF_ONLY_ROLES.includes(createForm.role) && (
+                                {NEIGHBORHOOD_TERM_ROLE_KEYS.includes(createForm.role) && (
                                     <>
                                         {" "}
                                         Vào trang chi tiết Tổ dân phố để gán
                                         tài khoản này làm{" "}
-                                        {ROLE_LABEL[createForm.role]} của một
+                                        {roleLabel(createForm.role)} của một
                                         tổ cụ thể.
                                     </>
                                 )}
                             </div>
                         )}
-                        {isAdmin && (
+                        {creatableRoles.length > 1 && (
                             <div className="space-y-1.5">
                                 <Label>Vai trò</Label>
                                 <Select
@@ -941,12 +961,9 @@ const UserListContent: React.FC = () => {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="house_owner">
-                                            {ROLE_LABEL.house_owner}
-                                        </SelectItem>
-                                        {CREATE_STAFF_ONLY_ROLES.map(r => (
-                                            <SelectItem key={r} value={r}>
-                                                {ROLE_LABEL[r]}
+                                        {creatableRoles.map(r => (
+                                            <SelectItem key={r.key} value={r.key}>
+                                                {r.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

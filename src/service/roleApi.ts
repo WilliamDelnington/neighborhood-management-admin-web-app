@@ -30,6 +30,7 @@ export interface CreateRoleParams {
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
     allowedRequestTypes?: RequestType[];
+    allowedCreatableRoles?: string[];
     active?: boolean;
     sortOrder?: number;
 }
@@ -43,6 +44,7 @@ export interface UpdateRoleParams {
     permissions?: string[];
     allowedComplaintCategories?: NhomPhanAnh[] | null;
     allowedRequestTypes?: RequestType[] | null;
+    allowedCreatableRoles?: string[];
     active?: boolean;
     sortOrder?: number;
 }

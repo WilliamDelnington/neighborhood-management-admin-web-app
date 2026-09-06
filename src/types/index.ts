@@ -103,6 +103,10 @@ export type RoleRecord = {
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
     allowedRequestTypes?: RequestType[];
+    // Vai tro duoc phep chon khi "Tạo tài khoản" (POST /api/users) - KHAC 2
+    // truong tren, khong dung quy uoc undefined = khong gioi han (mac dinh
+    // rong la an toan vi day la quyen nhay cam) - xem Role.ts o backend.
+    allowedCreatableRoles: string[];
     system: boolean;
     active: boolean;
     sortOrder: number;
@@ -151,6 +155,19 @@ export type BusinessType = {
     active: boolean;
     sortOrder: number;
     requiredDocuments: BusinessTypeDocumentRule[];
+    createdAt: string;
+    updatedAt: string;
+};
+
+// Loai hinh doanh nghiep (phap ly) - CHI danh cho Company, khac BusinessType
+// (nganh nghe kinh doanh, dung chung voi Business) - khong co requiredDocuments
+// rieng, xem ghi chu tren models/Company.ts o backend.
+export type CompanyType = {
+    _id: string;
+    name: string;
+    description?: string;
+    active: boolean;
+    sortOrder: number;
     createdAt: string;
     updatedAt: string;
 };
@@ -586,6 +603,9 @@ export type Company = {
     // Nhieu loai hinh kinh doanh cung luc (khac Business.businessType - mot
     // gia tri duy nhat) - xem ghi chu tren models/Company.ts o backend.
     businessTypeIds?: ({ _id: string; name: string } | string)[];
+    // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
+    // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
+    companyTypeId?: { _id: string; name: string } | string | null;
     phone?: string;
     active: boolean;
     status: VerificationStatus;

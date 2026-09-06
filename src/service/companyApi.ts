@@ -28,6 +28,9 @@ export interface CompanyInput {
     // Nhieu loai hinh kinh doanh cung luc (khac Business - mot gia tri duy
     // nhat) - mang rong = khong gan loai hinh nao.
     businessTypeIds?: string[];
+    // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
+    // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
+    companyTypeId?: string | null;
     phone?: string;
     active?: boolean;
     note?: string;
@@ -37,6 +40,7 @@ export const fetchCompanies = (params?: {
     search?: string;
     status?: VerificationStatus;
     businessType?: string;
+    companyType?: string;
     page?: number;
     limit?: number;
 }): Promise<PaginatedData<Company>> =>

@@ -144,6 +144,14 @@ export interface ImportJob<T = StreetImportPreviewRow> {
     totalRows: number;
     validRows: number;
     headers: string[];
+    // Tat ca ten sheet co trong file da upload (khong chi sheet duoc doc) -
+    // dung de hien thi/chon lai sheet khi file co nhieu hon 1 sheet (xem
+    // sourceSheetName va uploadXImportFile(file, sheetName)).
+    availableSheetNames: string[];
+    // Ten sheet THUC SU da duoc doc de tao headers/previewData o tren - mac
+    // dinh la sheet dau tien trong file neu khong chi dinh sheetName luc
+    // upload.
+    sourceSheetName: string;
     suggestedMapping: Record<string, string>;
     columnMapping: Record<string, string>;
     rowErrors: ImportRowError[];
@@ -173,9 +181,13 @@ export interface BusinessColumnMapping {
     note?: string;
 }
 
-export const uploadStreetImportFile = (file: File): Promise<ImportJob> => {
+export const uploadStreetImportFile = (
+    file: File,
+    sheetName?: string,
+): Promise<ImportJob> => {
     const formData = new FormData();
     formData.append("file", file);
+    if (sheetName) formData.append("sheetName", sheetName);
     return request<ImportJob>("POST", `${API.IMPORT}/streets`, formData);
 };
 
@@ -194,9 +206,11 @@ export const commitStreetImport = (jobId: string): Promise<ImportJob> =>
 
 export const uploadHouseImportFile = (
     file: File,
+    sheetName?: string,
 ): Promise<ImportJob<HouseImportPreviewRow>> => {
     const formData = new FormData();
     formData.append("file", file);
+    if (sheetName) formData.append("sheetName", sheetName);
     return request<ImportJob<HouseImportPreviewRow>>(
         "POST",
         `${API.IMPORT}/houses`,
@@ -224,9 +238,11 @@ export const commitHouseImport = (
 
 export const uploadBusinessImportFile = (
     file: File,
+    sheetName?: string,
 ): Promise<ImportJob<BusinessImportPreviewRow>> => {
     const formData = new FormData();
     formData.append("file", file);
+    if (sheetName) formData.append("sheetName", sheetName);
     return request<ImportJob<BusinessImportPreviewRow>>(
         "POST",
         `${API.IMPORT}/businesses`,
@@ -254,9 +270,11 @@ export const commitBusinessImport = (
 
 export const uploadCitizenImportFile = (
     file: File,
+    sheetName?: string,
 ): Promise<ImportJob<CitizenImportPreviewRow>> => {
     const formData = new FormData();
     formData.append("file", file);
+    if (sheetName) formData.append("sheetName", sheetName);
     return request<ImportJob<CitizenImportPreviewRow>>(
         "POST",
         `${API.IMPORT}/citizens`,

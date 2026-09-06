@@ -41,7 +41,7 @@ import {
     RequestType,
     RoleRecord,
 } from "@dts";
-import { NHOM_PHAN_ANH_LABEL, REQUEST_TYPE_LABEL } from "@constants/domain";
+import { ACCOUNT_CREATION_RESERVED_ROLE_KEYS, NHOM_PHAN_ANH_LABEL } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     createRole,
@@ -70,6 +70,10 @@ type FormState = {
     allowedComplaintCategories: NhomPhanAnh[] | null;
     // null = khong gioi han (gui duoc tat ca loai yeu cau) - cung quy uoc.
     allowedRequestTypes: RequestType[] | null;
+    // KHAC 2 truong tren: mang thuong (khong co gia tri null/"khong gioi
+    // han") - rong = khong duoc tao vai tro nao ngoai house_owner khi "Tạo
+    // tài khoản" (mac dinh an toan, xem Role.ts o backend).
+    allowedCreatableRoles: string[];
 };
 
 const EMPTY_FORM: FormState = {
@@ -81,6 +85,7 @@ const EMPTY_FORM: FormState = {
     permissions: [],
     allowedComplaintCategories: null,
     allowedRequestTypes: null,
+    allowedCreatableRoles: [],
 };
 
 const RoleListContent: React.FC = () => {
@@ -92,9 +97,7 @@ const RoleListContent: React.FC = () => {
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
     const [requestTypeOptions, setRequestTypeOptions] = useState<
         Array<{ key: RequestType; name: string }>
-    >(
-        Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({ key, name })),
-    );
+    >([]);
     const [complaintCategoryOptions, setComplaintCategoryOptions] = useState<
         Array<{ key: NhomPhanAnh; name: string }>
     >(
@@ -128,16 +131,12 @@ const RoleListContent: React.FC = () => {
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
-                setRequestTypeOptions([
-                    ...Object.entries(REQUEST_TYPE_LABEL).map(([key, name]) => ({
-                        key,
-                        name,
-                    })),
-                    ...customTypes.items.map(type => ({
+                setRequestTypeOptions(
+                    customTypes.items.map(type => ({
                         key: type.key,
                         name: type.name,
                     })),
-                ]);
+                );
                 setComplaintCategoryOptions(
                     complaintTypes.items.map(type => ({
                         key: type.key,
@@ -170,8 +169,29 @@ const RoleListContent: React.FC = () => {
             permissions: role.permissions,
             allowedComplaintCategories: role.allowedComplaintCategories ?? null,
             allowedRequestTypes: role.allowedRequestTypes ?? null,
+            allowedCreatableRoles: role.allowedCreatableRoles ?? [],
         });
         setSheetOpen(true);
+    };
+
+    // Lua chon cho checkbox "Vai trò được phép tạo" - tru house_owner (luon
+    // mo san, khong can chon), cac vai tro trong ACCOUNT_CREATION_RESERVED_ROLE_KEYS
+    // (khong bao gio duoc phep du co chon), va chinh vai tro dang sua (tu-tham-chieu
+    // vo nghia).
+    const creatableRoleOptions = roles.filter(
+        r =>
+            r.key !== "house_owner" &&
+            r.key !== editingRole?.key &&
+            !ACCOUNT_CREATION_RESERVED_ROLE_KEYS.includes(r.key),
+    );
+
+    const toggleCreatableRole = (key: string) => {
+        setForm(prev => ({
+            ...prev,
+            allowedCreatableRoles: prev.allowedCreatableRoles.includes(key)
+                ? prev.allowedCreatableRoles.filter(k => k !== key)
+                : [...prev.allowedCreatableRoles, key],
+        }));
     };
 
     const toggleComplaintCategoryRestriction = (restricted: boolean) => {
@@ -248,6 +268,7 @@ const RoleListContent: React.FC = () => {
                         : {}),
                     allowedComplaintCategories: form.allowedComplaintCategories,
                     allowedRequestTypes: form.allowedRequestTypes,
+                    allowedCreatableRoles: form.allowedCreatableRoles,
                 });
                 load(page);
                 toast.success("Đã cập nhật vai trò");
@@ -262,6 +283,7 @@ const RoleListContent: React.FC = () => {
                     allowedComplaintCategories:
                         form.allowedComplaintCategories ?? undefined,
                     allowedRequestTypes: form.allowedRequestTypes ?? undefined,
+                    allowedCreatableRoles: form.allowedCreatableRoles,
                 });
                 load(1);
                 toast.success("Đã tạo vai trò mới");
@@ -615,6 +637,41 @@ const RoleListContent: React.FC = () => {
                                     ))}
                                 </div>
                             )}
+                        </div>
+
+                        <div className="mt-5 border-t border-divider_01 pt-4">
+                            <h3 className="mb-1 text-sm font-semibold">
+                                Vai trò được phép tạo khi &quot;Tạo tài
+                                khoản&quot;
+                            </h3>
+                            <p className="mb-3 text-xs text-text_2">
+                                Người giữ vai trò này sẽ thấy thêm các vai trò
+                                dưới đây (ngoài Chủ sở hữu, luôn mở sẵn) khi
+                                tạo tài khoản mới trong UserListPage/Zalo Mini
+                                App/app cư dân. Mặc định không chọn vai trò nào
+                                (an toàn) - phải chốt thủ công từng vai trò.
+                            </p>
+                            <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {creatableRoleOptions.map(option => (
+                                    <div
+                                        key={option.key}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Checkbox
+                                            checked={form.allowedCreatableRoles.includes(
+                                                option.key,
+                                            )}
+                                            disabled={!canEditCurrentRole}
+                                            onCheckedChange={() =>
+                                                toggleCreatableRole(option.key)
+                                            }
+                                        />
+                                        <Label className="text-sm font-normal">
+                                            {option.name}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         {(editingRole ? canUpdate : canCreate) && (

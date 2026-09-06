@@ -17,6 +17,7 @@ export const API = {
 
     USERS: "/api/users",
     USERS_ASSIGNABLE_STAFF: "/api/users/assignable-staff",
+    USERS_CREATABLE_ROLES: "/api/users/creatable-roles",
     USERS_SEARCH_RESIDENTS: "/api/users/search-residents",
     ROLES: "/api/roles",
     ROLES_PERMISSIONS: "/api/roles/permissions",
@@ -43,6 +44,7 @@ export const API = {
     BUSINESS_TYPES: "/api/business-types",
     BUSINESSES: "/api/businesses",
     COMPANIES: "/api/companies",
+    COMPANY_TYPES: "/api/company-types",
     USAGE_UNITS: "/api/usage-units",
     DOCUMENT_TYPES: "/api/document-types",
 

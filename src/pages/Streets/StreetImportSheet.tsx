@@ -59,6 +59,10 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
     const [job, setJob] = useState<ImportJob | null>(null);
     const [mapping, setMapping] = useState<MappingForm>(EMPTY_MAPPING);
     const [showMapping, setShowMapping] = useState(false);
+    // Sheet nguon da chon de doc (chi co y nghia khi file co nhieu hon 1
+    // sheet - xem job.availableSheetNames/job.sourceSheetName). Rong = de
+    // backend tu chon sheet dau tien (mac dinh).
+    const [sheetName, setSheetName] = useState("");
     const [uploading, setUploading] = useState(false);
     const [downloadingTemplate, setDownloadingTemplate] = useState(false);
     const [applying, setApplying] = useState(false);
@@ -69,6 +73,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         setJob(null);
         setMapping(EMPTY_MAPPING);
         setShowMapping(false);
+        setSheetName("");
         setUploading(false);
         setApplying(false);
         setCommitting(false);
@@ -83,6 +88,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         setJob(null);
         setMapping(EMPTY_MAPPING);
         setShowMapping(false);
+        setSheetName("");
         setFile(e.target.files?.[0] || null);
     };
 
@@ -97,11 +103,14 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         }
     };
 
-    const handleUpload = async () => {
+    const handleUpload = async (overrideSheetName?: string) => {
         if (!file) return;
         try {
             setUploading(true);
-            const result = await uploadStreetImportFile(file);
+            const result = await uploadStreetImportFile(
+                file,
+                overrideSheetName || sheetName || undefined,
+            );
             setJob(result);
             setMapping({
                 name: result.suggestedMapping.name || "",
@@ -114,6 +123,13 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         } finally {
             setUploading(false);
         }
+    };
+
+    // Doc lai file DA CHON voi mot sheet khac - dung khi sheet mac dinh (dau
+    // tien) khong phai sheet nguoi dung can.
+    const handleRereadWithSheet = (nextSheetName: string) => {
+        setSheetName(nextSheetName);
+        handleUpload(nextSheetName);
     };
 
     const handleApplyMapping = async () => {
@@ -203,6 +219,36 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                                 />
                             </div>
                         </>
+                    )}
+
+                    {job && job.availableSheetNames.length > 1 && (
+                        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                            <p>
+                                File này có {job.availableSheetNames.length}{" "}
+                                sheet: {job.availableSheetNames.join(", ")}.
+                                Đang đọc dữ liệu từ sheet{" "}
+                                <strong>&quot;{job.sourceSheetName}&quot;</strong>.
+                                Nếu đây không phải sheet chứa dữ liệu đường/
+                                phố, chọn đúng sheet bên dưới rồi tải lên lại.
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Select
+                                    value={job.sourceSheetName}
+                                    onValueChange={handleRereadWithSheet}
+                                >
+                                    <SelectTrigger className="h-8 bg-white text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {job.availableSheetNames.map(name => (
+                                            <SelectItem key={name} value={name}>
+                                                {name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     )}
 
                     {job && showMapping && (
@@ -387,7 +433,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                             className="w-full"
                             disabled={!file}
                             loading={uploading}
-                            onClick={handleUpload}
+                            onClick={() => handleUpload()}
                         >
                             <UploadCloud className="mr-1 h-4 w-4" />
                             Tải lên
