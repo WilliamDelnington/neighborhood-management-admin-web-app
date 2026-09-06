@@ -7,6 +7,7 @@ import { fetchMe } from "@service/authApi";
 import AdminGuard from "@components/auth/AdminGuard";
 import RequireNeighborhoodAssignment from "@components/auth/RequireNeighborhoodAssignment";
 import AdminLayout from "@components/layout/AdminLayout";
+import DocumentMeta from "@components/layout/DocumentMeta";
 import LoginPage from "@pages/Login/LoginPage";
 
 const DashboardPage = React.lazy(
@@ -241,6 +242,7 @@ const App: React.FC = () => {
     return (
         <BrowserRouter>
             <Toaster richColors position="top-right" />
+            <DocumentMeta />
             <Suspense fallback={<PageFallback />}>
                 <Routes>
                     <Route path="/login" element={<LoginPage />} />

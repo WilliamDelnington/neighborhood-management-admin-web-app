@@ -12,11 +12,14 @@ import { resolveAssetUrl } from "@constants/common";
 import { MODULES, ModuleItem } from "@constants/modules";
 import { AppError } from "@dts";
 import {
+    deleteAppFavicon,
     deleteAppLogo,
     fetchAllSettings,
     upsertSetting,
+    uploadAppFavicon,
     uploadAppLogo,
 } from "@service/settingsApi";
+import { useAppBrandStore } from "@store/appBrandStore";
 import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
 
 // Setting dung chung de admin ghi de mo ta hien thi tren cac muc menu sidebar
@@ -25,6 +28,17 @@ import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
 // - xem SectionDescriptionsPanel ben duoi va sectionDescriptionsStore.ts (cache
 // dung chung ma AdminLayout.tsx/PageHeader.tsx doc lai gia tri nay).
 const SECTION_DESCRIPTIONS_KEY = "section_descriptions";
+const APP_LOGO_KEY = "app_logo_url";
+const APP_TAB_TITLE_KEY = "app_tab_title";
+const APP_FAVICON_KEY = "app_favicon_url";
+// Cac key co man chinh sua rieng (Logo / Tab trinh duyet / section_descriptions
+// o duoi) - an khoi danh sach cau hinh chung de tranh hien trung lap.
+const HIDDEN_SETTING_KEYS = new Set([
+    SECTION_DESCRIPTIONS_KEY,
+    APP_LOGO_KEY,
+    APP_TAB_TITLE_KEY,
+    APP_FAVICON_KEY,
+]);
 
 type EditableSetting = {
     key: string;
@@ -100,6 +114,15 @@ const SettingsContent: React.FC = () => {
     const [removingLogo, setRemovingLogo] = useState(false);
     const logoInputRef = useRef<HTMLInputElement>(null);
 
+    const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+    const [uploadingFavicon, setUploadingFavicon] = useState(false);
+    const [removingFavicon, setRemovingFavicon] = useState(false);
+    const faviconInputRef = useRef<HTMLInputElement>(null);
+    const [tabTitle, setTabTitle] = useState("");
+    const [savingTabTitle, setSavingTabTitle] = useState(false);
+
+    const setSharedBrand = useAppBrandStore(state => state.setBrand);
+
     const [sectionDescOverrides, setSectionDescOverrides] = useState<
         Record<string, string>
     >({});
@@ -117,15 +140,19 @@ const SettingsContent: React.FC = () => {
             .then(data => {
                 const mapped: Record<string, EditableSetting> = {};
                 Object.entries(data || {}).forEach(([key, value]) => {
-                    // section_descriptions co man chinh sua rieng
-                    // (SectionDescriptionsPanel) - khong hien lai duoi dang
-                    // JSON tho trong danh sach cau hinh chung.
-                    if (key === SECTION_DESCRIPTIONS_KEY) return;
+                    // Cac key co man chinh sua rieng (xem HIDDEN_SETTING_KEYS)
+                    // - khong hien lai duoi dang JSON tho trong danh sach cau
+                    // hinh chung.
+                    if (HIDDEN_SETTING_KEYS.has(key)) return;
                     mapped[key] = buildEditable(key, value);
                 });
                 setSettings(mapped);
-                const rawLogo = data?.app_logo_url;
+                const rawLogo = data?.[APP_LOGO_KEY];
                 setLogoUrl(typeof rawLogo === "string" ? rawLogo : null);
+                const rawFavicon = data?.[APP_FAVICON_KEY];
+                setFaviconUrl(typeof rawFavicon === "string" ? rawFavicon : null);
+                const rawTabTitle = data?.[APP_TAB_TITLE_KEY];
+                setTabTitle(typeof rawTabTitle === "string" ? rawTabTitle : "");
 
                 const rawOverrides = data?.[SECTION_DESCRIPTIONS_KEY];
                 const overrides =
@@ -157,6 +184,7 @@ const SettingsContent: React.FC = () => {
             setUploadingLogo(true);
             const setting = await uploadAppLogo(file);
             setLogoUrl(setting.value);
+            setSharedBrand({ logoUrl: setting.value });
             toast.success("Đã cập nhật logo");
         } catch (err) {
             toast.error((err as AppError).message);
@@ -170,11 +198,61 @@ const SettingsContent: React.FC = () => {
             setRemovingLogo(true);
             await deleteAppLogo();
             setLogoUrl(null);
+            setSharedBrand({ logoUrl: null });
             toast.success("Đã xóa logo, quay về chữ mặc định");
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
             setRemovingLogo(false);
+        }
+    };
+
+    const handleFaviconUploadClick = () => faviconInputRef.current?.click();
+
+    const handleFaviconFileSelected = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        try {
+            setUploadingFavicon(true);
+            const setting = await uploadAppFavicon(file);
+            setFaviconUrl(setting.value);
+            setSharedBrand({ faviconUrl: setting.value });
+            toast.success("Đã cập nhật biểu tượng tab");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUploadingFavicon(false);
+        }
+    };
+
+    const handleRemoveFavicon = async () => {
+        try {
+            setRemovingFavicon(true);
+            await deleteAppFavicon();
+            setFaviconUrl(null);
+            setSharedBrand({ faviconUrl: null });
+            toast.success("Đã xóa biểu tượng tab, quay về mặc định");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setRemovingFavicon(false);
+        }
+    };
+
+    const handleSaveTabTitle = async () => {
+        const text = tabTitle.trim();
+        try {
+            setSavingTabTitle(true);
+            await upsertSetting(APP_TAB_TITLE_KEY, text);
+            setSharedBrand({ tabTitle: text || null });
+            toast.success("Đã lưu tiêu đề tab");
+        } catch (err) {
+            toast.error((err as AppError).message || "Có lỗi xảy ra");
+        } finally {
+            setSavingTabTitle(false);
         }
     };
 
@@ -343,6 +421,81 @@ const SettingsContent: React.FC = () => {
                                 className="hidden"
                                 accept=".jpg,.jpeg,.png,.svg,.webp"
                                 onChange={handleLogoFileSelected}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
+                        <h2 className="mb-2 text-sm font-semibold">
+                            Tab trình duyệt
+                        </h2>
+                        <p className="mb-3 text-xs text-text_2">
+                            Đổi tiêu đề và biểu tượng hiển thị trên tab trình
+                            duyệt. Tiêu đề mục đang xem sẽ được thêm phía
+                            trước, ví dụ &quot;Cài đặt - {tabTitle || "Quản trị Tổ dân phố Hòa Bình"}
+                            &quot;.
+                        </p>
+
+                        <div className="mb-4 flex items-end gap-2">
+                            <div className="flex-1">
+                                <Label>Tiêu đề tab</Label>
+                                <Input
+                                    className="mt-1"
+                                    placeholder="Quản trị Tổ dân phố Hòa Bình"
+                                    value={tabTitle}
+                                    onChange={e => setTabTitle(e.target.value)}
+                                />
+                            </div>
+                            <Button
+                                size="sm"
+                                loading={savingTabTitle}
+                                onClick={handleSaveTabTitle}
+                            >
+                                Lưu
+                            </Button>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            {faviconUrl ? (
+                                <img
+                                    src={resolveAssetUrl(faviconUrl)}
+                                    alt="Biểu tượng tab hiện tại"
+                                    className="h-10 w-10 rounded-lg border border-divider_01 object-contain p-1"
+                                />
+                            ) : (
+                                <span className="text-sm text-text_2">
+                                    Chưa có biểu tượng riêng, đang dùng mặc
+                                    định
+                                </span>
+                            )}
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                loading={uploadingFavicon}
+                                onClick={handleFaviconUploadClick}
+                            >
+                                <Upload className="mr-1 h-3.5 w-3.5" />
+                                {faviconUrl
+                                    ? "Đổi biểu tượng"
+                                    : "Tải biểu tượng lên"}
+                            </Button>
+                            {faviconUrl && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="!text-red-500"
+                                    loading={removingFavicon}
+                                    onClick={handleRemoveFavicon}
+                                >
+                                    Xóa biểu tượng
+                                </Button>
+                            )}
+                            <input
+                                ref={faviconInputRef}
+                                type="file"
+                                className="hidden"
+                                accept=".ico,.png,.svg,.webp"
+                                onChange={handleFaviconFileSelected}
                             />
                         </div>
                     </div>

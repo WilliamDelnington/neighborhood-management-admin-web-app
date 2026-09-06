@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { cn } from "@lib/utils";
 import { resolveAssetUrl } from "@constants/common";
-import { fetchPublicSettings } from "@service/settingsApi";
+import { useAppBrandStore } from "@store/appBrandStore";
 
 const APP_NAME = "Quản lý Tổ dân phố";
 const WARD_NAME = "Phường Dương Nội";
@@ -18,16 +18,13 @@ export interface AppBrandProps {
  * nhat co hieu luc ca hai.
  */
 const AppBrand: React.FC<AppBrandProps> = ({ imgClassName, textClassName }) => {
-    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const logoUrl = useAppBrandStore(state => state.logoUrl);
+    const loaded = useAppBrandStore(state => state.loaded);
+    const load = useAppBrandStore(state => state.load);
 
     useEffect(() => {
-        fetchPublicSettings()
-            .then(settings => {
-                const url = settings.app_logo_url;
-                if (typeof url === "string" && url) setLogoUrl(url);
-            })
-            .catch(() => {});
-    }, []);
+        if (!loaded) load();
+    }, [loaded, load]);
 
     if (logoUrl) {
         return (

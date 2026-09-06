@@ -562,14 +562,18 @@ export const MODULES: ModuleItem[] = [
 // to segment - vd "/requests/my" khop voi module "requests" o "/requests").
 // Uu tien path dai nhat neu co nhieu module cung khop (vd "/users/new-house-owner"
 // phai khop voi "create_house_owner" chu khong phai "users"). Dung boi
-// PageHeader de tu suy ra section_descriptions key ma khong can moi trang tu
-// khai bao lai - xem SettingsPage.tsx (SectionDescriptionsPanel).
-export function findModuleKeyForPath(pathname: string): string | undefined {
+// PageHeader/DocumentMeta de tu suy ra module (mo ta/nhan) tu route hien tai
+// ma khong can moi trang tu khai bao lai.
+export function findModuleForPath(pathname: string): ModuleItem | undefined {
     const matches = MODULES.filter(
         m => pathname === m.path || pathname.startsWith(`${m.path}/`),
     );
     if (matches.length === 0) return undefined;
     return matches.reduce((best, m) =>
         m.path.length > best.path.length ? m : best,
-    ).key;
+    );
+}
+
+export function findModuleKeyForPath(pathname: string): string | undefined {
+    return findModuleForPath(pathname)?.key;
 }
