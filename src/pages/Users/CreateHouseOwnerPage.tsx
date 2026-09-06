@@ -12,15 +12,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import { useAuthStore } from "@store/authStore";
+import { NEIGHBORHOOD_TERM_ROLE_KEYS, ROLE_LABEL } from "@constants/domain";
+import { AppError, Role } from "@dts";
 import {
-    ACCOUNT_CREATION_RESERVED_ROLE_KEYS,
-    NEIGHBORHOOD_TERM_ROLE_KEYS,
-    ROLE_LABEL,
-} from "@constants/domain";
-import { AppError, RoleRecord } from "@dts";
-import { createHouseOwner, CreatableStaffRole } from "@service/userApi";
-import { fetchRoles } from "@service/roleApi";
+    createHouseOwner,
+    CreatableStaffRole,
+    fetchCreatableRoles,
+} from "@service/userApi";
 
 type FormState = {
     phone: string;
@@ -49,9 +47,9 @@ const CreateHouseOwnerPage: React.FC = () => (
 /**
  * Man rieng (khong dung chung UserListPage - trang do doi hoi quyen
  * "users.read", von liet ke TOAN BO tai khoan he thong khong loc theo to dan
- * pho) de to truong/admin tao tai khoan chu ho (hoac to truong/to pho/cong
- * tac vien To dan pho, admin-only) ma khong bi cap them quyen xem het moi
- * nguoi dung.
+ * pho) de bat ky ai co "users.create" (to truong/to pho/admin/vai tro tuy
+ * chinh...) tao tai khoan chu ho (hoac vai tro khac neu duoc phep - xem
+ * fetchCreatableRoles) ma khong bi cap them quyen xem het moi nguoi dung.
  *
  * Tai khoan dang nhap bang chinh so dien thoai + mat khau duoc dat o day (TAM
  * THOI dung phone+password thay OTP/Zalo - dang nhap Zalo da bi go khoi
@@ -63,38 +61,30 @@ const CreateHouseOwnerPage: React.FC = () => (
  * pho/cong tac vien" tren trang chi tiet To dan pho sau khi tao.
  */
 const CreateHouseOwnerContent: React.FC = () => {
-    const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
     const [lastCreatedPhone, setLastCreatedPhone] = useState<string | null>(null);
-    const [roles, setRoles] = useState<RoleRecord[]>([]);
+    // Vai tro duoc phep chon khi "Tạo tài khoản" - LUON goi tu backend
+    // (fetchCreatableRoles, xem userService.getCreatableRolesForActor), KHONG
+    // tu suy luan lai o client - xem cung logic o UserListPage.tsx. Trang nay
+    // da doi hoi "users.create" qua AdminGuard nen goi thang, khong can gate
+    // them theo isAdmin.
+    const [creatableRoles, setCreatableRoles] = useState<
+        { key: Role; name: string }[]
+    >([]);
 
     useEffect(() => {
-        if (!isAdmin) return;
-        fetchRoles({ active: true, limit: 100 })
-            .then(res => setRoles(res.items))
-            .catch(() => setRoles([]));
-    }, [isAdmin]);
+        fetchCreatableRoles()
+            .then(setCreatableRoles)
+            .catch(() => setCreatableRoles([]));
+    }, []);
 
     const roleNameByKey = useMemo(
-        () => Object.fromEntries(roles.map(r => [r.key, r.name])),
-        [roles],
+        () => Object.fromEntries(creatableRoles.map(r => [r.key, r.name])),
+        [creatableRoles],
     );
     const roleLabel = (key: CreatableStaffRole) =>
         roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
-    // Vai tro (ngoai house_owner) duoc phep chon - loc dong tu Role dang
-    // active, tru cac key trong ACCOUNT_CREATION_RESERVED_ROLE_KEYS, de vai
-    // tro tuy chinh admin them qua man Quan ly vai trò tu dong xuat hien ma
-    // khong can sua code (xem cung logic o UserListPage.tsx).
-    const staffOnlyRoles = useMemo(
-        () =>
-            roles.filter(
-                r =>
-                    r.key !== "house_owner" &&
-                    !ACCOUNT_CREATION_RESERVED_ROLE_KEYS.includes(r.key),
-            ),
-        [roles],
-    );
 
     const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
         setForm(prev => ({ ...prev, [key]: value }));
@@ -156,7 +146,7 @@ const CreateHouseOwnerContent: React.FC = () => {
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                 <div className="flex flex-col gap-4">
-                    {isAdmin && (
+                    {creatableRoles.length > 1 && (
                         <div className="space-y-1.5">
                             <Label>Vai trò</Label>
                             <Select
@@ -169,10 +159,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="house_owner">
-                                        {ROLE_LABEL.house_owner}
-                                    </SelectItem>
-                                    {staffOnlyRoles.map(r => (
+                                    {creatableRoles.map(r => (
                                         <SelectItem key={r.key} value={r.key}>
                                             {r.name}
                                         </SelectItem>

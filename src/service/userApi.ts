@@ -131,11 +131,10 @@ export const lockUserAccount = (
 
 // house_owner mo cho bat ky ai co quyen "users.create"; cac vai tro con lai
 // (vai tro he thong nhu neighborhood_leader/coleader/collaborator, hoac vai
-// tro tuy chinh admin them qua man Quan ly vai tro) CHI admin moi duoc chon -
-// kiem tra o backend, xem userService.createHouseOwnerByStaff. Vai tro la du
-// lieu dong (xem RoleRecord) nen khong con la union tinh - danh sach hien thi
-// duoc loc dong tu fetchRoles(), tru cac key trong
-// ACCOUNT_CREATION_RESERVED_ROLE_KEYS (xem constants/domain.ts).
+// tro tuy chinh admin them qua man Quan ly vai tro) chi duoc chon neu nam
+// trong ket qua fetchCreatableRoles() cua actor dang dang nhap (permission
+// dong qua Role.allowedCreatableRoles, hoac actor la admin) - kiem tra o
+// backend, xem userService.createHouseOwnerByStaff/getCreatableRolesForActor.
 export type CreatableStaffRole = Role;
 
 export interface CreateHouseOwnerParams {
@@ -152,6 +151,19 @@ export interface CreateHouseOwnerParams {
 export const createHouseOwner = (
     params: CreateHouseOwnerParams,
 ): Promise<User> => request<User>("POST", API.USERS, params);
+
+/**
+ * Danh sach vai tro (key + ten) ma nguoi dang dang nhap duoc phep chon khi
+ * "Tạo tài khoản" - LUON co house_owner, cong them cac vai tro nam trong
+ * Role.allowedCreatableRoles cua bat ky vai tro nao actor dang giu (hoac tat
+ * ca vai tro active neu actor la admin) - xem
+ * userService.getCreatableRolesForActor o backend. Dung chung boi ca 3 app
+ * (admin-web-app, resident-web-app, Zalo Mini App) de hien dropdown dung voi
+ * tung nguoi dung, khong tu suy luan lai rule o client.
+ */
+export const fetchCreatableRoles = (): Promise<
+    { key: Role; name: string }[]
+> => request<{ key: Role; name: string }[]>("GET", API.USERS_CREATABLE_ROLES);
 
 export const assignUserRole = (
     userId: string,

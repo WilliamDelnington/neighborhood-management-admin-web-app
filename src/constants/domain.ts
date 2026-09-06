@@ -55,13 +55,15 @@ export const ROLE_LABEL: Record<Role, string> = {
     admin: "Quản trị viên",
 };
 
-// Vai tro KHONG duoc hien trong danh sach chon khi "Tạo tài khoản" (man
-// UserListPage/CreateHouseOwnerPage), du la vai tro he thong hay vai tro tuy
-// chinh admin them sau nay qua man Quan ly vai tro - cac vai tro nay gan vao
-// TAI KHOAN DA CO SAN qua cac luong khac (vd "Gán vai trò mới" ngay trong
-// UserListPage, hoac gán cán bộ ở WardManagementPage) thay vì tạo tài khoản
-// phone+password mới. Phải khớp với ACCOUNT_CREATION_RESERVED_ROLE_KEYS ở
-// backend (validators/user.ts) - xem userService.createHouseOwnerByStaff.
+// Vai tro KHONG duoc phep xuat hien trong "Tạo tài khoản" du duoc cau hinh
+// vao allowedCreatableRoles cua vai tro nao - dung o RoleListPage.tsx de an
+// khoi danh sach checkbox "Vai trò được phép tạo" khi sửa một Role (chọn các
+// vai trò này cũng vô nghĩa vì backend luôn từ chối - xem
+// ACCOUNT_CREATION_RESERVED_ROLE_KEYS/userService.getCreatableRolesForActor).
+// Cac vai tro nay gan vao TAI KHOAN DA CO SAN qua cac luong khac (vd "Gán vai
+// trò mới" trong UserListPage, hoặc gán cán bộ ở WardManagementPage) thay vì
+// tạo tài khoản phone+password mới. Phải khớp với
+// ACCOUNT_CREATION_RESERVED_ROLE_KEYS ở backend (validators/user.ts).
 export const ACCOUNT_CREATION_RESERVED_ROLE_KEYS: Role[] = [
     "admin",
     "household_head",

@@ -103,6 +103,10 @@ export type RoleRecord = {
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
     allowedRequestTypes?: RequestType[];
+    // Vai tro duoc phep chon khi "Tạo tài khoản" (POST /api/users) - KHAC 2
+    // truong tren, khong dung quy uoc undefined = khong gioi han (mac dinh
+    // rong la an toan vi day la quyen nhay cam) - xem Role.ts o backend.
+    allowedCreatableRoles: string[];
     system: boolean;
     active: boolean;
     sortOrder: number;

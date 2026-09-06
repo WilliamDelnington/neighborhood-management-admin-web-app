@@ -35,7 +35,6 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
 import {
-    ACCOUNT_CREATION_RESERVED_ROLE_KEYS,
     NEIGHBORHOOD_TERM_ROLE_KEYS,
     ROLE_LABEL,
     USER_STATUS_LABEL,
@@ -46,6 +45,7 @@ import {
     assignUserRole,
     createHouseOwner,
     CreatableStaffRole,
+    fetchCreatableRoles,
     fetchUsers,
     lockUserAccount,
     resetUserPassword,
@@ -59,7 +59,7 @@ import {
     fetchProvinces,
     fetchWardsByProvince,
 } from "@service/administrativeDivisionApi";
-import { usePermission, useAuthStore } from "@store/authStore";
+import { usePermission } from "@store/authStore";
 
 const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
 const PEOPLE_COMMITTEE_OFFICIAL_ROLE = "people_committee_official";
@@ -105,7 +105,6 @@ const UserListContent: React.FC = () => {
     // (gioi han theo pham vi to dan pho o backend) nhung khong co users.update -
     // xem systemRoles.ts.
     const canResetPassword = usePermission("users.reset_password");
-    const isAdmin = useAuthStore(state => !!state.user?.roles.includes("admin"));
     // to truong khong co roles.read - goi fetchRoles se luon 403. Danh sach
     // nay chi phuc vu bo loc theo vai tro + man gan vai tro (da an voi to
     // truong qua canAssignRoles), nen bo qua hoan toan thay vi goi roi bo ket
@@ -115,24 +114,27 @@ const UserListContent: React.FC = () => {
     const [role, setRole] = useState<Role | "">("");
     const [items, setItems] = useState<User[]>([]);
     const [roles, setRoles] = useState<RoleRecord[]>([]);
+    // Vai tro duoc phep chon khi "Tạo tài khoản" - LUON goi tu backend
+    // (fetchCreatableRoles, xem userService.getCreatableRolesForActor), KHONG
+    // tu suy luan lai o client: phu thuoc permission dong (Role.
+    // allowedCreatableRoles) cua CHINH actor dang dang nhap, khong chi admin
+    // moi thay - vd neighborhood_leader duoc admin cap quyen tao them
+    // social_cultral_leader se thay dung 2 lua chon (house_owner + vai tro do).
+    const [creatableRoles, setCreatableRoles] = useState<
+        { key: Role; name: string }[]
+    >([]);
     const roleNameByKey = React.useMemo(
-        () => Object.fromEntries(roles.map(r => [r.key, r.name])),
-        [roles],
+        () =>
+            Object.fromEntries([
+                // to truong khong co roles.read nen `roles` co the rong -
+                // creatableRoles (chi doi hoi users.create) la nguon du phong
+                // de van hien dung ten vai tro tuy chinh trong toast/goi y.
+                ...creatableRoles.map(r => [r.key, r.name]),
+                ...roles.map(r => [r.key, r.name]),
+            ]),
+        [roles, creatableRoles],
     );
     const roleLabel = (key: Role) => roleNameByKey[key] ?? ROLE_LABEL[key] ?? key;
-    // Cac vai tro (ngoai house_owner, luon hien rieng) duoc phep chon khi "Tạo
-    // tài khoản" - loc dong tu danh sach Role dang active thay vi liet ke cung
-    // 3 vai tro co dinh, de vai tro tuy chinh admin them qua man Quan ly vai
-    // trò (vd social_cultral_leader) tu dong xuat hien ma khong can sua code.
-    const createStaffOnlyRoles = React.useMemo(
-        () =>
-            roles.filter(
-                r =>
-                    r.key !== "house_owner" &&
-                    !ACCOUNT_CREATION_RESERVED_ROLE_KEYS.includes(r.key),
-            ),
-        [roles],
-    );
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -254,6 +256,14 @@ const UserListContent: React.FC = () => {
             .catch(() => setRoles([]));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canReadRoles]);
+
+    useEffect(() => {
+        if (!canCreateAccount) return;
+        fetchCreatableRoles()
+            .then(setCreatableRoles)
+            .catch(() => setCreatableRoles([]));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [canCreateAccount]);
 
     useEffect(() => {
         if (!canFullUpdate) return;
@@ -935,7 +945,7 @@ const UserListContent: React.FC = () => {
                                 )}
                             </div>
                         )}
-                        {isAdmin && (
+                        {creatableRoles.length > 1 && (
                             <div className="space-y-1.5">
                                 <Label>Vai trò</Label>
                                 <Select
@@ -951,10 +961,7 @@ const UserListContent: React.FC = () => {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="house_owner">
-                                            {ROLE_LABEL.house_owner}
-                                        </SelectItem>
-                                        {createStaffOnlyRoles.map(r => (
+                                        {creatableRoles.map(r => (
                                             <SelectItem key={r.key} value={r.key}>
                                                 {r.name}
                                             </SelectItem>
