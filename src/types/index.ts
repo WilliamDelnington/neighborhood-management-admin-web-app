@@ -685,6 +685,7 @@ export type Citizen = {
     birthDate?: string;
     gender: GioiTinh;
     relationToHead?: string;
+    occupation?: string;
     householdId: string | Household;
     residenceType: LoaiCuTru;
     isElderly: boolean;
@@ -808,6 +809,27 @@ export type SupportTicket = {
         | { _id: string; displayName: string; phone?: string };
     adminResponse?: string;
     respondedByUserId?: string | { _id: string; displayName: string };
+    resolvedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Yeu cau dat lai mat khau (public, khong dang nhap)
+// ---------------------------------------------------------------------------
+export type TrangThaiYeuCauDatLaiMatKhau = "moi" | "da_xu_ly" | "dong";
+
+export type PasswordResetRequest = {
+    _id: string;
+    phone: string;
+    note?: string;
+    status: TrangThaiYeuCauDatLaiMatKhau;
+    matchedUser?: {
+        _id: string;
+        displayName: string;
+        roles: Role[];
+    };
+    resolvedByUserId?: string | { _id: string; displayName: string };
     resolvedAt?: string;
     createdAt: string;
     updatedAt: string;
@@ -1299,6 +1321,9 @@ export type AppointmentTimeSlot = {
     active: boolean;
 };
 
+export type AppointmentHouseRequirement = "none" | "optional" | "required";
+export type AppointmentHouseStatusRequirement = "any" | "in_scope" | "verified";
+
 export type AppointmentService = {
     _id: string;
     key: string;
@@ -1309,6 +1334,8 @@ export type AppointmentService = {
     wardCode?: number;
     wardName?: string;
     neighborhoodId?: string;
+    houseRequirement: AppointmentHouseRequirement;
+    houseStatusRequirement: AppointmentHouseStatusRequirement;
     slotDurationMinutes: number;
     autoApprove: boolean;
     active: boolean;
@@ -1850,6 +1877,115 @@ export type DashboardSummary = {
         inProgress: number;
         overdue: number;
     };
+    neighborhoodOverview?: NeighborhoodOverview;
+    wardOverview?: WardOverview;
+};
+
+// Chi tra ve khi audience === "neighborhood" (to truong/to pho). Cong tac
+// vien khong nhan duoc khoi nay - xem ghi chu dashboardAreaContext o backend.
+export type NeighborhoodOverview = {
+    houses: {
+        total: number;
+        verified: number;
+        unverified: number;
+        pending: number;
+        needsAttention: number;
+        occupied: number;
+        business: number;
+        vacant: number;
+    };
+    population: {
+        households: number;
+        citizens: number;
+        permanentResidents: number;
+        temporaryResidents: number;
+        renters: number;
+        elderly: number;
+        children: number;
+        needsSupport: number;
+    };
+    business: {
+        dataAvailable: boolean;
+        total: number;
+        totalCompanies: number;
+        byIndustry: { label: string; count: number }[];
+        missingLicense: number;
+        expiringLicenses: number;
+        needsReview: number;
+    };
+    safety: {
+        dataAvailable: boolean;
+        housesNotInspected: number;
+        highRiskPccc: number;
+        urgentSecurity: number;
+        unresolvedRecommendations: number;
+        openComplaints: number;
+    };
+    tasks: {
+        newComplaints: number;
+        inProgressComplaints: number;
+        overdueRequestAssignments: number;
+        resolvedRequestAssignments: number;
+        totalRequestAssignments: number;
+        onTimeCompletionRate: number | null;
+        averageSatisfaction: number | null;
+        ratedComplaintCount: number;
+    };
+};
+
+export type WardNeighborhoodRow = {
+    neighborhoodId: string;
+    name: string;
+    totalHouses: number;
+    verifiedHouses: number;
+    verificationRate: number;
+    lastUpdatedAt: string | null;
+    isSlow: boolean;
+    highAlertCount: number;
+    isHighAlert: boolean;
+};
+
+// Chi tra ve khi audience === "ward" (bi thu/can bo UBND/vai tro Phuong tuy
+// chinh duoc gan wardCode).
+export type WardOverview = {
+    neighborhoods: WardNeighborhoodRow[];
+    dataQuality: {
+        duplicateAddressGroups: number;
+        duplicateAddressHouses: number;
+        otherChecksAvailable: boolean;
+    };
+    population: {
+        households: number;
+        citizens: number;
+        renters: number;
+        elderly: number;
+        childrenApprox: number;
+        needsSupport: number;
+    };
+    economy: {
+        dataAvailable: boolean;
+        total: number;
+        totalCompanies: number;
+        byIndustry: { label: string; count: number }[];
+        expiringLicenses: number;
+        newInPeriod: number;
+        inactive: number;
+    };
+    safety: {
+        dataAvailable: boolean;
+        highRiskPccc: number;
+        urgentSecurity: number;
+        housesNotInspected: number;
+        byNeighborhood: {
+            neighborhoodId: string;
+            name: string;
+            highRiskPccc: number;
+            urgentSecurity: number;
+            openComplaints: number;
+        }[];
+    };
+    digitalServicesAvailable: boolean;
+    systemSafetyAvailable: boolean;
 };
 
 // ---------------------------------------------------------------------------

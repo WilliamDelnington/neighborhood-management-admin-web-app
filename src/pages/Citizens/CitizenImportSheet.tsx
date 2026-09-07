@@ -62,6 +62,7 @@ const CITIZEN_MAPPING_FIELDS: {
     { key: "birthDate", label: "Ngày sinh" },
     { key: "gender", label: "Giới tính" },
     { key: "relationToHead", label: "Quan hệ với chủ hộ" },
+    { key: "occupation", label: "Nghề nghiệp/nơi làm việc" },
     { key: "residenceType", label: "Thường trú/Tạm trú" },
     { key: "isElderly", label: "Người cao tuổi" },
     { key: "isChild", label: "Trẻ em" },
@@ -365,6 +366,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                             <TableHead>Giới tính</TableHead>
                                             <TableHead>Loại cư trú</TableHead>
                                             <TableHead>Quan hệ với chủ hộ</TableHead>
+                                            <TableHead>Nghề nghiệp</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -392,6 +394,9 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                                 </TableCell>
                                                 <TableCell>
                                                     {row.relationToHead || "—"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.occupation || "—"}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

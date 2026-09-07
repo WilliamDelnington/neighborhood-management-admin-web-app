@@ -95,6 +95,7 @@ export interface CitizenImportPreviewRow {
     birthDate?: string;
     gender: string;
     relationToHead?: string;
+    occupation?: string;
     householdId?: string;
     residenceType: string;
     isElderly: boolean;
@@ -117,6 +118,7 @@ export interface CitizenColumnMapping {
     birthDate?: string;
     gender?: string;
     relationToHead?: string;
+    occupation?: string;
     householdCode?: string;
     houseCode?: string;
     residenceType?: string;

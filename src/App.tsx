@@ -76,6 +76,9 @@ const SupportTicketListPage = React.lazy(
 const SupportTicketDetailPage = React.lazy(
     () => import("@pages/SupportTickets/SupportTicketDetailPage"),
 );
+const PasswordResetRequestListPage = React.lazy(
+    () => import("@pages/PasswordResetRequests/PasswordResetRequestListPage"),
+);
 const PcccListPage = React.lazy(() => import("@pages/Pccc/PcccListPage"));
 const PcccHistoryPage = React.lazy(
     () => import("@pages/Pccc/PcccHistoryPage"),
@@ -334,6 +337,10 @@ const App: React.FC = () => {
                         <Route
                             path="/support-tickets/:id"
                             element={<SupportTicketDetailPage />}
+                        />
+                        <Route
+                            path="/password-reset-requests"
+                            element={<PasswordResetRequestListPage />}
                         />
                         <Route path="/pccc" element={<PcccListPage />} />
                         <Route

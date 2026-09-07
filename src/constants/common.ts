@@ -51,6 +51,7 @@ export const API = {
     COMPLAINTS: "/api/complaints",
     COMPLAINT_TYPES: "/api/complaint-types",
     SUPPORT_TICKETS: "/api/support-tickets",
+    PASSWORD_RESET_REQUESTS: "/api/password-reset-requests",
 
     ANNOUNCEMENTS: "/api/announcements",
     NEWS: "/api/news",

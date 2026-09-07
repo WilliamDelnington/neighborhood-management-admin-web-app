@@ -15,6 +15,7 @@ export interface CitizenFormValues {
     birthDate: string;
     gender: GioiTinh;
     relationToHead: string;
+    occupation: string;
     householdId: string;
     householdLabel: string;
     residenceType: LoaiCuTru;
@@ -32,6 +33,7 @@ export const EMPTY_CITIZEN_FORM: CitizenFormValues = {
     birthDate: "",
     gender: "nam",
     relationToHead: "",
+    occupation: "",
     householdId: "",
     householdLabel: "",
     residenceType: "thuong_tru",
@@ -53,6 +55,7 @@ export function toCitizenInput(values: CitizenFormValues): CitizenInput {
             : undefined,
         gender: values.gender,
         relationToHead: values.relationToHead.trim() || undefined,
+        occupation: values.occupation.trim() || undefined,
         residenceType: values.residenceType,
         isElderly: values.isElderly,
         isChild: values.isChild,
@@ -159,6 +162,13 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
                     placeholder="VD: Con, vợ, chồng..."
                     value={values.relationToHead}
                     onChange={e => set("relationToHead", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Nghề nghiệp/nơi làm việc</Label>
+                <Input
+                    value={values.occupation}
+                    onChange={e => set("occupation", e.target.value)}
                 />
             </div>
             <div className="space-y-1.5">

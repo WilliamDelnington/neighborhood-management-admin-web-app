@@ -86,6 +86,7 @@ const citizenToForm = (c: Citizen, householdId: string): CitizenFormValues => ({
     birthDate: c.birthDate ? c.birthDate.slice(0, 10) : "",
     gender: c.gender,
     relationToHead: c.relationToHead || "",
+    occupation: c.occupation || "",
     householdId,
     householdLabel: "",
     residenceType: c.residenceType,

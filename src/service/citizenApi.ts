@@ -9,6 +9,7 @@ export interface CitizenInput {
     birthDate?: string;
     gender?: GioiTinh;
     relationToHead?: string;
+    occupation?: string;
     householdId: string;
     residenceType?: LoaiCuTru;
     isElderly?: boolean;

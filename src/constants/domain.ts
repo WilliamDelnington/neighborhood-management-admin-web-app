@@ -37,6 +37,7 @@ import type {
     TrangThaiKhaoSat,
     TrangThaiPhanAnh,
     TrangThaiThongBao,
+    TrangThaiYeuCauDatLaiMatKhau,
     TrangThaiYeuCauHoTro,
     UserStatus,
     VerificationStatus,
@@ -216,6 +217,24 @@ export const TRANG_THAI_YEU_CAU_HO_TRO_TONE: Record<
     moi: "gray",
     dang_xu_ly: "yellow",
     can_bo_sung: "red",
+    da_xu_ly: "green",
+    dong: "gray",
+};
+
+export const TRANG_THAI_YEU_CAU_DAT_LAI_MAT_KHAU_LABEL: Record<
+    TrangThaiYeuCauDatLaiMatKhau,
+    string
+> = {
+    moi: "Mới",
+    da_xu_ly: "Đã xử lý",
+    dong: "Đóng",
+};
+
+export const TRANG_THAI_YEU_CAU_DAT_LAI_MAT_KHAU_TONE: Record<
+    TrangThaiYeuCauDatLaiMatKhau,
+    BadgeTone
+> = {
+    moi: "gray",
     da_xu_ly: "green",
     dong: "gray",
 };
