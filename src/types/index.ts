@@ -1368,10 +1368,18 @@ export type FinanceTransaction = {
     updatedAt: string;
 };
 
+export type FinanceMonthSummary = {
+    year: number;
+    month: number;
+    income: number;
+    expense: number;
+};
+
 export type FinanceSummary = {
     totalIncome: number;
     totalExpense: number;
     net: number;
+    byMonth: FinanceMonthSummary[];
 };
 
 // ---------------------------------------------------------------------------
