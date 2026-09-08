@@ -65,6 +65,9 @@ export type User = {
     provinceName?: string;
     wardCode?: number;
     wardName?: string;
+    // Chi co trong response cua GET /api/wards/managers - vai tro cap Phuong cu
+    // the trong `roles` cua user nay (xem ghi chu o route backend).
+    wardRoleKey?: string;
     notificationPermission: boolean;
     createdAt?: string;
     allowedComplaintCategories: NhomPhanAnh[] | null;
@@ -397,47 +400,12 @@ export type Neighborhood = {
         phone?: string;
         status?: UserStatus;
     }>;
-    currentTerm?: NeighborhoodTerm | null;
-    termRemainingDays?: number | null;
     attachmentCount?: number;
     createdAt: string;
     updatedAt: string;
 };
 
 export type NeighborhoodStatus = "ACTIVE" | "INACTIVE" | "MERGED" | "CLOSED";
-// Vong doi: DRAFT -> NOT_STARTED|IN_PROGRESS|ENDED (finalize/tu dong theo
-// ngay) -> IN_PROGRESS -> ENDED (dung han, tu dong, hoac ket thuc som, thu
-// cong + bat buoc ly do) | NOT_STARTED -> CANCELLED (huy thu cong). Chi DRAFT
-// moi xoa duoc - xem models/NeighborhoodTerm.ts o backend.
-export type NeighborhoodTermStatus =
-    | "DRAFT"
-    | "NOT_STARTED"
-    | "IN_PROGRESS"
-    | "ENDED"
-    | "CANCELLED";
-
-export type NeighborhoodTerm = {
-    _id: string;
-    neighborhoodId: string;
-    name: string;
-    startAt: string;
-    endAt: string;
-    status: NeighborhoodTermStatus;
-    notes?: string;
-    // Chi co y nghia khi status = ENDED - phan biet ket thuc dung han (tu
-    // dong) voi ket thuc som (thu cong, xem endReason).
-    endedEarly?: boolean;
-    // BAT BUOC khi ket thuc som, khong dung cho cac chuyen trang thai khac.
-    endReason?: string;
-    // To truong/to pho DUOC CHI DINH cho nhiem ky nay (chon ngay tren form
-    // tao/sua) - chi thuc su tro thanh phan cong (huong quan ly that su, xem
-    // NeighborhoodLeaderAssignment/NeighborhoodColeaderAssignment) khi nhiem
-    // ky chuyen sang IN_PROGRESS - xem models/NeighborhoodTerm.ts o backend.
-    leaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
-    coleaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
-    createdAt: string;
-    updatedAt: string;
-};
 
 export type NeighborhoodHistory = {
     _id: string;
@@ -515,8 +483,6 @@ export type NeighborhoodLeaderAssignment = {
     leaderUserId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
-    termId?: NeighborhoodTerm | null;
-    endAt?: string;
     unassignedAt?: string;
     unassignedBy?: { _id: string; displayName: string } | null;
     note?: string;
@@ -528,8 +494,6 @@ export type NeighborhoodColeaderAssignment = {
     coleaderUserId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
-    termId?: NeighborhoodTerm | null;
-    endAt?: string;
     unassignedAt?: string;
     unassignedBy?: { _id: string; displayName: string } | null;
     note?: string;

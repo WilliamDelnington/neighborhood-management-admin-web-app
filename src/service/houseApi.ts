@@ -98,6 +98,7 @@ export const fetchHouses = (params?: {
     cluster?: string;
     streetId?: string;
     neighborhoodId?: string;
+    provinceCode?: number;
     wardCode?: number;
     status?: string;
 }): Promise<PaginatedData<House>> =>

@@ -3,10 +3,27 @@ import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@components/ui/radio-group";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import HouseholdPicker from "@components/admin/HouseholdPicker";
-import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
+import {
+    GIOI_TINH_LABEL,
+    LOAI_CU_TRU_LABEL,
+    RELATION_TO_HEAD_OPTIONS,
+} from "@constants/domain";
 import { GioiTinh, Household, LoaiCuTru } from "@dts";
 import { CitizenInput } from "@service/citizenApi";
+
+// Gia tri sentinel danh cho lua chon "Khac" trong dropdown quan he voi chu ho
+// - khong the dung chuoi rong lam value cho SelectItem (Radix Select cam gia
+// tri rong), va can phan biet voi cac gia tri that su trong
+// RELATION_TO_HEAD_OPTIONS.
+const OTHER_RELATION_VALUE = "__other__";
 
 export interface CitizenFormValues {
     fullName: string;
@@ -90,6 +107,16 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
         value: CitizenFormValues[K],
     ) => onChange({ ...values, [key]: value });
 
+    // Component duoc remount theo key={editingCitizenId} o noi goi (xem
+    // CitizenListPage/HouseholdDetailPage) nen state nay luon khoi tao dung
+    // theo tung ban ghi, khong bi "dinh" gia tri cu khi chuyen doi sua nguoi
+    // khac trong cung mot Sheet.
+    const [customRelation, setCustomRelation] = React.useState(
+        () =>
+            !!values.relationToHead &&
+            !RELATION_TO_HEAD_OPTIONS.includes(values.relationToHead),
+    );
+
     return (
         <div className="flex flex-col gap-4">
             {!hideHouseholdPicker && (
@@ -158,11 +185,44 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
             </div>
             <div className="space-y-1.5">
                 <Label>Quan hệ với chủ hộ</Label>
-                <Input
-                    placeholder="VD: Con, vợ, chồng..."
-                    value={values.relationToHead}
-                    onChange={e => set("relationToHead", e.target.value)}
-                />
+                <Select
+                    value={
+                        customRelation
+                            ? OTHER_RELATION_VALUE
+                            : values.relationToHead || undefined
+                    }
+                    onValueChange={v => {
+                        if (v === OTHER_RELATION_VALUE) {
+                            setCustomRelation(true);
+                            set("relationToHead", "");
+                        } else {
+                            setCustomRelation(false);
+                            set("relationToHead", v);
+                        }
+                    }}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Chọn quan hệ với chủ hộ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {RELATION_TO_HEAD_OPTIONS.map(opt => (
+                            <SelectItem key={opt} value={opt}>
+                                {opt}
+                            </SelectItem>
+                        ))}
+                        <SelectItem value={OTHER_RELATION_VALUE}>
+                            Khác...
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                {customRelation && (
+                    <Input
+                        className="mt-2"
+                        placeholder="Nhập quan hệ với chủ hộ"
+                        value={values.relationToHead}
+                        onChange={e => set("relationToHead", e.target.value)}
+                    />
+                )}
             </div>
             <div className="space-y-1.5">
                 <Label>Nghề nghiệp/nơi làm việc</Label>

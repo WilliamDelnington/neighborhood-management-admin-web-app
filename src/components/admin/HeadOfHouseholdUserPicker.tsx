@@ -20,8 +20,11 @@ export interface HeadOfHouseholdUserPickerProps {
 }
 
 /**
- * Chon tai khoan (phai co vai tro house_owner) de lien ket lam chu ho thuc su
- * (Household.headOfHouseholdUserId), thay vi chi go ten chu ho dang text tu do.
+ * Chon tai khoan de lien ket lam chu ho thuc su (Household.headOfHouseholdUserId),
+ * thay vi chi go ten chu ho dang text tu do. Tim ca 2 vai tro household_head
+ * (dung, moi) va house_owner (tuong thich nguoc voi du lieu cu - xem
+ * householdService.validateHeadOfHouseholdUser o backend) - API /api/users
+ * chi loc theo 1 role tai mot thoi diem nen goi song song roi gop lai o day.
  */
 const HeadOfHouseholdUserPicker: React.FC<HeadOfHouseholdUserPickerProps> = ({
     value,
@@ -38,8 +41,17 @@ const HeadOfHouseholdUserPicker: React.FC<HeadOfHouseholdUserPickerProps> = ({
         if (!open) return;
         setLoading(true);
         const timer = setTimeout(() => {
-            fetchUsers(1, 20, search || undefined, "house_owner")
-                .then(res => setItems(res.items))
+            Promise.all([
+                fetchUsers(1, 20, search || undefined, "household_head"),
+                fetchUsers(1, 20, search || undefined, "house_owner"),
+            ])
+                .then(([headRes, ownerRes]) => {
+                    const seen = new Set<string>();
+                    const merged = [...headRes.items, ...ownerRes.items].filter(
+                        u => (seen.has(u.id) ? false : (seen.add(u.id), true)),
+                    );
+                    setItems(merged);
+                })
                 .catch(() => setItems([]))
                 .finally(() => setLoading(false));
         }, 250);

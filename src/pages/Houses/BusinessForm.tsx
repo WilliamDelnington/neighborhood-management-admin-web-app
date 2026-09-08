@@ -158,6 +158,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({
                 />
             </div>
             <RepresentativeUserPicker
+                requiredRole="business_representative"
                 value={values.representativeUserId}
                 valueLabel={values.representativeUserLabel}
                 onChange={(userId, user: User | undefined) => {

@@ -23,15 +23,17 @@ import {
     TableRow,
 } from "@components/ui/table";
 import type { AppError, Province, User, Ward } from "@dts";
+import { ROLE_LABEL } from "@constants/domain";
 import {
     fetchProvinces,
     fetchWardsByProvince,
 } from "@service/administrativeDivisionApi";
-import { fetchWardManagers, updateUser } from "@service/userApi";
+import { fetchWardManagers } from "@service/userApi";
+import { assignScope, unassignScope } from "@service/scopeAssignmentApi";
 
 const HANOI_PROVINCE_CODE = 1;
 const roleLabel = (user: User) =>
-    user.roles.includes("secretary") ? "Bí thư" : "Cán bộ UBND";
+    (user.wardRoleKey && ROLE_LABEL[user.wardRoleKey]) || "Cán bộ";
 
 const WardManagementPage: React.FC = () => (
     <AdminGuard permissions={["wards.manage"]}>
@@ -91,14 +93,15 @@ const WardManagementContent: React.FC = () => {
     }, [search, wards]);
 
     const assign = async () => {
-        if (!selectedWard || !candidateId || !province) return;
+        const candidate = candidates.find(user => user.id === candidateId);
+        if (!selectedWard || !candidate?.wardRoleKey || !province) return;
         try {
             setSavingId(candidateId);
-            await updateUser(candidateId, {
-                provinceCode: province.code,
-                provinceName: province.name,
-                wardCode: selectedWard.code,
-                wardName: selectedWard.name,
+            await assignScope({
+                userId: candidateId,
+                roleKey: candidate.wardRoleKey,
+                scopeType: "WARD",
+                scopeId: selectedWard.code,
             });
             await loadStaff();
             setCandidateId("");
@@ -110,14 +113,15 @@ const WardManagementContent: React.FC = () => {
         }
     };
 
-    const unassign = async (userId: string) => {
+    const unassign = async (user: User) => {
+        if (!user.wardRoleKey || !user.wardCode) return;
         try {
-            setSavingId(userId);
-            await updateUser(userId, {
-                provinceCode: null,
-                provinceName: null,
-                wardCode: null,
-                wardName: null,
+            setSavingId(user.id);
+            await unassignScope({
+                userId: user.id,
+                roleKey: user.wardRoleKey,
+                scopeType: "WARD",
+                scopeId: user.wardCode,
             });
             await loadStaff();
             toast.success("Đã bỏ phân công phường/xã");
@@ -189,7 +193,7 @@ const WardManagementContent: React.FC = () => {
                     <CardContent className="space-y-5 pt-4">
                         {selectedWard && <>
                             <div className="space-y-2"><Label>Thêm người quản lý</Label><Select value={candidateId} onValueChange={setCandidateId}><SelectTrigger><SelectValue placeholder="Chọn Bí thư hoặc Cán bộ UBND" /></SelectTrigger><SelectContent>{candidates.map(user => <SelectItem key={user.id} value={user.id}>{user.displayName} — {roleLabel(user)}</SelectItem>)}</SelectContent></Select><Button className="w-full" loading={savingId === candidateId} disabled={!candidateId || !!savingId} onClick={assign}>{savingId !== candidateId && <UserPlus className="mr-2 h-4 w-4" />}Phân công</Button></div>
-                            <div className="space-y-3"><Label>Đang quản lý ({managers.length})</Label>{managers.length === 0 ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Chưa có người quản lý.</p> : managers.map(user => <div key={user.id} className="flex items-center justify-between gap-3 rounded-md border p-3"><div><p className="font-medium">{user.displayName}</p><p className="text-sm text-muted-foreground">{user.phone} · {roleLabel(user)}</p></div><Button variant="outline" size="sm" disabled={savingId === user.id} onClick={() => unassign(user.id)}>{savingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}</Button></div>)}</div>
+                            <div className="space-y-3"><Label>Đang quản lý ({managers.length})</Label>{managers.length === 0 ? <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">Chưa có người quản lý.</p> : managers.map(user => <div key={user.id} className="flex items-center justify-between gap-3 rounded-md border p-3"><div><p className="font-medium">{user.displayName}</p><p className="text-sm text-muted-foreground">{user.phone} · {roleLabel(user)}</p></div><Button variant="outline" size="sm" disabled={savingId === user.id} onClick={() => unassign(user)}>{savingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-4 w-4" />}</Button></div>)}</div>
                         </>}
                     </CardContent>
                 </Card>

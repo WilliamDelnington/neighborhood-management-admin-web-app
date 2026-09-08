@@ -527,6 +527,7 @@ const HouseholdDetailContent: React.FC = () => {
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
                         <CitizenForm
+                            key={editingCitizenId || "new"}
                             values={citizenForm}
                             onChange={setCitizenForm}
                             hideHouseholdPicker
