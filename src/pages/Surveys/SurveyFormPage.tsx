@@ -459,7 +459,7 @@ const SurveyFormContent: React.FC = () => {
     ];
 
     return (
-        <div className="mx-auto max-w-6xl">
+        <div>
             <div className="mb-5 flex items-center gap-3">
                 <Button
                     variant="outline"

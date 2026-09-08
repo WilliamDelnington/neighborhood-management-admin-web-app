@@ -381,7 +381,7 @@ const CorrespondenceTypeListContent: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <Label>Vai trò được phép gửi</Label>
+                                <Label>Đơn vị/chức danh được phép gửi</Label>
                                 <div className="mt-1.5 grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto rounded-md border border-divider_01 p-2">
                                     {roles.map(r => (
                                         <label
@@ -405,7 +405,7 @@ const CorrespondenceTypeListContent: React.FC = () => {
                                 </div>
                             </div>
                             <div>
-                                <Label>Vai trò được phép nhận</Label>
+                                <Label>Đơn vị/chức danh được phép nhận</Label>
                                 <div className="mt-1.5 grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto rounded-md border border-divider_01 p-2">
                                     {roles.map(r => (
                                         <label
