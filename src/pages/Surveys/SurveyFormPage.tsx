@@ -3,11 +3,18 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
     ArrowLeft,
+    CheckSquare,
+    CircleDot,
+    Copy,
     FileText,
+    GripVertical,
     ListChecks,
+    MessageSquare,
     Plus,
     Share2,
+    SlidersHorizontal,
     Target,
+    ThumbsUp,
     Trash2,
     X,
 } from "lucide-react";
@@ -18,6 +25,7 @@ import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
+import { Switch } from "@components/ui/switch";
 import { Badge } from "@components/ui/badge";
 import {
     Card,
@@ -41,6 +49,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@components/ui/tabs";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import {
@@ -91,16 +100,37 @@ const SectionHeader: React.FC<{
     </CardHeader>
 );
 
-type DraftQuestion = SurveyQuestion;
+// clientKey: dinh danh on dinh o phia client cho React (khong gui len server) -
+// can thiet vi index khong con on dinh khi cho phep keo-tha/nhan ban cau hoi.
+type DraftQuestion = SurveyQuestion & { clientKey: string };
 
-const EMPTY_QUESTION: DraftQuestion = {
+let draftKeySeq = 0;
+const nextDraftKey = () => {
+    draftKeySeq += 1;
+    return `draft-${Date.now()}-${draftKeySeq}`;
+};
+
+const createEmptyQuestion = (): DraftQuestion => ({
     question: "",
     type: "chon_mot",
     options: ["", ""],
     required: true,
-};
+    clientKey: nextDraftKey(),
+});
 
 const OPTIONS_TYPES: LoaiCauHoiKhaoSat[] = ["chon_mot", "chon_nhieu"];
+
+// Icon rieng cho tung loai cau hoi (giong Google Form) - de nguoi dung nhan
+// dang nhanh loai cau hoi ma khong can doc chu.
+const QUESTION_TYPE_ICON: Record<
+    LoaiCauHoiKhaoSat,
+    React.ComponentType<{ className?: string }>
+> = {
+    dong_y_khong_dong_y: ThumbsUp,
+    chon_mot: CircleDot,
+    chon_nhieu: CheckSquare,
+    y_kien_khac: MessageSquare,
+};
 
 const SurveyFormPage: React.FC = () => (
     <AdminGuard permissions={["surveys.create", "surveys.update"]}>
@@ -121,7 +151,7 @@ const SurveyFormContent: React.FC = () => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [questions, setQuestions] = useState<DraftQuestion[]>([
-        { ...EMPTY_QUESTION },
+        createEmptyQuestion(),
     ]);
 
     const [eligibleAll, setEligibleAll] = useState(true);
@@ -143,6 +173,14 @@ const SurveyFormContent: React.FC = () => {
     >([]);
     const [coEditorUserIds, setCoEditorUserIds] = useState<string[]>([]);
     const [coEditorDialogOpen, setCoEditorDialogOpen] = useState(false);
+    const [audienceDialogOpen, setAudienceDialogOpen] = useState(false);
+    const [audienceTab, setAudienceTab] = useState("roles");
+
+    // Keo-tha sap xep lai cau hoi (giong Google Form) - chi luu index dang
+    // keo/dang hover, khong dung thu vien ngoai vi HTML5 drag-and-drop la du
+    // cho danh sach 1 chieu don gian nay.
+    const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
     const loadDetail = () => {
         if (!id) return;
@@ -156,12 +194,13 @@ const SurveyFormContent: React.FC = () => {
                     s.questions.length > 0
                         ? s.questions.map(q => ({
                               _id: q._id,
+                              clientKey: q._id || nextDraftKey(),
                               question: q.question,
                               type: q.type,
                               options: q.options?.length ? q.options : ["", ""],
                               required: q.required,
                           }))
-                        : [{ ...EMPTY_QUESTION }],
+                        : [createEmptyQuestion()],
                 );
                 setEligibleAll(s.eligibleAll ?? true);
                 setEligibleRoles(s.eligibleRoles || []);
@@ -218,11 +257,55 @@ const SurveyFormContent: React.FC = () => {
     };
 
     const addQuestion = () => {
-        setQuestions(prev => [...prev, { ...EMPTY_QUESTION }]);
+        setQuestions(prev => [...prev, createEmptyQuestion()]);
     };
 
+    const duplicateQuestion = (index: number) => {
+        setQuestions(prev => {
+            const source = prev[index];
+            const clone: DraftQuestion = {
+                ...source,
+                _id: undefined,
+                clientKey: nextDraftKey(),
+                options: [...source.options],
+            };
+            const next = [...prev];
+            next.splice(index + 1, 0, clone);
+            return next;
+        });
+    };
+
+    // Xoa co the hoan tac: xoa ngay khoi state nhung giu ban ghi vua xoa de
+    // toast "Hoan tac" chen lai dung vi tri neu nguoi dung bam nham.
     const removeQuestion = (index: number) => {
+        const removed = questions[index];
         setQuestions(prev => prev.filter((_, i) => i !== index));
+        toast("Đã xóa câu hỏi", {
+            action: {
+                label: "Hoàn tác",
+                onClick: () => {
+                    setQuestions(prev => {
+                        const next = [...prev];
+                        next.splice(
+                            Math.min(index, next.length),
+                            0,
+                            removed,
+                        );
+                        return next;
+                    });
+                },
+            },
+        });
+    };
+
+    const moveQuestion = (from: number, to: number) => {
+        if (from === to) return;
+        setQuestions(prev => {
+            const next = [...prev];
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            return next;
+        });
     };
 
     const updateOption = (qIndex: number, optIndex: number, value: string) => {
@@ -422,32 +505,99 @@ const SurveyFormContent: React.FC = () => {
                                 }
                             />
                             <CardContent className="flex flex-col gap-3">
-                                {questions.map((q, qIndex) => (
+                                {questions.map((q, qIndex) => {
+                                    const TypeIcon =
+                                        QUESTION_TYPE_ICON[q.type];
+                                    return (
                                     <div
-                                        key={qIndex}
-                                        className="rounded-lg border border-divider_01 p-4"
+                                        key={q.clientKey}
+                                        onDragOver={e => {
+                                            if (draggingIndex === null) return;
+                                            e.preventDefault();
+                                            setDragOverIndex(qIndex);
+                                        }}
+                                        onDrop={e => {
+                                            e.preventDefault();
+                                            if (draggingIndex !== null) {
+                                                moveQuestion(
+                                                    draggingIndex,
+                                                    qIndex,
+                                                );
+                                            }
+                                            setDraggingIndex(null);
+                                            setDragOverIndex(null);
+                                        }}
+                                        className={`rounded-lg border p-4 transition-colors ${
+                                            dragOverIndex === qIndex &&
+                                            draggingIndex !== null &&
+                                            draggingIndex !== qIndex
+                                                ? "border-primary ring-2 ring-primary/30"
+                                                : "border-divider_01"
+                                        } ${
+                                            draggingIndex === qIndex
+                                                ? "opacity-40"
+                                                : ""
+                                        }`}
                                     >
                                         <div className="mb-3 flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    title="Kéo để sắp xếp"
+                                                    draggable
+                                                    onDragStart={() =>
+                                                        setDraggingIndex(
+                                                            qIndex,
+                                                        )
+                                                    }
+                                                    onDragEnd={() => {
+                                                        setDraggingIndex(
+                                                            null,
+                                                        );
+                                                        setDragOverIndex(
+                                                            null,
+                                                        );
+                                                    }}
+                                                    className="cursor-grab rounded-md p-1 text-text_3 hover:bg-ng_10 hover:text-text_1 active:cursor-grabbing"
+                                                >
+                                                    <GripVertical className="h-4 w-4" />
+                                                </button>
                                                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ng_10 text-xs font-semibold text-text_2">
                                                     {qIndex + 1}
                                                 </span>
                                                 <span className="text-sm font-medium">
                                                     Câu hỏi {qIndex + 1}
                                                 </span>
+                                                <TypeIcon className="h-3.5 w-3.5 text-text_3" />
                                             </div>
-                                            {questions.length > 1 && (
+                                            <div className="flex items-center gap-1">
                                                 <button
                                                     type="button"
-                                                    title="Xóa câu hỏi"
-                                                    className="rounded-md p-1 text-text_3 hover:bg-danger-soft hover:text-red-500"
+                                                    title="Nhân bản câu hỏi"
+                                                    className="rounded-md p-1 text-text_3 hover:bg-ng_10 hover:text-text_1"
                                                     onClick={() =>
-                                                        removeQuestion(qIndex)
+                                                        duplicateQuestion(
+                                                            qIndex,
+                                                        )
                                                     }
                                                 >
-                                                    <Trash2 className="h-4 w-4" />
+                                                    <Copy className="h-4 w-4" />
                                                 </button>
-                                            )}
+                                                {questions.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        title="Xóa câu hỏi"
+                                                        className="rounded-md p-1 text-text_3 hover:bg-danger-soft hover:text-red-500"
+                                                        onClick={() =>
+                                                            removeQuestion(
+                                                                qIndex,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="flex flex-col gap-3">
@@ -504,37 +654,47 @@ const SurveyFormContent: React.FC = () => {
                                                                 ([
                                                                     key,
                                                                     label,
-                                                                ]) => (
-                                                                    <SelectItem
-                                                                        key={
+                                                                ]) => {
+                                                                    const ItemIcon =
+                                                                        QUESTION_TYPE_ICON[
                                                                             key
-                                                                        }
-                                                                        value={
-                                                                            key
-                                                                        }
-                                                                    >
-                                                                        {label}
-                                                                    </SelectItem>
-                                                                ),
+                                                                        ];
+                                                                    return (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                key
+                                                                            }
+                                                                            value={
+                                                                                key
+                                                                            }
+                                                                        >
+                                                                            <span className="flex items-center gap-2">
+                                                                                <ItemIcon className="h-3.5 w-3.5 text-text_3" />
+                                                                                {
+                                                                                    label
+                                                                                }
+                                                                            </span>
+                                                                        </SelectItem>
+                                                                    );
+                                                                },
                                                             )}
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
 
                                                 <label
-                                                    htmlFor={`required-${qIndex}`}
+                                                    htmlFor={`required-${q.clientKey}`}
                                                     className="flex h-9 items-center gap-2 rounded-lg border border-divider_01 px-3 text-sm"
                                                 >
-                                                    <Checkbox
-                                                        id={`required-${qIndex}`}
+                                                    <Switch
+                                                        id={`required-${q.clientKey}`}
                                                         checked={q.required}
                                                         onCheckedChange={checked =>
                                                             updateQuestion(
                                                                 qIndex,
                                                                 {
                                                                     required:
-                                                                        checked ===
-                                                                        true,
+                                                                        checked,
                                                                 },
                                                             )
                                                         }
@@ -615,7 +775,8 @@ const SurveyFormContent: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
 
                                 <Button
                                     variant="outline"
@@ -665,7 +826,7 @@ const SurveyFormContent: React.FC = () => {
                                 description="Mặc định khảo sát áp dụng cho tất cả mọi người, có thể giới hạn theo tiêu chí."
                             />
                             <CardContent>
-                                <label className="mb-4 flex items-center gap-2 rounded-lg border border-divider_01 bg-ng_10 px-3 py-2.5 text-sm font-medium">
+                                <label className="flex items-center gap-2 rounded-lg border border-divider_01 bg-ng_10 px-3 py-2.5 text-sm font-medium">
                                     <Checkbox
                                         checked={eligibleAll}
                                         onCheckedChange={checked =>
@@ -676,67 +837,36 @@ const SurveyFormContent: React.FC = () => {
                                 </label>
 
                                 {!eligibleAll && (
-                                    <div className="flex flex-col gap-4">
-                                        {audienceGroups.map(group => (
-                                            <div key={group.key}>
-                                                <div className="mb-1.5 flex items-center justify-between">
-                                                    <Label>
-                                                        {group.label}
-                                                    </Label>
+                                    <div className="mt-3 flex flex-col gap-2">
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {audienceGroups.map(group => (
+                                                <Badge
+                                                    key={group.key}
+                                                    tone={
+                                                        group.selected
+                                                            .length > 0
+                                                            ? "blue"
+                                                            : "gray"
+                                                    }
+                                                >
+                                                    {group.label}
                                                     {group.selected.length >
-                                                        0 && (
-                                                        <Badge tone="blue">
-                                                            {
-                                                                group.selected
-                                                                    .length
-                                                            }
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                <div className="flex max-h-40 flex-col gap-1 overflow-y-auto rounded-lg border border-divider_01 p-2">
-                                                    {group.options.length ===
-                                                        0 && (
-                                                        <span className="p-1 text-xs text-text_2">
-                                                            {
-                                                                group.emptyLabel
-                                                            }
-                                                        </span>
-                                                    )}
-                                                    {group.options.map(
-                                                        opt => (
-                                                            <label
-                                                                key={opt.key}
-                                                                className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-ng_10"
-                                                            >
-                                                                <Checkbox
-                                                                    checked={group.selected.includes(
-                                                                        opt.key,
-                                                                    )}
-                                                                    onCheckedChange={() =>
-                                                                        group.onToggle(
-                                                                            opt.key,
-                                                                        )
-                                                                    }
-                                                                />
-                                                                <span className="truncate">
-                                                                    {
-                                                                        opt.name
-                                                                    }
-                                                                </span>
-                                                            </label>
-                                                        ),
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        <p className="rounded-lg bg-ng_10 p-2.5 text-xs text-text_2">
-                                            Người trả lời phải khớp vai trò đã
-                                            chọn (nếu có) VÀ khớp ít nhất một
-                                            trong các tiêu chí đường/phố, tổ
-                                            dân phố, hoặc loại hình kinh doanh
-                                            (nếu có chọn).
-                                        </p>
+                                                        0 &&
+                                                        `: ${group.selected.length}`}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-fit"
+                                            onClick={() =>
+                                                setAudienceDialogOpen(true)
+                                            }
+                                        >
+                                            <SlidersHorizontal className="mr-1 h-3.5 w-3.5" />
+                                            Chọn đối tượng cụ thể
+                                        </Button>
                                     </div>
                                 )}
                             </CardContent>
@@ -869,6 +999,77 @@ const SurveyFormContent: React.FC = () => {
                     </div>
                     <DialogFooter>
                         <Button onClick={() => setCoEditorDialogOpen(false)}>
+                            Xong
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={audienceDialogOpen}
+                onOpenChange={setAudienceDialogOpen}
+            >
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Chọn đối tượng được trả lời</DialogTitle>
+                        <DialogDescription>
+                            Người trả lời phải khớp vai trò đã chọn (nếu có) VÀ
+                            khớp ít nhất một trong các tiêu chí đường/phố, tổ
+                            dân phố, hoặc loại hình kinh doanh (nếu có chọn).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <Tabs value={audienceTab} onValueChange={setAudienceTab}>
+                        <TabsList className="h-auto w-full flex-wrap justify-start">
+                            {audienceGroups.map(group => (
+                                <TabsTrigger
+                                    key={group.key}
+                                    value={group.key}
+                                    className="gap-1.5"
+                                >
+                                    {group.label}
+                                    {group.selected.length > 0 && (
+                                        <Badge
+                                            tone="blue"
+                                            className="h-4 px-1.5 text-[10px]"
+                                        >
+                                            {group.selected.length}
+                                        </Badge>
+                                    )}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                        {audienceGroups.map(group => (
+                            <TabsContent key={group.key} value={group.key}>
+                                <div className="flex max-h-72 flex-col gap-1 overflow-y-auto rounded-lg border border-divider_01 p-2">
+                                    {group.options.length === 0 && (
+                                        <span className="p-2 text-xs text-text_2">
+                                            {group.emptyLabel}
+                                        </span>
+                                    )}
+                                    {group.options.map(opt => (
+                                        <label
+                                            key={opt.key}
+                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-ng_10"
+                                        >
+                                            <Checkbox
+                                                checked={group.selected.includes(
+                                                    opt.key,
+                                                )}
+                                                onCheckedChange={() =>
+                                                    group.onToggle(opt.key)
+                                                }
+                                            />
+                                            <span className="truncate">
+                                                {opt.name}
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </TabsContent>
+                        ))}
+                    </Tabs>
+                    <DialogFooter>
+                        <Button onClick={() => setAudienceDialogOpen(false)}>
                             Xong
                         </Button>
                     </DialogFooter>
