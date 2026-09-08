@@ -92,13 +92,12 @@ const CreateHouseOwnerContent: React.FC = () => {
     const isValid =
         form.phone.trim().length > 0 &&
         form.displayName.trim().length > 0 &&
-        form.idNumber.trim().length > 0 &&
         form.password.trim().length >= 6;
 
     const handleCreate = async () => {
         if (!isValid) {
             toast.error(
-                "Vui lòng nhập đầy đủ số điện thoại, họ tên, số CMND/CCCD và mật khẩu (ít nhất 6 ký tự)",
+                "Vui lòng nhập đầy đủ số điện thoại, họ tên và mật khẩu (ít nhất 6 ký tự)",
             );
             return;
         }
@@ -108,7 +107,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                 phone: form.phone.trim(),
                 displayName: form.displayName.trim(),
                 address: form.address.trim() || undefined,
-                idNumber: form.idNumber.trim(),
+                idNumber: form.idNumber.trim() || undefined,
                 role: form.role,
                 password: form.password.trim(),
             });
@@ -198,7 +197,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label>Số CMND/CCCD</Label>
+                        <Label>Số CMND/CCCD (tùy chọn)</Label>
                         <Input
                             autoComplete="off"
                             value={form.idNumber}

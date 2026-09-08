@@ -49,6 +49,11 @@ const documentTypeName = (item: RequiredDocumentItem) => {
     return typeof dt === "string" ? dt : dt.name;
 };
 
+const documentTypeSampleFile = (item: RequiredDocumentItem) => {
+    const dt = item.rule.documentTypeId;
+    return typeof dt === "string" ? undefined : dt.sampleFileUrl;
+};
+
 export interface RequiredDocumentsPanelProps {
     entityId: string;
     /** Lay ma tran giay to yeu cau cho entityId nay (vd fetchRequiredDocuments cua houseApi/businessApi). */
@@ -205,6 +210,7 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                             {items.map(item => {
                         const key = documentTypeName(item);
                         const historyOpen = expandedHistory.has(key);
+                        const sampleFileUrl = documentTypeSampleFile(item);
                         return (
                             <div
                                 key={key}
@@ -227,6 +233,21 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                                                 ? "Bắt buộc"
                                                 : "Tùy chọn"}
                                         </Badge>
+                                        {sampleFileUrl && (
+                                            <a
+                                                href={resolveAssetUrl(
+                                                    sampleFileUrl,
+                                                )}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-xs text-primary hover:underline"
+                                                onClick={e =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                Xem mẫu
+                                            </a>
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         {item.missing ? (

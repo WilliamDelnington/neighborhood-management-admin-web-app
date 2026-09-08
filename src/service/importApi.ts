@@ -173,9 +173,20 @@ export interface ImportJob<T = StreetImportPreviewRow> {
     sourceSheetName: string;
     suggestedMapping: Record<string, string>;
     columnMapping: Record<string, string>;
+    // Loi that su (thieu du lieu, gia tri khong hop le, khong doi chieu duoc)
+    // - cac dong nay se KHONG duoc nhap. Khac skippedRows: dong loi van duoc
+    // hien thi/xuat ra Excel de nguoi dung sua lai va nhap lai lan sau.
     rowErrors: ImportRowError[];
+    // Dong da nhan dien "du lieu da ton tai" (trung ten/ma/cccd... voi du lieu
+    // co san) - khong bi coi la loi, chi don gian la bi bo qua (khong tao
+    // trung). Hien thi rieng voi rowErrors o giao dien.
+    skippedRows: ImportRowError[];
     previewData: T[];
     committedCount: number;
+    // Chi co y nghia trong/sau luc commit (status="committing"/"committed") -
+    // xem ghi chu tuong ung o backend IImportJob.
+    createdCount: number;
+    skippedCount: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -430,3 +441,14 @@ export const downloadBusinessImportTemplate = (): Promise<void> =>
         `${API.IMPORT}/businesses/template`,
         "mau-nhap-ho-kinh-doanh.xlsx",
     );
+
+/**
+ * Xuat toan bo rowErrors cua mot import job ra file Excel (dung chung cho ca
+ * 5 loai import - xem buildImportErrorsWorkbook o backend). filename nen dat
+ * theo loai import de nguoi dung de phan biet khi tai nhieu file.
+ */
+export const downloadImportJobErrors = (
+    jobId: string,
+    filename: string,
+): Promise<void> =>
+    downloadImportTemplate(`${API.IMPORT}/jobs/${jobId}/errors/export`, filename);

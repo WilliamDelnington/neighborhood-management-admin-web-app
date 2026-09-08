@@ -26,6 +26,7 @@ import {
 } from "@components/ui/table";
 import { Badge } from "@components/ui/badge";
 import ImportProgressBar from "@components/admin/ImportProgressBar";
+import ImportErrorConfirmDialog from "@components/admin/ImportErrorConfirmDialog";
 import { AppError } from "@dts";
 import {
     ImportJob,
@@ -34,6 +35,7 @@ import {
     applyStreetImportMapping,
     commitStreetImport,
     downloadStreetImportTemplate,
+    downloadImportJobErrors,
     pollImportJobUntilSettled,
 } from "@service/importApi";
 
@@ -70,6 +72,10 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
     const [downloadingTemplate, setDownloadingTemplate] = useState(false);
     const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
+    // Xac nhan bat buoc khi con dong loi truoc khi thuc su commit - xem
+    // ImportErrorConfirmDialog/handleCommit.
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [exportingErrors, setExportingErrors] = useState(false);
 
     const reset = () => {
         setFile(null);
@@ -80,6 +86,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         setUploading(false);
         setApplying(false);
         setCommitting(false);
+        setConfirmOpen(false);
     };
 
     const handleOpenChange = (next: boolean) => {
@@ -162,10 +169,11 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         }
     };
 
-    const handleCommit = async () => {
+    const doCommit = async () => {
         if (!job) return;
         try {
             setCommitting(true);
+            setConfirmOpen(false);
             await commitStreetImport(job._id);
             // Backend chuyen job sang "committing" va xu ly tung dong o
             // background (xem processStreetImportRows) - poll de cap nhat
@@ -180,7 +188,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                 return;
             }
             toast.success(
-                `Đã nhập thành công ${result.committedCount} đường/phố`,
+                `Đã nhập thành công ${result.createdCount} đường/phố`,
             );
             reset();
             onOpenChange(false);
@@ -192,6 +200,29 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         }
     };
 
+    // Con dong loi -> xac nhan lai truoc (cac dong do se KHONG duoc nhap),
+    // khong con chan hoan toan nhu truoc - xem ImportErrorConfirmDialog.
+    const handleCommit = () => {
+        if (!job) return;
+        if (job.rowErrors.length > 0) {
+            setConfirmOpen(true);
+            return;
+        }
+        doCommit();
+    };
+
+    const handleExportErrors = async () => {
+        if (!job) return;
+        try {
+            setExportingErrors(true);
+            await downloadImportJobErrors(job._id, "import-loi-duong-pho.xlsx");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExportingErrors(false);
+        }
+    };
+
     const canApplyMapping = !!mapping.name;
     const canCommit =
         !!job &&
@@ -199,7 +230,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         job.status !== "committed" &&
         job.status !== "committing" &&
         job.status !== "awaiting_mapping" &&
-        job.rowErrors.length === 0;
+        (job.previewData.length > 0 || job.skippedRows.length > 0);
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -373,7 +404,9 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
 
                     {job && !showMapping && job.status === "committing" && (
                         <ImportProgressBar
-                            committedCount={job.committedCount}
+                            createdCount={job.createdCount}
+                            skippedCount={job.skippedCount}
+                            errorCount={job.rowErrors.length}
                             totalRows={job.totalRows}
                             label="Đang nhập đường/phố..."
                         />
@@ -384,7 +417,8 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                             <div className="flex items-center justify-between text-sm">
                                 <span>
                                     Tổng {job.totalRows} dòng — hợp lệ{" "}
-                                    {job.validRows} — lỗi{" "}
+                                    {job.validRows} — đã tồn tại{" "}
+                                    {job.skippedRows.length} — lỗi{" "}
                                     {job.rowErrors.length}
                                 </span>
                                 <Button
@@ -399,7 +433,34 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
 
                             {job.rowErrors.length > 0 && (
                                 <div className="space-y-1 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-medium">
+                                            Dòng lỗi (sẽ không được nhập)
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            loading={exportingErrors}
+                                            onClick={handleExportErrors}
+                                        >
+                                            <FileDown className="mr-1 h-3.5 w-3.5" />
+                                            Xuất lỗi ra Excel
+                                        </Button>
+                                    </div>
                                     {job.rowErrors.map(e => (
+                                        <div key={e.row}>
+                                            Dòng {e.row}: {e.message}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {job.skippedRows.length > 0 && (
+                                <div className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                                    <div className="font-medium">
+                                        Dòng đã tồn tại (sẽ bỏ qua)
+                                    </div>
+                                    {job.skippedRows.map(e => (
                                         <div key={e.row}>
                                             Dòng {e.row}: {e.message}
                                         </div>
@@ -485,6 +546,17 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                     )}
                 </SheetFooter>
             </SheetContent>
+            {job && (
+                <ImportErrorConfirmDialog
+                    open={confirmOpen}
+                    createdCount={job.previewData.length}
+                    skippedCount={job.skippedRows.length}
+                    errorCount={job.rowErrors.length}
+                    confirming={committing}
+                    onCancel={() => setConfirmOpen(false)}
+                    onConfirm={doCommit}
+                />
+            )}
         </Sheet>
     );
 };

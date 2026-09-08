@@ -269,31 +269,35 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
                 disabled={!values.provinceCode}
             />
             <div className="space-y-1.5">
-                <Label>Địa chỉ</Label>
+                <Label>Địa chỉ nhà văn hóa / trụ sở tổ dân phố (tùy chọn)</Label>
                 <Input
-                    placeholder="Địa chỉ nhà văn hóa / trụ sở tổ dân phố"
+                    placeholder="VD: 12 Trần Phú"
                     value={values.address}
                     onChange={e => set("address", e.target.value)}
                 />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                    <Label>Hiệu lực từ</Label>
-                    <Input
-                        type="date"
-                        value={values.effectiveFrom}
-                        onChange={e => set("effectiveFrom", e.target.value)}
-                    />
+            {/* An khi tao moi - to dan pho moi tao luon co hieu luc ngay, chi
+                can chinh khoang hieu luc khi sua (vd sap nhap/giai the sau nay). */}
+            {mode === "edit" && (
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <Label>Hiệu lực từ</Label>
+                        <Input
+                            type="date"
+                            value={values.effectiveFrom}
+                            onChange={e => set("effectiveFrom", e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label>Hiệu lực đến</Label>
+                        <Input
+                            type="date"
+                            value={values.effectiveTo}
+                            onChange={e => set("effectiveTo", e.target.value)}
+                        />
+                    </div>
                 </div>
-                <div className="space-y-1.5">
-                    <Label>Hiệu lực đến</Label>
-                    <Input
-                        type="date"
-                        value={values.effectiveTo}
-                        onChange={e => set("effectiveTo", e.target.value)}
-                    />
-                </div>
-            </div>
+            )}
             <div className="space-y-1.5">
                 <Label>Trạng thái</Label>
                 <Select

@@ -7,7 +7,6 @@ import {
     CalendarDays,
     Megaphone,
     ClipboardList,
-    Wallet,
     BarChart3,
     UserCog,
     UserPlus,
@@ -465,22 +464,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: ClipboardList,
                 permission: "surveys.read",
                 description: "Tạo khảo sát và thu thập ý kiến cư dân.",
-            },
-        ],
-    },
-    {
-        key: "finance",
-        label: "Tài chính",
-        icon: Wallet,
-        items: [
-            {
-                key: "finance",
-                label: "Tài chính",
-                path: "/finance",
-                icon: Wallet,
-                permission: "finance.read",
-                description:
-                    "Quản lý các khoản thu chi tài chính của tổ dân phố.",
             },
         ],
     },

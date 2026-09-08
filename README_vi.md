@@ -1,6 +1,6 @@
 # Hòa Bình Admin — Trang quản trị Tổ dân phố Hòa Bình
 
-Ứng dụng web quản trị (SPA) dành cho cán bộ Tổ dân phố Hòa Bình, dùng để quản lý hộ khẩu, nhân khẩu, phản ánh của cư dân, PCCC, an ninh trật tự, họp tổ, thông báo, khảo sát, tài chính và báo cáo tổng hợp. Xây dựng bằng **React + TypeScript + Vite**, giao tiếp với [Hòa Bình Backend App](../quan-ly-to-dan-pho-hoa-binh-backend-app) qua REST API, xác thực bằng JWT và phân quyền chi tiết theo từng module (RBAC).
+Ứng dụng web quản trị (SPA) dành cho cán bộ Tổ dân phố Hòa Bình, dùng để quản lý hộ khẩu, nhân khẩu, phản ánh của cư dân, PCCC, an ninh trật tự, họp tổ, thông báo, khảo sát và báo cáo tổng hợp. Xây dựng bằng **React + TypeScript + Vite**, giao tiếp với [Hòa Bình Backend App](../quan-ly-to-dan-pho-hoa-binh-backend-app) qua REST API, xác thực bằng JWT và phân quyền chi tiết theo từng module (RBAC).
 
 ## Mục lục
 
@@ -33,7 +33,6 @@ Sidebar hiển thị các module theo quyền hạn (`permission`) mà tài kho�
 | Thông báo | `/announcements` | `announcements.read` |
 | Khảo sát | `/surveys` | `surveys.read` |
 | Biểu mẫu & tệp tin | `/files` | `files.read` |
-| Tài chính | `/finance` | `finance.read` |
 | Báo cáo | `/reports` | `reports.read` |
 | Người dùng & vai trò | `/users` | `users.read` |
 | Vai trò & phân quyền | `/roles` | `roles.read` |

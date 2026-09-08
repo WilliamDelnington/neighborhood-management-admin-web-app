@@ -133,6 +133,10 @@ export type DocumentType = {
     hasIssueDate: boolean;
     hasExpiryDate: boolean;
     active: boolean;
+    // Tep mau minh hoa (khong bat buoc) - giup chu nha/can bo hinh dung ro
+    // hon giay to nay ngoai ten/mo ta, xem documentTypeApi.ts.
+    sampleFileUrl?: string;
+    sampleFileName?: string;
     createdAt: string;
     updatedAt: string;
 };

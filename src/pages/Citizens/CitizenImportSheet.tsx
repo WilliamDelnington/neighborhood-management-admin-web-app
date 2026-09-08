@@ -25,6 +25,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import ImportProgressBar from "@components/admin/ImportProgressBar";
+import ImportErrorConfirmDialog from "@components/admin/ImportErrorConfirmDialog";
 import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { AppError } from "@dts";
 import {
@@ -35,6 +36,7 @@ import {
     applyCitizenImportMapping,
     commitCitizenImport,
     downloadCitizenImportTemplate,
+    downloadImportJobErrors,
     pollImportJobUntilSettled,
 } from "@service/importApi";
 
@@ -102,6 +104,10 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
     const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
     const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+    // Xac nhan bat buoc khi con dong loi truoc khi thuc su commit - xem
+    // ImportErrorConfirmDialog/handleCommit.
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [exportingErrors, setExportingErrors] = useState(false);
 
     const reset = () => {
         setFile(null);
@@ -113,6 +119,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         setApplying(false);
         setCommitting(false);
         setDownloadingTemplate(false);
+        setConfirmOpen(false);
     };
 
     const handleDownloadTemplate = async () => {
@@ -203,10 +210,11 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         }
     };
 
-    const handleCommit = async () => {
+    const doCommit = async () => {
         if (!job) return;
         try {
             setCommitting(true);
+            setConfirmOpen(false);
             await commitCitizenImport(job._id);
             // Backend chuyen job sang "committing" va xu ly tung dong o
             // background (xem processCitizenImportRows) - poll de cap nhat
@@ -220,7 +228,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                 toast.error("Nhập dữ liệu thất bại, vui lòng thử lại");
                 return;
             }
-            toast.success(`Đã nhập thành công ${result.committedCount} nhân khẩu`);
+            toast.success(`Đã nhập thành công ${result.createdCount} nhân khẩu`);
             reset();
             onOpenChange(false);
             onImported();
@@ -228,6 +236,29 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
             toast.error((err as AppError).message);
         } finally {
             setCommitting(false);
+        }
+    };
+
+    // Con dong loi -> xac nhan lai truoc (cac dong do se KHONG duoc nhap),
+    // khong con chan hoan toan nhu truoc - xem ImportErrorConfirmDialog.
+    const handleCommit = () => {
+        if (!job) return;
+        if (job.rowErrors.length > 0) {
+            setConfirmOpen(true);
+            return;
+        }
+        doCommit();
+    };
+
+    const handleExportErrors = async () => {
+        if (!job) return;
+        try {
+            setExportingErrors(true);
+            await downloadImportJobErrors(job._id, "import-loi-nhan-khau.xlsx");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExportingErrors(false);
         }
     };
 
@@ -239,7 +270,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         job.status !== "committed" &&
         job.status !== "committing" &&
         job.status !== "awaiting_mapping" &&
-        job.rowErrors.length === 0;
+        (job.previewData.length > 0 || job.skippedRows.length > 0);
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -369,7 +400,9 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
 
                     {job && !showMapping && job.status === "committing" && (
                         <ImportProgressBar
-                            committedCount={job.committedCount}
+                            createdCount={job.createdCount}
+                            skippedCount={job.skippedCount}
+                            errorCount={job.rowErrors.length}
                             totalRows={job.totalRows}
                             label="Đang nhập nhân khẩu..."
                         />
@@ -380,7 +413,8 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                             <div className="flex items-center justify-between text-sm">
                                 <span>
                                     Tổng {job.totalRows} dòng — hợp lệ{" "}
-                                    {job.validRows} — lỗi{" "}
+                                    {job.validRows} — đã tồn tại{" "}
+                                    {job.skippedRows.length} — lỗi{" "}
                                     {job.rowErrors.length}
                                 </span>
                                 <Button
@@ -395,7 +429,34 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
 
                             {job.rowErrors.length > 0 && (
                                 <div className="space-y-1 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-medium">
+                                            Dòng lỗi (sẽ không được nhập)
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            loading={exportingErrors}
+                                            onClick={handleExportErrors}
+                                        >
+                                            <FileDown className="mr-1 h-3.5 w-3.5" />
+                                            Xuất lỗi ra Excel
+                                        </Button>
+                                    </div>
                                     {job.rowErrors.map(e => (
+                                        <div key={e.row}>
+                                            Dòng {e.row}: {e.message}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {job.skippedRows.length > 0 && (
+                                <div className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                                    <div className="font-medium">
+                                        Dòng đã tồn tại (sẽ bỏ qua)
+                                    </div>
+                                    {job.skippedRows.map(e => (
                                         <div key={e.row}>
                                             Dòng {e.row}: {e.message}
                                         </div>
@@ -487,6 +548,17 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                     )}
                 </SheetFooter>
             </SheetContent>
+            {job && (
+                <ImportErrorConfirmDialog
+                    open={confirmOpen}
+                    createdCount={job.previewData.length}
+                    skippedCount={job.skippedRows.length}
+                    errorCount={job.rowErrors.length}
+                    confirming={committing}
+                    onCancel={() => setConfirmOpen(false)}
+                    onConfirm={doCommit}
+                />
+            )}
         </Sheet>
     );
 };

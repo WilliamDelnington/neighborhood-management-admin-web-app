@@ -257,13 +257,12 @@ const UserListContent: React.FC = () => {
     const isCreateFormValid =
         createForm.phone.trim().length > 0 &&
         createForm.displayName.trim().length > 0 &&
-        createForm.idNumber.trim().length > 0 &&
         createForm.password.trim().length >= 6;
 
     const handleCreateAccount = async () => {
         if (!isCreateFormValid) {
             toast.error(
-                "Vui lòng nhập đầy đủ số điện thoại, họ tên, số CMND/CCCD và mật khẩu (ít nhất 6 ký tự)",
+                "Vui lòng nhập đầy đủ số điện thoại, họ tên và mật khẩu (ít nhất 6 ký tự)",
             );
             return;
         }
@@ -273,7 +272,7 @@ const UserListContent: React.FC = () => {
                 phone: createForm.phone.trim(),
                 displayName: createForm.displayName.trim(),
                 address: createForm.address.trim() || undefined,
-                idNumber: createForm.idNumber.trim(),
+                idNumber: createForm.idNumber.trim() || undefined,
                 role: createForm.role,
                 password: createForm.password.trim(),
             });
@@ -1158,7 +1157,7 @@ const UserListContent: React.FC = () => {
                             />
                         </div>
                         <div className="space-y-1.5">
-                            <Label>Số CMND/CCCD</Label>
+                            <Label>Số CMND/CCCD (tùy chọn)</Label>
                             <Input
                                 autoComplete="off"
                                 value={createForm.idNumber}
