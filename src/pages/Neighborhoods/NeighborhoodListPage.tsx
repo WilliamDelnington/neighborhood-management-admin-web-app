@@ -241,7 +241,6 @@ const NeighborhoodListContent: React.FC = () => {
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Phường/Xã</TableHead>
-                                <TableHead>Tuyến đường</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Tổ trưởng</TableHead>
                                 <TableHead>Tổ phó</TableHead>
@@ -272,9 +271,6 @@ const NeighborhoodListContent: React.FC = () => {
                                                 Chưa gán
                                             </span>
                                         )}
-                                    </TableCell>
-                                    <TableCell className="min-w-40">
-                                        {n.streetIds?.map(street => street.name).join(", ") || "Chưa gán"}
                                     </TableCell>
                                     <TableCell>
                                         <Badge tone={n.status === "ACTIVE" ? "green" : "gray"}>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
 import { Checkbox } from "@components/ui/checkbox";
@@ -42,6 +42,92 @@ export interface CitizenFormValues {
     isPartyMember: boolean;
     isUnionMember: boolean;
 }
+
+// Goi y quan he thuong gap - van la truong nhap tu do (relationToHead: string
+// trong Citizen), danh sach chi giup chon nhanh, khong gioi han gia tri nhap
+// (xem RelationToHeadField ben duoi).
+const RELATION_TO_HEAD_OPTIONS = [
+    "Chủ hộ",
+    "Vợ",
+    "Chồng",
+    "Con",
+    "Cha",
+    "Mẹ",
+    "Ông",
+    "Bà",
+    "Anh",
+    "Chị",
+    "Em",
+    "Cháu",
+    "Người ở nhờ",
+    "Khác",
+];
+
+interface RelationToHeadFieldProps {
+    value: string;
+    onChange: (value: string) => void;
+}
+
+/**
+ * O nhap "Quan he voi chu ho": go danh sach goi y khi focus/go, nhung van la
+ * input tu do - khong bat buoc chon dung 1 trong cac goi y nay.
+ */
+const RelationToHeadField: React.FC<RelationToHeadFieldProps> = ({
+    value,
+    onChange,
+}) => {
+    const [open, setOpen] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return undefined;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (
+                containerRef.current &&
+                !containerRef.current.contains(e.target as Node)
+            ) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
+    }, [open]);
+
+    const filtered = RELATION_TO_HEAD_OPTIONS.filter(option =>
+        option.toLowerCase().includes(value.trim().toLowerCase()),
+    );
+
+    return (
+        <div ref={containerRef} className="relative">
+            <Input
+                placeholder="Chọn hoặc nhập, VD: Con, vợ, chồng..."
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                onFocus={() => setOpen(true)}
+            />
+            {open && filtered.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full min-w-[280px] overflow-hidden rounded-md border border-divider_01 bg-ui_bg shadow-lg">
+                    <div className="max-h-64 overflow-y-auto py-1">
+                        {filtered.map(option => (
+                            <button
+                                key={option}
+                                type="button"
+                                className="block w-full px-3 py-2 text-left text-sm hover:bg-ng_10"
+                                onClick={() => {
+                                    onChange(option);
+                                    setOpen(false);
+                                }}
+                            >
+                                {option}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const EMPTY_CITIZEN_FORM: CitizenFormValues = {
     fullName: "",

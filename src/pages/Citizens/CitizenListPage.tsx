@@ -247,6 +247,9 @@ const CitizenListContent: React.FC = () => {
                                 <TableHead>Hộ dân</TableHead>
                                 <TableHead>Quan hệ với chủ hộ</TableHead>
                                 <TableHead>Loại cư trú</TableHead>
+                                <TableHead className="text-right">
+                                    Thao tác
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -279,9 +282,22 @@ const CitizenListContent: React.FC = () => {
                                                 {LOAI_CU_TRU_LABEL[c.residenceType]}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell
+                                            className="text-right"
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    navigate(`/citizens/${c._id}`)
+                                                }
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
-                                );
-                            })}
+                                ))}
                         </TableBody>
                     </Table>
                 )}

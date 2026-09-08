@@ -692,7 +692,7 @@ export type Complaint = {
     content: string;
     area?: string;
     status: TrangThaiPhanAnh;
-    neighborhoodId?: string;
+    neighborhoodId?: string | { _id: string; name: string; code?: string };
     wardCode?: number;
     targetHouseId?: string | { _id: string; code: string; address?: string };
     createdByUserId:

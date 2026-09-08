@@ -1,7 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Plus } from "lucide-react";
+import {
+    AlertCircle,
+    ArrowLeft,
+    Building2,
+    ChevronDown,
+    Construction,
+    FileText,
+    Home,
+    Landmark,
+    MapPin,
+    Plus,
+    Route,
+    StickyNote,
+    Users,
+} from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
@@ -194,6 +208,9 @@ const HouseDetailContent: React.FC = () => {
 
     const [households, setHouseholds] = useState<Household[]>([]);
     const [householdsLoading, setHouseholdsLoading] = useState(true);
+    // Mac dinh dong de do ton dien tich khi chua co du lieu - useEffect ben
+    // duoi tu dong mo lai neu co du lieu hoac co canh bao can bo sung.
+    const [householdsCollapsed, setHouseholdsCollapsed] = useState(true);
     const [createHouseholdVisible, setCreateHouseholdVisible] = useState(false);
     const [householdForm, setHouseholdForm] = useState<HouseholdFormValues>(
         EMPTY_HOUSEHOLD_FORM,
@@ -204,18 +221,21 @@ const HouseDetailContent: React.FC = () => {
 
     const [businesses, setBusinesses] = useState<Business[]>([]);
     const [businessesLoading, setBusinessesLoading] = useState(true);
+    const [businessesCollapsed, setBusinessesCollapsed] = useState(true);
     const [businessSheetVisible, setBusinessSheetVisible] = useState(false);
     const [businessForm, setBusinessForm] = useState(EMPTY_BUSINESS_FORM);
     const [submittingBusiness, setSubmittingBusiness] = useState(false);
 
     const [companies, setCompanies] = useState<Company[]>([]);
     const [companiesLoading, setCompaniesLoading] = useState(true);
+    const [companiesCollapsed, setCompaniesCollapsed] = useState(true);
     const [companySheetVisible, setCompanySheetVisible] = useState(false);
     const [companyForm, setCompanyForm] = useState(EMPTY_COMPANY_FORM);
     const [submittingCompany, setSubmittingCompany] = useState(false);
 
     const [usageUnits, setUsageUnits] = useState<HouseUsageUnit[]>([]);
     const [usageUnitsLoading, setUsageUnitsLoading] = useState(true);
+    const [usageUnitsCollapsed, setUsageUnitsCollapsed] = useState(true);
     const [addUnitVisible, setAddUnitVisible] = useState(false);
     const [unitLabel, setUnitLabel] = useState("");
     const [unitUsageType, setUnitUsageType] = useState<HouseUsageType>("household");
@@ -619,6 +639,36 @@ const HouseDetailContent: React.FC = () => {
     // (vd nha tao truoc khi co tinh nang khai bao muc dich su dung) - tranh
     // crash trang trang khi goi .includes()/.map() tren undefined.
     const houseUsageTypes = house?.usageTypes || [];
+    const householdUsageDeclared = houseUsageTypes.includes("household");
+    const businessUsageDeclared = houseUsageTypes.includes("business");
+    const companyUsageDeclared = houseUsageTypes.includes("company");
+
+    // Cac section duoi day mac dinh dong khi chua co du lieu de do ton dien
+    // tich - tu dong mo lai khi load xong ma co du lieu, hoac khi nha da khai
+    // bao muc dich su dung nhung chua khai bao doi tuong tuong ung (can canh
+    // bao nguoi dung bo sung, xem UsageWarningBanner).
+    useEffect(() => {
+        if (householdsLoading) return;
+        const hasWarning = householdUsageDeclared && households.length === 0;
+        setHouseholdsCollapsed(households.length === 0 && !hasWarning);
+    }, [householdsLoading, households.length, householdUsageDeclared]);
+
+    useEffect(() => {
+        if (businessesLoading) return;
+        const hasWarning = businessUsageDeclared && businesses.length === 0;
+        setBusinessesCollapsed(businesses.length === 0 && !hasWarning);
+    }, [businessesLoading, businesses.length, businessUsageDeclared]);
+
+    useEffect(() => {
+        if (companiesLoading) return;
+        const hasWarning = companyUsageDeclared && companies.length === 0;
+        setCompaniesCollapsed(companies.length === 0 && !hasWarning);
+    }, [companiesLoading, companies.length, companyUsageDeclared]);
+
+    useEffect(() => {
+        if (usageUnitsLoading) return;
+        setUsageUnitsCollapsed(usageUnits.length === 0);
+    }, [usageUnitsLoading, usageUnits.length]);
 
     return (
         <div>
@@ -638,123 +688,26 @@ const HouseDetailContent: React.FC = () => {
 
             {!loading && !error && house && form && (
                 <>
-                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">
-                                {house.code}
-                            </h2>
-                            <Badge tone={HOUSE_STATUS_TONE[house.status]}>
-                                {HOUSE_STATUS_LABEL[house.status]}
-                            </Badge>
-                        </div>
-
-                        {editing ? (
-                            <>
-                                <HouseForm
-                                    values={form}
-                                    onChange={setForm}
-                                    mode="edit"
-                                />
-                                <div className="mt-4 flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setForm(toFormValues(house));
-                                            setEditing(false);
-                                        }}
-                                    >
-                                        Hủy
-                                    </Button>
-                                    <Button loading={saving} onClick={handleSave}>
-                                        Lưu
-                                    </Button>
+                    <div className="rounded-xl border border-divider_01 bg-ui_bg p-6 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-main to-primary-dark text-white ring-2 ring-blue_10">
+                                    <Home className="h-6 w-6" />
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                {house.provinceName && (
-                                    <InfoRow
-                                        label="Tỉnh/Thành phố"
-                                        value={house.provinceName}
-                                    />
-                                )}
-                                {house.wardName && (
-                                    <InfoRow
-                                        label="Phường/Xã"
-                                        value={house.wardName}
-                                    />
-                                )}
-                                <InfoRow label="Cụm dân cư" value={house.cluster} />
-                                {streetName(house.streetId) && (
-                                    <InfoRow
-                                        label="Đường/phố"
-                                        value={streetName(house.streetId)!}
-                                    />
-                                )}
-                                {neighborhoodName(house.neighborhoodId) && (
-                                    <InfoRow
-                                        label="Tổ dân phố"
-                                        value={neighborhoodName(house.neighborhoodId)!}
-                                    />
-                                )}
-                                <InfoRow label="Địa chỉ" value={house.address} />
-                                <InfoRow
-                                    label="Tình trạng công trình"
-                                    value={
-                                        house.physicalStatus
-                                            ? HOUSE_PHYSICAL_STATUS_LABEL[
-                                                  house.physicalStatus
-                                              ]
-                                            : "Chưa cập nhật"
-                                    }
-                                />
-                                <InfoRow
-                                    label="Mục đích sử dụng"
-                                    value={
-                                        [
-                                            ...houseUsageTypes.map(
-                                                t => HOUSE_USAGE_TYPE_LABEL[t],
-                                            ),
-                                            ...(house.otherUsageNote
-                                                ? [house.otherUsageNote]
-                                                : []),
-                                        ].join(", ") || "Chưa khai báo"
-                                    }
-                                />
-                                <InfoRow
-                                    label="Số khai báo cư trú"
-                                    value={
-                                        house.residenceDeclarationNumber ||
-                                        "Chưa khai báo"
-                                    }
-                                />
-                                <InfoRow
-                                    label="Ghi chú"
-                                    value={house.note || "Không có"}
-                                />
-                                {house.status === "verified" &&
-                                    house.approvalNote && (
-                                        <InfoRow
-                                            label="Ghi chú duyệt"
-                                            value={house.approvalNote}
-                                        />
-                                    )}
-                                {house.status === "denied" &&
-                                    house.denialReason && (
-                                        <InfoRow
-                                            label="Lý do từ chối"
-                                            value={house.denialReason}
-                                        />
-                                    )}
-                                {house.status === "needs_update" &&
-                                    house.needsUpdateNote && (
-                                        <InfoRow
-                                            label="Cần cập nhật"
-                                            value={house.needsUpdateNote}
-                                        />
-                                    )}
+                                <div>
+                                    <h2 className="text-xl font-semibold text-text_1">
+                                        {house.code}
+                                    </h2>
+                                    <div className="mt-1">
+                                        <Badge tone={HOUSE_STATUS_TONE[house.status]}>
+                                            {HOUSE_STATUS_LABEL[house.status]}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div className="mt-4 flex flex-wrap gap-2">
+                            {!editing && (
+                                <div className="flex flex-wrap gap-2">
                                     {canUpdate && (
                                         <Button
                                             variant="outline"
@@ -858,7 +811,140 @@ const HouseDetailContent: React.FC = () => {
                                         </Button>
                                     )}
                                 </div>
+                            )}
+                        </div>
+
+                        <div className="my-5 border-t border-divider_01" />
+
+                        {editing ? (
+                            <>
+                                <HouseForm
+                                    values={form}
+                                    onChange={setForm}
+                                    mode="edit"
+                                />
+                                <div className="mt-4 flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setForm(toFormValues(house));
+                                            setEditing(false);
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button loading={saving} onClick={handleSave}>
+                                        Lưu
+                                    </Button>
+                                </div>
                             </>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                                {house.provinceName && (
+                                    <Field
+                                        icon={<Landmark className="h-4 w-4" />}
+                                        label="Tỉnh/Thành phố"
+                                        value={house.provinceName}
+                                    />
+                                )}
+                                {house.wardName && (
+                                    <Field
+                                        icon={<MapPin className="h-4 w-4" />}
+                                        label="Phường/Xã"
+                                        value={house.wardName}
+                                    />
+                                )}
+                                <Field
+                                    icon={<Building2 className="h-4 w-4" />}
+                                    label="Cụm dân cư"
+                                    value={house.cluster}
+                                />
+                                {streetName(house.streetId) && (
+                                    <Field
+                                        icon={<Route className="h-4 w-4" />}
+                                        label="Đường/phố"
+                                        value={streetName(house.streetId)!}
+                                    />
+                                )}
+                                {neighborhoodName(house.neighborhoodId) && (
+                                    <Field
+                                        icon={<Users className="h-4 w-4" />}
+                                        label="Tổ dân phố"
+                                        value={neighborhoodName(house.neighborhoodId)!}
+                                    />
+                                )}
+                                <Field
+                                    icon={<MapPin className="h-4 w-4" />}
+                                    label="Địa chỉ"
+                                    value={house.address}
+                                />
+                                <Field
+                                    icon={<Construction className="h-4 w-4" />}
+                                    label="Tình trạng công trình"
+                                    value={
+                                        house.physicalStatus
+                                            ? HOUSE_PHYSICAL_STATUS_LABEL[
+                                                  house.physicalStatus
+                                              ]
+                                            : "Chưa cập nhật"
+                                    }
+                                />
+                                <Field
+                                    icon={<Home className="h-4 w-4" />}
+                                    label="Mục đích sử dụng"
+                                    value={
+                                        [
+                                            ...houseUsageTypes.map(
+                                                t => HOUSE_USAGE_TYPE_LABEL[t],
+                                            ),
+                                            ...(house.otherUsageNote
+                                                ? [house.otherUsageNote]
+                                                : []),
+                                        ].join(", ") || "Chưa khai báo"
+                                    }
+                                />
+                                <Field
+                                    icon={<FileText className="h-4 w-4" />}
+                                    label="Số khai báo cư trú"
+                                    value={
+                                        house.residenceDeclarationNumber ||
+                                        "Chưa khai báo"
+                                    }
+                                />
+                                <Field
+                                    icon={<StickyNote className="h-4 w-4" />}
+                                    label="Ghi chú"
+                                    value={house.note || "Không có"}
+                                    className="sm:col-span-2"
+                                />
+                                {house.status === "verified" &&
+                                    house.approvalNote && (
+                                        <Field
+                                            icon={<AlertCircle className="h-4 w-4" />}
+                                            label="Ghi chú duyệt"
+                                            value={house.approvalNote}
+                                            className="sm:col-span-2"
+                                        />
+                                    )}
+                                {house.status === "denied" &&
+                                    house.denialReason && (
+                                        <Field
+                                            icon={<AlertCircle className="h-4 w-4" />}
+                                            label="Lý do từ chối"
+                                            value={house.denialReason}
+                                            className="sm:col-span-2"
+                                        />
+                                    )}
+                                {house.status === "needs_update" &&
+                                    house.needsUpdateNote && (
+                                        <Field
+                                            icon={<AlertCircle className="h-4 w-4" />}
+                                            label="Cần cập nhật"
+                                            value={house.needsUpdateNote}
+                                            className="sm:col-span-2"
+                                        />
+                                    )}
+                            </div>
                         )}
                     </div>
 
@@ -875,9 +961,30 @@ const HouseDetailContent: React.FC = () => {
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-base font-semibold">
-                                Hộ dân trong nhà
-                            </h2>
+                            <button
+                                type="button"
+                                className="flex items-center gap-2"
+                                onClick={() =>
+                                    setHouseholdsCollapsed(prev => !prev)
+                                }
+                            >
+                                <h2 className="text-base font-semibold">
+                                    Hộ dân trong nhà
+                                </h2>
+                                {!householdsLoading &&
+                                    households.length > 0 && (
+                                        <Badge tone="blue">
+                                            {households.length}
+                                        </Badge>
+                                    )}
+                                <ChevronDown
+                                    className={`h-4 w-4 text-text_2 transition-transform ${
+                                        householdsCollapsed
+                                            ? ""
+                                            : "rotate-180"
+                                    }`}
+                                />
+                            </button>
                             {canCreateHousehold && (
                                 <div className="flex gap-2">
                                     <Button
@@ -897,17 +1004,20 @@ const HouseDetailContent: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        {houseUsageTypes.includes("household") &&
-                            !householdsLoading &&
-                            households.length === 0 && (
-                                <UsageWarningBanner text="Nhà đã khai báo có hộ dân sinh sống nhưng chưa khai báo hộ dân nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
-                            )}
-                        {householdsLoading && <LoadingState />}
-                        {!householdsLoading && households.length === 0 && (
-                            <EmptyState label="Chưa có hộ dân nào trong nhà" />
-                        )}
-                        {!householdsLoading &&
-                            households.map(h => (
+                        {!householdsCollapsed && (
+                            <>
+                                {householdUsageDeclared &&
+                                    !householdsLoading &&
+                                    households.length === 0 && (
+                                        <UsageWarningBanner text="Nhà đã khai báo có hộ dân sinh sống nhưng chưa khai báo hộ dân nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
+                                    )}
+                                {householdsLoading && <LoadingState />}
+                                {!householdsLoading &&
+                                    households.length === 0 && (
+                                        <EmptyState label="Chưa có hộ dân nào trong nhà" />
+                                    )}
+                                {!householdsLoading &&
+                                    households.map(h => (
                                 <button
                                     key={h._id}
                                     type="button"
@@ -938,13 +1048,36 @@ const HouseDetailContent: React.FC = () => {
                                     </div>
                                 </button>
                             ))}
+                            </>
+                        )}
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-base font-semibold">
-                                Hộ kinh doanh
-                            </h2>
+                            <button
+                                type="button"
+                                className="flex items-center gap-2"
+                                onClick={() =>
+                                    setBusinessesCollapsed(prev => !prev)
+                                }
+                            >
+                                <h2 className="text-base font-semibold">
+                                    Hộ kinh doanh
+                                </h2>
+                                {!businessesLoading &&
+                                    businesses.length > 0 && (
+                                        <Badge tone="blue">
+                                            {businesses.length}
+                                        </Badge>
+                                    )}
+                                <ChevronDown
+                                    className={`h-4 w-4 text-text_2 transition-transform ${
+                                        businessesCollapsed
+                                            ? ""
+                                            : "rotate-180"
+                                    }`}
+                                />
+                            </button>
                             {canCreateBusiness && (
                                 <Button size="sm" onClick={openCreateBusiness}>
                                     <Plus className="mr-1 h-4 w-4" />
@@ -952,52 +1085,80 @@ const HouseDetailContent: React.FC = () => {
                                 </Button>
                             )}
                         </div>
-                        {houseUsageTypes.includes("business") &&
-                            !businessesLoading &&
-                            businesses.length === 0 && (
-                                <UsageWarningBanner text="Nhà đã khai báo có hộ kinh doanh nhưng chưa khai báo hộ kinh doanh nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
-                            )}
-                        {businessesLoading && <LoadingState />}
-                        {!businessesLoading && businesses.length === 0 && (
-                            <EmptyState label="Chưa có hộ kinh doanh nào" />
+                        {!businessesCollapsed && (
+                            <>
+                                {businessUsageDeclared &&
+                                    !businessesLoading &&
+                                    businesses.length === 0 && (
+                                        <UsageWarningBanner text="Nhà đã khai báo có hộ kinh doanh nhưng chưa khai báo hộ kinh doanh nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
+                                    )}
+                                {businessesLoading && <LoadingState />}
+                                {!businessesLoading &&
+                                    businesses.length === 0 && (
+                                        <EmptyState label="Chưa có hộ kinh doanh nào" />
+                                    )}
+                                {!businessesLoading &&
+                                    businesses.map(b => (
+                                        <button
+                                            key={b._id}
+                                            type="button"
+                                            className="block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/houses/${houseId}/businesses/${b._id}`,
+                                                )
+                                            }
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-medium">
+                                                    {b.name}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge tone={VERIFICATION_STATUS_TONE[b.status]}>
+                                                        {VERIFICATION_STATUS_LABEL[b.status]}
+                                                    </Badge>
+                                                    {!b.active && (
+                                                        <Badge tone="gray">
+                                                            Ngừng hoạt động
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-text_2">
+                                                {b.businessType?.name || "Chưa phân loại"}
+                                            </div>
+                                        </button>
+                                    ))}
+                            </>
                         )}
-                        {!businessesLoading &&
-                            businesses.map(b => (
-                                <button
-                                    key={b._id}
-                                    type="button"
-                                    className="block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
-                                    onClick={() =>
-                                        navigate(
-                                            `/houses/${houseId}/businesses/${b._id}`,
-                                        )
-                                    }
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-sm font-medium">
-                                            {b.name}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge tone={VERIFICATION_STATUS_TONE[b.status]}>
-                                                {VERIFICATION_STATUS_LABEL[b.status]}
-                                            </Badge>
-                                            {!b.active && (
-                                                <Badge tone="gray">
-                                                    Ngừng hoạt động
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="text-xs text-text_2">
-                                        {b.businessType?.name || "Chưa phân loại"}
-                                    </div>
-                                </button>
-                            ))}
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-base font-semibold">Công ty</h2>
+                            <button
+                                type="button"
+                                className="flex items-center gap-2"
+                                onClick={() =>
+                                    setCompaniesCollapsed(prev => !prev)
+                                }
+                            >
+                                <h2 className="text-base font-semibold">
+                                    Công ty
+                                </h2>
+                                {!companiesLoading &&
+                                    companies.length > 0 && (
+                                        <Badge tone="blue">
+                                            {companies.length}
+                                        </Badge>
+                                    )}
+                                <ChevronDown
+                                    className={`h-4 w-4 text-text_2 transition-transform ${
+                                        companiesCollapsed
+                                            ? ""
+                                            : "rotate-180"
+                                    }`}
+                                />
+                            </button>
                             {canCreateCompany && (
                                 <Button size="sm" onClick={openCreateCompany}>
                                     <Plus className="mr-1 h-4 w-4" />
@@ -1005,51 +1166,77 @@ const HouseDetailContent: React.FC = () => {
                                 </Button>
                             )}
                         </div>
-                        {houseUsageTypes.includes("company") &&
-                            !companiesLoading &&
-                            companies.length === 0 && (
-                                <UsageWarningBanner text="Nhà đã khai báo có công ty nhưng chưa khai báo công ty nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
-                            )}
-                        {companiesLoading && <LoadingState />}
-                        {!companiesLoading && companies.length === 0 && (
-                            <EmptyState label="Chưa có công ty nào" />
+                        {!companiesCollapsed && (
+                            <>
+                                {companyUsageDeclared &&
+                                    !companiesLoading &&
+                                    companies.length === 0 && (
+                                        <UsageWarningBanner text="Nhà đã khai báo có công ty nhưng chưa khai báo công ty nào. Vui lòng bổ sung để việc xác thực được đầy đủ." />
+                                    )}
+                                {companiesLoading && <LoadingState />}
+                                {!companiesLoading &&
+                                    companies.length === 0 && (
+                                        <EmptyState label="Chưa có công ty nào" />
+                                    )}
+                                {!companiesLoading &&
+                                    companies.map(c => (
+                                        <button
+                                            key={c._id}
+                                            type="button"
+                                            className="block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/houses/${houseId}/companies/${c._id}`,
+                                                )
+                                            }
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-medium">
+                                                    {c.name}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>
+                                                        {VERIFICATION_STATUS_LABEL[c.status]}
+                                                    </Badge>
+                                                    {!c.active && (
+                                                        <Badge tone="gray">
+                                                            Ngừng hoạt động
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                            </>
                         )}
-                        {!companiesLoading &&
-                            companies.map(c => (
-                                <button
-                                    key={c._id}
-                                    type="button"
-                                    className="block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
-                                    onClick={() =>
-                                        navigate(
-                                            `/houses/${houseId}/companies/${c._id}`,
-                                        )
-                                    }
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-sm font-medium">
-                                            {c.name}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge tone={VERIFICATION_STATUS_TONE[c.status]}>
-                                                {VERIFICATION_STATUS_LABEL[c.status]}
-                                            </Badge>
-                                            {!c.active && (
-                                                <Badge tone="gray">
-                                                    Ngừng hoạt động
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                </button>
-                            ))}
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-base font-semibold">
-                                Đơn vị sử dụng
-                            </h2>
+                            <button
+                                type="button"
+                                className="flex items-center gap-2"
+                                onClick={() =>
+                                    setUsageUnitsCollapsed(prev => !prev)
+                                }
+                            >
+                                <h2 className="text-base font-semibold">
+                                    Đơn vị sử dụng
+                                </h2>
+                                {!usageUnitsLoading &&
+                                    usageUnits.length > 0 && (
+                                        <Badge tone="blue">
+                                            {usageUnits.length}
+                                        </Badge>
+                                    )}
+                                <ChevronDown
+                                    className={`h-4 w-4 text-text_2 transition-transform ${
+                                        usageUnitsCollapsed
+                                            ? ""
+                                            : "rotate-180"
+                                    }`}
+                                />
+                            </button>
                             {canCreateUsageUnit && (
                                 <Button size="sm" onClick={openAddUnit}>
                                     <Plus className="mr-1 h-4 w-4" />
@@ -1057,47 +1244,54 @@ const HouseDetailContent: React.FC = () => {
                                 </Button>
                             )}
                         </div>
-                        {usageUnitsLoading && <LoadingState />}
-                        {!usageUnitsLoading && usageUnits.length === 0 && (
-                            <EmptyState label="Nhà chưa được chia thành đơn vị sử dụng nào" />
-                        )}
-                        {!usageUnitsLoading &&
-                            usageUnits.map(u => {
-                                const href = unitOccupantHref(u);
-                                return (
-                                    <div
-                                        key={u._id}
-                                        className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
-                                    >
-                                        <button
-                                            type="button"
-                                            className="flex-1 text-left hover:underline disabled:cursor-default disabled:no-underline"
-                                            disabled={!href}
-                                            onClick={() => href && navigate(href)}
-                                        >
-                                            <div className="text-sm font-medium">
-                                                {u.unitLabel} —{" "}
-                                                {unitOccupantLabel(u)}
-                                            </div>
-                                            <div className="text-xs text-text_2">
-                                                {HOUSE_USAGE_TYPE_LABEL[u.usageType]}
-                                            </div>
-                                        </button>
-                                        {canDeleteUsageUnit && (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                loading={deletingUnitId === u._id}
-                                                onClick={() =>
-                                                    handleDeleteUnit(u._id)
-                                                }
+                        {!usageUnitsCollapsed && (
+                            <>
+                                {usageUnitsLoading && <LoadingState />}
+                                {!usageUnitsLoading &&
+                                    usageUnits.length === 0 && (
+                                        <EmptyState label="Nhà chưa được chia thành đơn vị sử dụng nào" />
+                                    )}
+                                {!usageUnitsLoading &&
+                                    usageUnits.map(u => {
+                                        const href = unitOccupantHref(u);
+                                        return (
+                                            <div
+                                                key={u._id}
+                                                className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
                                             >
-                                                Gỡ
-                                            </Button>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                                <button
+                                                    type="button"
+                                                    className="flex-1 text-left hover:underline disabled:cursor-default disabled:no-underline"
+                                                    disabled={!href}
+                                                    onClick={() =>
+                                                        href && navigate(href)
+                                                    }
+                                                >
+                                                    <div className="text-sm font-medium">
+                                                        {u.unitLabel} —{" "}
+                                                        {unitOccupantLabel(u)}
+                                                    </div>
+                                                    <div className="text-xs text-text_2">
+                                                        {HOUSE_USAGE_TYPE_LABEL[u.usageType]}
+                                                    </div>
+                                                </button>
+                                                {canDeleteUsageUnit && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        loading={deletingUnitId === u._id}
+                                                        onClick={() =>
+                                                            handleDeleteUnit(u._id)
+                                                        }
+                                                    >
+                                                        Gỡ
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                            </>
+                        )}
                     </div>
 
                     <AttachmentsPanel
@@ -1418,13 +1612,22 @@ const UsageWarningBanner: React.FC<{ text: string }> = ({ text }) => (
     </div>
 );
 
-const InfoRow: React.FC<{ label: string; value: string }> = ({
-    label,
-    value,
-}) => (
-    <div className="flex justify-between border-b border-divider_01 py-2 text-sm last:border-0">
-        <span className="text-text_2">{label}</span>
-        <span>{value}</span>
+const Field: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+    className?: string;
+}> = ({ icon, label, value, className }) => (
+    <div className={`flex items-start gap-3 ${className || ""}`}>
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-icon_bg text-primary">
+            {icon}
+        </div>
+        <div className="min-w-0">
+            <div className="text-xs text-text_2">{label}</div>
+            <div className="break-words text-sm font-medium text-text_1">
+                {value}
+            </div>
+        </div>
     </div>
 );
 
