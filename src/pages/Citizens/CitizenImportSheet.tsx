@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud, ArrowLeftRight } from "lucide-react";
+import { UploadCloud, ArrowLeftRight, FileDown } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
     Sheet,
@@ -24,6 +24,7 @@ import {
     TableHeader,
     TableRow,
 } from "@components/ui/table";
+import ImportProgressBar from "@components/admin/ImportProgressBar";
 import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { AppError } from "@dts";
 import {
@@ -33,6 +34,8 @@ import {
     uploadCitizenImportFile,
     applyCitizenImportMapping,
     commitCitizenImport,
+    downloadCitizenImportTemplate,
+    pollImportJobUntilSettled,
 } from "@service/importApi";
 
 interface CitizenImportSheetProps {
@@ -98,6 +101,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
     const [uploading, setUploading] = useState(false);
     const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
+    const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
     const reset = () => {
         setFile(null);
@@ -108,6 +112,18 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         setUploading(false);
         setApplying(false);
         setCommitting(false);
+        setDownloadingTemplate(false);
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            setDownloadingTemplate(true);
+            await downloadCitizenImportTemplate();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDownloadingTemplate(false);
+        }
     };
 
     const handleOpenChange = (next: boolean) => {
@@ -191,7 +207,19 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         if (!job) return;
         try {
             setCommitting(true);
-            const result = await commitCitizenImport(job._id);
+            await commitCitizenImport(job._id);
+            // Backend chuyen job sang "committing" va xu ly tung dong o
+            // background (xem processCitizenImportRows) - poll de cap nhat
+            // thanh tien do (progress bar) thay vi cho 1 request duy nhat,
+            // tranh timeout khi import nhieu du lieu.
+            const result = await pollImportJobUntilSettled<CitizenImportPreviewRow>(
+                job._id,
+                setJob,
+            );
+            if (result.status === "failed") {
+                toast.error("Nhập dữ liệu thất bại, vui lòng thử lại");
+                return;
+            }
             toast.success(`Đã nhập thành công ${result.committedCount} nhân khẩu`);
             reset();
             onOpenChange(false);
@@ -209,6 +237,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
         !!job &&
         !showMapping &&
         job.status !== "committed" &&
+        job.status !== "committing" &&
         job.status !== "awaiting_mapping" &&
         job.rowErrors.length === 0;
 
@@ -231,6 +260,16 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                 hộ) hoặc &quot;Mã căn/hộ&quot; (mã nhà số — hệ
                                 thống sẽ tự tìm hộ dân đang gắn với nhà đó).
                             </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                loading={downloadingTemplate}
+                                onClick={handleDownloadTemplate}
+                            >
+                                <FileDown className="mr-1 h-4 w-4" />
+                                Tải mẫu Excel
+                            </Button>
                             <div>
                                 <input
                                     type="file"
@@ -328,7 +367,15 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                         </div>
                     )}
 
-                    {job && !showMapping && (
+                    {job && !showMapping && job.status === "committing" && (
+                        <ImportProgressBar
+                            committedCount={job.committedCount}
+                            totalRows={job.totalRows}
+                            label="Đang nhập nhân khẩu..."
+                        />
+                    )}
+
+                    {job && !showMapping && job.status !== "committing" && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
                                 <span>

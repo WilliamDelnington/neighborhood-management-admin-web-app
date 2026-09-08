@@ -25,13 +25,16 @@ import {
     TableRow,
 } from "@components/ui/table";
 import { Badge } from "@components/ui/badge";
+import ImportProgressBar from "@components/admin/ImportProgressBar";
 import { AppError } from "@dts";
 import {
     ImportJob,
+    StreetImportPreviewRow,
     uploadStreetImportFile,
     applyStreetImportMapping,
     commitStreetImport,
     downloadStreetImportTemplate,
+    pollImportJobUntilSettled,
 } from "@service/importApi";
 
 interface StreetImportSheetProps {
@@ -163,7 +166,19 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         if (!job) return;
         try {
             setCommitting(true);
-            const result = await commitStreetImport(job._id);
+            await commitStreetImport(job._id);
+            // Backend chuyen job sang "committing" va xu ly tung dong o
+            // background (xem processStreetImportRows) - poll de cap nhat
+            // thanh tien do (progress bar) thay vi cho 1 request duy nhat,
+            // tranh timeout khi import nhieu du lieu.
+            const result = await pollImportJobUntilSettled<StreetImportPreviewRow>(
+                job._id,
+                setJob,
+            );
+            if (result.status === "failed") {
+                toast.error("Nhập dữ liệu thất bại, vui lòng thử lại");
+                return;
+            }
             toast.success(
                 `Đã nhập thành công ${result.committedCount} đường/phố`,
             );
@@ -182,6 +197,7 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
         !!job &&
         !showMapping &&
         job.status !== "committed" &&
+        job.status !== "committing" &&
         job.status !== "awaiting_mapping" &&
         job.rowErrors.length === 0;
 
@@ -355,7 +371,15 @@ const StreetImportSheet: React.FC<StreetImportSheetProps> = ({
                         </div>
                     )}
 
-                    {job && !showMapping && (
+                    {job && !showMapping && job.status === "committing" && (
+                        <ImportProgressBar
+                            committedCount={job.committedCount}
+                            totalRows={job.totalRows}
+                            label="Đang nhập đường/phố..."
+                        />
+                    )}
+
+                    {job && !showMapping && job.status !== "committing" && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
                                 <span>

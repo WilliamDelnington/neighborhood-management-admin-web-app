@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
@@ -29,11 +30,15 @@ import {
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Household, VerificationStatus } from "@dts";
+import { usePermission } from "@store/authStore";
+import { Household, Neighborhood, VerificationStatus } from "@dts";
 import { fetchHouseholds } from "@service/householdApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import HouseholdImportSheet from "./HouseholdImportSheet";
 
 const ALL_STATUS = "all";
 const ALL_ASSIGNMENT = "all";
+const ALL_NEIGHBORHOOD = "all";
 const UNASSIGNED = "unassigned";
 
 const HouseholdListPage: React.FC = () => (
@@ -49,10 +54,16 @@ const houseLabelOf = (h: Household): string => {
 
 const HouseholdListContent: React.FC = () => {
     const navigate = useNavigate();
+    // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
+    // /api/import/households), giong CitizenListPage/HouseListPage.
+    const canImport = usePermission("imports.manage");
+    const [importVisible, setImportVisible] = useState(false);
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
     const [assignment, setAssignment] = useState<"" | typeof UNASSIGNED>("");
+    const [neighborhoodId, setNeighborhoodId] = useState("");
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [items, setItems] = useState<Household[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -69,6 +80,7 @@ const HouseholdListContent: React.FC = () => {
             search: keyword,
             unassigned: assignment === UNASSIGNED ? true : undefined,
             status: status || undefined,
+            neighborhoodId: neighborhoodId || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -83,16 +95,33 @@ const HouseholdListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status, assignment]);
+    }, [search, status, assignment, neighborhoodId]);
+
+    useEffect(() => {
+        fetchNeighborhoods({ limit: 200 })
+            .then(res => setNeighborhoods(res.items))
+            .catch(() => setNeighborhoods([]));
+    }, []);
 
     return (
         <div>
             <PageHeader
                 title="Hộ dân"
                 description="Xem danh sách các hộ dân đang sinh sống trên địa bàn."
+                action={
+                    canImport && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setImportVisible(true)}
+                        >
+                            <UploadCloud className="mr-1 h-4 w-4" />
+                            Nhập từ Excel
+                        </Button>
+                    )
+                }
             />
 
-            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -149,6 +178,26 @@ const HouseholdListContent: React.FC = () => {
                         <SelectItem value={UNASSIGNED}>
                             Chưa gán nhà số
                         </SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={neighborhoodId || ALL_NEIGHBORHOOD}
+                    onValueChange={v =>
+                        setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả tổ dân phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_NEIGHBORHOOD}>
+                            Tất cả tổ dân phố
+                        </SelectItem>
+                        {neighborhoods.map(n => (
+                            <SelectItem key={n._id} value={n._id}>
+                                {n.name}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
@@ -232,6 +281,12 @@ const HouseholdListContent: React.FC = () => {
                     disabled={loading}
                 />
             )}
+
+            <HouseholdImportSheet
+                open={importVisible}
+                onOpenChange={setImportVisible}
+                onImported={() => load(1, search)}
+            />
         </div>
     );
 };
