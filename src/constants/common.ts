@@ -32,6 +32,8 @@ export const API = {
     ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
     ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
     WARD_MANAGERS: "/api/wards/managers",
+    SCOPE_ASSIGNMENTS: "/api/scope-assignments",
+    SCOPE_ASSIGNMENTS_UNASSIGN: "/api/scope-assignments/unassign",
     ORGANIZATIONS: "/api/organizations",
     HOUSEHOLDS: "/api/households",
     NEIGHBORHOODS: "/api/neighborhoods",
@@ -51,6 +53,7 @@ export const API = {
     COMPLAINTS: "/api/complaints",
     COMPLAINT_TYPES: "/api/complaint-types",
     SUPPORT_TICKETS: "/api/support-tickets",
+    PASSWORD_RESET_REQUESTS: "/api/password-reset-requests",
 
     ANNOUNCEMENTS: "/api/announcements",
     NEWS: "/api/news",

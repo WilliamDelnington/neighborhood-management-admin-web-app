@@ -38,6 +38,7 @@ import {
     CalendarOff,
     Newspaper,
     Contact,
+    Unlock,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -233,6 +234,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: LifeBuoy,
                 permission: "support_tickets.read",
                 description: "Tiếp nhận và xử lý yêu cầu hỗ trợ từ cư dân.",
+            },
+            {
+                key: "password_reset_requests",
+                label: "Yêu cầu đặt lại mật khẩu",
+                path: "/password-reset-requests",
+                icon: Unlock,
+                permission: "users.reset_password",
+                description:
+                    "Tiếp nhận yêu cầu đặt lại mật khẩu từ người dùng quên mật khẩu, không đăng nhập được.",
             },
             {
                 key: "pccc",

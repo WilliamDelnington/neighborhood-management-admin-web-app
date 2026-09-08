@@ -1,5 +1,11 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { AppointmentService, AppointmentTimeSlot, PaginatedData } from "@dts";
+import {
+    AppointmentHouseRequirement,
+    AppointmentHouseStatusRequirement,
+    AppointmentService,
+    AppointmentTimeSlot,
+    PaginatedData,
+} from "@dts";
 import { request } from "./request";
 
 export type AppointmentTimeSlotInput = Omit<AppointmentTimeSlot, "_id"> & {
@@ -13,6 +19,8 @@ export type AppointmentServiceInput = {
     locationAddress: string;
     scope: "ward" | "neighborhood";
     neighborhoodId?: string;
+    houseRequirement: AppointmentHouseRequirement;
+    houseStatusRequirement: AppointmentHouseStatusRequirement;
     slotDurationMinutes: number;
     autoApprove: boolean;
     active: boolean;

@@ -35,7 +35,7 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
 import {
-    NEIGHBORHOOD_TERM_ROLE_KEYS,
+    NEIGHBORHOOD_ASSIGNABLE_ROLE_KEYS,
     ROLE_LABEL,
     USER_STATUS_LABEL,
     USER_STATUS_TONE,
@@ -46,6 +46,7 @@ import {
     createHouseOwner,
     CreatableStaffRole,
     fetchCreatableRoles,
+    fetchUserById,
     fetchUsers,
     lockUserAccount,
     resetUserPassword,
@@ -54,7 +55,12 @@ import {
     updateUser,
 } from "@service/userApi";
 import { fetchRoles } from "@service/roleApi";
-import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import {
+    assignNeighborhoodColeader,
+    assignNeighborhoodLeader,
+    fetchNeighborhoods,
+} from "@service/neighborhoodApi";
+import { assignScope, unassignScope } from "@service/scopeAssignmentApi";
 import {
     fetchProvinces,
     fetchWardsByProvince,
@@ -62,11 +68,27 @@ import {
 import { usePermission } from "@store/authStore";
 
 const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
+const NEIGHBORHOOD_COLEADER_ROLE = "neighborhood_coleader";
 const PEOPLE_COMMITTEE_OFFICIAL_ROLE = "people_committee_official";
 const SECRETARY_ROLE = "secretary";
+const REGIONAL_POLICE_ROLE = "regional_police";
+// 3 vai tro cap Phuong hien tai (xem SYSTEM_ROLE_SCOPE_CONFIG o backend) -
+// regional_police truoc day bi thieu o day (chi co secretary/
+// people_committee_official), khien Cong an khu vuc khong the duoc gan
+// Phuong/Xa phu trach tu man nay.
 const WARD_SCOPED_ROLES: Role[] = [
     PEOPLE_COMMITTEE_OFFICIAL_ROLE,
     SECRETARY_ROLE,
+    REGIONAL_POLICE_ROLE,
+];
+// 2 vai tro duoc phep chon truc tiep khi "Tạo tài khoản" ma con duoc gan vao
+// mot To dan pho cu the ngay luc tao (xem handleCreateAccount) - Cong tac
+// vien (neighborhood_collaborator) KHONG nam trong danh sach nay vi con can
+// chon them pham vi con (STREET/HOUSE_GROUP/CAMPAIGN), phai thuc hien o
+// trang chi tiet Tổ dân phố.
+const NEIGHBORHOOD_LEADERSHIP_ROLES: Role[] = [
+    NEIGHBORHOOD_LEADER_ROLE,
+    NEIGHBORHOOD_COLEADER_ROLE,
 ];
 
 type CreateAccountForm = {
@@ -76,6 +98,11 @@ type CreateAccountForm = {
     idNumber: string;
     password: string;
     role: CreatableStaffRole;
+    // Chi dung khi role la To truong/To pho (xem NEIGHBORHOOD_LEADERSHIP_ROLES) -
+    // gan luon vao To dan pho nay ngay sau khi tao tai khoan thanh cong (xem
+    // handleCreateAccount), thay vi phai vao rieng trang chi tiet Tổ dân phố.
+    neighborhoodId: string;
+    neighborhoodLabel: string;
 };
 
 const EMPTY_CREATE_FORM: CreateAccountForm = {
@@ -85,6 +112,8 @@ const EMPTY_CREATE_FORM: CreateAccountForm = {
     idNumber: "",
     password: "",
     role: "house_owner",
+    neighborhoodId: "",
+    neighborhoodLabel: "",
 };
 
 const UserListPage: React.FC = () => (
@@ -146,6 +175,19 @@ const UserListContent: React.FC = () => {
     const [createForm, setCreateForm] = useState<CreateAccountForm>(EMPTY_CREATE_FORM);
     const [creatingAccount, setCreatingAccount] = useState(false);
     const [lastCreatedPhone, setLastCreatedPhone] = useState<string | null>(null);
+    // Vai tro/ten To dan pho cua lan tao gan nhat - dung rieng cho khoi thong
+    // bao ket qua (KHONG doc tu createForm, da bi reset ve EMPTY_CREATE_FORM
+    // ngay sau khi tao xong).
+    const [lastCreatedRole, setLastCreatedRole] =
+        useState<CreatableStaffRole | null>(null);
+    const [lastCreatedNeighborhoodLabel, setLastCreatedNeighborhoodLabel] =
+        useState<string | null>(null);
+    // Danh sach To dan pho de chon khi tao tai khoan To truong/To pho (xem
+    // NEIGHBORHOOD_LEADERSHIP_ROLES) - tai luc mo Sheet, khong phai luc doi
+    // vai tro (danh sach nay khong phu thuoc vai tro duoc chon).
+    const [createNeighborhoods, setCreateNeighborhoods] = useState<
+        Neighborhood[]
+    >([]);
 
     const [sheetOpen, setSheetOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -207,6 +249,9 @@ const UserListContent: React.FC = () => {
         setCreateForm(EMPTY_CREATE_FORM);
         setLastCreatedPhone(null);
         setCreateSheetOpen(true);
+        fetchNeighborhoods({ limit: 300, status: "ACTIVE" })
+            .then(res => setCreateNeighborhoods(res.items))
+            .catch(() => setCreateNeighborhoods([]));
     };
 
     const isCreateFormValid =
@@ -224,7 +269,7 @@ const UserListContent: React.FC = () => {
         }
         try {
             setCreatingAccount(true);
-            await createHouseOwner({
+            const created = await createHouseOwner({
                 phone: createForm.phone.trim(),
                 displayName: createForm.displayName.trim(),
                 address: createForm.address.trim() || undefined,
@@ -232,8 +277,41 @@ const UserListContent: React.FC = () => {
                 role: createForm.role,
                 password: createForm.password.trim(),
             });
+
+            // Gan luon vao To dan pho neu vai tro la To truong/To pho VA da
+            // chon To - tien ich, khong bat buoc (van co the bo qua va gan
+            // sau qua trang chi tiet Tổ dân phố, xem khoi thong bao ben duoi).
+            // That bai o buoc nay KHONG duoc coi la that bai tao tai khoan -
+            // tai khoan da tao xong, chi rieng viec gan la chua thanh cong.
+            let assignedNeighborhoodLabel: string | null = null;
+            if (
+                NEIGHBORHOOD_LEADERSHIP_ROLES.includes(createForm.role) &&
+                createForm.neighborhoodId
+            ) {
+                try {
+                    if (createForm.role === NEIGHBORHOOD_LEADER_ROLE) {
+                        await assignNeighborhoodLeader(
+                            createForm.neighborhoodId,
+                            created.id,
+                        );
+                    } else {
+                        await assignNeighborhoodColeader(
+                            createForm.neighborhoodId,
+                            created.id,
+                        );
+                    }
+                    assignedNeighborhoodLabel = createForm.neighborhoodLabel;
+                } catch (err) {
+                    toast.error(
+                        `Đã tạo tài khoản nhưng gán Tổ dân phố thất bại: ${(err as AppError).message}`,
+                    );
+                }
+            }
+
             toast.success(`Đã tạo tài khoản ${roleLabel(createForm.role)} mới`);
             setLastCreatedPhone(createForm.phone.trim());
+            setLastCreatedRole(createForm.role);
+            setLastCreatedNeighborhoodLabel(assignedNeighborhoodLabel);
             setCreateForm(EMPTY_CREATE_FORM);
             load(page, search);
         } catch (err) {
@@ -420,16 +498,45 @@ const UserListContent: React.FC = () => {
         }
     };
 
+    // Doi tu updateUser(wardCode...) truc tiep sang assignScope/unassignScope -
+    // gan wardCode thang khong con di qua cardinality (vd chi 1 Bi thu/Phuong)
+    // tu khi co ScopeAssignment (xem scopeAssignmentService o backend); man
+    // nay la duong THU HAI (ngoai WardManagementPage.tsx) co the gan Phuong/
+    // Xa cho mot tai khoan, nen phai dung chung co che moi, khong the con
+    // bo qua rieng o day.
     const handleSaveWard = async () => {
         if (!selectedUser) return;
+        const roleKey = WARD_SCOPED_ROLES.find(r =>
+            selectedUser.roles.includes(r),
+        );
+        if (!roleKey) return;
+        // So voi wardCode HIEN TAI cua chinh selectedUser (khong phai form) -
+        // neu doi sang mot Phuong KHAC (khong phai bo trong), phai go phan
+        // cong cu truoc: assignScope chi tu dong thay nguoi CU CUNG mot
+        // Phuong (maxActivePerScope), khong biet tu go phan cong o Phuong CU
+        // cua chinh nguoi nay, se de lai 2 phan cong active cung luc neu bo qua.
+        const previousWardCode = selectedUser.wardCode;
+        const nextWardCode = wardCode ? Number(wardCode) : undefined;
+        if (previousWardCode === nextWardCode) return;
         try {
             setSavingWard(true);
-            const updated = await updateUser(selectedUser.id, {
-                provinceCode: wardProvinceCode ? Number(wardProvinceCode) : null,
-                provinceName: wardProvinceName || null,
-                wardCode: wardCode ? Number(wardCode) : null,
-                wardName: wardName || null,
-            });
+            if (previousWardCode) {
+                await unassignScope({
+                    userId: selectedUser.id,
+                    roleKey,
+                    scopeType: "WARD",
+                    scopeId: previousWardCode,
+                });
+            }
+            if (nextWardCode) {
+                await assignScope({
+                    userId: selectedUser.id,
+                    roleKey,
+                    scopeType: "WARD",
+                    scopeId: nextWardCode,
+                });
+            }
+            const updated = await fetchUserById(selectedUser.id);
             refreshSelected(updated);
             toast.success("Đã cập nhật phường/xã phụ trách");
         } catch (err) {
@@ -808,9 +915,8 @@ const UserListContent: React.FC = () => {
                                     ))}
                                     <div className="mt-2 text-xs text-text_2">
                                         Việc phân công tổ trưởng được thực
-                                        hiện khi tạo/sửa nhiệm kỳ ở trang
-                                        thông tin tổ dân phố, không thực hiện
-                                        ở đây.
+                                        hiện ở trang thông tin tổ dân phố,
+                                        không thực hiện ở đây.
                                     </div>
                                 </div>
                             )}
@@ -934,14 +1040,26 @@ const UserListContent: React.FC = () => {
                                 <strong>{lastCreatedPhone}</strong>. Đăng nhập
                                 trong Mini App bằng số điện thoại và mật khẩu
                                 vừa đặt.
-                                {NEIGHBORHOOD_TERM_ROLE_KEYS.includes(createForm.role) && (
+                                {lastCreatedNeighborhoodLabel ? (
                                     <>
                                         {" "}
-                                        Vào trang chi tiết Tổ dân phố để gán
-                                        tài khoản này làm{" "}
-                                        {roleLabel(createForm.role)} của một
-                                        tổ cụ thể.
+                                        Đã gán làm{" "}
+                                        {lastCreatedRole && roleLabel(lastCreatedRole)}{" "}
+                                        của {lastCreatedNeighborhoodLabel}.
                                     </>
+                                ) : (
+                                    lastCreatedRole &&
+                                    NEIGHBORHOOD_ASSIGNABLE_ROLE_KEYS.includes(
+                                        lastCreatedRole,
+                                    ) && (
+                                        <>
+                                            {" "}
+                                            Vào trang chi tiết Tổ dân phố để gán
+                                            tài khoản này làm{" "}
+                                            {roleLabel(lastCreatedRole)} của một
+                                            tổ cụ thể.
+                                        </>
+                                    )
                                 )}
                             </div>
                         )}
@@ -968,6 +1086,36 @@ const UserListContent: React.FC = () => {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        )}
+                        {NEIGHBORHOOD_LEADERSHIP_ROLES.includes(createForm.role) && (
+                            <div className="space-y-1.5">
+                                <FilterableSelect
+                                    label="Tổ dân phố (tùy chọn - gán ngay sau khi tạo)"
+                                    placeholder="Chưa chọn Tổ dân phố"
+                                    searchPlaceholder="Tìm theo tên hoặc mã Tổ dân phố..."
+                                    items={createNeighborhoods}
+                                    getId={n => n._id}
+                                    getLabel={n => `${n.code} — ${n.name}`}
+                                    value={createForm.neighborhoodId}
+                                    valueLabel={createForm.neighborhoodLabel}
+                                    onChange={(neighborhoodId, neighborhood) => {
+                                        setCreateField(
+                                            "neighborhoodId",
+                                            neighborhoodId || "",
+                                        );
+                                        setCreateField(
+                                            "neighborhoodLabel",
+                                            neighborhood
+                                                ? `${neighborhood.code} — ${neighborhood.name}`
+                                                : "",
+                                        );
+                                    }}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Bỏ trống nếu chưa muốn gán ngay - có thể gán
+                                    sau ở trang chi tiết Tổ dân phố.
+                                </p>
                             </div>
                         )}
                         <div className="space-y-1.5">

@@ -37,6 +37,7 @@ import type {
     TrangThaiKhaoSat,
     TrangThaiPhanAnh,
     TrangThaiThongBao,
+    TrangThaiYeuCauDatLaiMatKhau,
     TrangThaiYeuCauHoTro,
     UserStatus,
     VerificationStatus,
@@ -46,6 +47,8 @@ import type { BadgeTone } from "@components/ui/badge";
 export const ROLE_LABEL: Record<Role, string> = {
     house_owner: "Chủ sở hữu",
     household_head: "Chủ hộ",
+    business_representative: "Đại diện hộ kinh doanh",
+    company_representative: "Đại diện công ty/doanh nghiệp",
     neighborhood_leader: "Tổ trưởng",
     neighborhood_coleader: "Tổ phó",
     neighborhood_collaborator: "Cộng tác viên Tổ dân phố",
@@ -72,15 +75,15 @@ export const ACCOUNT_CREATION_RESERVED_ROLE_KEYS: Role[] = [
     "people_committee_official",
 ];
 
-// 3 vai tro CO DINH duoc gan vao mot nhiem ky To dan pho cu the qua trang chi
-// tiet To dan pho (xem neighborhoodService.ts - assignNeighborhoodLeader/
+// 3 vai tro CO DINH duoc gan truc tiep vao mot To dan pho cu the qua trang
+// chi tiet To dan pho (xem neighborhoodService.ts - assignNeighborhoodLeader/
 // assignNeighborhoodColeader/kiem tra neighborhood_collaborator, deu hardcode
 // dung 3 key nay, KHONG doc tu Role collection). Vai tro tuy chinh admin them
-// sau nay (vd social_cultral_leader) chua co man gan theo nhiem ky tuong tu -
-// dung rieng danh sach nay (khac ACCOUNT_CREATION_RESERVED_ROLE_KEYS o tren)
-// de chi hien goi y "vào trang Tổ dân phố để gán" cho dung 3 vai tro thuc su
-// co man do, tranh gay hieu lam voi vai tro tuy chinh.
-export const NEIGHBORHOOD_TERM_ROLE_KEYS: Role[] = [
+// sau nay (vd social_cultral_leader) chua co man gan tuong tu - dung rieng
+// danh sach nay (khac ACCOUNT_CREATION_RESERVED_ROLE_KEYS o tren) de chi hien
+// goi y "vào trang Tổ dân phố để gán" cho dung 3 vai tro thuc su co man do,
+// tranh gay hieu lam voi vai tro tuy chinh.
+export const NEIGHBORHOOD_ASSIGNABLE_ROLE_KEYS: Role[] = [
     "neighborhood_leader",
     "neighborhood_coleader",
     "neighborhood_collaborator",
@@ -216,6 +219,24 @@ export const TRANG_THAI_YEU_CAU_HO_TRO_TONE: Record<
     moi: "gray",
     dang_xu_ly: "yellow",
     can_bo_sung: "red",
+    da_xu_ly: "green",
+    dong: "gray",
+};
+
+export const TRANG_THAI_YEU_CAU_DAT_LAI_MAT_KHAU_LABEL: Record<
+    TrangThaiYeuCauDatLaiMatKhau,
+    string
+> = {
+    moi: "Mới",
+    da_xu_ly: "Đã xử lý",
+    dong: "Đóng",
+};
+
+export const TRANG_THAI_YEU_CAU_DAT_LAI_MAT_KHAU_TONE: Record<
+    TrangThaiYeuCauDatLaiMatKhau,
+    BadgeTone
+> = {
+    moi: "gray",
     da_xu_ly: "green",
     dong: "gray",
 };
@@ -497,6 +518,25 @@ export const GIOI_TINH_LABEL: Record<GioiTinh, string> = {
     nu: "Nữ",
     khac: "Khác",
 };
+
+// Danh sach goi y "Quan he voi chu ho" cho dropdown chon nhanh o CitizenForm.
+// relationToHead van luu duoi dang chuoi tu do o backend (khong phai enum -
+// xem models/Citizen.ts) de tuong thich voi du lieu nhap Excel/cu, nen day chi
+// la danh sach cac gia tri pho bien de goi y, khong phai danh sach gioi han.
+export const RELATION_TO_HEAD_OPTIONS: string[] = [
+    "Chủ hộ",
+    "Vợ",
+    "Chồng",
+    "Con",
+    "Cha",
+    "Mẹ",
+    "Ông",
+    "Bà",
+    "Anh/Chị/Em",
+    "Cháu",
+    "Người liên hệ",
+    "Người thuê trọ",
+];
 
 export const LOAI_CU_TRU_LABEL: Record<LoaiCuTru, string> = {
     thuong_tru: "Thường trú",

@@ -7,12 +7,26 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@components/ui/dialog";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
     SheetTitle,
     SheetFooter,
 } from "@components/ui/sheet";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import {
     Table,
     TableBody,
@@ -28,8 +42,14 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { usePermission } from "@store/authStore";
 import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { AppError, Citizen } from "@dts";
-import { createCitizen, fetchCitizens } from "@service/citizenApi";
+import { AppError, Citizen, Neighborhood } from "@dts";
+import {
+    createCitizen,
+    deleteCitizen,
+    fetchCitizens,
+    updateCitizen,
+} from "@service/citizenApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import CitizenForm, {
     EMPTY_CITIZEN_FORM,
     CitizenFormValues,
@@ -37,6 +57,8 @@ import CitizenForm, {
     toCitizenInput,
 } from "./CitizenForm";
 import CitizenImportSheet from "./CitizenImportSheet";
+
+const ALL_NEIGHBORHOOD = "all";
 
 const CitizenListPage: React.FC = () => (
     <AdminGuard permissions={["citizens.read"]}>
@@ -51,20 +73,40 @@ const householdLabelOf = (householdId: Citizen["householdId"]): string => {
         : `${householdId.code} — ${householdId.address}`;
 };
 
-const householdHrefOf = (householdId: Citizen["householdId"]): string | null => {
-    if (!householdId || typeof householdId === "string") return null;
-    return `/households/${householdId._id}`;
-};
+const householdIdOf = (householdId: Citizen["householdId"]): string =>
+    !householdId || typeof householdId === "string" ? "" : householdId._id;
+
+const citizenToForm = (c: Citizen): CitizenFormValues => ({
+    fullName: c.fullName,
+    phone: c.phone || "",
+    cccd: c.cccd || "",
+    birthDate: c.birthDate ? c.birthDate.slice(0, 10) : "",
+    gender: c.gender,
+    relationToHead: c.relationToHead || "",
+    occupation: c.occupation || "",
+    householdId: householdIdOf(c.householdId),
+    householdLabel: householdLabelOf(c.householdId),
+    residenceType: c.residenceType,
+    isElderly: c.isElderly,
+    isChild: c.isChild,
+    isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
+    isPartyMember: c.isPartyMember,
+    isUnionMember: c.isUnionMember,
+});
 
 const CitizenListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("citizens.create");
+    const canUpdate = usePermission("citizens.update");
+    const canDelete = usePermission("citizens.delete");
     // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
     // /api/import/citizens), khac voi "citizens.create" - phai kiem tra rieng
     // giong HouseListPage.
     const canImport = usePermission("imports.manage");
 
     const [search, setSearch] = useState("");
+    const [neighborhoodId, setNeighborhoodId] = useState("");
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [items, setItems] = useState<Citizen[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -72,15 +114,27 @@ const CitizenListContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const [createVisible, setCreateVisible] = useState(false);
+    const [sheetVisible, setSheetVisible] = useState(false);
+    const [editingCitizenId, setEditingCitizenId] = useState<string | null>(
+        null,
+    );
     const [form, setForm] = useState<CitizenFormValues>(EMPTY_CITIZEN_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(
+        null,
+    );
+    const [deleting, setDeleting] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchCitizens({ page: targetPage, limit: size, search: keyword })
+        fetchCitizens({
+            page: targetPage,
+            limit: size,
+            search: keyword,
+            neighborhoodId: neighborhoodId || undefined,
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -94,28 +148,63 @@ const CitizenListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
+    }, [search, neighborhoodId]);
+
+    useEffect(() => {
+        fetchNeighborhoods({ limit: 200 })
+            .then(res => setNeighborhoods(res.items))
+            .catch(() => setNeighborhoods([]));
+    }, []);
 
     const openCreate = () => {
+        setEditingCitizenId(null);
         setForm(EMPTY_CITIZEN_FORM);
-        setCreateVisible(true);
+        setSheetVisible(true);
     };
 
-    const handleCreate = async () => {
+    const openEdit = (c: Citizen) => {
+        if (!canUpdate) return;
+        setEditingCitizenId(c._id);
+        setForm(citizenToForm(c));
+        setSheetVisible(true);
+    };
+
+    const handleSubmit = async () => {
         if (!isCitizenFormValid(form)) {
             toast.error("Vui lòng nhập họ tên và chọn hộ dân");
             return;
         }
         try {
             setSubmitting(true);
-            await createCitizen(toCitizenInput(form));
-            toast.success("Đã thêm nhân khẩu mới");
-            setCreateVisible(false);
-            load(1, search);
+            if (editingCitizenId) {
+                await updateCitizen(editingCitizenId, toCitizenInput(form));
+                toast.success("Đã cập nhật nhân khẩu");
+            } else {
+                await createCitizen(toCitizenInput(form));
+                toast.success("Đã thêm nhân khẩu mới");
+            }
+            setSheetVisible(false);
+            load(page, search);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirmDeleteId) return;
+        try {
+            setDeleting(true);
+            await deleteCitizen(confirmDeleteId);
+            toast.success("Đã xóa nhân khẩu");
+            setConfirmDeleteId(null);
+            setSheetVisible(false);
+            load(page, search);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -157,10 +246,30 @@ const CitizenListContent: React.FC = () => {
                 />
                 <Input
                     className="max-w-sm"
-                    placeholder="Tìm theo họ tên, CCCD, số điện thoại..."
+                    placeholder="Tìm theo họ tên, CCCD, SĐT, chủ hộ, mã hộ, địa chỉ..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
+                <Select
+                    value={neighborhoodId || ALL_NEIGHBORHOOD}
+                    onValueChange={v =>
+                        setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Tất cả tổ dân phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_NEIGHBORHOOD}>
+                            Tất cả tổ dân phố
+                        </SelectItem>
+                        {neighborhoods.map(n => (
+                            <SelectItem key={n._id} value={n._id}>
+                                {n.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
@@ -183,16 +292,18 @@ const CitizenListContent: React.FC = () => {
                                 <TableHead>Hộ dân</TableHead>
                                 <TableHead>Quan hệ với chủ hộ</TableHead>
                                 <TableHead>Loại cư trú</TableHead>
+                                <TableHead className="text-right">
+                                    Thao tác
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {items.map((c, index) => {
-                                const href = householdHrefOf(c.householdId);
                                 return (
                                     <TableRow
                                         key={c._id}
-                                        className={href ? "cursor-pointer" : undefined}
-                                        onClick={() => href && navigate(href)}
+                                        className={canUpdate ? "cursor-pointer" : undefined}
+                                        onClick={() => openEdit(c)}
                                     >
                                         <TableCell className="text-center text-text_2">
                                             {(page - 1) * pageSize + index + 1}
@@ -216,6 +327,20 @@ const CitizenListContent: React.FC = () => {
                                                 {LOAI_CU_TRU_LABEL[c.residenceType]}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell
+                                            className="text-right"
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    navigate(`/citizens/${c._id}`)
+                                                }
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 );
                             })}
@@ -233,25 +358,72 @@ const CitizenListContent: React.FC = () => {
                 />
             )}
 
-            <Sheet open={createVisible} onOpenChange={setCreateVisible}>
+            <Sheet open={sheetVisible} onOpenChange={setSheetVisible}>
                 <SheetContent>
                     <SheetHeader>
-                        <SheetTitle>Thêm nhân khẩu</SheetTitle>
+                        <SheetTitle>
+                            {editingCitizenId ? "Sửa nhân khẩu" : "Thêm nhân khẩu"}
+                        </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
-                        <CitizenForm values={form} onChange={setForm} />
+                        <CitizenForm
+                            key={editingCitizenId || "new"}
+                            values={form}
+                            onChange={setForm}
+                        />
                     </div>
                     <SheetFooter>
+                        {canDelete && editingCitizenId && (
+                            <Button
+                                variant="destructive"
+                                className="w-full"
+                                onClick={() =>
+                                    setConfirmDeleteId(editingCitizenId)
+                                }
+                            >
+                                Xóa nhân khẩu
+                            </Button>
+                        )}
                         <Button
                             className="w-full"
                             loading={submitting}
-                            onClick={handleCreate}
+                            onClick={handleSubmit}
                         >
-                            Lưu nhân khẩu
+                            {editingCitizenId ? "Lưu thay đổi" : "Thêm nhân khẩu"}
                         </Button>
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
+
+            <Dialog
+                open={!!confirmDeleteId}
+                onOpenChange={open => !open && setConfirmDeleteId(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Xóa nhân khẩu?</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-text_2">
+                        Bạn có chắc muốn xóa nhân khẩu này? Hành động này
+                        không thể hoàn tác.
+                    </p>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmDeleteId(null)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            loading={deleting}
+                            onClick={handleDelete}
+                        >
+                            Xóa
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <CitizenImportSheet
                 open={importVisible}

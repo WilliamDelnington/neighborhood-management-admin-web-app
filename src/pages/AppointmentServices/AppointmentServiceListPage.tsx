@@ -34,7 +34,14 @@ import {
     TableHeader,
     TableRow,
 } from "@components/ui/table";
-import { AppError, AppointmentService, AssignableStaff, Neighborhood } from "@dts";
+import {
+    AppError,
+    AppointmentHouseRequirement,
+    AppointmentHouseStatusRequirement,
+    AppointmentService,
+    AssignableStaff,
+    Neighborhood,
+} from "@dts";
 import { usePermission } from "@store/authStore";
 import {
     archiveAppointmentService,
@@ -72,11 +79,28 @@ type FormState = {
     locationAddress: string;
     scope: "ward" | "neighborhood";
     neighborhoodId: string;
+    houseRequirement: AppointmentHouseRequirement;
+    houseStatusRequirement: AppointmentHouseStatusRequirement;
     slotDurationMinutes: number;
     autoApprove: boolean;
     active: boolean;
     assignedOfficers: AssignableStaff[];
     timeSlots: TimeSlotDraft[];
+};
+
+const HOUSE_REQUIREMENT_LABEL: Record<AppointmentHouseRequirement, string> = {
+    none: "Không cần nhà số",
+    optional: "Không bắt buộc",
+    required: "Bắt buộc",
+};
+
+const HOUSE_STATUS_REQUIREMENT_LABEL: Record<
+    AppointmentHouseStatusRequirement,
+    string
+> = {
+    any: "Không yêu cầu trạng thái",
+    in_scope: "Chỉ nhà trong phạm vi dịch vụ",
+    verified: "Chỉ nhà đã xác thực",
 };
 
 const EMPTY_TIME_SLOT: TimeSlotDraft = {
@@ -94,6 +118,8 @@ const EMPTY_FORM: FormState = {
     locationAddress: "",
     scope: "ward",
     neighborhoodId: "",
+    houseRequirement: "required",
+    houseStatusRequirement: "verified",
     slotDurationMinutes: 30,
     autoApprove: true,
     active: true,
@@ -162,6 +188,8 @@ const AppointmentServiceListContent: React.FC = () => {
             scope: item.scope,
             neighborhoodId:
                 typeof item.neighborhoodId === "string" ? item.neighborhoodId : "",
+            houseRequirement: item.houseRequirement || "required",
+            houseStatusRequirement: item.houseStatusRequirement || "verified",
             slotDurationMinutes: item.slotDurationMinutes,
             autoApprove: item.autoApprove,
             active: item.active,
@@ -208,6 +236,8 @@ const AppointmentServiceListContent: React.FC = () => {
             scope: form.scope,
             neighborhoodId:
                 form.scope === "neighborhood" ? form.neighborhoodId : undefined,
+            houseRequirement: form.houseRequirement,
+            houseStatusRequirement: form.houseStatusRequirement,
             slotDurationMinutes: form.slotDurationMinutes,
             autoApprove: form.autoApprove,
             active: form.active,
@@ -456,6 +486,70 @@ const AppointmentServiceListContent: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                                <Label>Yêu cầu nhà số</Label>
+                                <Select
+                                    value={form.houseRequirement}
+                                    onValueChange={value =>
+                                        setForm(current => ({
+                                            ...current,
+                                            houseRequirement:
+                                                value as AppointmentHouseRequirement,
+                                        }))
+                                    }
+                                >
+                                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {(
+                                            Object.keys(
+                                                HOUSE_REQUIREMENT_LABEL,
+                                            ) as AppointmentHouseRequirement[]
+                                        ).map(value => (
+                                            <SelectItem key={value} value={value}>
+                                                {HOUSE_REQUIREMENT_LABEL[value]}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Dịch vụ này có bắt buộc gắn với một nhà số cụ
+                                    thể khi đặt lịch hẹn hay không.
+                                </p>
+                            </div>
+                            {form.houseRequirement !== "none" && (
+                                <div>
+                                    <Label>Điều kiện nhà số</Label>
+                                    <Select
+                                        value={form.houseStatusRequirement}
+                                        onValueChange={value =>
+                                            setForm(current => ({
+                                                ...current,
+                                                houseStatusRequirement:
+                                                    value as AppointmentHouseStatusRequirement,
+                                            }))
+                                        }
+                                    >
+                                        <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {(
+                                                Object.keys(
+                                                    HOUSE_STATUS_REQUIREMENT_LABEL,
+                                                ) as AppointmentHouseStatusRequirement[]
+                                            ).map(value => (
+                                                <SelectItem key={value} value={value}>
+                                                    {HOUSE_STATUS_REQUIREMENT_LABEL[value]}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Áp dụng khi người dân đã chọn một nhà số
+                                        (kể cả khi không bắt buộc).
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                         <div>
                             <Label>Thời lượng mỗi lượt hẹn (phút)</Label>
                             <Input
@@ -546,48 +640,68 @@ const AppointmentServiceListContent: React.FC = () => {
                                 {form.timeSlots.map((slot, index) => (
                                     <div key={index} className="rounded-lg border p-3">
                                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                                            <Select
-                                                value={String(slot.dayOfWeek)}
-                                                onValueChange={value =>
-                                                    updateTimeSlot(index, "dayOfWeek", Number(value))
-                                                }
-                                            >
-                                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    {[1, 2, 3, 4, 5, 6, 7].map(day => (
-                                                        <SelectItem key={day} value={String(day)}>
-                                                            {DAY_OF_WEEK_LABEL[day]}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <Input
-                                                type="time"
-                                                value={slot.startTime}
-                                                onChange={event =>
-                                                    updateTimeSlot(index, "startTime", event.target.value)
-                                                }
-                                            />
-                                            <Input
-                                                type="time"
-                                                value={slot.endTime}
-                                                onChange={event =>
-                                                    updateTimeSlot(index, "endTime", event.target.value)
-                                                }
-                                            />
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                placeholder="Số lượt tối đa"
-                                                value={slot.maxCapacity}
-                                                onChange={event =>
-                                                    updateTimeSlot(
-                                                        index,
-                                                        "maxCapacity",
-                                                        Number(event.target.value) || 0,
-                                                    )
-                                                }
-                                            />
+                                            <div>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Thứ
+                                                </span>
+                                                <Select
+                                                    value={String(slot.dayOfWeek)}
+                                                    onValueChange={value =>
+                                                        updateTimeSlot(index, "dayOfWeek", Number(value))
+                                                    }
+                                                >
+                                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {[1, 2, 3, 4, 5, 6, 7].map(day => (
+                                                            <SelectItem key={day} value={String(day)}>
+                                                                {DAY_OF_WEEK_LABEL[day]}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Giờ bắt đầu
+                                                </span>
+                                                <Input
+                                                    type="time"
+                                                    value={slot.startTime}
+                                                    onChange={event =>
+                                                        updateTimeSlot(index, "startTime", event.target.value)
+                                                    }
+                                                />
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Giờ kết thúc
+                                                </span>
+                                                <Input
+                                                    type="time"
+                                                    value={slot.endTime}
+                                                    onChange={event =>
+                                                        updateTimeSlot(index, "endTime", event.target.value)
+                                                    }
+                                                />
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Số lượt tối đa
+                                                </span>
+                                                <Input
+                                                    type="number"
+                                                    min={1}
+                                                    placeholder="Số lượt tối đa"
+                                                    value={slot.maxCapacity}
+                                                    onChange={event =>
+                                                        updateTimeSlot(
+                                                            index,
+                                                            "maxCapacity",
+                                                            Number(event.target.value) || 0,
+                                                        )
+                                                    }
+                                                />
+                                            </div>
                                         </div>
                                         <div className="mt-2 flex items-center justify-between">
                                             <label className="flex items-center gap-2 text-sm">

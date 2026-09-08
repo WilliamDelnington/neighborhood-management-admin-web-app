@@ -55,6 +55,9 @@ const HouseholdDetailPage = React.lazy(
 const CitizenListPage = React.lazy(
     () => import("@pages/Citizens/CitizenListPage"),
 );
+const CitizenDetailPage = React.lazy(
+    () => import("@pages/Citizens/CitizenDetailPage"),
+);
 const BusinessDetailPage = React.lazy(
     () => import("@pages/Houses/BusinessDetailPage"),
 );
@@ -75,6 +78,9 @@ const SupportTicketListPage = React.lazy(
 );
 const SupportTicketDetailPage = React.lazy(
     () => import("@pages/SupportTickets/SupportTicketDetailPage"),
+);
+const PasswordResetRequestListPage = React.lazy(
+    () => import("@pages/PasswordResetRequests/PasswordResetRequestListPage"),
 );
 const PcccListPage = React.lazy(() => import("@pages/Pccc/PcccListPage"));
 const PcccHistoryPage = React.lazy(
@@ -308,6 +314,10 @@ const App: React.FC = () => {
                         />
                         <Route path="/citizens" element={<CitizenListPage />} />
                         <Route
+                            path="/citizens/:id"
+                            element={<CitizenDetailPage />}
+                        />
+                        <Route
                             path="/houses/:houseId/businesses/:businessId"
                             element={<BusinessDetailPage />}
                         />
@@ -334,6 +344,10 @@ const App: React.FC = () => {
                         <Route
                             path="/support-tickets/:id"
                             element={<SupportTicketDetailPage />}
+                        />
+                        <Route
+                            path="/password-reset-requests"
+                            element={<PasswordResetRequestListPage />}
                         />
                         <Route path="/pccc" element={<PcccListPage />} />
                         <Route

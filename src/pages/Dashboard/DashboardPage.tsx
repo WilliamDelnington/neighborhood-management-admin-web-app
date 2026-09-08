@@ -47,6 +47,8 @@ import {
 } from "@constants/domain";
 import { DashboardSummary, User } from "@dts";
 import { fetchDashboardSummary } from "@service/dashboardApi";
+import NeighborhoodDashboardView from "./NeighborhoodDashboardView";
+import WardDashboardView from "./WardDashboardView";
 
 const AUDIENCE_COPY: Record<
     DashboardSummary["audience"],
@@ -761,7 +763,17 @@ const DashboardContent: React.FC = () => {
                 </div>
             </header>
 
-            {attentionItems.length > 0 && (
+            {summary.audience === "neighborhood" && (
+                <NeighborhoodDashboardView summary={summary} />
+            )}
+            {summary.audience === "ward" && (
+                <WardDashboardView summary={summary} />
+            )}
+
+            {summary.audience !== "neighborhood" &&
+                summary.audience !== "ward" && (
+                    <>
+                        {attentionItems.length > 0 && (
                 <section>
                     <div className="mb-2 flex items-center justify-between">
                         <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
@@ -1107,7 +1119,9 @@ const DashboardContent: React.FC = () => {
                         ))}
                     </section>
                 )}
-            </div>
+                    </div>
+                    </>
+                )}
 
             {quickModules.length > 0 && (
                 <section>

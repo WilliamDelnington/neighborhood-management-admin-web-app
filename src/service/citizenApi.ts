@@ -9,6 +9,7 @@ export interface CitizenInput {
     birthDate?: string;
     gender?: GioiTinh;
     relationToHead?: string;
+    occupation?: string;
     householdId: string;
     residenceType?: LoaiCuTru;
     isElderly?: boolean;
@@ -23,6 +24,7 @@ export const fetchCitizens = (params?: {
     limit?: number;
     search?: string;
     householdId?: string;
+    neighborhoodId?: string;
 }): Promise<PaginatedData<Citizen>> =>
     request<PaginatedData<Citizen>>("GET", API.CITIZENS, params);
 

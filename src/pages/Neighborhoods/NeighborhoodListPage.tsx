@@ -241,11 +241,9 @@ const NeighborhoodListContent: React.FC = () => {
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Phường/Xã</TableHead>
-                                <TableHead>Tuyến đường</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Tổ trưởng</TableHead>
                                 <TableHead>Tổ phó</TableHead>
-                                <TableHead>Nhiệm kỳ</TableHead>
                                 <TableHead>Số nhà</TableHead>
                                 <TableHead>Hồ sơ</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
@@ -274,9 +272,6 @@ const NeighborhoodListContent: React.FC = () => {
                                             </span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="min-w-40">
-                                        {n.streetIds?.map(street => street.name).join(", ") || "Chưa gán"}
-                                    </TableCell>
                                     <TableCell>
                                         <Badge tone={n.status === "ACTIVE" ? "green" : "gray"}>
                                             {STATUS_LABEL[n.status]}
@@ -293,16 +288,6 @@ const NeighborhoodListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell>
                                         {n.coleaders?.map(user => user.displayName).join(", ") || "Chưa có"}
-                                    </TableCell>
-                                    <TableCell>
-                                        {n.currentTerm?.name || "Chưa có"}
-                                        {n.termRemainingDays !== null &&
-                                            n.termRemainingDays !== undefined &&
-                                            n.termRemainingDays <= 30 && (
-                                                <span className="block text-xs text-orange-500">
-                                                    Còn {Math.max(0, n.termRemainingDays)} ngày
-                                                </span>
-                                            )}
                                     </TableCell>
                                     <TableCell>{n.houseCount}</TableCell>
                                     <TableCell>{n.attachmentCount || 0}</TableCell>

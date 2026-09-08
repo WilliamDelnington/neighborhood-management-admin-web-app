@@ -65,6 +65,9 @@ export type User = {
     provinceName?: string;
     wardCode?: number;
     wardName?: string;
+    // Chi co trong response cua GET /api/wards/managers - vai tro cap Phuong cu
+    // the trong `roles` cua user nay (xem ghi chu o route backend).
+    wardRoleKey?: string;
     notificationPermission: boolean;
     createdAt?: string;
     allowedComplaintCategories: NhomPhanAnh[] | null;
@@ -397,47 +400,12 @@ export type Neighborhood = {
         phone?: string;
         status?: UserStatus;
     }>;
-    currentTerm?: NeighborhoodTerm | null;
-    termRemainingDays?: number | null;
     attachmentCount?: number;
     createdAt: string;
     updatedAt: string;
 };
 
 export type NeighborhoodStatus = "ACTIVE" | "INACTIVE" | "MERGED" | "CLOSED";
-// Vong doi: DRAFT -> NOT_STARTED|IN_PROGRESS|ENDED (finalize/tu dong theo
-// ngay) -> IN_PROGRESS -> ENDED (dung han, tu dong, hoac ket thuc som, thu
-// cong + bat buoc ly do) | NOT_STARTED -> CANCELLED (huy thu cong). Chi DRAFT
-// moi xoa duoc - xem models/NeighborhoodTerm.ts o backend.
-export type NeighborhoodTermStatus =
-    | "DRAFT"
-    | "NOT_STARTED"
-    | "IN_PROGRESS"
-    | "ENDED"
-    | "CANCELLED";
-
-export type NeighborhoodTerm = {
-    _id: string;
-    neighborhoodId: string;
-    name: string;
-    startAt: string;
-    endAt: string;
-    status: NeighborhoodTermStatus;
-    notes?: string;
-    // Chi co y nghia khi status = ENDED - phan biet ket thuc dung han (tu
-    // dong) voi ket thuc som (thu cong, xem endReason).
-    endedEarly?: boolean;
-    // BAT BUOC khi ket thuc som, khong dung cho cac chuyen trang thai khac.
-    endReason?: string;
-    // To truong/to pho DUOC CHI DINH cho nhiem ky nay (chon ngay tren form
-    // tao/sua) - chi thuc su tro thanh phan cong (huong quan ly that su, xem
-    // NeighborhoodLeaderAssignment/NeighborhoodColeaderAssignment) khi nhiem
-    // ky chuyen sang IN_PROGRESS - xem models/NeighborhoodTerm.ts o backend.
-    leaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
-    coleaderUserId?: { _id: string; displayName: string; phone?: string } | string | null;
-    createdAt: string;
-    updatedAt: string;
-};
 
 export type NeighborhoodHistory = {
     _id: string;
@@ -515,8 +483,6 @@ export type NeighborhoodLeaderAssignment = {
     leaderUserId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
-    termId?: NeighborhoodTerm | null;
-    endAt?: string;
     unassignedAt?: string;
     unassignedBy?: { _id: string; displayName: string } | null;
     note?: string;
@@ -528,8 +494,6 @@ export type NeighborhoodColeaderAssignment = {
     coleaderUserId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
-    termId?: NeighborhoodTerm | null;
-    endAt?: string;
     unassignedAt?: string;
     unassignedBy?: { _id: string; displayName: string } | null;
     note?: string;
@@ -685,6 +649,7 @@ export type Citizen = {
     birthDate?: string;
     gender: GioiTinh;
     relationToHead?: string;
+    occupation?: string;
     householdId: string | Household;
     residenceType: LoaiCuTru;
     isElderly: boolean;
@@ -727,7 +692,7 @@ export type Complaint = {
     content: string;
     area?: string;
     status: TrangThaiPhanAnh;
-    neighborhoodId?: string;
+    neighborhoodId?: string | { _id: string; name: string; code?: string };
     wardCode?: number;
     targetHouseId?: string | { _id: string; code: string; address?: string };
     createdByUserId:
@@ -808,6 +773,27 @@ export type SupportTicket = {
         | { _id: string; displayName: string; phone?: string };
     adminResponse?: string;
     respondedByUserId?: string | { _id: string; displayName: string };
+    resolvedAt?: string;
+    createdAt: string;
+    updatedAt: string;
+};
+
+// ---------------------------------------------------------------------------
+// Yeu cau dat lai mat khau (public, khong dang nhap)
+// ---------------------------------------------------------------------------
+export type TrangThaiYeuCauDatLaiMatKhau = "moi" | "da_xu_ly" | "dong";
+
+export type PasswordResetRequest = {
+    _id: string;
+    phone: string;
+    note?: string;
+    status: TrangThaiYeuCauDatLaiMatKhau;
+    matchedUser?: {
+        _id: string;
+        displayName: string;
+        roles: Role[];
+    };
+    resolvedByUserId?: string | { _id: string; displayName: string };
     resolvedAt?: string;
     createdAt: string;
     updatedAt: string;
@@ -1299,6 +1285,9 @@ export type AppointmentTimeSlot = {
     active: boolean;
 };
 
+export type AppointmentHouseRequirement = "none" | "optional" | "required";
+export type AppointmentHouseStatusRequirement = "any" | "in_scope" | "verified";
+
 export type AppointmentService = {
     _id: string;
     key: string;
@@ -1309,6 +1298,8 @@ export type AppointmentService = {
     wardCode?: number;
     wardName?: string;
     neighborhoodId?: string;
+    houseRequirement: AppointmentHouseRequirement;
+    houseStatusRequirement: AppointmentHouseStatusRequirement;
     slotDurationMinutes: number;
     autoApprove: boolean;
     active: boolean;
@@ -1850,6 +1841,115 @@ export type DashboardSummary = {
         inProgress: number;
         overdue: number;
     };
+    neighborhoodOverview?: NeighborhoodOverview;
+    wardOverview?: WardOverview;
+};
+
+// Chi tra ve khi audience === "neighborhood" (to truong/to pho). Cong tac
+// vien khong nhan duoc khoi nay - xem ghi chu dashboardAreaContext o backend.
+export type NeighborhoodOverview = {
+    houses: {
+        total: number;
+        verified: number;
+        unverified: number;
+        pending: number;
+        needsAttention: number;
+        occupied: number;
+        business: number;
+        vacant: number;
+    };
+    population: {
+        households: number;
+        citizens: number;
+        permanentResidents: number;
+        temporaryResidents: number;
+        renters: number;
+        elderly: number;
+        children: number;
+        needsSupport: number;
+    };
+    business: {
+        dataAvailable: boolean;
+        total: number;
+        totalCompanies: number;
+        byIndustry: { label: string; count: number }[];
+        missingLicense: number;
+        expiringLicenses: number;
+        needsReview: number;
+    };
+    safety: {
+        dataAvailable: boolean;
+        housesNotInspected: number;
+        highRiskPccc: number;
+        urgentSecurity: number;
+        unresolvedRecommendations: number;
+        openComplaints: number;
+    };
+    tasks: {
+        newComplaints: number;
+        inProgressComplaints: number;
+        overdueRequestAssignments: number;
+        resolvedRequestAssignments: number;
+        totalRequestAssignments: number;
+        onTimeCompletionRate: number | null;
+        averageSatisfaction: number | null;
+        ratedComplaintCount: number;
+    };
+};
+
+export type WardNeighborhoodRow = {
+    neighborhoodId: string;
+    name: string;
+    totalHouses: number;
+    verifiedHouses: number;
+    verificationRate: number;
+    lastUpdatedAt: string | null;
+    isSlow: boolean;
+    highAlertCount: number;
+    isHighAlert: boolean;
+};
+
+// Chi tra ve khi audience === "ward" (bi thu/can bo UBND/vai tro Phuong tuy
+// chinh duoc gan wardCode).
+export type WardOverview = {
+    neighborhoods: WardNeighborhoodRow[];
+    dataQuality: {
+        duplicateAddressGroups: number;
+        duplicateAddressHouses: number;
+        otherChecksAvailable: boolean;
+    };
+    population: {
+        households: number;
+        citizens: number;
+        renters: number;
+        elderly: number;
+        childrenApprox: number;
+        needsSupport: number;
+    };
+    economy: {
+        dataAvailable: boolean;
+        total: number;
+        totalCompanies: number;
+        byIndustry: { label: string; count: number }[];
+        expiringLicenses: number;
+        newInPeriod: number;
+        inactive: number;
+    };
+    safety: {
+        dataAvailable: boolean;
+        highRiskPccc: number;
+        urgentSecurity: number;
+        housesNotInspected: number;
+        byNeighborhood: {
+            neighborhoodId: string;
+            name: string;
+            highRiskPccc: number;
+            urgentSecurity: number;
+            openComplaints: number;
+        }[];
+    };
+    digitalServicesAvailable: boolean;
+    systemSafetyAvailable: boolean;
 };
 
 // ---------------------------------------------------------------------------

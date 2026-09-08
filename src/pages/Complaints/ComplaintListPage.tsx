@@ -24,7 +24,13 @@ import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Complaint, ComplaintTypeDefinition, NhomPhanAnh, TrangThaiPhanAnh } from "@dts";
+import {
+    Complaint,
+    ComplaintTypeDefinition,
+    Neighborhood,
+    NhomPhanAnh,
+    TrangThaiPhanAnh,
+} from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
     TRANG_THAI_PHAN_ANH_LABEL,
@@ -32,10 +38,12 @@ import {
 } from "@constants/domain";
 import { fetchComplaints } from "@service/complaintApi";
 import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import { useAuthStore } from "@store/authStore";
 
 const ALL_STATUS = "all";
 const ALL_CATEGORY = "all";
+const ALL_NEIGHBORHOOD = "all";
 const BOOTSTRAP_NHOM_PHAN_ANH = Object.keys(NHOM_PHAN_ANH_LABEL) as NhomPhanAnh[];
 
 const formatDateTime = (value?: string) =>
@@ -73,6 +81,26 @@ const ComplaintListContent: React.FC = () => {
         NHOM_PHAN_ANH_LABEL[key] ||
         key;
 
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
+    useEffect(() => {
+        fetchNeighborhoods({ limit: 200 })
+            .then(res => setNeighborhoods(res.items))
+            .catch(() => {
+                /* Khong co quyen neighborhoods.read - an bo loc, khong chan trang */
+            });
+    }, []);
+
+    const neighborhoodNameOf = (
+        neighborhoodId: Complaint["neighborhoodId"],
+    ): string => {
+        if (!neighborhoodId) return "Chưa xác định";
+        if (typeof neighborhoodId !== "string") return neighborhoodId.name;
+        return (
+            neighborhoods.find(n => n._id === neighborhoodId)?.name ||
+            "Chưa xác định"
+        );
+    };
+
     const activeCategoryOptions = complaintTypes.length
         ? complaintTypes
               .filter(t => t.active !== false)
@@ -85,6 +113,9 @@ const ComplaintListContent: React.FC = () => {
     );
     const [category, setCategory] = useState<NhomPhanAnh | "">(
         (searchParams.get("category") as NhomPhanAnh | null) || "",
+    );
+    const [neighborhoodId, setNeighborhoodId] = useState(
+        searchParams.get("neighborhoodId") || "",
     );
     const [search, setSearch] = useState("");
     const relatedAssetId = searchParams.get("relatedAssetId") || undefined;
@@ -106,6 +137,7 @@ const ComplaintListContent: React.FC = () => {
             category: category || undefined,
             search: search || undefined,
             relatedAssetId,
+            neighborhoodId: neighborhoodId || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -120,7 +152,7 @@ const ComplaintListContent: React.FC = () => {
         const timer = setTimeout(() => load(1), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status, category]);
+    }, [search, status, category, neighborhoodId]);
 
     const handleStatusChange = (value: string) => {
         const next = (value === ALL_STATUS ? "" : value) as
@@ -154,6 +186,20 @@ const ComplaintListContent: React.FC = () => {
         });
     };
 
+    const handleNeighborhoodChange = (value: string) => {
+        const next = value === ALL_NEIGHBORHOOD ? "" : value;
+        setNeighborhoodId(next);
+        setSearchParams(prev => {
+            const params = new URLSearchParams(prev);
+            if (next) {
+                params.set("neighborhoodId", next);
+            } else {
+                params.delete("neighborhoodId");
+            }
+            return params;
+        });
+    };
+
     return (
         <div>
             <PageHeader
@@ -177,7 +223,7 @@ const ComplaintListContent: React.FC = () => {
                 />
             </div>
 
-            <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3">
                 <Select
                     value={status || ALL_STATUS}
                     onValueChange={handleStatusChange}
@@ -220,6 +266,25 @@ const ComplaintListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
+
+                <Select
+                    value={neighborhoodId || ALL_NEIGHBORHOOD}
+                    onValueChange={handleNeighborhoodChange}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả tổ dân phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_NEIGHBORHOOD}>
+                            Tất cả tổ dân phố
+                        </SelectItem>
+                        {neighborhoods.map(n => (
+                            <SelectItem key={n._id} value={n._id}>
+                                {n.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
@@ -233,9 +298,10 @@ const ComplaintListContent: React.FC = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-12 text-center">STT</TableHead>
-                                <TableHead>Mã — Tiêu đề</TableHead>
+                                <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Thời gian gửi</TableHead>
                                 <TableHead>Nhóm</TableHead>
+                                <TableHead>Tổ dân phố</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
@@ -253,7 +319,7 @@ const ComplaintListContent: React.FC = () => {
                                         {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        {c.code} — {c.title}
+                                        {c.title}
                                     </TableCell>
                                     <TableCell className="text-text_2">
                                         {formatDateTime(c.createdAt)}
@@ -262,26 +328,30 @@ const ComplaintListContent: React.FC = () => {
                                         {labelByCategory(c.category)}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            <Badge
-                                                tone={
-                                                    TRANG_THAI_PHAN_ANH_TONE[
-                                                        c.status
-                                                    ]
-                                                }
-                                            >
-                                                {
-                                                    TRANG_THAI_PHAN_ANH_LABEL[
-                                                        c.status
-                                                    ]
-                                                }
+                                        {c.neighborhoodId ? (
+                                            neighborhoodNameOf(
+                                                c.neighborhoodId,
+                                            )
+                                        ) : (
+                                            <Badge tone="red">
+                                                Chưa xác định
                                             </Badge>
-                                            {!c.neighborhoodId && (
-                                                <Badge tone="red">
-                                                    Chưa xác định tổ dân phố
-                                                </Badge>
-                                            )}
-                                        </div>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            tone={
+                                                TRANG_THAI_PHAN_ANH_TONE[
+                                                    c.status
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                TRANG_THAI_PHAN_ANH_LABEL[
+                                                    c.status
+                                                ]
+                                            }
+                                        </Badge>
                                     </TableCell>
                                     <TableCell
                                         className="text-right"
