@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FileText } from "lucide-react";
+import { ChevronDown, FileText } from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Label } from "@components/ui/label";
@@ -82,6 +82,9 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
     const [items, setItems] = useState<RequiredDocumentItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    // Mac dinh dong de do ton dien tich khi loai hinh khong yeu cau giay to
+    // nao - tu dong mo lai neu load() phat hien co giay to can hien thi/loi.
+    const [collapsed, setCollapsed] = useState(true);
     const [expandedHistory, setExpandedHistory] = useState<Set<string>>(
         new Set(),
     );
@@ -98,8 +101,14 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
         setLoading(true);
         setError(false);
         fetchItems(entityId)
-            .then(res => setItems(res.items))
-            .catch(() => setError(true))
+            .then(res => {
+                setItems(res.items);
+                setCollapsed(res.items.length === 0);
+            })
+            .catch(() => {
+                setError(true);
+                setCollapsed(false);
+            })
             .finally(() => setLoading(false));
     };
 
@@ -165,17 +174,35 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
 
     return (
         <div className={className}>
-            <h2 className="mb-2 text-base font-semibold">
-                Hồ sơ giấy tờ theo yêu cầu
-            </h2>
-            {loading && <LoadingState />}
-            {!loading && error && <ErrorState onRetry={load} />}
-            {!loading && !error && items.length === 0 && (
-                <EmptyState label="Loại hình kinh doanh này chưa có yêu cầu giấy tờ nào" />
-            )}
-            {!loading && !error && items.length > 0 && (
-                <div className="flex flex-col gap-3">
-                    {items.map(item => {
+            <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left"
+                onClick={() => setCollapsed(prev => !prev)}
+            >
+                <div className="flex items-center gap-2">
+                    <h2 className="text-base font-semibold">
+                        Hồ sơ giấy tờ theo yêu cầu
+                    </h2>
+                    {!loading && !error && items.length > 0 && (
+                        <Badge tone="blue">{items.length}</Badge>
+                    )}
+                </div>
+                <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-text_2 transition-transform ${
+                        collapsed ? "" : "rotate-180"
+                    }`}
+                />
+            </button>
+            {!collapsed && (
+                <div className="mt-3">
+                    {loading && <LoadingState />}
+                    {!loading && error && <ErrorState onRetry={load} />}
+                    {!loading && !error && items.length === 0 && (
+                        <EmptyState label="Loại hình kinh doanh này chưa có yêu cầu giấy tờ nào" />
+                    )}
+                    {!loading && !error && items.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                            {items.map(item => {
                         const key = documentTypeName(item);
                         const historyOpen = expandedHistory.has(key);
                         return (
@@ -346,6 +373,8 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                             </div>
                         );
                     })}
+                        </div>
+                    )}
                 </div>
             )}
 

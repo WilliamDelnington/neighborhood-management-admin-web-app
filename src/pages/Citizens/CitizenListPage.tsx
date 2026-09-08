@@ -51,11 +51,6 @@ const householdLabelOf = (householdId: Citizen["householdId"]): string => {
         : `${householdId.code} — ${householdId.address}`;
 };
 
-const householdHrefOf = (householdId: Citizen["householdId"]): string | null => {
-    if (!householdId || typeof householdId === "string") return null;
-    return `/households/${householdId._id}`;
-};
-
 const CitizenListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("citizens.create");
@@ -183,16 +178,17 @@ const CitizenListContent: React.FC = () => {
                                 <TableHead>Hộ dân</TableHead>
                                 <TableHead>Quan hệ với chủ hộ</TableHead>
                                 <TableHead>Loại cư trú</TableHead>
+                                <TableHead className="text-right">
+                                    Thao tác
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {items.map((c, index) => {
-                                const href = householdHrefOf(c.householdId);
-                                return (
+                            {items.map((c, index) => (
                                     <TableRow
                                         key={c._id}
-                                        className={href ? "cursor-pointer" : undefined}
-                                        onClick={() => href && navigate(href)}
+                                        className="cursor-pointer"
+                                        onClick={() => navigate(`/citizens/${c._id}`)}
                                     >
                                         <TableCell className="text-center text-text_2">
                                             {(page - 1) * pageSize + index + 1}
@@ -216,9 +212,22 @@ const CitizenListContent: React.FC = () => {
                                                 {LOAI_CU_TRU_LABEL[c.residenceType]}
                                             </Badge>
                                         </TableCell>
+                                        <TableCell
+                                            className="text-right"
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    navigate(`/citizens/${c._id}`)
+                                                }
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
-                                );
-                            })}
+                                ))}
                         </TableBody>
                     </Table>
                 )}
