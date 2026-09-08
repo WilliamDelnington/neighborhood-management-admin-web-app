@@ -244,6 +244,8 @@ const NeighborhoodListContent: React.FC = () => {
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Tổ trưởng</TableHead>
                                 <TableHead>Tổ phó</TableHead>
+                                <TableHead>Số nhà</TableHead>
+                                <TableHead>Hồ sơ</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -287,6 +289,8 @@ const NeighborhoodListContent: React.FC = () => {
                                     <TableCell>
                                         {n.coleaders?.map(user => user.displayName).join(", ") || "Chưa có"}
                                     </TableCell>
+                                    <TableCell>{n.houseCount}</TableCell>
+                                    <TableCell>{n.attachmentCount || 0}</TableCell>
                                     <TableCell
                                         className="text-right"
                                         onClick={e => e.stopPropagation()}

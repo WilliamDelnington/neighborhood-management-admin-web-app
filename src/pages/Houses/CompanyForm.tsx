@@ -191,6 +191,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
                 />
             </div>
             <RepresentativeUserPicker
+                requiredRole="company_representative"
                 value={values.representativeUserId}
                 valueLabel={values.representativeUserLabel}
                 onChange={(userId, user: User | undefined) => {

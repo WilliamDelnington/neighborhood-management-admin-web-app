@@ -18,13 +18,20 @@ export interface RepresentativeUserPickerProps {
     valueLabel?: string;
     onChange: (userId: string | null, user?: User) => void;
     disabled?: boolean;
+    // Vai tro he thong bat buoc (business_representative/company_representative -
+    // xem Business/Company.representativeUserId o backend) - bo trong = tim
+    // bat ky tai khoan nao (dung cho OrganizationRepresentativePanel.tsx, mot
+    // khai niem dai dien KHAC, khong lien quan he thong Role nay). house_owner
+    // luon duoc tim kem, tuong thich nguoc voi du lieu cu (xem
+    // houseRecordService.validateRepresentativeUser o backend).
+    requiredRole?: "business_representative" | "company_representative";
 }
 
 /**
- * Chon tai khoan bat ky de lien ket lam nguoi dai dien (Business/Company.
- * representativeUserId) - khac HeadOfHouseholdUserPicker: khong loc theo vai
- * tro co dinh, vi nguoi dai dien ho kinh doanh/cong ty co the la chinh chu nha,
- * chu ho, hoac mot tai khoan khac duoc uy quyen.
+ * Chon tai khoan de lien ket lam nguoi dai dien (Business/Company.
+ * representativeUserId). Khi co requiredRole: chi tim tai khoan dung vai tro
+ * do (hoac house_owner, tuong thich nguoc) - khac truoc day (tim bat ky tai
+ * khoan nao, khong kiem tra vai tro).
  */
 const RepresentativeUserPicker: React.FC<RepresentativeUserPickerProps> = ({
     label = "Liên kết tài khoản người đại diện (nếu có)",
@@ -32,6 +39,7 @@ const RepresentativeUserPicker: React.FC<RepresentativeUserPickerProps> = ({
     valueLabel,
     onChange,
     disabled,
+    requiredRole,
 }) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -42,14 +50,25 @@ const RepresentativeUserPicker: React.FC<RepresentativeUserPickerProps> = ({
         if (!open) return;
         setLoading(true);
         const timer = setTimeout(() => {
-            fetchUsers(1, 20, search || undefined)
-                .then(res => setItems(res.items))
+            const request = requiredRole
+                ? Promise.all([
+                      fetchUsers(1, 20, search || undefined, requiredRole),
+                      fetchUsers(1, 20, search || undefined, "house_owner"),
+                  ]).then(([roleRes, ownerRes]) => {
+                      const seen = new Set<string>();
+                      return [...roleRes.items, ...ownerRes.items].filter(
+                          u => (seen.has(u.id) ? false : (seen.add(u.id), true)),
+                      );
+                  })
+                : fetchUsers(1, 20, search || undefined).then(res => res.items);
+            request
+                .then(setItems)
                 .catch(() => setItems([]))
                 .finally(() => setLoading(false));
         }, 250);
         // eslint-disable-next-line consistent-return
         return () => clearTimeout(timer);
-    }, [open, search]);
+    }, [open, search, requiredRole]);
 
     return (
         <div>

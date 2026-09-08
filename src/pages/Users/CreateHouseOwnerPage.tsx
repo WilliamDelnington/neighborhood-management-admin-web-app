@@ -12,7 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import { NEIGHBORHOOD_TERM_ROLE_KEYS, ROLE_LABEL } from "@constants/domain";
+import { NEIGHBORHOOD_ASSIGNABLE_ROLE_KEYS, ROLE_LABEL } from "@constants/domain";
 import { AppError, Role } from "@dts";
 import {
     createHouseOwner,
@@ -134,7 +134,7 @@ const CreateHouseOwnerContent: React.FC = () => {
                     Đã tạo tài khoản với số điện thoại <strong>{lastCreatedPhone}</strong>.
                     Đăng nhập trong Mini App bằng số điện thoại và mật khẩu
                     vừa đặt.
-                    {NEIGHBORHOOD_TERM_ROLE_KEYS.includes(form.role) && (
+                    {NEIGHBORHOOD_ASSIGNABLE_ROLE_KEYS.includes(form.role) && (
                         <>
                             {" "}
                             Vào trang chi tiết Tổ dân phố để gán tài khoản này

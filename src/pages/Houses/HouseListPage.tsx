@@ -49,7 +49,7 @@ import {
     HOUSE_STATUS_LABEL,
     HOUSE_STATUS_TONE,
 } from "@constants/domain";
-import { House, HouseStatus, Neighborhood, AppError } from "@dts";
+import { House, HouseStatus, Neighborhood, Province, Ward, AppError } from "@dts";
 import {
     BulkHouseActionResult,
     bulkAssignHouseNeighborhood,
@@ -58,6 +58,7 @@ import {
     fetchHouses,
 } from "@service/houseApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import { fetchProvinces, fetchWardsByProvince } from "@service/administrativeDivisionApi";
 import HouseForm, {
     EMPTY_HOUSE_FORM,
     HouseFormValues,
@@ -107,6 +108,10 @@ const HouseListContent: React.FC = () => {
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
+    const [provinceCode, setProvinceCode] = useState<number | "">("");
+    const [wardCode, setWardCode] = useState<number | "">("");
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
     const [items, setItems] = useState<House[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -143,6 +148,8 @@ const HouseListContent: React.FC = () => {
             search: keyword,
             status: statusFilter || undefined,
             neighborhoodId,
+            provinceCode: provinceCode || undefined,
+            wardCode: wardCode || undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -158,7 +165,27 @@ const HouseListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search, status), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status, neighborhoodId]);
+    }, [search, status, neighborhoodId, provinceCode, wardCode]);
+
+    useEffect(() => {
+        fetchProvinces()
+            .then(setProvinces)
+            .catch(() => setProvinces([]));
+    }, []);
+
+    // Doi tinh/thanh pho thi nap lai danh sach phuong/xa tuong ung va bo chon
+    // phuong/xa dang loc (khong con thuoc tinh moi).
+    useEffect(() => {
+        if (!provinceCode) {
+            setWards([]);
+            setWardCode("");
+            return;
+        }
+        setWardCode("");
+        fetchWardsByProvince(provinceCode)
+            .then(setWards)
+            .catch(() => setWards([]));
+    }, [provinceCode]);
 
     useEffect(() => {
         if (!canBulkAssignNeighborhood) return;
@@ -317,6 +344,53 @@ const HouseListContent: React.FC = () => {
                         ).map(([key, label]) => (
                             <SelectItem key={key} value={key}>
                                 {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={provinceCode ? String(provinceCode) : ALL_STATUSES}
+                    onValueChange={v =>
+                        setProvinceCode(v === ALL_STATUSES ? "" : Number(v))
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Lọc theo tỉnh/thành phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_STATUSES}>
+                            Tất cả tỉnh/thành phố
+                        </SelectItem>
+                        {provinces.map(p => (
+                            <SelectItem key={p.code} value={String(p.code)}>
+                                {p.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={wardCode ? String(wardCode) : ALL_STATUSES}
+                    onValueChange={v =>
+                        setWardCode(v === ALL_STATUSES ? "" : Number(v))
+                    }
+                    disabled={!provinceCode}
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue
+                            placeholder={
+                                provinceCode
+                                    ? "Lọc theo phường/xã"
+                                    : "Chọn tỉnh/thành phố trước"
+                            }
+                        />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_STATUSES}>
+                            Tất cả phường/xã
+                        </SelectItem>
+                        {wards.map(w => (
+                            <SelectItem key={w.code} value={String(w.code)}>
+                                {w.name}
                             </SelectItem>
                         ))}
                     </SelectContent>
