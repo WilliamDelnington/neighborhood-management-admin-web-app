@@ -857,6 +857,9 @@ export type News = {
     pinned: boolean;
     coverImageUrl?: string;
     images: string[];
+    // Chua chac chan backend co tra ve truong nay cho moi ban ghi cu - khai
+    // bao optional de UI an di neu thieu thay vi loi (xem NewsListPage).
+    createdBy?: string | { _id: string; displayName: string };
     publishedAt?: string;
     createdAt: string;
 };
