@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
+import { Button } from "@components/ui/button";
 import {
     Select,
     SelectContent,
@@ -172,6 +173,9 @@ const HouseholdListContent: React.FC = () => {
                                 <TableHead>Hình thức sở hữu</TableHead>
                                 <TableHead>Số nhân khẩu</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">
+                                    Thao tác
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -198,6 +202,20 @@ const HouseholdListContent: React.FC = () => {
                                         <Badge tone={VERIFICATION_STATUS_TONE[h.status]}>
                                             {VERIFICATION_STATUS_LABEL[h.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell
+                                        className="text-right"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                navigate(`/households/${h._id}`)
+                                            }
+                                        >
+                                            Chi tiết
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

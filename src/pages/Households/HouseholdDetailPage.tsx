@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Plus } from "lucide-react";
+import {
+    ArrowLeft,
+    Building2,
+    Home,
+    KeyRound,
+    MapPin,
+    Phone,
+    Plus,
+    StickyNote,
+    User,
+    Users,
+} from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
@@ -96,6 +107,15 @@ const citizenToForm = (c: Citizen, householdId: string): CitizenFormValues => ({
     isPartyMember: c.isPartyMember,
     isUnionMember: c.isUnionMember,
 });
+
+const initialsOf = (fullName: string): string => {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "?";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (
+        parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+    ).toUpperCase();
+};
 
 const HouseholdDetailPage: React.FC = () => (
     <AdminGuard permissions={["households.read"]}>
@@ -307,81 +327,41 @@ const HouseholdDetailContent: React.FC = () => {
 
             {!loading && !error && household && form && (
                 <>
-                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">
-                                {household.code}
-                            </h2>
-                            <div className="flex items-center gap-2">
-                                {household.needsSupport && (
-                                    <Badge tone="yellow">Cần hỗ trợ</Badge>
-                                )}
-                                <Badge tone={VERIFICATION_STATUS_TONE[household.status]}>
-                                    {VERIFICATION_STATUS_LABEL[household.status]}
-                                </Badge>
-                            </div>
-                        </div>
-
-                        {editing ? (
-                            <>
-                                <HouseholdForm
-                                    values={form}
-                                    onChange={setForm}
-                                    lockedCluster={
-                                        household.houseId
-                                            ? household.cluster
-                                            : undefined
-                                    }
-                                />
-                                <div className="mt-4 flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setForm(toFormValues(household));
-                                            setEditing(false);
-                                        }}
-                                    >
-                                        Hủy
-                                    </Button>
-                                    <Button loading={saving} onClick={handleSave}>
-                                        Lưu
-                                    </Button>
+                    <div className="rounded-xl border border-divider_01 bg-ui_bg p-6 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-main to-primary-dark text-white ring-2 ring-blue_10">
+                                    <Home className="h-6 w-6" />
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                <InfoRow
-                                    label="Cụm dân cư"
-                                    value={household.cluster}
-                                />
-                                <InfoRow
-                                    label="Địa chỉ"
-                                    value={household.address}
-                                />
-                                <InfoRow
-                                    label="Chủ hộ"
-                                    value={household.headOfHousehold}
-                                />
-                                <InfoRow
-                                    label="Số điện thoại"
-                                    value={household.phone || "Chưa cập nhật"}
-                                />
-                                <InfoRow
-                                    label="Số nhân khẩu"
-                                    value={String(household.memberCount ?? 0)}
-                                />
-                                <InfoRow
-                                    label="Hình thức sở hữu"
-                                    value={
-                                        LOAI_SO_HUU_LABEL[household.ownershipType]
-                                    }
-                                />
-                                <InfoRow
-                                    label="Ghi chú"
-                                    value={household.note || "Không có"}
-                                />
+                                <div>
+                                    <h2 className="text-xl font-semibold text-text_1">
+                                        {household.code}
+                                    </h2>
+                                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                        {household.needsSupport && (
+                                            <Badge tone="yellow">
+                                                Cần hỗ trợ
+                                            </Badge>
+                                        )}
+                                        <Badge
+                                            tone={
+                                                VERIFICATION_STATUS_TONE[
+                                                    household.status
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                VERIFICATION_STATUS_LABEL[
+                                                    household.status
+                                                ]
+                                            }
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div className="mt-4 flex flex-wrap gap-2">
+                            {!editing && (
+                                <div className="flex flex-wrap gap-2">
                                     {canUpdate &&
                                         ["unverified", "pending"].includes(
                                             household.status,
@@ -437,7 +417,78 @@ const HouseholdDetailContent: React.FC = () => {
                                         </>
                                     )}
                                 </div>
+                            )}
+                        </div>
+
+                        <div className="my-5 border-t border-divider_01" />
+
+                        {editing ? (
+                            <>
+                                <HouseholdForm
+                                    values={form}
+                                    onChange={setForm}
+                                    lockedCluster={
+                                        household.houseId
+                                            ? household.cluster
+                                            : undefined
+                                    }
+                                />
+                                <div className="mt-4 flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setForm(toFormValues(household));
+                                            setEditing(false);
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button loading={saving} onClick={handleSave}>
+                                        Lưu
+                                    </Button>
+                                </div>
                             </>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                                <Field
+                                    icon={<Building2 className="h-4 w-4" />}
+                                    label="Cụm dân cư"
+                                    value={household.cluster}
+                                />
+                                <Field
+                                    icon={<MapPin className="h-4 w-4" />}
+                                    label="Địa chỉ"
+                                    value={household.address}
+                                />
+                                <Field
+                                    icon={<User className="h-4 w-4" />}
+                                    label="Chủ hộ"
+                                    value={household.headOfHousehold}
+                                />
+                                <Field
+                                    icon={<Phone className="h-4 w-4" />}
+                                    label="Số điện thoại"
+                                    value={household.phone || "Chưa cập nhật"}
+                                />
+                                <Field
+                                    icon={<Users className="h-4 w-4" />}
+                                    label="Số nhân khẩu"
+                                    value={String(household.memberCount ?? 0)}
+                                />
+                                <Field
+                                    icon={<KeyRound className="h-4 w-4" />}
+                                    label="Hình thức sở hữu"
+                                    value={
+                                        LOAI_SO_HUU_LABEL[household.ownershipType]
+                                    }
+                                />
+                                <Field
+                                    icon={<StickyNote className="h-4 w-4" />}
+                                    label="Ghi chú"
+                                    value={household.note || "Không có"}
+                                    className="sm:col-span-2"
+                                />
+                            </div>
                         )}
                     </div>
 
@@ -451,11 +502,14 @@ const HouseholdDetailContent: React.FC = () => {
                         />
                     )}
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-base font-semibold">
-                                Nhân khẩu trong hộ
-                            </h2>
+                    <div className="mt-4 rounded-xl border border-divider_01 bg-ui_bg p-6 shadow-sm">
+                        <div className="mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-text_2" />
+                                <h2 className="text-base font-semibold text-text_1">
+                                    Nhân khẩu trong hộ
+                                </h2>
+                            </div>
                             {canCreateCitizen && (
                                 <Button size="sm" onClick={openCreateCitizen}>
                                     <Plus className="mr-1 h-4 w-4" />
@@ -472,19 +526,27 @@ const HouseholdDetailContent: React.FC = () => {
                                 <button
                                     key={c._id}
                                     type="button"
-                                    className={
-                                        canUpdateCitizen
-                                            ? "block w-full border-b border-divider_01 py-2 text-left last:border-0 hover:bg-ng_10"
-                                            : "block w-full border-b border-divider_01 py-2 text-left last:border-0"
-                                    }
+                                    className={`flex w-full items-center gap-3 rounded-md border-b border-divider_01 px-2 py-3 text-left last:border-0${
+                                        canUpdateCitizen ? " hover:bg-ng_10" : ""
+                                    }`}
                                     onClick={() => openEditCitizen(c)}
                                 >
-                                    <div className="text-sm font-medium">
-                                        {c.fullName}
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-icon_bg text-xs font-semibold text-primary">
+                                        {initialsOf(c.fullName)}
                                     </div>
-                                    <div className="text-xs text-text_2">
-                                        {c.cccd || c.phone || c.relationToHead}
+                                    <div className="min-w-0 flex-1">
+                                        <div className="truncate text-sm font-medium text-text_1">
+                                            {c.fullName}
+                                        </div>
+                                        <div className="truncate text-xs text-text_2">
+                                            {c.cccd || c.phone || "Chưa cập nhật"}
+                                        </div>
                                     </div>
+                                    {c.relationToHead && (
+                                        <Badge tone="gray">
+                                            {c.relationToHead}
+                                        </Badge>
+                                    )}
                                 </button>
                             ))}
                     </div>
@@ -638,13 +700,22 @@ const HouseholdDetailContent: React.FC = () => {
     );
 };
 
-const InfoRow: React.FC<{ label: string; value: string }> = ({
-    label,
-    value,
-}) => (
-    <div className="flex justify-between border-b border-divider_01 py-2 text-sm last:border-0">
-        <span className="text-text_2">{label}</span>
-        <span>{value}</span>
+const Field: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+    className?: string;
+}> = ({ icon, label, value, className }) => (
+    <div className={`flex items-start gap-3 ${className || ""}`}>
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-icon_bg text-primary">
+            {icon}
+        </div>
+        <div className="min-w-0">
+            <div className="text-xs text-text_2">{label}</div>
+            <div className="break-words text-sm font-medium text-text_1">
+                {value}
+            </div>
+        </div>
     </div>
 );
 
