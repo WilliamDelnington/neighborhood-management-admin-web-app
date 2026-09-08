@@ -13,6 +13,22 @@ export interface StreetImportPreviewRow {
     active: boolean;
 }
 
+// Xem HOUSEHOLD_COLUMNS/previewHouseholdImport o backend importService.ts -
+// khac House/Citizen/Street/Business, luong nay CHUA co buoc "chon cot": ten
+// cot trong file phai khop voi HOUSEHOLD_COLUMNS (xem
+// downloadHouseholdImportTemplate). Commit se tu tao them 1 Citizen "Chủ hộ"
+// cho moi hang dan moi (giong processHouseImportRows), khong can nguoi dung
+// khai bao rieng.
+export interface HouseholdImportPreviewRow {
+    cluster: string;
+    address: string;
+    headOfHousehold: string;
+    phone?: string;
+    ownershipType: string;
+    needsSupport: boolean;
+    note?: string;
+}
+
 // Xem HOUSE_COLUMNS/applyHouseImportMapping o backend importService.ts -
 // "address" duoc backend tu suy ra tu cot da mapping cho "Phân khu/dãy" +
 // "Mã căn/hộ" (khong co cot dia chi rieng trong Phieu thu thap),
@@ -133,6 +149,7 @@ export type ImportJobStatus =
     | "awaiting_mapping"
     | "previewing"
     | "validated"
+    | "committing"
     | "committed"
     | "failed";
 
@@ -182,6 +199,28 @@ export interface BusinessColumnMapping {
     active?: string;
     note?: string;
 }
+
+export const uploadHouseholdImportFile = (
+    file: File,
+    sheetName?: string,
+): Promise<ImportJob<HouseholdImportPreviewRow>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (sheetName) formData.append("sheetName", sheetName);
+    return request<ImportJob<HouseholdImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/households`,
+        formData,
+    );
+};
+
+export const commitHouseholdImport = (
+    jobId: string,
+): Promise<ImportJob<HouseholdImportPreviewRow>> =>
+    request<ImportJob<HouseholdImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/households/${jobId}/commit`,
+    );
 
 export const uploadStreetImportFile = (
     file: File,
@@ -302,14 +341,48 @@ export const commitCitizenImport = (
         `${API.IMPORT}/citizens/${jobId}/commit`,
     );
 
+export const fetchImportJob = <T = StreetImportPreviewRow>(
+    jobId: string,
+): Promise<ImportJob<T>> =>
+    request<ImportJob<T>>("GET", `${API.IMPORT}/jobs/${jobId}`);
+
+/**
+ * Sau khi goi commitXImport, job chuyen sang "committing" va viec ghi du lieu
+ * thuc su (co the nhieu tram/nghin dong) chay o background tren server (xem
+ * processXImportRows o importService.ts) - ham nay poll
+ * GET /api/import/jobs/:id moi `intervalMs` cho den khi job khong con
+ * "committing" nua (thanh "committed" hoac "failed"), goi `onProgress` sau
+ * moi lan poll de component cap nhat thanh tien do (vd progress bar theo
+ * committedCount/totalRows).
+ */
+export const pollImportJobUntilSettled = async <T = StreetImportPreviewRow>(
+    jobId: string,
+    onProgress?: (job: ImportJob<T>) => void,
+    intervalMs = 800,
+): Promise<ImportJob<T>> => {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const job = await fetchImportJob<T>(jobId);
+        onProgress?.(job);
+        if (job.status !== "committing") return job;
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise(resolve => {
+            setTimeout(resolve, intervalMs);
+        });
+    }
+};
+
 /**
  * File .xlsx nhi phan, khong theo envelope JSON chuan - khong dung request(),
  * mo truc tiep bang token qua fetch + tao link tai xuong tam thoi (giong
  * downloadReportExcel o reportApi.ts).
  */
-export const downloadStreetImportTemplate = async (): Promise<void> => {
+const downloadImportTemplate = async (
+    path: string,
+    filename: string,
+): Promise<void> => {
     const { token } = useAuthStore.getState();
-    const url = new URL(`${API.IMPORT}/streets/template`, BASE_URL);
+    const url = new URL(path, BASE_URL);
 
     const res = await fetch(url.toString(), {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -321,9 +394,39 @@ export const downloadStreetImportTemplate = async (): Promise<void> => {
     const objectUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = "mau-nhap-duong-pho.xlsx";
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
     window.URL.revokeObjectURL(objectUrl);
 };
+
+export const downloadStreetImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/streets/template`,
+        "mau-nhap-duong-pho.xlsx",
+    );
+
+export const downloadHouseholdImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/households/template`,
+        "mau-nhap-ho-dan.xlsx",
+    );
+
+export const downloadHouseImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/houses/template`,
+        "mau-nhap-nha-so.xlsx",
+    );
+
+export const downloadCitizenImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/citizens/template`,
+        "mau-nhap-nhan-khau.xlsx",
+    );
+
+export const downloadBusinessImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/businesses/template`,
+        "mau-nhap-ho-kinh-doanh.xlsx",
+    );

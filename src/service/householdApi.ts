@@ -37,6 +37,7 @@ export const fetchHouseholds = (params?: {
     search?: string;
     cluster?: string;
     houseId?: string;
+    neighborhoodId?: string;
     unassigned?: boolean;
     status?: VerificationStatus;
 }): Promise<PaginatedData<Household>> =>

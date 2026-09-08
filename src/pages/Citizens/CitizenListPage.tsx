@@ -20,6 +20,13 @@ import {
     SheetFooter,
 } from "@components/ui/sheet";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -48,6 +55,8 @@ import CitizenForm, {
     toCitizenInput,
 } from "./CitizenForm";
 import CitizenImportSheet from "./CitizenImportSheet";
+
+const ALL_NEIGHBORHOOD = "all";
 
 const CitizenListPage: React.FC = () => (
     <AdminGuard permissions={["citizens.read"]}>
@@ -93,6 +102,8 @@ const CitizenListContent: React.FC = () => {
     const canImport = usePermission("imports.manage");
 
     const [search, setSearch] = useState("");
+    const [neighborhoodId, setNeighborhoodId] = useState("");
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [items, setItems] = useState<Citizen[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -115,7 +126,12 @@ const CitizenListContent: React.FC = () => {
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchCitizens({ page: targetPage, limit: size, search: keyword })
+        fetchCitizens({
+            page: targetPage,
+            limit: size,
+            search: keyword,
+            neighborhoodId: neighborhoodId || undefined,
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -129,7 +145,13 @@ const CitizenListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
+    }, [search, neighborhoodId]);
+
+    useEffect(() => {
+        fetchNeighborhoods({ limit: 200 })
+            .then(res => setNeighborhoods(res.items))
+            .catch(() => setNeighborhoods([]));
+    }, []);
 
     const openCreate = () => {
         setEditingCitizenId(null);
@@ -221,10 +243,30 @@ const CitizenListContent: React.FC = () => {
                 />
                 <Input
                     className="max-w-sm"
-                    placeholder="Tìm theo họ tên, CCCD, số điện thoại..."
+                    placeholder="Tìm theo họ tên, CCCD, SĐT, chủ hộ, mã hộ, địa chỉ..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
+                <Select
+                    value={neighborhoodId || ALL_NEIGHBORHOOD}
+                    onValueChange={v =>
+                        setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Tất cả tổ dân phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_NEIGHBORHOOD}>
+                            Tất cả tổ dân phố
+                        </SelectItem>
+                        {neighborhoods.map(n => (
+                            <SelectItem key={n._id} value={n._id}>
+                                {n.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">

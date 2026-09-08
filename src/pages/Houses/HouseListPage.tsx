@@ -74,6 +74,7 @@ const HouseListPage: React.FC = () => (
 );
 
 const ALL_STATUSES = "all";
+const ALL_NEIGHBORHOODS = "all";
 
 /** Bao ket qua thao tac hang loat qua toast - thanh cong het thi 1 dong, co
  * loi thi liet ke ly do tung nha that bai (toi da 3 dong, con lai gom số
@@ -95,7 +96,6 @@ function reportBulkResult(result: BulkHouseActionResult, verb: string) {
 const HouseListContent: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const neighborhoodId = searchParams.get("neighborhoodId") || undefined;
     const canCreate = usePermission("houses.create");
     // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
     // /api/import/houses), KHAC voi "houses.create" ma to truong cung co -
@@ -188,12 +188,10 @@ const HouseListContent: React.FC = () => {
     }, [provinceCode]);
 
     useEffect(() => {
-        if (!canBulkAssignNeighborhood) return;
         fetchNeighborhoods({ active: true, limit: 200 })
             .then(res => setNeighborhoods(res.items))
             .catch(() => setNeighborhoods([]));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [canBulkAssignNeighborhood]);
+    }, []);
 
     const allOnPageSelected =
         items.length > 0 && items.every(h => selectedIds.includes(h._id));
@@ -298,15 +296,6 @@ const HouseListContent: React.FC = () => {
                     )
                 }
             />
-            {neighborhoodId && (
-                <div className="mb-3 flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
-                    <span>Đang lọc Nhà số theo Tổ dân phố đã chọn</span>
-                    <Button size="sm" variant="outline" onClick={() => navigate("/houses")}>
-                        Bỏ lọc
-                    </Button>
-                </div>
-            )}
-
             <HouseMapPanel />
 
             <div className="mb-4 flex flex-wrap items-center gap-3">

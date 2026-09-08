@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { UploadCloud, ArrowLeftRight } from "lucide-react";
+import { UploadCloud, ArrowLeftRight, FileDown } from "lucide-react";
 import { Button } from "@components/ui/button";
 import {
     Sheet,
@@ -28,6 +28,7 @@ import {
     TableHeader,
     TableRow,
 } from "@components/ui/table";
+import ImportProgressBar from "@components/admin/ImportProgressBar";
 import { AppError, Neighborhood } from "@dts";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import {
@@ -37,6 +38,8 @@ import {
     uploadHouseImportFile,
     applyHouseImportMapping,
     commitHouseImport,
+    downloadHouseImportTemplate,
+    pollImportJobUntilSettled,
 } from "@service/importApi";
 
 interface HouseImportSheetProps {
@@ -101,6 +104,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
     const [uploading, setUploading] = useState(false);
     const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
+    const [downloadingTemplate, setDownloadingTemplate] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -122,6 +126,18 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         setUploading(false);
         setApplying(false);
         setCommitting(false);
+        setDownloadingTemplate(false);
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            setDownloadingTemplate(true);
+            await downloadHouseImportTemplate();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDownloadingTemplate(false);
+        }
     };
 
     const handleOpenChange = (next: boolean) => {
@@ -221,7 +237,19 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         if (!job) return;
         try {
             setCommitting(true);
-            const result = await commitHouseImport(job._id);
+            await commitHouseImport(job._id);
+            // Backend chuyen job sang "committing" va xu ly tung dong o
+            // background (xem processHouseImportRows) - poll de cap nhat
+            // thanh tien do (progress bar) thay vi cho 1 request duy nhat,
+            // tranh timeout khi import nhieu du lieu.
+            const result = await pollImportJobUntilSettled<HouseImportPreviewRow>(
+                job._id,
+                setJob,
+            );
+            if (result.status === "failed") {
+                toast.error("Nhập dữ liệu thất bại, vui lòng thử lại");
+                return;
+            }
             toast.success(`Đã nhập thành công ${result.committedCount} nhà số`);
             reset();
             onOpenChange(false);
@@ -238,6 +266,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         !!job &&
         !showMapping &&
         job.status !== "committed" &&
+        job.status !== "committing" &&
         job.status !== "awaiting_mapping" &&
         job.rowErrors.length === 0;
 
@@ -261,6 +290,16 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                                 tên và số điện thoại hợp lệ, hệ thống sẽ tạo
                                 luôn tài khoản chủ nhà.
                             </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                loading={downloadingTemplate}
+                                onClick={handleDownloadTemplate}
+                            >
+                                <FileDown className="mr-1 h-4 w-4" />
+                                Tải mẫu Excel
+                            </Button>
                             <div>
                                 <input
                                     type="file"
@@ -434,7 +473,15 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                         </div>
                     )}
 
-                    {job && !showMapping && (
+                    {job && !showMapping && job.status === "committing" && (
+                        <ImportProgressBar
+                            committedCount={job.committedCount}
+                            totalRows={job.totalRows}
+                            label="Đang nhập nhà số..."
+                        />
+                    )}
+
+                    {job && !showMapping && job.status !== "committing" && (
                         <div className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
                                 <span>
