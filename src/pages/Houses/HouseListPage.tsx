@@ -109,6 +109,7 @@ const HouseListContent: React.FC = () => {
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
+    const [neighborhoodId, setNeighborhoodId] = useState("");
     const [provinceCode, setProvinceCode] = useState<number | "">("");
     const [wardCode, setWardCode] = useState<number | "">("");
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -148,7 +149,7 @@ const HouseListContent: React.FC = () => {
             limit: size,
             search: keyword,
             status: statusFilter || undefined,
-            neighborhoodId,
+            neighborhoodId: neighborhoodId || undefined,
             provinceCode: provinceCode || undefined,
             wardCode: wardCode || undefined,
         })
@@ -390,6 +391,26 @@ const HouseListContent: React.FC = () => {
                         {wards.map(w => (
                             <SelectItem key={w.code} value={String(w.code)}>
                                 {w.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={neighborhoodId || ALL_NEIGHBORHOODS}
+                    onValueChange={v =>
+                        setNeighborhoodId(v === ALL_NEIGHBORHOODS ? "" : v)
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Lọc theo tổ dân phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_NEIGHBORHOODS}>
+                            Tất cả tổ dân phố
+                        </SelectItem>
+                        {neighborhoods.map(n => (
+                            <SelectItem key={n._id} value={n._id}>
+                                {n.name}
                             </SelectItem>
                         ))}
                     </SelectContent>

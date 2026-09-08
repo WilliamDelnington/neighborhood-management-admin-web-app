@@ -9,7 +9,6 @@ import {
     ClipboardList,
     BarChart3,
     UserCog,
-    UserPlus,
     Settings,
     KeyRound,
     Briefcase,
@@ -479,14 +478,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: UserCog,
                 permission: "users.read",
                 description: "Quản lý tài khoản người dùng và vai trò được gán.",
-            },
-            {
-                key: "create_house_owner",
-                label: "Tạo tài khoản",
-                path: "/users/new-house-owner",
-                icon: UserPlus,
-                permission: "users.create",
-                description: "Tạo tài khoản chủ nhà mới trong hệ thống.",
             },
             {
                 key: "roles",
