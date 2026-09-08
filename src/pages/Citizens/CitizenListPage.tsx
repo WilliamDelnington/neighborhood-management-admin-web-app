@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -41,13 +42,14 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { usePermission } from "@store/authStore";
 import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { AppError, Citizen } from "@dts";
+import { AppError, Citizen, Neighborhood } from "@dts";
 import {
     createCitizen,
     deleteCitizen,
     fetchCitizens,
     updateCitizen,
 } from "@service/citizenApi";
+import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import CitizenForm, {
     EMPTY_CITIZEN_FORM,
     CitizenFormValues,
@@ -93,6 +95,7 @@ const citizenToForm = (c: Citizen): CitizenFormValues => ({
 });
 
 const CitizenListContent: React.FC = () => {
+    const navigate = useNavigate();
     const canCreate = usePermission("citizens.create");
     const canUpdate = usePermission("citizens.update");
     const canDelete = usePermission("citizens.delete");
@@ -339,7 +342,8 @@ const CitizenListContent: React.FC = () => {
                                             </Button>
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                );
+                            })}
                         </TableBody>
                     </Table>
                 )}
