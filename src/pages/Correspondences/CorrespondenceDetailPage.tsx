@@ -38,6 +38,7 @@ import {
     fetchCorrespondenceAttachments,
     fetchCorrespondenceDetail,
 } from "@service/correspondenceApi";
+import { useCorrespondenceBadgeStore } from "@store/correspondenceBadgeStore";
 
 const CorrespondenceDetailPage: React.FC = () => (
     <AdminGuard permissions={["correspondences.read"]}>
@@ -88,12 +89,22 @@ const CorrespondenceDetailContent: React.FC = () => {
         null,
     );
 
+    const refreshCorrespondenceBadge = useCorrespondenceBadgeStore(
+        state => state.refresh,
+    );
+
     const load = () => {
         if (!id) return;
         setLoading(true);
         setLoadError(false);
         fetchCorrespondenceDetail(id)
-            .then(setDoc)
+            .then(doc => {
+                setDoc(doc);
+                // Backend tu danh dau da doc khi GET chi tiet (xem
+                // markRelatedNotificationsRead) - chi can dong bo lai badge
+                // o menu cho khop, khong phai doi den lan poll tiep theo.
+                refreshCorrespondenceBadge();
+            })
             .catch(() => setLoadError(true))
             .finally(() => setLoading(false));
 

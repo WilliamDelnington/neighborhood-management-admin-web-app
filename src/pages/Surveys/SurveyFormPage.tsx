@@ -132,6 +132,19 @@ const QUESTION_TYPE_ICON: Record<
     y_kien_khac: MessageSquare,
 };
 
+/** Rut gon danh sach ten da chon de hien tren badge - toi da 2 ten, con lai
+ * gom so luong (vd "Tổ trưởng, Kế toán +3") thay vi chi hien so luong. */
+function formatSelectedNames(
+    options: { key: string; name: string }[],
+    selected: string[],
+): string {
+    const names = options
+        .filter(o => selected.includes(o.key))
+        .map(o => o.name);
+    if (names.length <= 2) return names.join(", ");
+    return `${names.slice(0, 2).join(", ")} +${names.length - 2}`;
+}
+
 const SurveyFormPage: React.FC = () => (
     <AdminGuard permissions={["surveys.create", "surveys.update"]}>
         <SurveyFormContent />
@@ -852,7 +865,10 @@ const SurveyFormContent: React.FC = () => {
                                                     {group.label}
                                                     {group.selected.length >
                                                         0 &&
-                                                        `: ${group.selected.length}`}
+                                                        `: ${formatSelectedNames(
+                                                            group.options,
+                                                            group.selected,
+                                                        )}`}
                                                 </Badge>
                                             ))}
                                         </div>

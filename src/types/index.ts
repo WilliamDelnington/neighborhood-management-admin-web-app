@@ -926,6 +926,9 @@ export type Correspondence = {
     targetUserIds: string[];
     sentAt?: string;
     createdAt: string;
+    // Chi co gia tri o tab "Đã nhận" (xem correspondenceService.listCorrespondences) -
+    // van ban con thong bao chua doc doi voi nguoi dang dang nhap.
+    isUnread?: boolean;
 };
 
 export type CorrespondenceReply = {
@@ -997,6 +1000,10 @@ export type Survey = {
     createdBy?: string | { _id: string; displayName: string };
     coEditorUserIds?: (string | { _id: string; displayName: string })[];
     createdAt: string;
+    // Nguoi dang dang nhap da gui cau tra loi khao sat nay chua (xem
+    // surveyService.listSurveys) - dung de hien "Đã trả lời"/"Chưa trả lời"
+    // trong SurveyListPage.tsx.
+    hasResponded?: boolean;
 };
 
 export type SurveyResults = {
@@ -1009,6 +1016,19 @@ export type SurveyResults = {
         type: LoaiCauHoiKhaoSat;
         optionCounts: Record<string, number>;
         otherTexts: string[];
+    }[];
+};
+
+export type SurveyIndividualResponse = {
+    responseId: string;
+    userId: string;
+    displayName: string;
+    phone?: string;
+    submittedAt: string;
+    answers: {
+        questionId: string;
+        selectedOptions: string[];
+        otherText?: string;
     }[];
 };
 

@@ -34,6 +34,9 @@ export const fetchCorrespondences = (
 export const fetchCorrespondenceDetail = (id: string): Promise<Correspondence> =>
     request<Correspondence>("GET", `${API.CORRESPONDENCES}/${id}`);
 
+export const fetchUnreadCorrespondenceCount = (): Promise<{ count: number }> =>
+    request<{ count: number }>("GET", API.CORRESPONDENCES_UNREAD_COUNT);
+
 export const createCorrespondence = (
     input: CorrespondenceInput,
 ): Promise<Correspondence> =>

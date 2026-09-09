@@ -3,6 +3,7 @@ import {
     AuditLogRecord,
     PaginatedData,
     Survey,
+    SurveyIndividualResponse,
     SurveyQuestion,
     SurveyResults,
 } from "@dts";
@@ -34,17 +35,17 @@ export const fetchSurveys = (
     page = 1,
     limit = DEFAULT_PAGE_SIZE,
 ): Promise<PaginatedData<Survey>> =>
-    request<PaginatedData<Survey>>(
-        "GET",
-        API.SURVEYS,
-        { openOnly: openOnly ? 1 : undefined, page, limit },
-        { useAuth: false },
-    );
+    request<PaginatedData<Survey>>("GET", API.SURVEYS, {
+        openOnly: openOnly ? 1 : undefined,
+        page,
+        limit,
+    });
 
 export const fetchSurveyDetail = (id: string): Promise<Survey> =>
-    request<Survey>("GET", `${API.SURVEYS}/${id}`, undefined, {
-        useAuth: false,
-    });
+    request<Survey>("GET", `${API.SURVEYS}/${id}`);
+
+export const fetchUnansweredSurveyCount = (): Promise<{ count: number }> =>
+    request<{ count: number }>("GET", API.SURVEYS_UNANSWERED_COUNT);
 
 export const createSurvey = (input: SurveyInput): Promise<Survey> =>
     request<Survey>("POST", API.SURVEYS, input);
@@ -68,6 +69,14 @@ export const respondToSurvey = (
 
 export const fetchSurveyResults = (id: string): Promise<SurveyResults> =>
     request<SurveyResults>("GET", `${API.SURVEYS}/${id}/results`);
+
+export const fetchSurveyIndividualResponses = (
+    id: string,
+): Promise<SurveyIndividualResponse[]> =>
+    request<SurveyIndividualResponse[]>(
+        "GET",
+        `${API.SURVEYS}/${id}/results/responses`,
+    );
 
 export const fetchSurveyAuditLogs = (
     id: string,

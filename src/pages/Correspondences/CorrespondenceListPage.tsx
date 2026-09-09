@@ -170,6 +170,9 @@ const CorrespondenceListContent: React.FC = () => {
                                 <TableHead>Số/ký hiệu</TableHead>
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                {view === "received" && (
+                                    <TableHead>Đọc</TableHead>
+                                )}
                                 <TableHead>Ngày ban hành</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
                             </TableRow>
@@ -184,13 +187,39 @@ const CorrespondenceListContent: React.FC = () => {
                                     <TableCell className="text-center text-text_2">
                                         {index + 1}
                                     </TableCell>
-                                    <TableCell>{typeLabel(doc)}</TableCell>
-                                    <TableCell className="font-medium">
+                                    <TableCell
+                                        className={
+                                            doc.isUnread ? "font-semibold" : ""
+                                        }
+                                    >
+                                        {typeLabel(doc)}
+                                    </TableCell>
+                                    <TableCell
+                                        className={
+                                            doc.isUnread
+                                                ? "font-semibold"
+                                                : "font-medium"
+                                        }
+                                    >
                                         {doc.documentNumber || "—"}
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
-                                            {doc.title}
+                                            {doc.isUnread && (
+                                                <span
+                                                    className="h-2 w-2 flex-shrink-0 rounded-full bg-red-500"
+                                                    aria-label="Chưa đọc"
+                                                />
+                                            )}
+                                            <span
+                                                className={
+                                                    doc.isUnread
+                                                        ? "font-semibold"
+                                                        : ""
+                                                }
+                                            >
+                                                {doc.title}
+                                            </span>
                                             {doc.isUrgent && (
                                                 <Badge tone="red">Khẩn</Badge>
                                             )}
@@ -201,6 +230,19 @@ const CorrespondenceListContent: React.FC = () => {
                                             {STATUS_LABEL[doc.status]}
                                         </Badge>
                                     </TableCell>
+                                    {view === "received" && (
+                                        <TableCell>
+                                            {doc.isUnread ? (
+                                                <Badge tone="red">
+                                                    Chưa đọc
+                                                </Badge>
+                                            ) : (
+                                                <Badge tone="gray">
+                                                    Đã đọc
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                    )}
                                     <TableCell>
                                         {new Date(
                                             doc.issuedAt,

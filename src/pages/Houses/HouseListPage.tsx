@@ -96,7 +96,6 @@ function reportBulkResult(result: BulkHouseActionResult, verb: string) {
 const HouseListContent: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const neighborhoodId = searchParams.get("neighborhoodId") || undefined;
     const canCreate = usePermission("houses.create");
     // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
     // /api/import/houses), KHAC voi "houses.create" ma to truong cung co -
@@ -109,7 +108,9 @@ const HouseListContent: React.FC = () => {
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
-    const [neighborhoodId, setNeighborhoodId] = useState("");
+    const [neighborhoodId, setNeighborhoodId] = useState(
+        () => searchParams.get("neighborhoodId") || "",
+    );
     const [provinceCode, setProvinceCode] = useState<number | "">("");
     const [wardCode, setWardCode] = useState<number | "">("");
     const [provinces, setProvinces] = useState<Province[]>([]);
