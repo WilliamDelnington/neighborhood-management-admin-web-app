@@ -104,8 +104,14 @@ const citizenToForm = (c: Citizen, householdId: string): CitizenFormValues => ({
     isElderly: c.isElderly,
     isChild: c.isChild,
     isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
+    isDisabledChild: c.isDisabledChild,
     isPartyMember: c.isPartyMember,
     isUnionMember: c.isUnionMember,
+    isMartyr: c.isMartyr,
+    isMartyrFamily: c.isMartyrFamily,
+    isVeteran: c.isVeteran,
+    isOtherSpecial: c.isOtherSpecial,
+    otherSpecialLabel: c.otherSpecialLabel || "",
 });
 
 const initialsOf = (fullName: string): string => {

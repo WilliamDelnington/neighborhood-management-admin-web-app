@@ -39,8 +39,14 @@ export interface CitizenFormValues {
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;
+    isDisabledChild: boolean;
     isPartyMember: boolean;
     isUnionMember: boolean;
+    isMartyr: boolean;
+    isMartyrFamily: boolean;
+    isVeteran: boolean;
+    isOtherSpecial: boolean;
+    otherSpecialLabel: string;
 }
 
 export const EMPTY_CITIZEN_FORM: CitizenFormValues = {
@@ -57,8 +63,14 @@ export const EMPTY_CITIZEN_FORM: CitizenFormValues = {
     isElderly: false,
     isChild: false,
     isDisabledOrSupportNeeded: false,
+    isDisabledChild: false,
     isPartyMember: false,
     isUnionMember: false,
+    isMartyr: false,
+    isMartyrFamily: false,
+    isVeteran: false,
+    isOtherSpecial: false,
+    otherSpecialLabel: "",
 };
 
 export function toCitizenInput(values: CitizenFormValues): CitizenInput {
@@ -77,13 +89,23 @@ export function toCitizenInput(values: CitizenFormValues): CitizenInput {
         isElderly: values.isElderly,
         isChild: values.isChild,
         isDisabledOrSupportNeeded: values.isDisabledOrSupportNeeded,
+        isDisabledChild: values.isDisabledChild,
         isPartyMember: values.isPartyMember,
         isUnionMember: values.isUnionMember,
+        isMartyr: values.isMartyr,
+        isMartyrFamily: values.isMartyrFamily,
+        isVeteran: values.isVeteran,
+        isOtherSpecial: values.isOtherSpecial,
+        otherSpecialLabel: values.otherSpecialLabel.trim() || undefined,
     };
 }
 
 export function isCitizenFormValid(values: CitizenFormValues): boolean {
-    return !!(values.fullName.trim() && values.householdId);
+    return !!(
+        values.fullName.trim() &&
+        values.householdId &&
+        (!values.isOtherSpecial || !!values.otherSpecialLabel.trim())
+    );
 }
 
 interface CitizenFormProps {
@@ -302,6 +324,19 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
                     Khuyết tật / cần hỗ trợ
                 </label>
                 <label
+                    htmlFor="isDisabledChild"
+                    className="flex items-center gap-2 text-sm"
+                >
+                    <Checkbox
+                        id="isDisabledChild"
+                        checked={values.isDisabledChild}
+                        onCheckedChange={checked =>
+                            set("isDisabledChild", checked === true)
+                        }
+                    />
+                    Trẻ em khuyết tật
+                </label>
+                <label
                     htmlFor="isPartyMember"
                     className="flex items-center gap-2 text-sm"
                 >
@@ -327,6 +362,68 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
                     />
                     Đoàn viên / hội viên
                 </label>
+                <label
+                    htmlFor="isMartyr"
+                    className="flex items-center gap-2 text-sm"
+                >
+                    <Checkbox
+                        id="isMartyr"
+                        checked={values.isMartyr}
+                        onCheckedChange={checked =>
+                            set("isMartyr", checked === true)
+                        }
+                    />
+                    Liệt sĩ
+                </label>
+                <label
+                    htmlFor="isMartyrFamily"
+                    className="flex items-center gap-2 text-sm"
+                >
+                    <Checkbox
+                        id="isMartyrFamily"
+                        checked={values.isMartyrFamily}
+                        onCheckedChange={checked =>
+                            set("isMartyrFamily", checked === true)
+                        }
+                    />
+                    Gia đình liệt sĩ
+                </label>
+                <label
+                    htmlFor="isVeteran"
+                    className="flex items-center gap-2 text-sm"
+                >
+                    <Checkbox
+                        id="isVeteran"
+                        checked={values.isVeteran}
+                        onCheckedChange={checked =>
+                            set("isVeteran", checked === true)
+                        }
+                    />
+                    Cựu chiến binh
+                </label>
+                <label
+                    htmlFor="isOtherSpecial"
+                    className="flex items-center gap-2 text-sm"
+                >
+                    <Checkbox
+                        id="isOtherSpecial"
+                        checked={values.isOtherSpecial}
+                        onCheckedChange={checked =>
+                            set("isOtherSpecial", checked === true)
+                        }
+                    />
+                    Khác
+                </label>
+                {values.isOtherSpecial && (
+                    <Input
+                        className="ml-6"
+                        placeholder="Nhập tên diện ưu tiên khác"
+                        value={values.otherSpecialLabel}
+                        onChange={e =>
+                            set("otherSpecialLabel", e.target.value)
+                        }
+                    />
+                )}
             </div>
         </div>
     );
