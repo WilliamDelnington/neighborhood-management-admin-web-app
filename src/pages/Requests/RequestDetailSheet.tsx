@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Paperclip, Trash2, Upload } from "lucide-react";
+import { Maximize2, Paperclip, Trash2, Upload } from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Label } from "@components/ui/label";
@@ -22,6 +22,10 @@ import {
     SheetTitle,
 } from "@components/ui/sheet";
 import { LoadingState, EmptyState } from "@components/admin/DataStates";
+import FilePreviewDialog, {
+    FilePreviewContent,
+    PreviewSource,
+} from "@components/admin/FilePreviewDialog";
 import RequestRecipientPicker from "@components/admin/RequestRecipientPicker";
 import TransferRequestDialog from "@components/admin/TransferRequestDialog";
 import { useAuthStore, usePermission } from "@store/authStore";
@@ -113,6 +117,9 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
         string | null
     >(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
+        null,
+    );
 
     const [comments, setComments] = useState<RequestComment[]>([]);
     const [commentsLoading, setCommentsLoading] = useState(false);
@@ -354,7 +361,7 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
 
     return (
         <Sheet open={!!requestId} onOpenChange={onOpenChange}>
-            <SheetContent>
+            <SheetContent className="sm:max-w-2xl">
                 <SheetHeader>
                     <SheetTitle>Chi tiết yêu cầu</SheetTitle>
                 </SheetHeader>
@@ -788,41 +795,72 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                     attachments.length === 0 && (
                                         <EmptyState label="Chưa có file đính kèm" />
                                     )}
-                                {!attachmentsLoading &&
-                                    attachments.map(a => (
-                                        <div
-                                            key={a._id}
-                                            className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
-                                        >
-                                            <a
-                                                href={resolveAssetUrl(a.url)}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center gap-2 text-primary hover:underline"
+                                <div className="flex flex-col gap-3">
+                                    {!attachmentsLoading &&
+                                        attachments.map(a => (
+                                            <div
+                                                key={a._id}
+                                                className="rounded-lg border border-divider_01 p-3"
                                             >
-                                                <Paperclip className="h-3.5 w-3.5" />
-                                                {a.name}
-                                            </a>
-                                            {canManage && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="!text-red-500"
-                                                    loading={
-                                                        deletingAttachmentId ===
-                                                        a._id
-                                                    }
-                                                    onClick={() =>
-                                                        handleDeleteAttachment(
-                                                            a._id,
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    ))}
+                                                <div className="flex items-center justify-between gap-2 text-sm">
+                                                    <span className="flex min-w-0 items-center gap-2">
+                                                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                                                        <span className="truncate font-medium">
+                                                            {a.name}
+                                                        </span>
+                                                    </span>
+                                                    <div className="flex shrink-0 items-center gap-1">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            title="Xem lớn hơn"
+                                                            onClick={() =>
+                                                                setPreviewSource(
+                                                                    {
+                                                                        kind: "url",
+                                                                        name: a.name,
+                                                                        url: resolveAssetUrl(
+                                                                            a.url,
+                                                                        ),
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            <Maximize2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        {canManage && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="!text-red-500"
+                                                                loading={
+                                                                    deletingAttachmentId ===
+                                                                    a._id
+                                                                }
+                                                                onClick={() =>
+                                                                    handleDeleteAttachment(
+                                                                        a._id,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <FilePreviewContent
+                                                    source={{
+                                                        kind: "url",
+                                                        name: a.name,
+                                                        url: resolveAssetUrl(
+                                                            a.url,
+                                                        ),
+                                                    }}
+                                                    className="mt-2 h-56"
+                                                />
+                                            </div>
+                                        ))}
+                                </div>
                             </div>
 
                             <div className="border-t border-divider_01 pt-4">
@@ -887,6 +925,11 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                     onSubmit={handleInitiateTransfer}
                 />
             )}
+
+            <FilePreviewDialog
+                source={previewSource}
+                onOpenChange={open => !open && setPreviewSource(null)}
+            />
         </Sheet>
     );
 };

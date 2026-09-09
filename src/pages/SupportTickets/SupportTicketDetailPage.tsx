@@ -16,12 +16,16 @@ import {
 } from "@components/ui/select";
 import { LoadingState, ErrorState, EmptyState } from "@components/admin/DataStates";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
+import FilePreviewDialog, {
+    PreviewSource,
+} from "@components/admin/FilePreviewDialog";
 import { AppError, RequestComment, SupportTicket, TrangThaiYeuCauHoTro } from "@dts";
 import {
     LOAI_YEU_CAU_HO_TRO_LABEL,
     TRANG_THAI_YEU_CAU_HO_TRO_LABEL,
     TRANG_THAI_YEU_CAU_HO_TRO_TONE,
 } from "@constants/domain";
+import { resolveAssetUrl } from "@constants/common";
 import {
     createSupportTicketComment,
     fetchSupportTicketComments,
@@ -57,6 +61,10 @@ const SupportTicketDetailContent: React.FC = () => {
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [postingComment, setPostingComment] = useState(false);
+
+    const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
+        null,
+    );
 
     const load = () => {
         if (!id) return;
@@ -164,6 +172,31 @@ const SupportTicketDetailContent: React.FC = () => {
                         <p className="mt-3 whitespace-pre-line text-sm">
                             {ticket.content}
                         </p>
+
+                        {ticket.images.length > 0 && (
+                            <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                                {ticket.images.map(url => (
+                                    <button
+                                        key={url}
+                                        type="button"
+                                        onClick={() =>
+                                            setPreviewSource({
+                                                kind: "url",
+                                                name: "Ảnh đính kèm",
+                                                url: resolveAssetUrl(url),
+                                            })
+                                        }
+                                        className="aspect-square overflow-hidden rounded-lg border border-divider_01"
+                                    >
+                                        <img
+                                            src={resolveAssetUrl(url)}
+                                            alt=""
+                                            className="h-full w-full object-cover transition hover:opacity-80"
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
                         <div className="mt-3 border-t border-divider_01 pt-3">
                             {creator && (
@@ -301,6 +334,11 @@ const SupportTicketDetailContent: React.FC = () => {
                     </div>
                 </>
             )}
+
+            <FilePreviewDialog
+                source={previewSource}
+                onOpenChange={open => !open && setPreviewSource(null)}
+            />
         </div>
     );
 };

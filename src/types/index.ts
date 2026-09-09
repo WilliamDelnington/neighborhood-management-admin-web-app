@@ -865,8 +865,19 @@ export type News = {
 };
 
 export type ChangeRequestTargetModel = "HouseRecord" | "HouseOwnership" | "User";
-export type ChangeRequestType = "update" | "unlink" | "transfer_neighborhood";
+export type ChangeRequestType = "update" | "unlink" | "transfer_neighborhood" | "data_discrepancy";
 export type ChangeRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+// "data_discrepancy" can dung 2 vong duyet (To dan pho xac nhan truoc, roi
+// Phuong xac nhan cuoi) thay vi mot vong nhu 3 loai con lai - xem
+// changeRequestService.ts (decideChangeRequest) o backend.
+export type ChangeRequestReviewStage = "neighborhood_review" | "ward_review";
+export type ChangeRequestStageDecision = {
+    stage: ChangeRequestReviewStage;
+    decidedBy: string | { _id: string; displayName: string };
+    decidedAt: string;
+    outcome: string;
+    note?: string;
+};
 
 export type ChangeRequest = {
     _id: string;
@@ -878,6 +889,8 @@ export type ChangeRequest = {
     previousSnapshot?: Record<string, unknown>;
     reason?: string;
     status: ChangeRequestStatus;
+    reviewStage?: ChangeRequestReviewStage;
+    stageDecisions?: ChangeRequestStageDecision[];
     decidedBy?: string | { _id: string; displayName: string };
     decidedAt?: string;
     decisionNote?: string;

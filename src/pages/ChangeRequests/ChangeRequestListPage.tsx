@@ -29,6 +29,7 @@ import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AppError,
     ChangeRequest,
+    ChangeRequestReviewStage,
     ChangeRequestStatus,
     ChangeRequestTargetModel,
     ChangeRequestType,
@@ -48,6 +49,12 @@ const CHANGE_TYPE_LABEL: Record<ChangeRequestType, string> = {
     update: "Cập nhật thông tin",
     unlink: "Hủy liên kết",
     transfer_neighborhood: "Chuyển tổ dân phố",
+    data_discrepancy: "Sai lệch dữ liệu (2 vòng duyệt)",
+};
+
+const REVIEW_STAGE_LABEL: Record<ChangeRequestReviewStage, string> = {
+    neighborhood_review: "Vòng 1 - Tổ dân phố xác nhận",
+    ward_review: "Vòng 2 - Phường xác nhận cuối",
 };
 
 const STATUS_LABEL: Record<ChangeRequestStatus, string> = {
@@ -74,6 +81,18 @@ const STATUS_FILTERS: { key: ChangeRequestStatus; label: string }[] = [
 const displayNameOf = (
     ref: string | { displayName: string } | undefined,
 ): string => (ref && typeof ref !== "string" ? ref.displayName : ref || "—");
+
+const approveButtonLabel = (
+    reviewStage: ChangeRequestReviewStage | undefined,
+): string => {
+    if (reviewStage === "neighborhood_review") {
+        return "Xác nhận vòng 1 (chuyển lên Phường)";
+    }
+    if (reviewStage === "ward_review") {
+        return "Duyệt yêu cầu (vòng 2 - cuối cùng)";
+    }
+    return "Duyệt yêu cầu";
+};
 
 const ChangeRequestListPage: React.FC = () => (
     <AdminGuard permissions={["change_requests.read"]}>
@@ -225,7 +244,21 @@ const ChangeRequestListContent: React.FC = () => {
                                         {TARGET_MODEL_LABEL[item.targetModel]}
                                     </TableCell>
                                     <TableCell>
-                                        {CHANGE_TYPE_LABEL[item.changeType]}
+                                        <div className="flex flex-col gap-1">
+                                            <span>
+                                                {CHANGE_TYPE_LABEL[item.changeType]}
+                                            </span>
+                                            {item.status === "pending" &&
+                                                item.reviewStage && (
+                                                    <Badge tone="blue">
+                                                        {
+                                                            REVIEW_STAGE_LABEL[
+                                                                item.reviewStage
+                                                            ]
+                                                        }
+                                                    </Badge>
+                                                )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {displayNameOf(item.requestedBy)}
@@ -285,10 +318,32 @@ const ChangeRequestListContent: React.FC = () => {
                                     </div>
                                     <div>
                                         <span className="text-text_2">
+                                            Mã đối tượng:{" "}
+                                        </span>
+                                        <span className="font-mono">
+                                            {selected.targetId}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-text_2">
                                             Loại thay đổi:{" "}
                                         </span>
                                         {CHANGE_TYPE_LABEL[selected.changeType]}
                                     </div>
+                                    {selected.reviewStage && (
+                                        <div>
+                                            <span className="text-text_2">
+                                                Giai đoạn duyệt:{" "}
+                                            </span>
+                                            <Badge tone="blue">
+                                                {
+                                                    REVIEW_STAGE_LABEL[
+                                                        selected.reviewStage
+                                                    ]
+                                                }
+                                            </Badge>
+                                        </div>
+                                    )}
                                     <div>
                                         <span className="text-text_2">
                                             Người gửi:{" "}
@@ -307,7 +362,9 @@ const ChangeRequestListContent: React.FC = () => {
 
                                 {(selected.changeType === "update" ||
                                     selected.changeType ===
-                                        "transfer_neighborhood") && (
+                                        "transfer_neighborhood" ||
+                                    selected.changeType ===
+                                        "data_discrepancy") && (
                                     <div>
                                         <Label className="mb-1.5 block">
                                             Nội dung đề nghị thay đổi
@@ -357,6 +414,40 @@ const ChangeRequestListContent: React.FC = () => {
                                     </div>
                                 )}
 
+                                {selected.stageDecisions &&
+                                    selected.stageDecisions.length > 0 && (
+                                        <div className="space-y-1.5 text-sm">
+                                            <Label className="block">
+                                                Lịch sử duyệt theo vòng
+                                            </Label>
+                                            <div className="space-y-1 rounded-lg border border-divider_01 p-2">
+                                                {selected.stageDecisions.map(
+                                                    (d, i) => (
+                                                        <div
+                                                            key={`${d.stage}-${i}`}
+                                                        >
+                                                            <span className="font-medium">
+                                                                {
+                                                                    REVIEW_STAGE_LABEL[
+                                                                        d.stage
+                                                                    ]
+                                                                }
+                                                            </span>
+                                                            {": "}
+                                                            {d.outcome} —{" "}
+                                                            {displayNameOf(
+                                                                d.decidedBy,
+                                                            )}
+                                                            {d.note
+                                                                ? ` (${d.note})`
+                                                                : ""}
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                 {selected.status !== "pending" && (
                                     <div className="space-y-1 text-sm">
                                         <div>
@@ -401,12 +492,23 @@ const ChangeRequestListContent: React.FC = () => {
                         <SheetFooter className="flex-col gap-2 sm:flex-col">
                             {!rejecting ? (
                                 <>
+                                    {selected.reviewStage ===
+                                        "neighborhood_review" && (
+                                        <p className="text-xs text-text_2">
+                                            Đây chỉ là xác nhận vòng 1 (Tổ dân
+                                            phố) - yêu cầu sẽ cần Phường xác
+                                            nhận thêm ở vòng 2 trước khi được
+                                            áp dụng thực sự.
+                                        </p>
+                                    )}
                                     <Button
                                         className="w-full"
                                         loading={deciding}
                                         onClick={handleApprove}
                                     >
-                                        Duyệt yêu cầu
+                                        {approveButtonLabel(
+                                            selected.reviewStage,
+                                        )}
                                     </Button>
                                     <Button
                                         className="w-full"

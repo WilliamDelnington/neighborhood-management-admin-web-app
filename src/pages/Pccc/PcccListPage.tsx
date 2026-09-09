@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Paperclip, Plus, Trash2, Upload } from "lucide-react";
+import { Maximize2, Paperclip, Plus, Trash2, Upload } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
@@ -12,6 +12,10 @@ import RequestSubSection, {
     RequestSubSectionValue,
 } from "@components/admin/RequestSubSection";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
+import FilePreviewDialog, {
+    FilePreviewContent,
+    PreviewSource,
+} from "@components/admin/FilePreviewDialog";
 import {
     Select,
     SelectContent,
@@ -149,6 +153,14 @@ const PcccListContent: React.FC = () => {
         string | null
     >(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    // Chua co dot kiem tra (chua co id) khong the goi API dinh kem ngay (can
+    // id that su) - file chon o man tao moi duoc giu tam o day, roi tai len
+    // ngay sau khi createPcccCheck() thanh cong. Cung mau voi cac form khac
+    // (CorrespondenceFormPage, AnnouncementFormPage...).
+    const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+    const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
+        null,
+    );
 
     const loadSummary = () => {
         fetchPcccRiskSummary()
@@ -200,6 +212,7 @@ const PcccListContent: React.FC = () => {
         setEditingCheck(null);
         setForm(EMPTY_PCCC_FORM);
         setAttachments([]);
+        setPendingFiles([]);
         setRequestSubSection(emptyRequestSubSection("Xử lý nguy cơ PCCC"));
         setFormVisible(true);
     };
@@ -237,7 +250,11 @@ const PcccListContent: React.FC = () => {
     ) => {
         const file = e.target.files?.[0];
         e.target.value = "";
-        if (!file || !editingId) return;
+        if (!file) return;
+        if (!editingId) {
+            setPendingFiles(prev => [...prev, file]);
+            return;
+        }
         try {
             setUploading(true);
             const asset = await uploadPcccAttachment(editingId, file);
@@ -248,6 +265,10 @@ const PcccListContent: React.FC = () => {
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleRemovePendingFile = (index: number) => {
+        setPendingFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleDeleteAttachment = async (fileId: string) => {
@@ -280,6 +301,25 @@ const PcccListContent: React.FC = () => {
             const check = editingId
                 ? await updatePcccCheck(editingId, toPcccInput(form))
                 : await createPcccCheck(toPcccInput(form));
+
+            // Tai len ngay cac file da chon o man tao (neu co) - chi co the
+            // goi API dinh kem SAU khi da co id that su.
+            if (!editingId && pendingFiles.length > 0) {
+                const results = await Promise.allSettled(
+                    pendingFiles.map(file =>
+                        uploadPcccAttachment(check._id, file),
+                    ),
+                );
+                const failures = results.filter(
+                    r => r.status === "rejected",
+                ).length;
+                if (failures > 0) {
+                    toast.error(
+                        `Đã tạo đợt kiểm tra nhưng ${failures} tệp đính kèm tải lên thất bại - vui lòng thử lại ở bước sửa`,
+                    );
+                }
+            }
+
             toast.success(
                 editingId ? "Đã cập nhật đợt kiểm tra" : "Đã thêm đợt kiểm tra PCCC",
             );
@@ -554,73 +594,166 @@ const PcccListContent: React.FC = () => {
                             }
                         />
 
-                        {editingId && (
-                            <div className="mt-5 border-t border-divider_01 pt-4">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <h3 className="text-sm font-semibold">
-                                        Tệp đính kèm
-                                    </h3>
-                                    {canManage && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            loading={uploading}
-                                            onClick={handleUploadClick}
-                                        >
-                                            <Upload className="mr-1 h-3.5 w-3.5" />
-                                            Tải lên
-                                        </Button>
-                                    )}
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        className="hidden"
-                                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-                                        onChange={handleFileSelected}
-                                    />
-                                </div>
-                                {attachmentsLoading && <LoadingState />}
-                                {!attachmentsLoading &&
-                                    attachments.length === 0 && (
-                                        <EmptyState label="Chưa có file đính kèm" />
-                                    )}
-                                {!attachmentsLoading &&
+                        <div className="mt-5 border-t border-divider_01 pt-4">
+                            <div className="mb-3 flex items-center justify-between">
+                                <h3 className="text-sm font-semibold">
+                                    Tệp đính kèm
+                                </h3>
+                                {canManage && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        loading={uploading}
+                                        onClick={handleUploadClick}
+                                    >
+                                        <Upload className="mr-1 h-3.5 w-3.5" />
+                                        Tải lên
+                                    </Button>
+                                )}
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    className="hidden"
+                                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                    onChange={handleFileSelected}
+                                />
+                            </div>
+                            {!editingId && (
+                                <p className="mb-2 text-xs text-text_2">
+                                    Tệp chọn ở đây sẽ được tải lên ngay sau
+                                    khi thêm đợt kiểm tra.
+                                </p>
+                            )}
+                            {editingId && attachmentsLoading && (
+                                <LoadingState />
+                            )}
+                            {editingId &&
+                                !attachmentsLoading &&
+                                attachments.length === 0 &&
+                                pendingFiles.length === 0 && (
+                                    <EmptyState label="Chưa có file đính kèm" />
+                                )}
+                            {!editingId && pendingFiles.length === 0 && (
+                                <EmptyState label="Chưa có file đính kèm" />
+                            )}
+                            <div className="flex flex-col gap-3">
+                                {editingId &&
+                                    !attachmentsLoading &&
                                     attachments.map(a => (
                                         <div
                                             key={a._id}
-                                            className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
+                                            className="rounded-lg border border-divider_01 p-3"
                                         >
-                                            <a
-                                                href={resolveAssetUrl(a.url)}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center gap-2 text-primary hover:underline"
-                                            >
-                                                <Paperclip className="h-3.5 w-3.5" />
-                                                {a.name}
-                                            </a>
-                                            {canManage && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className="!text-red-500"
-                                                    loading={
-                                                        deletingAttachmentId ===
-                                                        a._id
-                                                    }
-                                                    onClick={() =>
-                                                        handleDeleteAttachment(
-                                                            a._id,
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
-                                            )}
+                                            <div className="flex items-center justify-between gap-2 text-sm">
+                                                <span className="flex min-w-0 items-center gap-2">
+                                                    <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                                                    <span className="truncate font-medium">
+                                                        {a.name}
+                                                    </span>
+                                                </span>
+                                                <div className="flex shrink-0 items-center gap-1">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        title="Xem lớn hơn"
+                                                        onClick={() =>
+                                                            setPreviewSource({
+                                                                kind: "url",
+                                                                name: a.name,
+                                                                url: resolveAssetUrl(
+                                                                    a.url,
+                                                                ),
+                                                            })
+                                                        }
+                                                    >
+                                                        <Maximize2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    {canManage && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="!text-red-500"
+                                                            loading={
+                                                                deletingAttachmentId ===
+                                                                a._id
+                                                            }
+                                                            onClick={() =>
+                                                                handleDeleteAttachment(
+                                                                    a._id,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <FilePreviewContent
+                                                source={{
+                                                    kind: "url",
+                                                    name: a.name,
+                                                    url: resolveAssetUrl(
+                                                        a.url,
+                                                    ),
+                                                }}
+                                                className="mt-2 h-56"
+                                            />
+                                        </div>
+                                    ))}
+                                {!editingId &&
+                                    pendingFiles.map((file, index) => (
+                                        <div
+                                            key={`${file.name}-${index}`}
+                                            className="rounded-lg border border-divider_01 p-3"
+                                        >
+                                            <div className="flex items-center justify-between gap-2 text-sm">
+                                                <span className="flex min-w-0 items-center gap-2">
+                                                    <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                                                    <span className="truncate font-medium">
+                                                        {file.name}
+                                                    </span>
+                                                </span>
+                                                <div className="flex shrink-0 items-center gap-1">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        title="Xem lớn hơn"
+                                                        onClick={() =>
+                                                            setPreviewSource({
+                                                                kind: "file",
+                                                                name: file.name,
+                                                                file,
+                                                            })
+                                                        }
+                                                    >
+                                                        <Maximize2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="!text-red-500"
+                                                        onClick={() =>
+                                                            handleRemovePendingFile(
+                                                                index,
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <FilePreviewContent
+                                                source={{
+                                                    kind: "file",
+                                                    name: file.name,
+                                                    file,
+                                                }}
+                                                className="mt-2 h-56"
+                                            />
                                         </div>
                                     ))}
                             </div>
-                        )}
+                        </div>
 
                         {editingId && (
                             <RecordHistorySection
@@ -699,6 +832,11 @@ const PcccListContent: React.FC = () => {
                     onCreated={() => loadRelatedRequests(editingId)}
                 />
             )}
+
+            <FilePreviewDialog
+                source={previewSource}
+                onOpenChange={open => !open && setPreviewSource(null)}
+            />
         </div>
     );
 };
