@@ -280,17 +280,17 @@ const MeetingFormContent: React.FC = () => {
         setPendingFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleDropzoneDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDropzoneDragOver = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setIsDragOver(true);
     };
 
-    const handleDropzoneDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDropzoneDragLeave = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setIsDragOver(false);
     };
 
-    const handleDropzoneDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDropzoneDrop = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setIsDragOver(false);
         const file = e.dataTransfer.files?.[0];

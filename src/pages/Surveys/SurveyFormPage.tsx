@@ -363,7 +363,7 @@ const SurveyFormContent: React.FC = () => {
             }
         }
 
-        const preparedQuestions: DraftQuestion[] = questions.map(q => ({
+        const preparedQuestions: SurveyQuestion[] = questions.map(q => ({
             _id: q._id,
             question: q.question.trim(),
             type: q.type,

@@ -358,17 +358,17 @@ const CorrespondenceFormContent: React.FC = () => {
 
     // Keo-tha file vao khung dinh kem (xem CardContent "Tep dinh kem") - chi
     // nhan 1 file moi lan giong input hien tai, dung chung handleFile o tren.
-    const handleDropzoneDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDropzoneDragOver = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setIsDragOver(true);
     };
 
-    const handleDropzoneDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDropzoneDragLeave = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setIsDragOver(false);
     };
 
-    const handleDropzoneDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const handleDropzoneDrop = (e: React.DragEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setIsDragOver(false);
         const file = e.dataTransfer.files?.[0];
