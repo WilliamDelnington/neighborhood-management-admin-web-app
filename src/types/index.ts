@@ -98,6 +98,24 @@ export type ModulePermissionGroup = {
     permissions: PermissionDef[];
 };
 
+// Pham vi du lieu (data range) vai tro nay quan ly - xem Role.ts o backend
+// (Config-Driven Account Scope System). ALL = khong gioi han (admin).
+// WARD/NEIGHBORHOOD = pham vi dia ly, gan qua ScopeAssignment (scopeMechanism
+// ="ASSIGNED"). HOUSE/HOUSEHOLD/BUSINESS/COMPANY = pham vi theo thuc the so
+// huu (scopeMechanism="OWNED"), suy tu truong so huu san co tren du lieu,
+// khong can ScopeAssignment.
+export const ACCESS_SCOPE_TIERS = [
+    "ALL",
+    "WARD",
+    "NEIGHBORHOOD",
+    "HOUSE",
+    "HOUSEHOLD",
+    "BUSINESS",
+    "COMPANY",
+] as const;
+export type AccessScopeTier = (typeof ACCESS_SCOPE_TIERS)[number];
+export type ScopeAssignmentMechanism = "ASSIGNED" | "OWNED";
+
 export type RoleRecord = {
     _id: string;
     key: string;
@@ -110,6 +128,18 @@ export type RoleRecord = {
     // truong tren, khong dung quy uoc undefined = khong gioi han (mac dinh
     // rong la an toan vi day la quyen nhay cam) - xem Role.ts o backend.
     allowedCreatableRoles: string[];
+    scopeType: AccessScopeTier;
+    scopeMechanism?: ScopeAssignmentMechanism;
+    // Chi co y nghia khi scopeMechanism="ASSIGNED". 1 = chi 1 nguoi duoc active
+    // tai 1 pham vi cung luc (vd Bi thu/To truong). null/undefined = khong
+    // gioi han so nguoi active tai cung 1 pham vi (vd PCO/To pho/Cong tac vien).
+    maxActivePerScope?: number | null;
+    // Truc doc lap: gioi han so pham vi MA MOT NGUOI duoc active cung luc voi
+    // vai tro nay (vd To pho: 1 nguoi chi duoc active o DUY NHAT 1 To dan pho).
+    maxActiveScopesPerUser?: number | null;
+    // Chi co y nghia voi vai tro dang "Cong tac vien" (scopeType=NEIGHBORHOOD,
+    // maxActivePerScope=null): cac kieu pham vi con duoc phep chon khi gan.
+    subScopeKinds?: NeighborhoodCollaboratorScope[];
     system: boolean;
     active: boolean;
     sortOrder: number;
@@ -428,25 +458,31 @@ export type NeighborhoodCollaboratorScope =
     | "HOUSE_GROUP"
     | "CAMPAIGN";
 
+// Backend luu tren ScopeAssignment (roleKey="neighborhood_collaborator") - xem
+// models/ScopeAssignment.ts o backend. scopeId/userId/assignedAt/subScope thay
+// the neighborhoodId/collaboratorUserId/startAt/(scopeType+streetId+houseIds+
+// campaignId phang) cua model NeighborhoodCollaboratorAssignment cu.
 export type NeighborhoodCollaboratorAssignment = {
     _id: string;
-    neighborhoodId: string;
-    collaboratorUserId?: {
+    scopeId: string;
+    userId?: {
         _id: string;
         displayName: string;
         phone?: string;
         status?: UserStatus;
     } | null;
-    scopeType: NeighborhoodCollaboratorScope;
-    streetId?: { _id: string; name: string; code: string } | null;
-    houseIds: Array<{ _id: string; code: string; address: string }>;
-    campaignId?: {
-        _id: string;
-        name: string;
-        status: InspectionCampaignStatus;
-        dueAt: string;
-    } | null;
-    startAt: string;
+    subScope: {
+        kind: NeighborhoodCollaboratorScope;
+        streetId?: { _id: string; name: string; code: string } | null;
+        houseIds: Array<{ _id: string; code: string; address: string }>;
+        campaignId?: {
+            _id: string;
+            name: string;
+            status: InspectionCampaignStatus;
+            dueAt: string;
+        } | null;
+    };
+    assignedAt: string;
     endAt?: string;
     assignedBy?: { _id: string; displayName: string } | null;
     note?: string;
@@ -481,10 +517,12 @@ export type Ward = {
     province_code: number;
 };
 
+// Backend luu tren ScopeAssignment (roleKey="neighborhood_leader") - scopeId/
+// userId thay the neighborhoodId/leaderUserId cua model NeighborhoodLeaderAssignment cu.
 export type NeighborhoodLeaderAssignment = {
     _id: string;
-    neighborhoodId: string;
-    leaderUserId?: { _id: string; displayName: string; phone?: string } | null;
+    scopeId: string;
+    userId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
     unassignedAt?: string;
@@ -492,10 +530,12 @@ export type NeighborhoodLeaderAssignment = {
     note?: string;
 };
 
+// Backend luu tren ScopeAssignment (roleKey="neighborhood_coleader") - scopeId/
+// userId thay the neighborhoodId/coleaderUserId cua model NeighborhoodColeaderAssignment cu.
 export type NeighborhoodColeaderAssignment = {
     _id: string;
-    neighborhoodId: string;
-    coleaderUserId?: { _id: string; displayName: string; phone?: string } | null;
+    scopeId: string;
+    userId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
     unassignedAt?: string;

@@ -35,6 +35,7 @@ import {
     InspectionCampaign,
     User,
 } from "@dts";
+import { COLLABORATOR_SCOPE_LABEL } from "@constants/domain";
 import {
     assignNeighborhoodCollaborator,
     assignNeighborhoodColeader,
@@ -95,13 +96,6 @@ const formatDate = (iso?: string) => {
 };
 
 const NONE_LEADER_VALUE = "__none__";
-
-const COLLABORATOR_SCOPE_LABEL: Record<NeighborhoodCollaboratorScope, string> = {
-    WHOLE_NEIGHBORHOOD: "Toàn Tổ",
-    STREET: "Một tuyến đường",
-    HOUSE_GROUP: "Một nhóm Nhà số",
-    CAMPAIGN: "Một chiến dịch",
-};
 
 const NeighborhoodDetailPage: React.FC = () => (
     <AdminGuard permissions={["neighborhoods.read"]}>
@@ -697,22 +691,22 @@ const NeighborhoodDetailContent: React.FC = () => {
                                 >
                                     <div>
                                         <div className="font-medium">
-                                            {c.coleaderUserId?.displayName ||
+                                            {c.userId?.displayName ||
                                                 "(tài khoản đã xóa)"}
                                         </div>
-                                        {c.coleaderUserId?.phone && (
+                                        {c.userId?.phone && (
                                             <div className="text-xs text-text_2">
-                                                {c.coleaderUserId.phone}
+                                                {c.userId.phone}
                                             </div>
                                         )}
                                     </div>
-                                    {canManage && c.coleaderUserId && (
+                                    {canManage && c.userId && (
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            loading={unassigningColeaderId === c.coleaderUserId._id}
+                                            loading={unassigningColeaderId === c.userId._id}
                                             onClick={() =>
-                                                handleUnassignColeader(c.coleaderUserId!._id)
+                                                handleUnassignColeader(c.userId!._id)
                                             }
                                         >
                                             Gỡ phân công
@@ -769,14 +763,14 @@ const NeighborhoodDetailContent: React.FC = () => {
                             <div key={assignment._id} className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0">
                                 <div>
                                     <div className="font-medium">
-                                        {assignment.collaboratorUserId?.displayName || "(tài khoản đã xóa)"}
+                                        {assignment.userId?.displayName || "(tài khoản đã xóa)"}
                                     </div>
                                     <div className="text-xs text-text_2">
-                                        {COLLABORATOR_SCOPE_LABEL[assignment.scopeType]}
-                                        {assignment.streetId ? ` · ${assignment.streetId.name}` : ""}
-                                        {assignment.houseIds.length ? ` · ${assignment.houseIds.length} Nhà số` : ""}
-                                        {assignment.campaignId ? ` · ${assignment.campaignId.name}` : ""}
-                                        {` · ${formatDate(assignment.startAt)} → ${formatDate(assignment.endAt)}`}
+                                        {COLLABORATOR_SCOPE_LABEL[assignment.subScope.kind]}
+                                        {assignment.subScope.streetId ? ` · ${assignment.subScope.streetId.name}` : ""}
+                                        {assignment.subScope.houseIds.length ? ` · ${assignment.subScope.houseIds.length} Nhà số` : ""}
+                                        {assignment.subScope.campaignId ? ` · ${assignment.subScope.campaignId.name}` : ""}
+                                        {` · ${formatDate(assignment.assignedAt)} → ${formatDate(assignment.endAt)}`}
                                     </div>
                                     {assignment.note && <div className="text-xs text-text_2">{assignment.note}</div>}
                                 </div>
@@ -914,7 +908,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                                         className="border-b border-divider_01 py-2 text-sm last:border-0"
                                     >
                                         <div className="font-medium">
-                                            {h.leaderUserId?.displayName ||
+                                            {h.userId?.displayName ||
                                                 "(tài khoản đã xóa)"}
                                         </div>
                                         <div className="text-xs text-text_2">
