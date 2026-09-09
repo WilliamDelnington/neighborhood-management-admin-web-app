@@ -72,8 +72,14 @@ const CITIZEN_MAPPING_FIELDS: {
     { key: "isElderly", label: "Người cao tuổi" },
     { key: "isChild", label: "Trẻ em" },
     { key: "isDisabledOrSupportNeeded", label: "Người khuyết tật" },
+    { key: "isDisabledChild", label: "Trẻ em khuyết tật" },
     { key: "isPartyMember", label: "Đảng viên" },
     { key: "isUnionMember", label: "Đoàn viên" },
+    { key: "isMartyr", label: "Liệt sĩ" },
+    { key: "isMartyrFamily", label: "Gia đình liệt sĩ" },
+    { key: "isVeteran", label: "Cựu chiến binh" },
+    { key: "isOtherSpecial", label: "Diện ưu tiên khác" },
+    { key: "otherSpecialLabel", label: "Tên diện ưu tiên khác" },
 ];
 
 type MappingForm = Record<keyof CitizenColumnMapping, string>;

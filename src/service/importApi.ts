@@ -117,8 +117,14 @@ export interface CitizenImportPreviewRow {
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;
+    isDisabledChild: boolean;
     isPartyMember: boolean;
     isUnionMember: boolean;
+    isMartyr: boolean;
+    isMartyrFamily: boolean;
+    isVeteran: boolean;
+    isOtherSpecial: boolean;
+    otherSpecialLabel?: string;
 }
 
 // Mapping cot Excel -> truong du lieu Citizen (nhan khau), do nguoi dung xac
@@ -141,8 +147,14 @@ export interface CitizenColumnMapping {
     isElderly?: string;
     isChild?: string;
     isDisabledOrSupportNeeded?: string;
+    isDisabledChild?: string;
     isPartyMember?: string;
     isUnionMember?: string;
+    isMartyr?: string;
+    isMartyrFamily?: string;
+    isVeteran?: string;
+    isOtherSpecial?: string;
+    otherSpecialLabel?: string;
 }
 
 export type ImportJobStatus =

@@ -53,8 +53,14 @@ const citizenToForm = (c: Citizen): CitizenFormValues => {
         isElderly: c.isElderly,
         isChild: c.isChild,
         isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
+        isDisabledChild: c.isDisabledChild,
         isPartyMember: c.isPartyMember,
         isUnionMember: c.isUnionMember,
+        isMartyr: c.isMartyr,
+        isMartyrFamily: c.isMartyrFamily,
+        isVeteran: c.isVeteran,
+        isOtherSpecial: c.isOtherSpecial,
+        otherSpecialLabel: c.otherSpecialLabel || "",
     };
 };
 
@@ -223,6 +229,11 @@ const CitizenDetailContent: React.FC = () => {
                                                 Khuyết tật / cần hỗ trợ
                                             </Badge>
                                         )}
+                                        {citizen.isDisabledChild && (
+                                            <Badge tone="yellow">
+                                                Trẻ em khuyết tật
+                                            </Badge>
+                                        )}
                                         {citizen.isPartyMember && (
                                             <Badge tone="gray">
                                                 Đảng viên
@@ -231,6 +242,25 @@ const CitizenDetailContent: React.FC = () => {
                                         {citizen.isUnionMember && (
                                             <Badge tone="gray">
                                                 Đoàn viên / hội viên
+                                            </Badge>
+                                        )}
+                                        {citizen.isMartyr && (
+                                            <Badge tone="red">Liệt sĩ</Badge>
+                                        )}
+                                        {citizen.isMartyrFamily && (
+                                            <Badge tone="red">
+                                                Gia đình liệt sĩ
+                                            </Badge>
+                                        )}
+                                        {citizen.isVeteran && (
+                                            <Badge tone="green">
+                                                Cựu chiến binh
+                                            </Badge>
+                                        )}
+                                        {citizen.isOtherSpecial && (
+                                            <Badge tone="gray">
+                                                {citizen.otherSpecialLabel ||
+                                                    "Diện ưu tiên khác"}
                                             </Badge>
                                         )}
                                     </div>
