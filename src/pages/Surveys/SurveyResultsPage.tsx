@@ -4,7 +4,12 @@ import { toast } from "sonner";
 import {
     ArrowLeft,
     BarChart3,
+    CalendarClock,
+    ChevronLeft,
+    ChevronRight,
+    Eye,
     MessageSquare,
+    Phone,
     Send,
     Users,
 } from "lucide-react";
@@ -20,15 +25,45 @@ import {
     CardHeader,
     CardTitle,
 } from "@components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import { usePermission } from "@store/authStore";
-import { AppError, SurveyResults } from "@dts";
+import { AppError, SurveyIndividualResponse, SurveyResults } from "@dts";
 import {
     fetchSurveyDetail,
+    fetchSurveyIndividualResponses,
     fetchSurveyResults,
     updateSurvey,
 } from "@service/surveyApi";
+
+const formatDateTime = (value?: string) =>
+    value ? new Date(value).toLocaleString("vi-VN") : "";
+
+const getInitials = (name: string) =>
+    name
+        .trim()
+        .split(/\s+/)
+        .slice(-2)
+        .map(part => part[0])
+        .join("")
+        .toUpperCase();
 
 // Hang mau accent dung tuan tu cho tung lua chon trong 1 cau hoi, giup phan
 // biet cac cot ma khong can nho theo thu tu - lap lai neu nhieu hon 6 lua chon.
@@ -88,20 +123,31 @@ const SurveyResultsContent: React.FC = () => {
     const canUpdate = usePermission("surveys.update");
     const canSendRequest = usePermission("requests.create");
     const [results, setResults] = useState<SurveyResults | null>(null);
+    const [individualResponses, setIndividualResponses] = useState<
+        SurveyIndividualResponse[]
+    >([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [summary, setSummary] = useState("");
     const [savingSummary, setSavingSummary] = useState(false);
     const [sendSheetOpen, setSendSheetOpen] = useState(false);
+    const [selectedResponseIndex, setSelectedResponseIndex] = useState<
+        number | null
+    >(null);
 
     const load = () => {
         if (!id) return;
         setLoading(true);
         setError(false);
-        Promise.all([fetchSurveyResults(id), fetchSurveyDetail(id)])
-            .then(([res, survey]) => {
+        Promise.all([
+            fetchSurveyResults(id),
+            fetchSurveyDetail(id),
+            fetchSurveyIndividualResponses(id),
+        ])
+            .then(([res, survey, responses]) => {
                 setResults(res);
                 setSummary(survey.resultSummary || "");
+                setIndividualResponses(responses);
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -173,6 +219,20 @@ const SurveyResultsContent: React.FC = () => {
                         </CardContent>
                     </Card>
 
+                    <Tabs defaultValue="summary">
+                        <TabsList>
+                            <TabsTrigger value="summary">
+                                Tổng hợp
+                            </TabsTrigger>
+                            <TabsTrigger value="individual">
+                                Từng người trả lời
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent
+                            value="summary"
+                            className="flex flex-col gap-4"
+                        >
                     {results.results.length === 0 && (
                         <Card>
                             <EmptyState label="Chưa có câu hỏi nào" />
@@ -270,6 +330,72 @@ const SurveyResultsContent: React.FC = () => {
                             </Card>
                         );
                     })}
+                        </TabsContent>
+
+                        <TabsContent value="individual">
+                            {individualResponses.length === 0 ? (
+                                <Card>
+                                    <EmptyState label="Chưa có ai trả lời" />
+                                </Card>
+                            ) : (
+                                <Card>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>
+                                                    Người trả lời
+                                                </TableHead>
+                                                <TableHead>
+                                                    Số điện thoại
+                                                </TableHead>
+                                                <TableHead>
+                                                    Thời gian gửi
+                                                </TableHead>
+                                                <TableHead className="text-right">
+                                                    &nbsp;
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {individualResponses.map(
+                                                (resp, idx) => (
+                                                    <TableRow
+                                                        key={resp.responseId}
+                                                    >
+                                                        <TableCell className="font-medium">
+                                                            {resp.displayName}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {resp.phone || "—"}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {formatDateTime(
+                                                                resp.submittedAt,
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() =>
+                                                                    setSelectedResponseIndex(
+                                                                        idx,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                                                                Xem chi tiết
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ),
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </Card>
+                            )}
+                        </TabsContent>
+                    </Tabs>
 
                     {(canUpdate || summary) && (
                         <Card>
@@ -331,7 +457,148 @@ const SurveyResultsContent: React.FC = () => {
                     defaultTitle={`Báo cáo khảo sát: ${results.title}`}
                 />
             )}
+
+            {results && (
+                <SurveyResponseDetailDialog
+                    questions={results.results}
+                    responses={individualResponses}
+                    index={selectedResponseIndex}
+                    onIndexChange={setSelectedResponseIndex}
+                />
+            )}
         </div>
+    );
+};
+
+const SurveyResponseDetailDialog: React.FC<{
+    questions: SurveyResults["results"];
+    responses: SurveyIndividualResponse[];
+    index: number | null;
+    onIndexChange: (index: number | null) => void;
+}> = ({ questions, responses, index, onIndexChange }) => {
+    const response = index !== null ? responses[index] : null;
+    const currentIndex = index ?? 0;
+
+    return (
+        <Dialog
+            open={index !== null}
+            onOpenChange={open => !open && onIndexChange(null)}
+        >
+            <DialogContent className="max-w-lg gap-0 p-0">
+                {response && (
+                    <>
+                        <DialogHeader className="flex-row items-center gap-3 space-y-0 border-b border-divider_01 px-6 py-4 text-left">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                                {getInitials(response.displayName)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <DialogTitle className="truncate text-base">
+                                    {response.displayName}
+                                </DialogTitle>
+                                <DialogDescription className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                                    {response.phone && (
+                                        <span className="inline-flex items-center gap-1">
+                                            <Phone className="h-3 w-3" />
+                                            {response.phone}
+                                        </span>
+                                    )}
+                                    <span className="inline-flex items-center gap-1">
+                                        <CalendarClock className="h-3 w-3" />
+                                        {formatDateTime(
+                                            response.submittedAt,
+                                        )}
+                                    </span>
+                                </DialogDescription>
+                            </div>
+                        </DialogHeader>
+
+                        <div className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto px-6 py-4">
+                            {questions.map((q, qIndex) => {
+                                const answer = response.answers.find(
+                                    a => a.questionId === q.questionId,
+                                );
+                                const parts = [
+                                    ...(answer?.selectedOptions || []),
+                                    ...(answer?.otherText
+                                        ? [`Khác: ${answer.otherText}`]
+                                        : []),
+                                ];
+                                return (
+                                    <div
+                                        key={q.questionId}
+                                        className="rounded-lg border border-divider_01 p-3"
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ng_10 text-[10px] font-semibold text-text_2">
+                                                {qIndex + 1}
+                                            </span>
+                                            <p className="text-sm font-medium leading-snug">
+                                                {q.question}
+                                            </p>
+                                        </div>
+                                        {parts.length > 0 ? (
+                                            <div className="ml-7 mt-2 flex flex-col gap-1.5">
+                                                {parts.map(part => (
+                                                    <p
+                                                        key={part}
+                                                        className="rounded-md border-l-2 border-primary bg-ng_10 px-2.5 py-1.5 text-sm text-text_1"
+                                                    >
+                                                        {part}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="ml-7 mt-2 rounded-md border border-dashed border-divider_02 px-2.5 py-1.5 text-sm italic text-text_2">
+                                                Không trả lời
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <DialogFooter className="items-center justify-between gap-3 border-t border-divider_01 px-6 py-3 sm:justify-between">
+                            <span className="text-xs font-medium text-text_2">
+                                Phản hồi {currentIndex + 1}/{responses.length}
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    disabled={currentIndex === 0}
+                                    onClick={() =>
+                                        onIndexChange(
+                                            Math.max(0, currentIndex - 1),
+                                        )
+                                    }
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    disabled={
+                                        currentIndex === responses.length - 1
+                                    }
+                                    onClick={() =>
+                                        onIndexChange(
+                                            Math.min(
+                                                responses.length - 1,
+                                                currentIndex + 1,
+                                            ),
+                                        )
+                                    }
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </DialogFooter>
+                    </>
+                )}
+            </DialogContent>
+        </Dialog>
     );
 };
 

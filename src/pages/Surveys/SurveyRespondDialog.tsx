@@ -13,6 +13,7 @@ import {
 } from "@components/ui/dialog";
 import { AppError, Survey } from "@dts";
 import { respondToSurvey, SurveyAnswerInput } from "@service/surveyApi";
+import { useSurveyBadgeStore } from "@store/surveyBadgeStore";
 
 type AnswerState = Record<
     string,
@@ -48,6 +49,7 @@ const SurveyRespondDialog: React.FC<SurveyRespondDialogProps> = ({
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [alreadyAnswered, setAlreadyAnswered] = useState(false);
+    const refreshSurveyBadge = useSurveyBadgeStore(state => state.refresh);
 
     // Reset noi bo moi khi mo mot khao sat khac.
     const [loadedSurveyId, setLoadedSurveyId] = useState<string | null>(null);
@@ -131,6 +133,7 @@ const SurveyRespondDialog: React.FC<SurveyRespondDialogProps> = ({
             await respondToSurvey(survey._id, payload);
             setSubmitted(true);
             toast.success("Đã gửi câu trả lời khảo sát");
+            refreshSurveyBadge();
         } catch (err) {
             const appError = err as AppError;
             if (appError.status === 409) {

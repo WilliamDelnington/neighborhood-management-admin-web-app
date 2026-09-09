@@ -10,9 +10,11 @@ import {
     User,
     X,
 } from "lucide-react";
-import { useAuthStore } from "@store/authStore";
+import { useAuthStore, usePermission } from "@store/authStore";
 import { useThemeStore } from "@store/themeStore";
 import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
+import { useSurveyBadgeStore } from "@store/surveyBadgeStore";
+import { useCorrespondenceBadgeStore } from "@store/correspondenceBadgeStore";
 import { ROLE_LABEL } from "@constants/domain";
 import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
@@ -81,7 +83,45 @@ const AdminLayout: React.FC = () => {
         if (!descOverridesLoaded) loadDescOverrides();
     }, [descOverridesLoaded, loadDescOverrides]);
 
+    // So khao sat dang mo, du dieu kien tra loi nhung chua tra loi - hien
+    // badge do canh muc "Khảo sát" (chi co y nghia voi tai khoan co quyen
+    // "surveys.respond" - cac vai tro khong tra loi duoc thi khong can biet).
+    const unansweredSurveyCount = useSurveyBadgeStore(
+        state => state.unansweredCount,
+    );
+    const refreshSurveyBadge = useSurveyBadgeStore(state => state.refresh);
+    const canRespondSurveys = usePermission("surveys.respond");
+    useEffect(() => {
+        if (!canRespondSurveys) return;
+        refreshSurveyBadge();
+        const interval = setInterval(refreshSurveyBadge, 60_000);
+        return () => clearInterval(interval);
+    }, [canRespondSurveys, refreshSurveyBadge]);
+
+    // So van ban chua doc - hien badge do canh muc "Văn bản".
+    const unreadCorrespondenceCount = useCorrespondenceBadgeStore(
+        state => state.unreadCount,
+    );
+    const refreshCorrespondenceBadge = useCorrespondenceBadgeStore(
+        state => state.refresh,
+    );
+    const canReadCorrespondences = usePermission("correspondences.read");
+    useEffect(() => {
+        if (!canReadCorrespondences) return;
+        refreshCorrespondenceBadge();
+        const interval = setInterval(refreshCorrespondenceBadge, 60_000);
+        return () => clearInterval(interval);
+    }, [canReadCorrespondences, refreshCorrespondenceBadge]);
+
     const descriptionOf = (m: ModuleItem) => descOverrides[m.key] ?? m.description;
+
+    // So dem hien thanh badge do canh ten muc menu (vd "Khảo sát", "Văn bản") -
+    // gop lai 1 cho de JSX ben duoi khong phai liet ke tung dieu kien rieng.
+    const menuBadgeCount = (key: string): number => {
+        if (key === "surveys") return unansweredSurveyCount;
+        if (key === "correspondences") return unreadCorrespondenceCount;
+        return 0;
+    };
 
     const hasPermission = (m: ModuleItem) =>
         !!user?.permissions?.includes(m.permission);
@@ -222,6 +262,16 @@ const AdminLayout: React.FC = () => {
                                             >
                                                 <m.icon className="h-4 w-4" />
                                                 {m.label}
+                                                {menuBadgeCount(m.key) > 0 && (
+                                                    <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                                                        {menuBadgeCount(m.key) >
+                                                        99
+                                                            ? "99+"
+                                                            : menuBadgeCount(
+                                                                  m.key,
+                                                              )}
+                                                    </span>
+                                                )}
                                             </NavLink>
                                         ))}
                                     </div>
