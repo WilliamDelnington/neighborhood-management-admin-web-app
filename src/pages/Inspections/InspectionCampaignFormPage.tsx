@@ -85,13 +85,36 @@ const InspectionCampaignFormContent: React.FC = () => {
     const [optionsError, setOptionsError] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
+    // Giu lai lua chon nha thu cong cua nguoi dung khi doi to dan phan phoi -
+    // truoc day moi lan doi to dan pho la ghi de toan bo selectedHouseIds
+    // thanh "chon het" (data.houses.map(...)), xoa mat viec bo chon thu cong
+    // truoc do. Gio: giu nguyen nha da duoc chon/bo chon tu truoc (chi loc
+    // theo danh sach nha hop le moi), chi tu dong chon san CAC nha MOI xuat
+    // hien (chua tung thay o lan tai truoc).
     const loadOptions = (neighborhoodIds: string[]) => {
+        const previouslyKnownHouseIds = new Set(
+            (options?.houses || []).map(house => house._id),
+        );
         setLoadingOptions(true);
         setOptionsError(false);
         fetchInspectionCreationOptions(neighborhoodIds)
             .then(data => {
                 setOptions(data);
-                setSelectedHouseIds(data.houses.map(house => house._id));
+                const newHouseIds = new Set(
+                    data.houses.map(house => house._id),
+                );
+                setSelectedHouseIds(prev => {
+                    const kept = prev.filter(id => newHouseIds.has(id));
+                    const newlyAppeared = data.houses
+                        .filter(
+                            house =>
+                                !previouslyKnownHouseIds.has(house._id),
+                        )
+                        .map(house => house._id);
+                    return Array.from(
+                        new Set([...kept, ...newlyAppeared]),
+                    );
+                });
             })
             .catch(() => setOptionsError(true))
             .finally(() => setLoadingOptions(false));
@@ -127,8 +150,8 @@ const InspectionCampaignFormContent: React.FC = () => {
     ));
 
     const validate = (): string | null => {
-        if (name.trim().length < 3) return "Vui lòng nhập tên chiến dịch";
-        if (purpose.trim().length < 10) return "Vui lòng mô tả rõ mục tiêu chiến dịch";
+        if (!name.trim()) return "Vui lòng nhập tên chiến dịch";
+        if (!purpose.trim()) return "Vui lòng mô tả rõ mục tiêu chiến dịch";
         if (!startAt || !dueAt || new Date(dueAt) <= new Date(startAt)) {
             return "Thời hạn phải sau thời điểm bắt đầu";
         }

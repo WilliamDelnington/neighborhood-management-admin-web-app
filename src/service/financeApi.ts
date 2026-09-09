@@ -1,5 +1,5 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
-import { FinanceTransaction, PaginatedData } from "@dts";
+import { FinanceSummary, FinanceTransaction, PaginatedData } from "@dts";
 import { request } from "./request";
 
 export interface ListFinanceParams {
@@ -51,14 +51,11 @@ export const cancelFinanceTransaction = (
 export const deleteFinanceTransaction = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.FINANCE}/${id}`);
 
-// Backend tra ve mot object cac cap key/so lieu tong hop tuy y (khong co shape
-// co dinh), nen o day chi khai bao dang Record<string, number> va render
-// generic o phia UI (xem FinanceListPage).
 export const fetchFinanceSummary = (
     fromDate?: string,
     toDate?: string,
-): Promise<Record<string, number>> =>
-    request<Record<string, number>>("GET", `${API.FINANCE}/summary`, {
+): Promise<FinanceSummary> =>
+    request<FinanceSummary>("GET", `${API.FINANCE}/summary`, {
         fromDate,
         toDate,
     });

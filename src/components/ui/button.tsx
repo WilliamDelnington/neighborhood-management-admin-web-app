@@ -44,9 +44,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         { className, variant, size, asChild = false, loading, disabled, children, ...props },
         ref,
     ) => {
-        const Comp = asChild ? Slot : "button";
+        // Radix Slot doi hoi dung 1 phan tu con duy nhat (de gop props vao
+        // chinh no) - khong the chen them svg loading ben canh nhu nut
+        // <button> thuong, neu khong Slot se bao loi "Expected a single
+        // React element child" va sap toan bo cay React. Vi asChild thuong
+        // dung de "khoac" style Button len 1 the <a>, bo qua spinner loading
+        // trong truong hop nay.
+        if (asChild) {
+            return (
+                <Slot
+                    className={cn(buttonVariants({ variant, size, className }))}
+                    ref={ref}
+                    {...props}
+                >
+                    {children}
+                </Slot>
+            );
+        }
         return (
-            <Comp
+            <button
+                type="button"
                 className={cn(buttonVariants({ variant, size, className }))}
                 ref={ref}
                 disabled={disabled || loading}
@@ -74,7 +91,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     </svg>
                 )}
                 {children}
-            </Comp>
+            </button>
         );
     },
 );

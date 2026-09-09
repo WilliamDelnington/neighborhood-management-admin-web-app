@@ -8,6 +8,15 @@ import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
+import { Label } from "@components/ui/label";
+import { Checkbox } from "@components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
 import {
     Dialog,
     DialogContent,
@@ -24,6 +33,7 @@ import {
     ComplaintTimelineEntry,
     ComplaintTypeDefinition,
     FileAsset,
+    TrangThaiPhanAnh,
 } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
@@ -38,6 +48,7 @@ import {
     fetchComplaintDetail,
     receiveComplaint,
     requestComplaintInfo,
+    updateComplaintStatus,
 } from "@service/complaintApi";
 import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 import { fetchAssignableStaff } from "@service/userApi";
@@ -58,6 +69,7 @@ const ComplaintDetailContent: React.FC = () => {
     const navigate = useNavigate();
     const canAssign = usePermission("complaints.assign");
     const canDelete = usePermission("complaints.delete");
+    const canUpdateStatus = usePermission("complaints.update_status");
 
     const [complaint, setComplaint] = useState<Complaint | null>(null);
     const [timeline, setTimeline] = useState<ComplaintTimelineEntry[]>([]);
@@ -95,6 +107,19 @@ const ComplaintDetailContent: React.FC = () => {
 
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Cap nhat trang thai xu ly (complaints.update_status) - truoc day trang
+    // nay khong co cach nao goi updateComplaintStatus (da co san o API/quyen)
+    // nen nhan vien khong the tu chuyen phan anh sang "dang_xu_ly", "da_xu_ly",
+    // "dong"... Rieng "hoan_thanh" backend cam dat thu cong (chi nguoi gui tu
+    // xac nhan), nen khong dua vao danh sach lua chon.
+    const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+    const [nextStatus, setNextStatus] = useState<TrangThaiPhanAnh>(
+        "dang_xu_ly",
+    );
+    const [statusNote, setStatusNote] = useState("");
+    const [statusIsPublic, setStatusIsPublic] = useState(true);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
 
     // Luong "Tiep nhan" / "Chon nguoi phu trach" - chi hien khi phan anh dang
     // "moi_tiep_nhan", tach rieng khoi dialog "Phân công xử lý" o tren (giu
@@ -250,6 +275,36 @@ const ComplaintDetailContent: React.FC = () => {
         }
     };
 
+    const openStatusDialog = () => {
+        if (!complaint) return;
+        setNextStatus(
+            complaint.status === "hoan_thanh" ? "dong" : complaint.status,
+        );
+        setStatusNote("");
+        setStatusIsPublic(true);
+        setStatusDialogOpen(true);
+    };
+
+    const handleUpdateStatus = async () => {
+        if (!id) return;
+        try {
+            setUpdatingStatus(true);
+            const updated = await updateComplaintStatus(id, {
+                status: nextStatus,
+                note: statusNote.trim() || undefined,
+                isPublic: statusIsPublic,
+            });
+            setComplaint(updated);
+            setStatusDialogOpen(false);
+            toast.success("Đã cập nhật trạng thái");
+            load();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
     const handleDelete = async () => {
         if (!id) return;
         try {
@@ -320,6 +375,15 @@ const ComplaintDetailContent: React.FC = () => {
                                     <Badge tone="red">
                                         Chưa xác định tổ dân phố
                                     </Badge>
+                                )}
+                                {canUpdateStatus && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={openStatusDialog}
+                                    >
+                                        Cập nhật trạng thái
+                                    </Button>
                                 )}
                                 {canDelete && (
                                     <Button
@@ -494,29 +558,7 @@ const ComplaintDetailContent: React.FC = () => {
                                 className="border-b border-divider_01 py-2 last:border-0"
                             >
                                 <div className="flex items-center justify-between">
-                                    {t.action === "reevaluation_request" ? (
-                                        <Badge tone="yellow">
-                                            Đề nghị xem xét lại
-                                        </Badge>
-                                    ) : t.action === "edited" ? (
-                                        <Badge tone="blue">
-                                            Đã chỉnh sửa phản ánh
-                                        </Badge>
-                                    ) : (
-                                        <Badge
-                                            tone={
-                                                TRANG_THAI_PHAN_ANH_TONE[
-                                                    t.status
-                                                ]
-                                            }
-                                        >
-                                            {
-                                                TRANG_THAI_PHAN_ANH_LABEL[
-                                                    t.status
-                                                ]
-                                            }
-                                        </Badge>
-                                    )}
+                                    {renderTimelineBadge(t)}
                                     <span className="text-xs text-text_2">
                                         {formatDateTime(t.createdAt)}
                                     </span>
@@ -561,9 +603,9 @@ const ComplaintDetailContent: React.FC = () => {
                     </DialogHeader>
                     {wasAssigned && (
                         <div className="space-y-1.5">
-                            <label className="text-sm text-text_2">
+                            <Label className="mb-1 block text-text_2">
                                 Lý do đổi người phụ trách
-                            </label>
+                            </Label>
                             <Textarea
                                 placeholder="Bắt buộc khi đổi người phụ trách hiện tại"
                                 value={transferReason}
@@ -637,9 +679,9 @@ const ComplaintDetailContent: React.FC = () => {
                         <DialogTitle>Yêu cầu bổ sung thông tin</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-1.5">
-                        <label className="text-sm text-text_2">
+                        <Label className="mb-1 block text-text_2">
                             Thông tin cần người gửi bổ sung
-                        </label>
+                        </Label>
                         <Textarea
                             placeholder="Ví dụ: Vui lòng cung cấp ảnh chụp vị trí cụ thể..."
                             value={infoContent}
@@ -659,6 +701,81 @@ const ComplaintDetailContent: React.FC = () => {
                             onClick={handleRequestInfo}
                         >
                             Gửi yêu cầu
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cập nhật trạng thái</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-1.5">
+                        <Label className="mb-1 block text-text_2">
+                            Trạng thái mới
+                        </Label>
+                        <Select
+                            value={nextStatus}
+                            onValueChange={v =>
+                                setNextStatus(v as TrangThaiPhanAnh)
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(
+                                    Object.entries(
+                                        TRANG_THAI_PHAN_ANH_LABEL,
+                                    ) as [TrangThaiPhanAnh, string][]
+                                )
+                                    .filter(
+                                        ([key]) => key !== "hoan_thanh",
+                                    )
+                                    .map(([key, label]) => (
+                                        <SelectItem key={key} value={key}>
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-text_2">
+                            Trạng thái &quot;Hoàn thành&quot; chỉ người gửi
+                            phản ánh mới được tự xác nhận.
+                        </p>
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="mb-1 block text-text_2">
+                            Ghi chú (tùy chọn)
+                        </Label>
+                        <Textarea
+                            placeholder="Ghi chú về việc cập nhật trạng thái..."
+                            value={statusNote}
+                            onChange={e => setStatusNote(e.target.value)}
+                        />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm">
+                        <Checkbox
+                            checked={statusIsPublic}
+                            onCheckedChange={checked =>
+                                setStatusIsPublic(checked === true)
+                            }
+                        />
+                        Công khai ghi chú này cho người gửi xem
+                    </label>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setStatusDialogOpen(false)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            loading={updatingStatus}
+                            onClick={handleUpdateStatus}
+                        >
+                            Cập nhật
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -691,6 +808,20 @@ const ComplaintDetailContent: React.FC = () => {
                 </DialogContent>
             </Dialog>
         </div>
+    );
+};
+
+const renderTimelineBadge = (t: ComplaintTimelineEntry) => {
+    if (t.action === "reevaluation_request") {
+        return <Badge tone="yellow">Đề nghị xem xét lại</Badge>;
+    }
+    if (t.action === "edited") {
+        return <Badge tone="blue">Đã chỉnh sửa phản ánh</Badge>;
+    }
+    return (
+        <Badge tone={TRANG_THAI_PHAN_ANH_TONE[t.status]}>
+            {TRANG_THAI_PHAN_ANH_LABEL[t.status]}
+        </Badge>
     );
 };
 

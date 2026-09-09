@@ -233,7 +233,9 @@ const KpiDashboardContent: React.FC = () => {
                             <div className="flex items-start justify-between gap-2">
                                 <div>
                                     <p className="font-medium">{item.definition.name}</p>
-                                    <p className="text-xs text-text_2">{item.detail}</p>
+                                    <p className="text-xs text-text_2">
+                                        Kỳ {PERIOD_LABEL[item.definition.period].toLowerCase()} · {item.detail}
+                                    </p>
                                 </div>
                                 <Badge tone={item.targetMet === null ? "gray" : item.targetMet ? "green" : "red"}>
                                     {item.targetMet === null ? "Chưa có dữ liệu" : item.targetMet ? "Đạt" : "Chưa đạt"}
@@ -258,7 +260,7 @@ const KpiDashboardContent: React.FC = () => {
                             <TableRow key={definition._id}>
                                 <TableCell className="text-center text-text_2">{index + 1}</TableCell>
                                 <TableCell className="font-mono text-xs">{definition.code}</TableCell>
-                                <TableCell><button className="font-medium text-main hover:underline" onClick={() => canManage && openEdit(definition)}>{definition.name}</button></TableCell>
+                                <TableCell>{canManage ? <button type="button" className="font-medium text-main hover:underline" onClick={() => openEdit(definition)}>{definition.name}</button> : <span className="font-medium">{definition.name}</span>}</TableCell>
                                 <TableCell>{SOURCE_LABEL[definition.dataSource]}</TableCell>
                                 <TableCell>{PERIOD_LABEL[definition.period]}</TableCell>
                                 <TableCell>{definition.targetDirection === "gte" ? "≥" : "≤"} {definition.targetValue} {definition.unit}</TableCell>

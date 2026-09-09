@@ -224,18 +224,31 @@ const ComplaintTypeListContent: React.FC = () => {
                                     <TableCell className="text-center text-text_2">{index + 1}</TableCell>
                                     <TableCell className="font-mono text-xs">{item.key}</TableCell>
                                     <TableCell>
-                                        <button
-                                            className="flex items-center gap-1.5 text-left font-medium text-main hover:underline"
-                                            onClick={() => canManage && openEdit(item)}
-                                        >
-                                            {item.isBuiltIn && (
-                                                <Lock
-                                                    className="h-3.5 w-3.5 text-text_2"
-                                                    aria-label="Loại phản ánh hệ thống"
-                                                />
-                                            )}
-                                            {item.name}
-                                        </button>
+                                        {canManage ? (
+                                            <button
+                                                type="button"
+                                                className="flex items-center gap-1.5 text-left font-medium text-main hover:underline"
+                                                onClick={() => openEdit(item)}
+                                            >
+                                                {item.isBuiltIn && (
+                                                    <Lock
+                                                        className="h-3.5 w-3.5 text-text_2"
+                                                        aria-label="Loại phản ánh hệ thống"
+                                                    />
+                                                )}
+                                                {item.name}
+                                            </button>
+                                        ) : (
+                                            <span className="flex items-center gap-1.5 font-medium">
+                                                {item.isBuiltIn && (
+                                                    <Lock
+                                                        className="h-3.5 w-3.5 text-text_2"
+                                                        aria-label="Loại phản ánh hệ thống"
+                                                    />
+                                                )}
+                                                {item.name}
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-sm text-text_2">
                                         {(item.allowedReceiverRoles || [])

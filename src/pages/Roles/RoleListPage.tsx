@@ -76,6 +76,19 @@ type FormState = {
     allowedCreatableRoles: string[];
 };
 
+// Tu dong sinh key tu ten vai tro (bo dau, snake_case) - form khong con
+// cho nhap key thu cong nua.
+const slugifyKey = (value: string) =>
+    value
+        .normalize("NFD")
+        .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+
 const EMPTY_FORM: FormState = {
     key: "",
     name: "",
@@ -427,36 +440,25 @@ const RoleListContent: React.FC = () => {
 
                     <div className="flex-1 overflow-y-auto py-4">
                         <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                {!editingRole && (
-                                    <div className="space-y-1.5">
-                                        <Label>Key (không thể đổi sau khi tạo)</Label>
-                                        <Input
-                                            placeholder="vd: cluster_lead"
-                                            value={form.key}
-                                            disabled={!canCreate}
-                                            onChange={e =>
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    key: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </div>
-                                )}
-                                <div className="space-y-1.5">
-                                    <Label>Tên vai trò</Label>
-                                    <Input
-                                        value={form.name}
-                                        disabled={!!editingRole && !canUpdate}
-                                        onChange={e =>
-                                            setForm(prev => ({
-                                                ...prev,
-                                                name: e.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
+                            <div className="space-y-1.5">
+                                <Label>Tên vai trò</Label>
+                                <Input
+                                    value={form.name}
+                                    disabled={!!editingRole && !canUpdate}
+                                    onChange={e => {
+                                        const name = e.target.value;
+                                        setForm(prev => ({
+                                            ...prev,
+                                            name,
+                                            // Key duoc sinh tu dong theo ten,
+                                            // chi khi tao moi (khong sua key
+                                            // cua vai tro da ton tai).
+                                            key: editingRole
+                                                ? prev.key
+                                                : slugifyKey(name),
+                                        }));
+                                    }}
+                                />
                             </div>
                             <div className="space-y-1.5">
                                 <Label>Mô tả</Label>

@@ -120,3 +120,43 @@
     color: rgb(var(--c-text-3));
     pointer-events: none;
 }
+
+/* Kieu dang cho noi dung file Word (.docx) da duoc mammoth chuyen doi sang
+ * HTML de xem truoc (xem FilePreviewDialog) - khong dung plugin
+ * tailwindcss-typography (chua cai) nen tu dinh nghia toi thieu o day, theo
+ * cung tinh than voi .rich-content o tren. */
+.doc-preview-content h1,
+.doc-preview-content h2,
+.doc-preview-content h3 {
+    margin: 1em 0 0.5em;
+    font-weight: 600;
+}
+.doc-preview-content h1 {
+    font-size: 1.25rem;
+}
+.doc-preview-content h2 {
+    font-size: 1.125rem;
+}
+.doc-preview-content h3 {
+    font-size: 1rem;
+}
+.doc-preview-content p {
+    margin: 0 0 0.75em;
+}
+.doc-preview-content ul,
+.doc-preview-content ol {
+    margin: 0 0 0.75em;
+    padding-left: 1.5em;
+}
+.doc-preview-content table {
+    border-collapse: collapse;
+    margin: 0 0 0.75em;
+}
+.doc-preview-content table td,
+.doc-preview-content table th {
+    border: 1px solid rgb(var(--c-border-strong));
+    padding: 0.375em 0.625em;
+}
+.doc-preview-content img {
+    max-width: 100%;
+}

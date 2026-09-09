@@ -19,7 +19,7 @@ function Badge({ className, tone = "gray", ...props }: BadgeProps) {
     return (
         <span
             className={cn(
-                "inline-flex h-[26px] items-center rounded-md px-2 text-xs font-medium",
+                "inline-flex h-[26px] items-center rounded-md text-xs font-medium",
                 TONE_CLASS[tone],
                 className,
             )}

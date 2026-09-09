@@ -189,7 +189,6 @@ const SecurityListContent: React.FC = () => {
     };
 
     const openEdit = (r: SecurityRecord) => {
-        if (!canManage) return;
         setEditingId(r._id);
         setEditingRecord(r);
         setForm(recordToForm(r));
@@ -371,11 +370,11 @@ const SecurityListContent: React.FC = () => {
                             {items.map((r, index) => (
                                 <TableRow
                                     key={r._id}
-                                    className={canManage ? "cursor-pointer" : ""}
+                                    className="cursor-pointer"
                                     onClick={() => openEdit(r)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {houseText(r.houseId)}
@@ -435,13 +434,16 @@ const SecurityListContent: React.FC = () => {
                 <SheetContent>
                     <SheetHeader>
                         <SheetTitle>
-                            {editingId ? "Sửa hồ sơ an ninh" : "Thêm hồ sơ an ninh"}
+                            {editingId
+                                ? `${canManage ? "Sửa" : "Xem"} hồ sơ an ninh`
+                                : "Thêm hồ sơ an ninh"}
                         </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
                         <SecurityForm
                             values={form}
                             onChange={setForm}
+                            readOnly={!!editingId && !canManage}
                             afterLevel={
                                 form.level !== "binh_thuong" && (
                                     <RequestSubSection
@@ -534,24 +536,26 @@ const SecurityListContent: React.FC = () => {
                             />
                         )}
                     </div>
-                    <SheetFooter>
-                        {canManage && editingId && (
+                    {(canManage || !editingId) && (
+                        <SheetFooter>
+                            {canManage && editingId && (
+                                <Button
+                                    variant="destructive"
+                                    className="w-full"
+                                    onClick={() => setConfirmDeleteId(editingId)}
+                                >
+                                    Xóa hồ sơ
+                                </Button>
+                            )}
                             <Button
-                                variant="destructive"
                                 className="w-full"
-                                onClick={() => setConfirmDeleteId(editingId)}
+                                loading={submitting}
+                                onClick={handleSubmit}
                             >
-                                Xóa hồ sơ
+                                {editingId ? "Lưu thay đổi" : "Thêm hồ sơ"}
                             </Button>
-                        )}
-                        <Button
-                            className="w-full"
-                            loading={submitting}
-                            onClick={handleSubmit}
-                        >
-                            {editingId ? "Lưu thay đổi" : "Thêm hồ sơ"}
-                        </Button>
-                    </SheetFooter>
+                        </SheetFooter>
+                    )}
                 </SheetContent>
             </Sheet>
 
