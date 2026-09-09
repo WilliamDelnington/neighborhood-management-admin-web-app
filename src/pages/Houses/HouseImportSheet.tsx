@@ -29,6 +29,7 @@ import {
     TableRow,
 } from "@components/ui/table";
 import ImportProgressBar from "@components/admin/ImportProgressBar";
+import ImportErrorConfirmDialog from "@components/admin/ImportErrorConfirmDialog";
 import { AppError, Neighborhood } from "@dts";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import {
@@ -39,6 +40,7 @@ import {
     applyHouseImportMapping,
     commitHouseImport,
     downloadHouseImportTemplate,
+    downloadImportJobErrors,
     pollImportJobUntilSettled,
 } from "@service/importApi";
 
@@ -105,6 +107,10 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
     const [applying, setApplying] = useState(false);
     const [committing, setCommitting] = useState(false);
     const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+    // Xac nhan bat buoc khi con dong loi truoc khi thuc su commit - xem
+    // ImportErrorConfirmDialog/handleCommit.
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [exportingErrors, setExportingErrors] = useState(false);
 
     useEffect(() => {
         if (!open) return;
@@ -127,6 +133,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         setApplying(false);
         setCommitting(false);
         setDownloadingTemplate(false);
+        setConfirmOpen(false);
     };
 
     const handleDownloadTemplate = async () => {
@@ -233,10 +240,11 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         }
     };
 
-    const handleCommit = async () => {
+    const doCommit = async () => {
         if (!job) return;
         try {
             setCommitting(true);
+            setConfirmOpen(false);
             await commitHouseImport(job._id);
             // Backend chuyen job sang "committing" va xu ly tung dong o
             // background (xem processHouseImportRows) - poll de cap nhat
@@ -250,7 +258,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                 toast.error("Nhập dữ liệu thất bại, vui lòng thử lại");
                 return;
             }
-            toast.success(`Đã nhập thành công ${result.committedCount} nhà số`);
+            toast.success(`Đã nhập thành công ${result.createdCount} nhà số`);
             reset();
             onOpenChange(false);
             onImported();
@@ -261,6 +269,29 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         }
     };
 
+    // Con dong loi -> xac nhan lai truoc (cac dong do se KHONG duoc nhap),
+    // khong con chan hoan toan nhu truoc - xem ImportErrorConfirmDialog.
+    const handleCommit = () => {
+        if (!job) return;
+        if (job.rowErrors.length > 0) {
+            setConfirmOpen(true);
+            return;
+        }
+        doCommit();
+    };
+
+    const handleExportErrors = async () => {
+        if (!job) return;
+        try {
+            setExportingErrors(true);
+            await downloadImportJobErrors(job._id, "import-loi-nha-so.xlsx");
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExportingErrors(false);
+        }
+    };
+
     const canApplyMapping = !!mapping.code;
     const canCommit =
         !!job &&
@@ -268,7 +299,7 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
         job.status !== "committed" &&
         job.status !== "committing" &&
         job.status !== "awaiting_mapping" &&
-        job.rowErrors.length === 0;
+        (job.previewData.length > 0 || job.skippedRows.length > 0);
 
     return (
         <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -475,7 +506,9 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
 
                     {job && !showMapping && job.status === "committing" && (
                         <ImportProgressBar
-                            committedCount={job.committedCount}
+                            createdCount={job.createdCount}
+                            skippedCount={job.skippedCount}
+                            errorCount={job.rowErrors.length}
                             totalRows={job.totalRows}
                             label="Đang nhập nhà số..."
                         />
@@ -501,6 +534,20 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
 
                             {job.rowErrors.length > 0 && (
                                 <div className="space-y-1 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="font-medium">
+                                            Dòng lỗi (sẽ không được nhập)
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            loading={exportingErrors}
+                                            onClick={handleExportErrors}
+                                        >
+                                            <FileDown className="mr-1 h-3.5 w-3.5" />
+                                            Xuất lỗi ra Excel
+                                        </Button>
+                                    </div>
                                     {job.rowErrors.map(e => (
                                         <div key={e.row}>
                                             Dòng {e.row}: {e.message}
@@ -628,6 +675,23 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                     )}
                 </SheetFooter>
             </SheetContent>
+            {job && (
+                // Khac 4 loai import kia: dong "Mã đã tồn tại" cua House VAN
+                // nam trong previewData (se duoc cap nhat bo sung, khong bi
+                // loai hoan toan - xem mergeIntoExistingHouse), nen phai tru
+                // di skippedRows.length de "se duoc tao" khong bi dem trung.
+                <ImportErrorConfirmDialog
+                    open={confirmOpen}
+                    createdCount={
+                        job.previewData.length - job.skippedRows.length
+                    }
+                    skippedCount={job.skippedRows.length}
+                    errorCount={job.rowErrors.length}
+                    confirming={committing}
+                    onCancel={() => setConfirmOpen(false)}
+                    onConfirm={doCommit}
+                />
+            )}
         </Sheet>
     );
 };

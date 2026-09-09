@@ -96,7 +96,6 @@ function reportBulkResult(result: BulkHouseActionResult, verb: string) {
 const HouseListContent: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const neighborhoodId = searchParams.get("neighborhoodId") || undefined;
     const canCreate = usePermission("houses.create");
     // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
     // /api/import/houses), KHAC voi "houses.create" ma to truong cung co -
@@ -109,6 +108,9 @@ const HouseListContent: React.FC = () => {
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
+    const [neighborhoodId, setNeighborhoodId] = useState(
+        () => searchParams.get("neighborhoodId") || "",
+    );
     const [provinceCode, setProvinceCode] = useState<number | "">("");
     const [wardCode, setWardCode] = useState<number | "">("");
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -148,7 +150,7 @@ const HouseListContent: React.FC = () => {
             limit: size,
             search: keyword,
             status: statusFilter || undefined,
-            neighborhoodId,
+            neighborhoodId: neighborhoodId || undefined,
             provinceCode: provinceCode || undefined,
             wardCode: wardCode || undefined,
         })
@@ -300,7 +302,14 @@ const HouseListContent: React.FC = () => {
             {neighborhoodId && (
                 <div className="mb-3 flex items-center justify-between rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-700">
                     <span>Đang lọc Nhà số theo Tổ dân phố đã chọn</span>
-                    <Button size="sm" variant="outline" onClick={() => navigate("/houses")}>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                            setNeighborhoodId("");
+                            navigate("/houses");
+                        }}
+                    >
                         Bỏ lọc
                     </Button>
                 </div>
@@ -390,6 +399,26 @@ const HouseListContent: React.FC = () => {
                         {wards.map(w => (
                             <SelectItem key={w.code} value={String(w.code)}>
                                 {w.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={neighborhoodId || ALL_NEIGHBORHOODS}
+                    onValueChange={v =>
+                        setNeighborhoodId(v === ALL_NEIGHBORHOODS ? "" : v)
+                    }
+                >
+                    <SelectTrigger className="max-w-xs">
+                        <SelectValue placeholder="Lọc theo tổ dân phố" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_NEIGHBORHOODS}>
+                            Tất cả tổ dân phố
+                        </SelectItem>
+                        {neighborhoods.map(n => (
+                            <SelectItem key={n._id} value={n._id}>
+                                {n.name}
                             </SelectItem>
                         ))}
                     </SelectContent>

@@ -98,6 +98,24 @@ export type ModulePermissionGroup = {
     permissions: PermissionDef[];
 };
 
+// Pham vi du lieu (data range) vai tro nay quan ly - xem Role.ts o backend
+// (Config-Driven Account Scope System). ALL = khong gioi han (admin).
+// WARD/NEIGHBORHOOD = pham vi dia ly, gan qua ScopeAssignment (scopeMechanism
+// ="ASSIGNED"). HOUSE/HOUSEHOLD/BUSINESS/COMPANY = pham vi theo thuc the so
+// huu (scopeMechanism="OWNED"), suy tu truong so huu san co tren du lieu,
+// khong can ScopeAssignment.
+export const ACCESS_SCOPE_TIERS = [
+    "ALL",
+    "WARD",
+    "NEIGHBORHOOD",
+    "HOUSE",
+    "HOUSEHOLD",
+    "BUSINESS",
+    "COMPANY",
+] as const;
+export type AccessScopeTier = (typeof ACCESS_SCOPE_TIERS)[number];
+export type ScopeAssignmentMechanism = "ASSIGNED" | "OWNED";
+
 export type RoleRecord = {
     _id: string;
     key: string;
@@ -110,6 +128,18 @@ export type RoleRecord = {
     // truong tren, khong dung quy uoc undefined = khong gioi han (mac dinh
     // rong la an toan vi day la quyen nhay cam) - xem Role.ts o backend.
     allowedCreatableRoles: string[];
+    scopeType: AccessScopeTier;
+    scopeMechanism?: ScopeAssignmentMechanism;
+    // Chi co y nghia khi scopeMechanism="ASSIGNED". 1 = chi 1 nguoi duoc active
+    // tai 1 pham vi cung luc (vd Bi thu/To truong). null/undefined = khong
+    // gioi han so nguoi active tai cung 1 pham vi (vd PCO/To pho/Cong tac vien).
+    maxActivePerScope?: number | null;
+    // Truc doc lap: gioi han so pham vi MA MOT NGUOI duoc active cung luc voi
+    // vai tro nay (vd To pho: 1 nguoi chi duoc active o DUY NHAT 1 To dan pho).
+    maxActiveScopesPerUser?: number | null;
+    // Chi co y nghia voi vai tro dang "Cong tac vien" (scopeType=NEIGHBORHOOD,
+    // maxActivePerScope=null): cac kieu pham vi con duoc phep chon khi gan.
+    subScopeKinds?: NeighborhoodCollaboratorScope[];
     system: boolean;
     active: boolean;
     sortOrder: number;
@@ -133,6 +163,10 @@ export type DocumentType = {
     hasIssueDate: boolean;
     hasExpiryDate: boolean;
     active: boolean;
+    // Tep mau minh hoa (khong bat buoc) - giup chu nha/can bo hinh dung ro
+    // hon giay to nay ngoai ten/mo ta, xem documentTypeApi.ts.
+    sampleFileUrl?: string;
+    sampleFileName?: string;
     createdAt: string;
     updatedAt: string;
 };
@@ -424,25 +458,31 @@ export type NeighborhoodCollaboratorScope =
     | "HOUSE_GROUP"
     | "CAMPAIGN";
 
+// Backend luu tren ScopeAssignment (roleKey="neighborhood_collaborator") - xem
+// models/ScopeAssignment.ts o backend. scopeId/userId/assignedAt/subScope thay
+// the neighborhoodId/collaboratorUserId/startAt/(scopeType+streetId+houseIds+
+// campaignId phang) cua model NeighborhoodCollaboratorAssignment cu.
 export type NeighborhoodCollaboratorAssignment = {
     _id: string;
-    neighborhoodId: string;
-    collaboratorUserId?: {
+    scopeId: string;
+    userId?: {
         _id: string;
         displayName: string;
         phone?: string;
         status?: UserStatus;
     } | null;
-    scopeType: NeighborhoodCollaboratorScope;
-    streetId?: { _id: string; name: string; code: string } | null;
-    houseIds: Array<{ _id: string; code: string; address: string }>;
-    campaignId?: {
-        _id: string;
-        name: string;
-        status: InspectionCampaignStatus;
-        dueAt: string;
-    } | null;
-    startAt: string;
+    subScope: {
+        kind: NeighborhoodCollaboratorScope;
+        streetId?: { _id: string; name: string; code: string } | null;
+        houseIds: Array<{ _id: string; code: string; address: string }>;
+        campaignId?: {
+            _id: string;
+            name: string;
+            status: InspectionCampaignStatus;
+            dueAt: string;
+        } | null;
+    };
+    assignedAt: string;
     endAt?: string;
     assignedBy?: { _id: string; displayName: string } | null;
     note?: string;
@@ -477,10 +517,12 @@ export type Ward = {
     province_code: number;
 };
 
+// Backend luu tren ScopeAssignment (roleKey="neighborhood_leader") - scopeId/
+// userId thay the neighborhoodId/leaderUserId cua model NeighborhoodLeaderAssignment cu.
 export type NeighborhoodLeaderAssignment = {
     _id: string;
-    neighborhoodId: string;
-    leaderUserId?: { _id: string; displayName: string; phone?: string } | null;
+    scopeId: string;
+    userId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
     unassignedAt?: string;
@@ -488,10 +530,12 @@ export type NeighborhoodLeaderAssignment = {
     note?: string;
 };
 
+// Backend luu tren ScopeAssignment (roleKey="neighborhood_coleader") - scopeId/
+// userId thay the neighborhoodId/coleaderUserId cua model NeighborhoodColeaderAssignment cu.
 export type NeighborhoodColeaderAssignment = {
     _id: string;
-    neighborhoodId: string;
-    coleaderUserId?: { _id: string; displayName: string; phone?: string } | null;
+    scopeId: string;
+    userId?: { _id: string; displayName: string; phone?: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
     unassignedAt?: string;
@@ -853,13 +897,27 @@ export type News = {
     pinned: boolean;
     coverImageUrl?: string;
     images: string[];
+    // Chua chac chan backend co tra ve truong nay cho moi ban ghi cu - khai
+    // bao optional de UI an di neu thieu thay vi loi (xem NewsListPage).
+    createdBy?: string | { _id: string; displayName: string };
     publishedAt?: string;
     createdAt: string;
 };
 
 export type ChangeRequestTargetModel = "HouseRecord" | "HouseOwnership" | "User";
-export type ChangeRequestType = "update" | "unlink" | "transfer_neighborhood";
+export type ChangeRequestType = "update" | "unlink" | "transfer_neighborhood" | "data_discrepancy";
 export type ChangeRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+// "data_discrepancy" can dung 2 vong duyet (To dan pho xac nhan truoc, roi
+// Phuong xac nhan cuoi) thay vi mot vong nhu 3 loai con lai - xem
+// changeRequestService.ts (decideChangeRequest) o backend.
+export type ChangeRequestReviewStage = "neighborhood_review" | "ward_review";
+export type ChangeRequestStageDecision = {
+    stage: ChangeRequestReviewStage;
+    decidedBy: string | { _id: string; displayName: string };
+    decidedAt: string;
+    outcome: string;
+    note?: string;
+};
 
 export type ChangeRequest = {
     _id: string;
@@ -871,6 +929,8 @@ export type ChangeRequest = {
     previousSnapshot?: Record<string, unknown>;
     reason?: string;
     status: ChangeRequestStatus;
+    reviewStage?: ChangeRequestReviewStage;
+    stageDecisions?: ChangeRequestStageDecision[];
     decidedBy?: string | { _id: string; displayName: string };
     decidedAt?: string;
     decisionNote?: string;
@@ -906,6 +966,9 @@ export type Correspondence = {
     targetUserIds: string[];
     sentAt?: string;
     createdAt: string;
+    // Chi co gia tri o tab "Đã nhận" (xem correspondenceService.listCorrespondences) -
+    // van ban con thong bao chua doc doi voi nguoi dang dang nhap.
+    isUnread?: boolean;
 };
 
 export type CorrespondenceReply = {
@@ -977,6 +1040,10 @@ export type Survey = {
     createdBy?: string | { _id: string; displayName: string };
     coEditorUserIds?: (string | { _id: string; displayName: string })[];
     createdAt: string;
+    // Nguoi dang dang nhap da gui cau tra loi khao sat nay chua (xem
+    // surveyService.listSurveys) - dung de hien "Đã trả lời"/"Chưa trả lời"
+    // trong SurveyListPage.tsx.
+    hasResponded?: boolean;
 };
 
 export type SurveyResults = {
@@ -989,6 +1056,19 @@ export type SurveyResults = {
         type: LoaiCauHoiKhaoSat;
         optionCounts: Record<string, number>;
         otherTexts: string[];
+    }[];
+};
+
+export type SurveyIndividualResponse = {
+    responseId: string;
+    userId: string;
+    displayName: string;
+    phone?: string;
+    submittedAt: string;
+    answers: {
+        questionId: string;
+        selectedOptions: string[];
+        otherText?: string;
     }[];
 };
 
@@ -1364,10 +1444,18 @@ export type FinanceTransaction = {
     updatedAt: string;
 };
 
+export type FinanceMonthSummary = {
+    year: number;
+    month: number;
+    income: number;
+    expense: number;
+};
+
 export type FinanceSummary = {
     totalIncome: number;
     totalExpense: number;
     net: number;
+    byMonth: FinanceMonthSummary[];
 };
 
 // ---------------------------------------------------------------------------

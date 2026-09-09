@@ -59,9 +59,11 @@ export const API = {
     NEWS: "/api/news",
     CORRESPONDENCE_TYPES: "/api/correspondence-types",
     CORRESPONDENCES: "/api/correspondences",
+    CORRESPONDENCES_UNREAD_COUNT: "/api/correspondences/unread-count",
     CHANGE_REQUESTS: "/api/change-requests",
     MEETINGS: "/api/meetings",
     SURVEYS: "/api/surveys",
+    SURVEYS_UNANSWERED_COUNT: "/api/surveys/unanswered-count",
 
     PCCC: "/api/pccc",
     SECURITY: "/api/security",

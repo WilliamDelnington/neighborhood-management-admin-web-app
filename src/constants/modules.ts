@@ -7,10 +7,8 @@ import {
     CalendarDays,
     Megaphone,
     ClipboardList,
-    Wallet,
     BarChart3,
     UserCog,
-    UserPlus,
     Settings,
     KeyRound,
     Briefcase,
@@ -469,22 +467,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         ],
     },
     {
-        key: "finance",
-        label: "Tài chính",
-        icon: Wallet,
-        items: [
-            {
-                key: "finance",
-                label: "Tài chính",
-                path: "/finance",
-                icon: Wallet,
-                permission: "finance.read",
-                description:
-                    "Quản lý các khoản thu chi tài chính của tổ dân phố.",
-            },
-        ],
-    },
-    {
         key: "administration",
         label: "Quản trị hệ thống",
         icon: ShieldCheck,
@@ -496,14 +478,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: UserCog,
                 permission: "users.read",
                 description: "Quản lý tài khoản người dùng và vai trò được gán.",
-            },
-            {
-                key: "create_house_owner",
-                label: "Tạo tài khoản",
-                path: "/users/new-house-owner",
-                icon: UserPlus,
-                permission: "users.create",
-                description: "Tạo tài khoản chủ nhà mới trong hệ thống.",
             },
             {
                 key: "roles",

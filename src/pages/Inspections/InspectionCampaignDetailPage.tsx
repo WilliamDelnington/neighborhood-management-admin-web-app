@@ -200,12 +200,12 @@ const InspectionCampaignDetailContent: React.FC = () => {
     };
 
     const handleSaveDetails = async () => {
-        if (name.trim().length < 3) {
-            toast.error("Tên chiến dịch quá ngắn");
+        if (!name.trim()) {
+            toast.error("Vui lòng nhập tên chiến dịch");
             return;
         }
-        if (purpose.trim().length < 10) {
-            toast.error("Mục tiêu chiến dịch quá ngắn");
+        if (!purpose.trim()) {
+            toast.error("Vui lòng nhập mục tiêu chiến dịch");
             return;
         }
         try {

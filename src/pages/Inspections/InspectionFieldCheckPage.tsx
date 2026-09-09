@@ -4,6 +4,9 @@ import { ArrowLeft, Camera, LocateFixed, Save, Send, ShieldCheck } from "lucide-
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
+import FilePreviewDialog, {
+    PreviewSource,
+} from "@components/admin/FilePreviewDialog";
 import { Badge } from "@components/ui/badge";
 import { Button } from "@components/ui/button";
 import { Checkbox } from "@components/ui/checkbox";
@@ -70,6 +73,9 @@ const InspectionFieldCheckContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [working, setWorking] = useState(false);
+    const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
+        null,
+    );
 
     const hydrateResult = (data: InspectionResult) => {
         setResult(data);
@@ -391,15 +397,20 @@ const InspectionFieldCheckContent: React.FC = () => {
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                     {(result?.attachments || []).map(file => (
-                        <a
+                        <button
                             key={file._id}
-                            className="truncate rounded-lg border border-divider_01 p-3 text-sm text-primary hover:bg-blue-50"
-                            href={resolveAssetUrl(file.url)}
-                            target="_blank"
-                            rel="noreferrer"
+                            type="button"
+                            className="truncate rounded-lg border border-divider_01 p-3 text-left text-sm text-primary hover:bg-blue-50"
+                            onClick={() =>
+                                setPreviewSource({
+                                    kind: "url",
+                                    name: file.name,
+                                    url: resolveAssetUrl(file.url),
+                                })
+                            }
                         >
                             {file.name}
-                        </a>
+                        </button>
                     ))}
                     {result && result.attachments.length === 0 && (
                         <p className="text-sm text-text_2">Chưa có minh chứng.</p>
@@ -445,6 +456,11 @@ const InspectionFieldCheckContent: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            <FilePreviewDialog
+                source={previewSource}
+                onOpenChange={open => !open && setPreviewSource(null)}
+            />
         </div>
     );
 };

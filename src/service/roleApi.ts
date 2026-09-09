@@ -1,12 +1,25 @@
 import { API } from "@constants/common";
 import {
+    AccessScopeTier,
     ModulePermissionGroup,
+    NeighborhoodCollaboratorScope,
     NhomPhanAnh,
     PaginatedData,
     RequestType,
     RoleRecord,
+    ScopeAssignmentMechanism,
 } from "@dts";
 import { request } from "./request";
+
+// Dung chung boi CreateRoleParams/UpdateRoleParams - xem RoleRecord.scopeType
+// trong types/index.ts de biet y nghia tung truong.
+interface RoleScopeFields {
+    scopeType?: AccessScopeTier;
+    scopeMechanism?: ScopeAssignmentMechanism;
+    maxActivePerScope?: number | null;
+    maxActiveScopesPerUser?: number | null;
+    subScopeKinds?: NeighborhoodCollaboratorScope[];
+}
 
 export const fetchRoles = (params?: {
     search?: string;
@@ -23,7 +36,7 @@ export const fetchRolePermissionRegistry = (): Promise<
 export const fetchRoleById = (id: string): Promise<RoleRecord> =>
     request<RoleRecord>("GET", `${API.ROLES}/${id}`);
 
-export interface CreateRoleParams {
+export interface CreateRoleParams extends RoleScopeFields {
     key: string;
     name: string;
     description?: string;
@@ -38,7 +51,7 @@ export interface CreateRoleParams {
 export const createRole = (params: CreateRoleParams): Promise<RoleRecord> =>
     request<RoleRecord>("POST", API.ROLES, params);
 
-export interface UpdateRoleParams {
+export interface UpdateRoleParams extends RoleScopeFields {
     name?: string;
     description?: string;
     permissions?: string[];

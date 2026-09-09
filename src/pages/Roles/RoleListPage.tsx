@@ -10,6 +10,13 @@ import { Textarea } from "@components/ui/textarea";
 import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@components/ui/select";
+import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -35,13 +42,21 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import {
+    AccessScopeTier,
     AppError,
     ModulePermissionGroup,
+    NeighborhoodCollaboratorScope,
     NhomPhanAnh,
     RequestType,
     RoleRecord,
+    ScopeAssignmentMechanism,
 } from "@dts";
-import { ACCOUNT_CREATION_RESERVED_ROLE_KEYS, NHOM_PHAN_ANH_LABEL } from "@constants/domain";
+import {
+    ACCESS_SCOPE_TIER_LABEL,
+    ACCOUNT_CREATION_RESERVED_ROLE_KEYS,
+    COLLABORATOR_SCOPE_LABEL,
+    NHOM_PHAN_ANH_LABEL,
+} from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     createRole,
@@ -74,7 +89,37 @@ type FormState = {
     // han") - rong = khong duoc tao vai tro nao ngoai house_owner khi "Tạo
     // tài khoản" (mac dinh an toan, xem Role.ts o backend).
     allowedCreatableRoles: string[];
+    scopeType: AccessScopeTier;
+    // "1 nguoi" (gia tri 1) hoac "khong gioi han" (null) - khong cho nhap so
+    // tuy y, xem ghi chu tai UI (chua co quy uoc UI/UX cho gia tri > 1).
+    maxActivePerScope: number | null;
+    maxActiveScopesPerUser: number | null;
+    subScopeKinds: NeighborhoodCollaboratorScope[];
 };
+
+// scopeMechanism suy tu scopeType (khong cho chon rieng o UI, tranh ket hop
+// vo nghia vd WARD+OWNED) - xem Role.ts pre("validate") o backend, cung quy
+// uoc.
+const deriveScopeMechanism = (
+    tier: AccessScopeTier,
+): ScopeAssignmentMechanism | undefined => {
+    if (tier === "ALL") return undefined;
+    if (tier === "WARD" || tier === "NEIGHBORHOOD") return "ASSIGNED";
+    return "OWNED";
+};
+
+// Tu dong sinh key tu ten vai tro (bo dau, snake_case) - form khong con
+// cho nhap key thu cong nua.
+const slugifyKey = (value: string) =>
+    value
+        .normalize("NFD")
+        .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
 
 const EMPTY_FORM: FormState = {
     key: "",
@@ -86,6 +131,10 @@ const EMPTY_FORM: FormState = {
     allowedComplaintCategories: null,
     allowedRequestTypes: null,
     allowedCreatableRoles: [],
+    scopeType: "ALL",
+    maxActivePerScope: null,
+    maxActiveScopesPerUser: null,
+    subScopeKinds: [],
 };
 
 const RoleListContent: React.FC = () => {
@@ -170,6 +219,10 @@ const RoleListContent: React.FC = () => {
             allowedComplaintCategories: role.allowedComplaintCategories ?? null,
             allowedRequestTypes: role.allowedRequestTypes ?? null,
             allowedCreatableRoles: role.allowedCreatableRoles ?? [],
+            scopeType: role.scopeType,
+            maxActivePerScope: role.maxActivePerScope ?? null,
+            maxActiveScopesPerUser: role.maxActiveScopesPerUser ?? null,
+            subScopeKinds: role.subScopeKinds ?? [],
         });
         setSheetOpen(true);
     };
@@ -232,6 +285,15 @@ const RoleListContent: React.FC = () => {
         });
     };
 
+    const toggleSubScopeKind = (kind: NeighborhoodCollaboratorScope) => {
+        setForm(prev => ({
+            ...prev,
+            subScopeKinds: prev.subScopeKinds.includes(kind)
+                ? prev.subScopeKinds.filter(k => k !== kind)
+                : [...prev.subScopeKinds, kind],
+        }));
+    };
+
     const togglePermission = (key: string) => {
         setForm(prev => ({
             ...prev,
@@ -255,6 +317,22 @@ const RoleListContent: React.FC = () => {
     const handleSave = async () => {
         const canSave = editingRole ? canUpdate : canCreate;
         if (!canSave) return;
+        // Chi gui cac truong con thuc su ap dung cho scopeType da chon - giong
+        // logic tu don dep cua Role.ts pre("validate") o backend, tranh gui
+        // len gia tri "con sot lai" tu lan chon scopeType truoc do trong form.
+        const mechanism = deriveScopeMechanism(form.scopeType);
+        const scopeFields = {
+            scopeType: form.scopeType,
+            scopeMechanism: mechanism,
+            maxActivePerScope:
+                mechanism === "ASSIGNED" ? form.maxActivePerScope : null,
+            maxActiveScopesPerUser:
+                mechanism === "ASSIGNED" ? form.maxActiveScopesPerUser : null,
+            subScopeKinds:
+                form.scopeType === "NEIGHBORHOOD"
+                    ? form.subScopeKinds
+                    : undefined,
+        };
         try {
             setSaving(true);
             if (editingRole) {
@@ -269,6 +347,7 @@ const RoleListContent: React.FC = () => {
                     allowedComplaintCategories: form.allowedComplaintCategories,
                     allowedRequestTypes: form.allowedRequestTypes,
                     allowedCreatableRoles: form.allowedCreatableRoles,
+                    ...scopeFields,
                 });
                 load(page);
                 toast.success("Đã cập nhật vai trò");
@@ -284,6 +363,7 @@ const RoleListContent: React.FC = () => {
                         form.allowedComplaintCategories ?? undefined,
                     allowedRequestTypes: form.allowedRequestTypes ?? undefined,
                     allowedCreatableRoles: form.allowedCreatableRoles,
+                    ...scopeFields,
                 });
                 load(1);
                 toast.success("Đã tạo vai trò mới");
@@ -354,6 +434,7 @@ const RoleListContent: React.FC = () => {
                                 <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Vai trò</TableHead>
                                 <TableHead>Loại</TableHead>
+                                <TableHead>Phạm vi</TableHead>
                                 <TableHead>Số quyền</TableHead>
                                 <TableHead>Người dùng</TableHead>
                                 <TableHead>Trạng thái</TableHead>
@@ -380,6 +461,9 @@ const RoleListContent: React.FC = () => {
                                         <Badge tone={role.system ? "blue" : "gray"}>
                                             {role.system ? "Hệ thống" : "Tùy chỉnh"}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-text_2">
+                                        {ACCESS_SCOPE_TIER_LABEL[role.scopeType]}
                                     </TableCell>
                                     <TableCell>{role.permissions.length}</TableCell>
                                     <TableCell>{role.assignedUserCount}</TableCell>
@@ -427,36 +511,25 @@ const RoleListContent: React.FC = () => {
 
                     <div className="flex-1 overflow-y-auto py-4">
                         <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                {!editingRole && (
-                                    <div className="space-y-1.5">
-                                        <Label>Key (không thể đổi sau khi tạo)</Label>
-                                        <Input
-                                            placeholder="vd: cluster_lead"
-                                            value={form.key}
-                                            disabled={!canCreate}
-                                            onChange={e =>
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    key: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </div>
-                                )}
-                                <div className="space-y-1.5">
-                                    <Label>Tên vai trò</Label>
-                                    <Input
-                                        value={form.name}
-                                        disabled={!!editingRole && !canUpdate}
-                                        onChange={e =>
-                                            setForm(prev => ({
-                                                ...prev,
-                                                name: e.target.value,
-                                            }))
-                                        }
-                                    />
-                                </div>
+                            <div className="space-y-1.5">
+                                <Label>Tên vai trò</Label>
+                                <Input
+                                    value={form.name}
+                                    disabled={!!editingRole && !canUpdate}
+                                    onChange={e => {
+                                        const name = e.target.value;
+                                        setForm(prev => ({
+                                            ...prev,
+                                            name,
+                                            // Key duoc sinh tu dong theo ten,
+                                            // chi khi tao moi (khong sua key
+                                            // cua vai tro da ton tai).
+                                            key: editingRole
+                                                ? prev.key
+                                                : slugifyKey(name),
+                                        }));
+                                    }}
+                                />
                             </div>
                             <div className="space-y-1.5">
                                 <Label>Mô tả</Label>
@@ -484,6 +557,172 @@ const RoleListContent: React.FC = () => {
                                 />
                                 <Label>Đang hoạt động</Label>
                             </div>
+                        </div>
+
+                        <div className="mt-5 border-t border-divider_01 pt-4">
+                            <h3 className="mb-1 text-sm font-semibold">
+                                Phạm vi dữ liệu quản lý
+                            </h3>
+                            <p className="mb-3 text-xs text-text_2">
+                                Vai trò này quản lý dữ liệu trong phạm vi nào,
+                                và (nếu là phạm vi được gán) quy tắc số người/
+                                số phạm vi được active cùng lúc.
+                            </p>
+                            <div className="space-y-1.5">
+                                <Label>Phạm vi</Label>
+                                <Select
+                                    value={form.scopeType}
+                                    disabled={!canEditCurrentRole}
+                                    onValueChange={value => {
+                                        const scopeType = value as AccessScopeTier;
+                                        setForm(prev => ({
+                                            ...prev,
+                                            scopeType,
+                                            // Reset cac truong con - tranh
+                                            // gia tri "con sot" tu lua chon
+                                            // pham vi truoc do.
+                                            maxActivePerScope: null,
+                                            maxActiveScopesPerUser: null,
+                                            subScopeKinds: [],
+                                        }));
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {(
+                                            Object.keys(
+                                                ACCESS_SCOPE_TIER_LABEL,
+                                            ) as AccessScopeTier[]
+                                        ).map(tier => (
+                                            <SelectItem key={tier} value={tier}>
+                                                {ACCESS_SCOPE_TIER_LABEL[tier]}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {deriveScopeMechanism(form.scopeType) ===
+                                "ASSIGNED" && (
+                                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <div className="space-y-1.5">
+                                        <Label>
+                                            Số người được active tại 1 phạm vi
+                                        </Label>
+                                        <Select
+                                            value={
+                                                form.maxActivePerScope === 1
+                                                    ? "ONE"
+                                                    : "UNLIMITED"
+                                            }
+                                            disabled={!canEditCurrentRole}
+                                            onValueChange={value =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    maxActivePerScope:
+                                                        value === "ONE"
+                                                            ? 1
+                                                            : null,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ONE">
+                                                    Duy nhất 1 người (VD: Bí
+                                                    thư, Tổ trưởng)
+                                                </SelectItem>
+                                                <SelectItem value="UNLIMITED">
+                                                    Không giới hạn (VD: PCO,
+                                                    Tổ phó)
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label>
+                                            Số phạm vi 1 người được active
+                                            cùng lúc
+                                        </Label>
+                                        <Select
+                                            value={
+                                                form.maxActiveScopesPerUser ===
+                                                1
+                                                    ? "ONE"
+                                                    : "UNLIMITED"
+                                            }
+                                            disabled={!canEditCurrentRole}
+                                            onValueChange={value =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    maxActiveScopesPerUser:
+                                                        value === "ONE"
+                                                            ? 1
+                                                            : null,
+                                                }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ONE">
+                                                    Duy nhất 1 phạm vi (VD: Tổ
+                                                    phó)
+                                                </SelectItem>
+                                                <SelectItem value="UNLIMITED">
+                                                    Không giới hạn
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            )}
+
+                            {form.scopeType === "NEIGHBORHOOD" && (
+                                <div className="mt-4">
+                                    <Label>
+                                        Kiểu phạm vi con được phép chọn (Cộng
+                                        tác viên)
+                                    </Label>
+                                    <div className="mt-1.5 grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 sm:grid-cols-2">
+                                        {Object.entries(
+                                            COLLABORATOR_SCOPE_LABEL,
+                                        ).map(([value, label]) => (
+                                            <div
+                                                key={value}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <Checkbox
+                                                    checked={form.subScopeKinds.includes(
+                                                        value as NeighborhoodCollaboratorScope,
+                                                    )}
+                                                    disabled={
+                                                        !canEditCurrentRole
+                                                    }
+                                                    onCheckedChange={() =>
+                                                        toggleSubScopeKind(
+                                                            value as NeighborhoodCollaboratorScope,
+                                                        )
+                                                    }
+                                                />
+                                                <Label className="text-sm font-normal">
+                                                    {label}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="mt-1 text-xs text-text_2">
+                                        Bỏ trống nếu vai trò này xem được toàn
+                                        Tổ dân phố (VD: Tổ trưởng/Tổ phó) thay
+                                        vì chỉ một phạm vi hẹp bên trong Tổ.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-5 border-t border-divider_01 pt-4">

@@ -180,6 +180,18 @@ const RequestTypeListContent: React.FC = () => {
             toast.error("Vui lòng nhập đủ tên, vai trò và các trường biểu mẫu");
             return;
         }
+        const missingOptions = form.fields.some(
+            field =>
+                (field.type === "single_select" || field.type === "multi_select") &&
+                field.optionsText.split(",").map(v => v.trim()).filter(Boolean)
+                    .length === 0,
+        );
+        if (missingOptions) {
+            toast.error(
+                "Vui lòng nhập ít nhất một lựa chọn cho các trường dạng chọn 1/chọn nhiều",
+            );
+            return;
+        }
         const payload = {
             key: form.key.trim(),
             name: form.name.trim(),
@@ -279,15 +291,22 @@ const RequestTypeListContent: React.FC = () => {
                         <TableBody>
                             {items.map((item, index) => (
                                 <TableRow key={item._id || item.key}>
-                                    <TableCell className="text-center text-text_2">{index + 1}</TableCell>
+                                    <TableCell className="text-center text-text_2">{(page - 1) * pageSize + index + 1}</TableCell>
                                     <TableCell className="font-mono text-xs">{item.key}</TableCell>
                                     <TableCell>
-                                        <button
-                                            className="text-left font-medium text-main hover:underline"
-                                            onClick={() => canManage && openEdit(item)}
-                                        >
-                                            {item.name}
-                                        </button>
+                                        {canManage ? (
+                                            <button
+                                                type="button"
+                                                className="text-left font-medium text-main hover:underline"
+                                                onClick={() => openEdit(item)}
+                                            >
+                                                {item.name}
+                                            </button>
+                                        ) : (
+                                            <span className="font-medium">
+                                                {item.name}
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {item.dataEntryMode === "recipient"

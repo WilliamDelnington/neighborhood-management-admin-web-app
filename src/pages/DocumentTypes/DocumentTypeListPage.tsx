@@ -42,7 +42,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
-import { DEFAULT_PAGE_SIZE } from "@constants/common";
+import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import { AppError, DocumentType } from "@dts";
 import {
     createDocumentType,
@@ -67,6 +67,12 @@ type FormState = {
     hasIssueDate: boolean;
     hasExpiryDate: boolean;
     active: boolean;
+    // Tep mau (khong bat buoc) minh hoa giay to nay cho ca chu nha (nguoi
+    // nop) lan can bo duyet - xem documentTypeService.ts o backend.
+    sampleFile: File | null;
+    existingSampleFileUrl: string;
+    existingSampleFileName: string;
+    removeSampleFile: boolean;
 };
 
 const EMPTY_FORM: FormState = {
@@ -76,6 +82,10 @@ const EMPTY_FORM: FormState = {
     hasIssueDate: false,
     hasExpiryDate: false,
     active: true,
+    sampleFile: null,
+    existingSampleFileUrl: "",
+    existingSampleFileName: "",
+    removeSampleFile: false,
 };
 
 const DocumentTypeListContent: React.FC = () => {
@@ -145,6 +155,10 @@ const DocumentTypeListContent: React.FC = () => {
             hasIssueDate: documentType.hasIssueDate,
             hasExpiryDate: documentType.hasExpiryDate,
             active: documentType.active,
+            sampleFile: null,
+            existingSampleFileUrl: documentType.sampleFileUrl || "",
+            existingSampleFileName: documentType.sampleFileName || "",
+            removeSampleFile: false,
         });
         setSheetOpen(true);
     };
@@ -159,6 +173,8 @@ const DocumentTypeListContent: React.FC = () => {
                     hasIssueDate: form.hasIssueDate,
                     hasExpiryDate: form.hasExpiryDate,
                     active: form.active,
+                    sampleFile: form.sampleFile || undefined,
+                    removeSampleFile: form.removeSampleFile,
                 });
                 toast.success("Đã cập nhật loại giấy tờ");
                 load(page);
@@ -170,6 +186,7 @@ const DocumentTypeListContent: React.FC = () => {
                     hasIssueDate: form.hasIssueDate,
                     hasExpiryDate: form.hasExpiryDate,
                     active: form.active,
+                    sampleFile: form.sampleFile || undefined,
                 });
                 toast.success("Đã tạo loại giấy tờ mới");
                 load(1);
@@ -310,6 +327,21 @@ const DocumentTypeListContent: React.FC = () => {
                                                 {dt.description}
                                             </div>
                                         )}
+                                        {dt.sampleFileUrl && (
+                                            <a
+                                                href={resolveAssetUrl(
+                                                    dt.sampleFileUrl,
+                                                )}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="block text-xs text-primary hover:underline"
+                                                onClick={e =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                Xem tệp mẫu
+                                            </a>
+                                        )}
                                     </TableCell>
                                     <TableCell>{dt.code}</TableCell>
                                     <TableCell>
@@ -420,6 +452,80 @@ const DocumentTypeListContent: React.FC = () => {
                                         }))
                                     }
                                 />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label>Tệp mẫu (tùy chọn)</Label>
+                                <p className="text-xs text-text_2">
+                                    Tài liệu minh họa giúp cả chủ nhà và cán bộ
+                                    duyệt hình dung rõ hơn giấy tờ này, ngoài
+                                    tên và mô tả.
+                                </p>
+                                {form.existingSampleFileUrl &&
+                                    !form.removeSampleFile &&
+                                    !form.sampleFile && (
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <a
+                                                href={resolveAssetUrl(
+                                                    form.existingSampleFileUrl,
+                                                )}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-primary hover:underline"
+                                            >
+                                                {form.existingSampleFileName ||
+                                                    "Xem tệp mẫu hiện tại"}
+                                            </a>
+                                            <button
+                                                type="button"
+                                                className="text-xs text-red-500 hover:underline"
+                                                onClick={() =>
+                                                    setForm(prev => ({
+                                                        ...prev,
+                                                        removeSampleFile: true,
+                                                    }))
+                                                }
+                                            >
+                                                Xóa
+                                            </button>
+                                        </div>
+                                    )}
+                                {form.removeSampleFile && (
+                                    <div className="flex items-center gap-2 text-xs text-text_2">
+                                        Sẽ xóa tệp mẫu hiện tại khi lưu.
+                                        <button
+                                            type="button"
+                                            className="text-primary hover:underline"
+                                            onClick={() =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    removeSampleFile: false,
+                                                }))
+                                            }
+                                        >
+                                            Hoàn tác
+                                        </button>
+                                    </div>
+                                )}
+                                <Input
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                    onChange={e => {
+                                        const file =
+                                            e.target.files?.[0] || null;
+                                        setForm(prev => ({
+                                            ...prev,
+                                            sampleFile: file,
+                                            removeSampleFile: file
+                                                ? false
+                                                : prev.removeSampleFile,
+                                        }));
+                                    }}
+                                />
+                                {form.sampleFile && (
+                                    <p className="text-xs text-text_2">
+                                        Đã chọn: {form.sampleFile.name}
+                                    </p>
+                                )}
                             </div>
                             <label className="flex items-center gap-2 text-sm">
                                 <Checkbox

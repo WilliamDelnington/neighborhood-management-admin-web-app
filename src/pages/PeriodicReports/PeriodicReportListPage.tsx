@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Download, Paperclip, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Download, Maximize2, Paperclip, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { EmptyState, ErrorState, LoadingState } from "@components/admin/DataStates";
+import FilePreviewDialog, {
+    FilePreviewContent,
+    PreviewSource,
+} from "@components/admin/FilePreviewDialog";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { Badge } from "@components/ui/badge";
@@ -138,6 +142,9 @@ const PeriodicReportListContent: React.FC = () => {
     // createPeriodicReport() thanh cong. Bat buoc phai co it nhat 1 file (khac
     // Correspondence/InfrastructureAsset - tuy chon o hai noi do).
     const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+    const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
+        null,
+    );
 
     const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
@@ -337,7 +344,81 @@ const PeriodicReportListContent: React.FC = () => {
                         {([['generalSituation', 'Tình hình chung'], ['highlights', 'Vấn đề nổi bật'], ['recommendations', 'Kiến nghị'], ['proposals', 'Đề xuất']] as [keyof PeriodicReportSections, string][]).map(([key, label]) => <div key={key}><Label>{label}</Label><Textarea className="mt-1" disabled={!!selected && !canEdit} value={form.sections[key] || ""} onChange={event => setForm(current => ({ ...current, sections: { ...current.sections, [key]: event.target.value } }))} /></div>)}
 
                         {selected ? (
-                            <section className="rounded-lg border p-3"><div className="mb-2 flex items-center justify-between"><h3 className="font-medium">Tệp đính kèm</h3>{canEdit && <label className="cursor-pointer"><input type="file" className="hidden" disabled={uploading} onChange={event => { void upload(event.target.files?.[0]); event.target.value = ""; }} /><span className="inline-flex items-center text-sm text-main"><Upload className="mr-1 h-4 w-4" /> {uploading ? "Đang tải..." : "Tải lên"}</span></label>}</div>{!selected.attachments?.length ? <p className="text-sm text-text_2">Chưa có tệp</p> : selected.attachments.map(file => <div key={file._id} className="flex items-center justify-between border-t py-2 text-sm"><a className="flex items-center gap-2 text-main hover:underline" href={resolveAssetUrl(file.url)} target="_blank" rel="noreferrer"><Paperclip className="h-4 w-4" />{file.name}</a>{canEdit && <Button size="icon" variant="ghost" onClick={() => void action(() => deletePeriodicReportAttachment(selected._id, file._id), "Đã xóa tệp")}><Trash2 className="h-4 w-4" /></Button>}</div>)}</section>
+                            <section className="rounded-lg border p-3">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <h3 className="font-medium">Tệp đính kèm</h3>
+                                    {canEdit && (
+                                        <label className="cursor-pointer">
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                disabled={uploading}
+                                                onChange={event => {
+                                                    void upload(event.target.files?.[0]);
+                                                    event.target.value = "";
+                                                }}
+                                            />
+                                            <span className="inline-flex items-center text-sm text-main">
+                                                <Upload className="mr-1 h-4 w-4" /> {uploading ? "Đang tải..." : "Tải lên"}
+                                            </span>
+                                        </label>
+                                    )}
+                                </div>
+                                {!selected.attachments?.length ? (
+                                    <p className="text-sm text-text_2">Chưa có tệp</p>
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {selected.attachments.map(file => (
+                                            <div key={file._id} className="rounded-lg border border-divider_01 p-3">
+                                                <div className="flex items-center justify-between gap-2 text-sm">
+                                                    <span className="flex min-w-0 items-center gap-2">
+                                                        <Paperclip className="h-4 w-4 shrink-0" />
+                                                        <span className="truncate">{file.name}</span>
+                                                    </span>
+                                                    <div className="flex shrink-0 items-center gap-1">
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            title="Xem lớn hơn"
+                                                            onClick={() =>
+                                                                setPreviewSource({
+                                                                    kind: "url",
+                                                                    name: file.name,
+                                                                    url: resolveAssetUrl(file.url),
+                                                                })
+                                                            }
+                                                        >
+                                                            <Maximize2 className="h-4 w-4" />
+                                                        </Button>
+                                                        {canEdit && (
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                onClick={() =>
+                                                                    void action(
+                                                                        () => deletePeriodicReportAttachment(selected._id, file._id),
+                                                                        "Đã xóa tệp",
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <FilePreviewContent
+                                                    source={{
+                                                        kind: "url",
+                                                        name: file.name,
+                                                        url: resolveAssetUrl(file.url),
+                                                    }}
+                                                    className="mt-2 h-56"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
                         ) : (
                             <section className="rounded-lg border p-3">
                                 <div className="mb-2 flex items-center justify-between">
@@ -361,14 +442,51 @@ const PeriodicReportListContent: React.FC = () => {
                                 {pendingFiles.length === 0 ? (
                                     <p className="text-sm text-text_2">Chưa có tệp</p>
                                 ) : (
-                                    pendingFiles.map((file, index) => (
-                                        <div key={`${file.name}-${index}`} className="flex items-center justify-between border-t py-2 text-sm">
-                                            <span className="flex items-center gap-2"><Paperclip className="h-4 w-4" />{file.name}</span>
-                                            <Button size="icon" variant="ghost" onClick={() => setPendingFiles(prev => prev.filter((_, i) => i !== index))}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))
+                                    <div className="flex flex-col gap-3">
+                                        {pendingFiles.map((file, index) => (
+                                            <div key={`${file.name}-${index}`} className="rounded-lg border border-divider_01 p-3">
+                                                <div className="flex items-center justify-between gap-2 text-sm">
+                                                    <span className="flex min-w-0 items-center gap-2">
+                                                        <Paperclip className="h-4 w-4 shrink-0" />
+                                                        <span className="truncate">{file.name}</span>
+                                                    </span>
+                                                    <div className="flex shrink-0 items-center gap-1">
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            title="Xem lớn hơn"
+                                                            onClick={() =>
+                                                                setPreviewSource({
+                                                                    kind: "file",
+                                                                    name: file.name,
+                                                                    file,
+                                                                })
+                                                            }
+                                                        >
+                                                            <Maximize2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            onClick={() =>
+                                                                setPendingFiles(prev => prev.filter((_, i) => i !== index))
+                                                            }
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <FilePreviewContent
+                                                    source={{
+                                                        kind: "file",
+                                                        name: file.name,
+                                                        file,
+                                                    }}
+                                                    className="mt-2 h-56"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </section>
                         )}
@@ -386,6 +504,11 @@ const PeriodicReportListContent: React.FC = () => {
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
+
+            <FilePreviewDialog
+                source={previewSource}
+                onOpenChange={isOpen => !isOpen && setPreviewSource(null)}
+            />
         </div>
     );
 };

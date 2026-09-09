@@ -148,6 +148,9 @@ const SurveyListContent: React.FC = () => {
                                 <TableHead>Tên khảo sát</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Số câu hỏi</TableHead>
+                                {canRespond && (
+                                    <TableHead>Bạn đã trả lời</TableHead>
+                                )}
                                 <TableHead aria-label="Thao tác" />
                             </TableRow>
                         </TableHeader>
@@ -189,23 +192,43 @@ const SurveyListContent: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{s.questions.length}</TableCell>
+                                    {canRespond && (
+                                        <TableCell>
+                                            {s.status !== "dang_mo" ? (
+                                                <span className="text-text_3">
+                                                    —
+                                                </span>
+                                            ) : s.hasResponded ? (
+                                                <Badge tone="green">
+                                                    Đã trả lời
+                                                </Badge>
+                                            ) : (
+                                                <Badge tone="gray">
+                                                    Chưa trả lời
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                    )}
                                     <TableCell
                                         onClick={e => e.stopPropagation()}
                                     >
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() =>
-                                                    navigate(
-                                                        `/surveys/${s._id}/results`,
-                                                    )
-                                                }
-                                            >
-                                                Kết quả
-                                            </Button>
+                                            {isOwnerOrCoEditor(s) && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        navigate(
+                                                            `/surveys/${s._id}/results`,
+                                                        )
+                                                    }
+                                                >
+                                                    Kết quả
+                                                </Button>
+                                            )}
                                             {canRespond &&
-                                                s.status === "dang_mo" && (
+                                                s.status === "dang_mo" &&
+                                                !s.hasResponded && (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -252,7 +275,15 @@ const SurveyListContent: React.FC = () => {
 
             <SurveyRespondDialog
                 survey={respondingSurvey}
-                onOpenChange={open => !open && setRespondingSurvey(null)}
+                onOpenChange={open => {
+                    if (!open) {
+                        setRespondingSurvey(null);
+                        // Dong hop thoai co the vi vua gui cau tra loi thanh
+                        // cong - tai lai trang de cot "Bạn đã trả lời" phan
+                        // anh dung trang thai moi nhat.
+                        load(page);
+                    }
+                }}
             />
         </div>
     );

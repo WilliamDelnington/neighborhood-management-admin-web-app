@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Paperclip, Trash2 } from "lucide-react";
 import { Button } from "@components/ui/button";
 import { LoadingState, EmptyState } from "@components/admin/DataStates";
+import FilePreviewDialog, {
+    PreviewSource,
+} from "@components/admin/FilePreviewDialog";
 import { resolveAssetUrl } from "@constants/common";
 import { FileAsset } from "@dts";
 
@@ -41,48 +44,66 @@ const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({
     deletingId = null,
     onDelete,
     emptyLabel = "Chưa có tài liệu đính kèm",
-}) => (
-    <div className={className}>
-        <h2 className="mb-2 text-base font-semibold">{title}</h2>
-        {loading && <LoadingState />}
-        {!loading && attachments.length === 0 && (
-            <EmptyState label={emptyLabel} />
-        )}
-        {!loading &&
-            attachments.map(a => (
-                <div
-                    key={a._id}
-                    className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
-                >
-                    <a
-                        href={resolveAssetUrl(a.url)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 text-primary hover:underline"
+}) => {
+    const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
+        null,
+    );
+
+    return (
+        <div className={className}>
+            <h2 className="mb-2 text-base font-semibold">{title}</h2>
+            {loading && <LoadingState />}
+            {!loading && attachments.length === 0 && (
+                <EmptyState label={emptyLabel} />
+            )}
+            {!loading &&
+                attachments.map(a => (
+                    <div
+                        key={a._id}
+                        className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
                     >
-                        <Paperclip className="h-3.5 w-3.5 shrink-0" />
-                        <span>
-                            {a.name}
-                            <span className="block text-xs text-text_2">
-                                {uploaderLabel(a.uploadedBy)} •{" "}
-                                {formatDateTime(a.createdAt)}
-                            </span>
-                        </span>
-                    </a>
-                    {canManage && onDelete && (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="!text-red-500"
-                            loading={deletingId === a._id}
-                            onClick={() => onDelete(a._id)}
+                        <button
+                            type="button"
+                            className="flex min-w-0 items-center gap-2 text-left text-primary hover:underline"
+                            onClick={() =>
+                                setPreviewSource({
+                                    kind: "url",
+                                    name: a.name,
+                                    url: resolveAssetUrl(a.url),
+                                })
+                            }
                         >
-                            <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                    )}
-                </div>
-            ))}
-    </div>
-);
+                            <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                            <span className="min-w-0">
+                                <span className="block truncate">
+                                    {a.name}
+                                </span>
+                                <span className="block text-xs text-text_2">
+                                    {uploaderLabel(a.uploadedBy)} •{" "}
+                                    {formatDateTime(a.createdAt)}
+                                </span>
+                            </span>
+                        </button>
+                        {canManage && onDelete && (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="!text-red-500"
+                                loading={deletingId === a._id}
+                                onClick={() => onDelete(a._id)}
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                        )}
+                    </div>
+                ))}
+
+            <FilePreviewDialog
+                source={previewSource}
+                onOpenChange={open => !open && setPreviewSource(null)}
+            />
+        </div>
+    );
+};
 
 export default AttachmentsPanel;

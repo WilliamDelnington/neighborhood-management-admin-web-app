@@ -1,4 +1,5 @@
 import type {
+    AccessScopeTier,
     AppointmentStatus,
     BusinessDocumentStatus,
     DangKyHop,
@@ -24,6 +25,7 @@ import type {
     LoaiYeuCauHoTro,
     MucDoAnNinh,
     MucNguyCoPccc,
+    NeighborhoodCollaboratorScope,
     NhomPhanAnh,
     OrganizationRepresentativeRole,
     RequestHouseRole,
@@ -700,4 +702,25 @@ export const USER_STATUS_TONE: Record<UserStatus, BadgeTone> = {
     active: "green",
     pending: "yellow",
     locked: "red",
+};
+
+// Pham vi du lieu (Role.scopeType) - xem RoleListPage.tsx (form cau hinh vai
+// tro) va ke hoach "Config-Driven Account Scope System" o backend.
+export const ACCESS_SCOPE_TIER_LABEL: Record<AccessScopeTier, string> = {
+    ALL: "Toàn bộ (không giới hạn)",
+    WARD: "Theo Phường/Xã được gán",
+    NEIGHBORHOOD: "Theo Tổ dân phố được gán",
+    HOUSE: "Theo Nhà số sở hữu",
+    HOUSEHOLD: "Theo Hộ dân đứng đầu",
+    BUSINESS: "Theo Hộ kinh doanh đại diện",
+    COMPANY: "Theo Công ty/doanh nghiệp đại diện",
+};
+
+// Chuyen tu NeighborhoodDetailPage.tsx sang dung chung voi RoleListPage.tsx
+// (cau hinh subScopeKinds cho vai tro dang "Cong tac vien").
+export const COLLABORATOR_SCOPE_LABEL: Record<NeighborhoodCollaboratorScope, string> = {
+    WHOLE_NEIGHBORHOOD: "Toàn Tổ",
+    STREET: "Một tuyến đường",
+    HOUSE_GROUP: "Một nhóm Nhà số",
+    CAMPAIGN: "Một chiến dịch",
 };

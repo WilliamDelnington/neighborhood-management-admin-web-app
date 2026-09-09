@@ -168,16 +168,9 @@ The application is a React single-page application with 67 page components. Its 
 - Read and add contextual replies.
 - Maintain a shared library of forms and files with create, edit, and delete operations.
 
-### Finance
-
-- List and filter income and expense transactions.
-- Create and edit finance transactions.
-- Cancel or delete transactions when allowed.
-- Display financial summary totals for the selected scope or period.
-
 ### Reporting
 
-- View consolidated reports for population, houses, businesses, complaints, PCCC, security, and finance.
+- View consolidated reports for population, houses, businesses, complaints, PCCC, and security.
 - View meeting- and survey-specific reports.
 - Filter reports by the supported period and neighborhood criteria.
 - Present report data with summary cards, tables, and bar charts.

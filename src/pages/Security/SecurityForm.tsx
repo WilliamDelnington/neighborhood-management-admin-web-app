@@ -70,6 +70,8 @@ interface SecurityFormProps {
     afterInspectionDate?: React.ReactNode;
     /** Noi dung chen ngay sau truong "Muc do" (vd. muc tao yeu cau xu ly). */
     afterLevel?: React.ReactNode;
+    /** Vo hieu hoa toan bo cac truong - dung cho nguoi dung chi co quyen xem. */
+    readOnly?: boolean;
 }
 
 /**
@@ -82,6 +84,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
     onChange,
     afterInspectionDate,
     afterLevel,
+    readOnly,
 }) => {
     const set = <K extends keyof SecurityFormValues>(
         key: K,
@@ -93,6 +96,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
             <HousePicker
                 value={values.houseId}
                 valueLabel={values.houseLabel}
+                disabled={readOnly}
                 onChange={(houseId, house: House) =>
                     onChange({
                         ...values,
@@ -106,6 +110,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 <Input
                     type="date"
                     value={values.inspectionDate}
+                    disabled={readOnly}
                     onChange={e => set("inspectionDate", e.target.value)}
                 />
             </div>
@@ -118,6 +123,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                     <Checkbox
                         id="hasCamera"
                         checked={values.hasCamera}
+                        disabled={readOnly}
                         onCheckedChange={checked =>
                             set("hasCamera", checked === true)
                         }
@@ -131,6 +137,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                     <Checkbox
                         id="hasSecurityComplaint"
                         checked={values.hasSecurityComplaint}
+                        disabled={readOnly}
                         onCheckedChange={checked =>
                             set("hasSecurityComplaint", checked === true)
                         }
@@ -144,6 +151,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                     <Checkbox
                         id="reportedToPolice"
                         checked={values.reportedToPolice}
+                        disabled={readOnly}
                         onCheckedChange={checked =>
                             set("reportedToPolice", checked === true)
                         }
@@ -155,6 +163,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 <Label>Mức độ</Label>
                 <Select
                     value={values.level}
+                    disabled={readOnly}
                     onValueChange={v => set("level", v as MucDoAnNinh)}
                 >
                     <SelectTrigger>
@@ -179,6 +188,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 <Label>Tình trạng theo dõi</Label>
                 <Select
                     value={values.monitoringStatus}
+                    disabled={readOnly}
                     onValueChange={v =>
                         set("monitoringStatus", v as TinhTrangTheoDoiAnNinh)
                     }
@@ -204,6 +214,7 @@ const SecurityForm: React.FC<SecurityFormProps> = ({
                 <Textarea
                     placeholder="Ghi chú thêm (nếu có)"
                     value={values.note}
+                    disabled={readOnly}
                     onChange={e => set("note", e.target.value)}
                 />
             </div>
