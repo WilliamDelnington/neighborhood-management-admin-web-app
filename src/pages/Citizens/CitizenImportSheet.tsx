@@ -72,6 +72,7 @@ const CITIZEN_MAPPING_FIELDS: {
     { key: "temporaryResidenceStartsAt", label: "Ngày bắt đầu tạm trú" },
     { key: "temporaryResidenceExpiresAt", label: "Ngày hết hạn tạm trú" },
     { key: "isResidencyDeclared", label: "Đã khai báo cư trú" },
+    { key: "isUnemployed", label: "Đang thất nghiệp" },
     { key: "isElderly", label: "Người cao tuổi" },
     { key: "isChild", label: "Trẻ em" },
     { key: "isDisabledOrSupportNeeded", label: "Người khuyết tật" },
@@ -484,6 +485,7 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                             <TableHead>Loại cư trú</TableHead>
                                             <TableHead>Thời hạn tạm trú</TableHead>
                                             <TableHead>Đã khai báo cư trú</TableHead>
+                                            <TableHead>Đang thất nghiệp</TableHead>
                                             <TableHead>Quan hệ với chủ hộ</TableHead>
                                             <TableHead>Nghề nghiệp</TableHead>
                                         </TableRow>
@@ -537,6 +539,9 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                                     {row.isResidencyDeclared
                                                         ? "Đã khai báo"
                                                         : "Chưa khai báo"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.isUnemployed ? "Có" : "Không"}
                                                 </TableCell>
                                                 <TableCell>
                                                     {row.relationToHead || "—"}

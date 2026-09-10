@@ -15,6 +15,7 @@ export interface CitizenInput {
     temporaryResidenceStartsAt?: string;
     temporaryResidenceExpiresAt?: string;
     isResidencyDeclared?: boolean;
+    isUnemployed?: boolean;
     isElderly?: boolean;
     isChild?: boolean;
     isDisabledOrSupportNeeded?: boolean;

@@ -39,6 +39,7 @@ export interface CitizenFormValues {
     temporaryResidenceStartsAt: string;
     temporaryResidenceExpiresAt: string;
     isResidencyDeclared: boolean;
+    isUnemployed: boolean;
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;
@@ -66,6 +67,7 @@ export const EMPTY_CITIZEN_FORM: CitizenFormValues = {
     temporaryResidenceStartsAt: "",
     temporaryResidenceExpiresAt: "",
     isResidencyDeclared: false,
+    isUnemployed: false,
     isElderly: false,
     isChild: false,
     isDisabledOrSupportNeeded: false,
@@ -90,7 +92,11 @@ export function toCitizenInput(values: CitizenFormValues): CitizenInput {
             : undefined,
         gender: values.gender,
         relationToHead: values.relationToHead.trim() || undefined,
-        occupation: values.occupation.trim() || undefined,
+        // Dang that nghiep thi khong con nghe nghiep de khai - bo qua gia tri
+        // con sot lai trong o nhap (da an di) thay vi gui len backend.
+        occupation: values.isUnemployed
+            ? undefined
+            : values.occupation.trim() || undefined,
         residenceType: values.residenceType,
         temporaryResidenceStartsAt: values.temporaryResidenceStartsAt
             ? new Date(values.temporaryResidenceStartsAt).toISOString()
@@ -99,6 +105,7 @@ export function toCitizenInput(values: CitizenFormValues): CitizenInput {
             ? new Date(values.temporaryResidenceExpiresAt).toISOString()
             : undefined,
         isResidencyDeclared: values.isResidencyDeclared,
+        isUnemployed: values.isUnemployed,
         isElderly: values.isElderly,
         isChild: values.isChild,
         isDisabledOrSupportNeeded: values.isDisabledOrSupportNeeded,
@@ -266,13 +273,28 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
                     />
                 )}
             </div>
-            <div className="space-y-1.5">
-                <Label>Nghề nghiệp/nơi làm việc</Label>
-                <Input
-                    value={values.occupation}
-                    onChange={e => set("occupation", e.target.value)}
+            <label
+                htmlFor="isUnemployed"
+                className="flex items-center gap-2 text-sm"
+            >
+                <Checkbox
+                    id="isUnemployed"
+                    checked={values.isUnemployed}
+                    onCheckedChange={checked =>
+                        set("isUnemployed", checked === true)
+                    }
                 />
-            </div>
+                Đang thất nghiệp
+            </label>
+            {!values.isUnemployed && (
+                <div className="space-y-1.5">
+                    <Label>Nghề nghiệp/nơi làm việc</Label>
+                    <Input
+                        value={values.occupation}
+                        onChange={e => set("occupation", e.target.value)}
+                    />
+                </div>
+            )}
             <div className="space-y-1.5">
                 <Label>Loại cư trú</Label>
                 <RadioGroup

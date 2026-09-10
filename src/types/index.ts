@@ -712,6 +712,7 @@ export type Citizen = {
     temporaryResidenceStartsAt?: string;
     temporaryResidenceExpiresAt?: string;
     isResidencyDeclared: boolean;
+    isUnemployed: boolean;
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;
@@ -1840,6 +1841,10 @@ export type DashboardSummary = {
         | "ward"
         | "neighborhood"
         | "police"
+        | "social_affairs"
+        | "health"
+        | "education"
+        | "economy_labor"
         | "staff";
     scopeLabel: string;
     generatedAt: string;
@@ -1953,6 +1958,41 @@ export type DashboardSummary = {
     };
     neighborhoodOverview?: NeighborhoodOverview;
     wardOverview?: WardOverview;
+    departmentOverview?: DepartmentOverview;
+};
+
+export type ComplaintSummary = {
+    unprocessed: number;
+    inProgress: number;
+    processed: number;
+    total: number;
+};
+
+// Khoi rieng cho tung "phong ban" cap Phuong - chi field ung voi audience hien
+// tai duoc dien (xem summary.audience), cac field con lai la undefined.
+export type DepartmentOverview = {
+    police?: {
+        undeclaredResidency: number;
+        militaryAgeMen: number;
+    };
+    socialAffairs?: {
+        women: number;
+        elderly: number;
+        children: number;
+        veterans: number;
+        martyrs: number;
+        poorHouseholds: number;
+    };
+    health?: {
+        diseaseMonitoredHouseholds: number;
+    };
+    education?: {
+        schoolAgeChildren: number;
+    };
+    economyLabor?: {
+        businessUnits: number;
+        unemployed: number;
+    };
 };
 
 // Chi tra ve khi audience === "neighborhood" (to truong/to pho). Cong tac
@@ -1977,6 +2017,15 @@ export type NeighborhoodOverview = {
         elderly: number;
         children: number;
         needsSupport: number;
+        women: number;
+        veterans: number;
+        martyrs: number;
+        poorHouseholds: number;
+        unemployed: number;
+        militaryAgeMen: number;
+        undeclaredResidency: number;
+        diseaseMonitoredHouseholds: number;
+        registeredHouses: number;
     };
     business: {
         dataAvailable: boolean;
@@ -2005,6 +2054,7 @@ export type NeighborhoodOverview = {
         averageSatisfaction: number | null;
         ratedComplaintCount: number;
     };
+    complaintSummary: ComplaintSummary;
 };
 
 export type WardNeighborhoodRow = {
@@ -2023,6 +2073,13 @@ export type WardNeighborhoodRow = {
 // chinh duoc gan wardCode).
 export type WardOverview = {
     neighborhoods: WardNeighborhoodRow[];
+    houseSummary: {
+        neighborhoods: number;
+        houses: number;
+        owners: number;
+        businessUnits: number;
+    };
+    complaintSummary: ComplaintSummary;
     dataQuality: {
         duplicateAddressGroups: number;
         duplicateAddressHouses: number;

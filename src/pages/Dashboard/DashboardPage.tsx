@@ -50,6 +50,19 @@ import { fetchDashboardSummary } from "@service/dashboardApi";
 import NeighborhoodDashboardView from "./NeighborhoodDashboardView";
 import WardDashboardView from "./WardDashboardView";
 
+// 6 audience "ho hang" cap Phuong - dung chung khoi Nha so/Phan anh
+// (WardDashboardView), khac audience "neighborhood" (To truong/To pho, xem
+// NeighborhoodDashboardView) va cac audience khac (system_admin/staff) van
+// dung bo section chung phia duoi trong file nay.
+const WARD_FAMILY_AUDIENCES: DashboardSummary["audience"][] = [
+    "ward",
+    "police",
+    "social_affairs",
+    "health",
+    "education",
+    "economy_labor",
+];
+
 const AUDIENCE_COPY: Record<
     DashboardSummary["audience"],
     { label: string; description: string }
@@ -67,8 +80,24 @@ const AUDIENCE_COPY: Record<
         description: "Việc cần xử lý và tiến độ trong Tổ dân phố",
     },
     police: {
-        label: "An ninh khu vực",
+        label: "Công an phường",
         description: "Ưu tiên an ninh, cư trú và nguy cơ PCCC",
+    },
+    social_affairs: {
+        label: "Văn hóa – Xã hội",
+        description: "Số liệu an sinh xã hội trong phạm vi Phường/xã",
+    },
+    health: {
+        label: "Y tế",
+        description: "Theo dõi tình hình dịch bệnh trong phạm vi Phường/xã",
+    },
+    education: {
+        label: "Giáo dục",
+        description: "Số liệu trẻ trong độ tuổi đi học",
+    },
+    economy_labor: {
+        label: "Kinh tế, Lao động",
+        description: "Số liệu kinh tế và lao động trong phạm vi Phường/xã",
     },
     staff: {
         label: "Công việc được giao",
@@ -116,6 +145,14 @@ const QUICK_MODULE_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "reports",
         "houses",
     ],
+    // 4 vai tro "phong ban" moi - danh sach truy cap nhanh chi mang tinh tham
+    // khao (nhieu vai tro trong so nay chi co dashboard.read + vai quyen doc
+    // hep, se khong thay hau het cac module o day do khong du quyen truy cap
+    // module tuong ung - hasModulePermission da tu loc).
+    social_affairs: ["residents", "houses", "reports"],
+    health: ["houses", "reports"],
+    education: ["residents", "reports"],
+    economy_labor: ["businesses", "residents", "reports"],
     staff: ["requests", "houses", "reports"],
 };
 
@@ -144,6 +181,10 @@ const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "population",
     ],
     police: ["risks", "complaints", "requests", "population"],
+    social_affairs: ["population", "requests"],
+    health: ["population", "requests"],
+    education: ["population", "requests"],
+    economy_labor: ["population", "requests"],
     staff: ["requests", "population", "complaints", "inspections"],
 };
 
@@ -153,18 +194,22 @@ const inferDashboardAudience = (
     const roles = user?.roles || [];
     if (roles.includes("admin")) return "system_admin";
     if (
-        roles.includes("secretary") ||
-        roles.includes("people_committee_official")
-    ) {
-        return "ward";
-    }
-    if (
         roles.includes("neighborhood_leader") ||
         roles.includes("neighborhood_coleader")
     ) {
         return "neighborhood";
     }
     if (roles.includes("regional_police")) return "police";
+    if (roles.includes("social_affairs_official")) return "social_affairs";
+    if (roles.includes("health_official")) return "health";
+    if (roles.includes("education_official")) return "education";
+    if (roles.includes("economy_labor_official")) return "economy_labor";
+    if (
+        roles.includes("secretary") ||
+        roles.includes("people_committee_official")
+    ) {
+        return "ward";
+    }
     return "staff";
 };
 
@@ -766,12 +811,12 @@ const DashboardContent: React.FC = () => {
             {summary.audience === "neighborhood" && (
                 <NeighborhoodDashboardView summary={summary} />
             )}
-            {summary.audience === "ward" && (
+            {WARD_FAMILY_AUDIENCES.includes(summary.audience) && (
                 <WardDashboardView summary={summary} />
             )}
 
             {summary.audience !== "neighborhood" &&
-                summary.audience !== "ward" && (
+                !WARD_FAMILY_AUDIENCES.includes(summary.audience) && (
                     <>
                         {attentionItems.length > 0 && (
                 <section>

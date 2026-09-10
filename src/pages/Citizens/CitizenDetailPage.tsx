@@ -57,6 +57,7 @@ const citizenToForm = (c: Citizen): CitizenFormValues => {
             ? c.temporaryResidenceExpiresAt.slice(0, 10)
             : "",
         isResidencyDeclared: c.isResidencyDeclared,
+        isUnemployed: c.isUnemployed,
         isElderly: c.isElderly,
         isChild: c.isChild,
         isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
@@ -250,6 +251,11 @@ const CitizenDetailContent: React.FC = () => {
                                                 ? "Đã khai báo cư trú"
                                                 : "Chưa khai báo cư trú"}
                                         </Badge>
+                                        {citizen.isUnemployed && (
+                                            <Badge tone="yellow">
+                                                Đang thất nghiệp
+                                            </Badge>
+                                        )}
                                         {citizen.isElderly && (
                                             <Badge tone="blue">
                                                 Người cao tuổi

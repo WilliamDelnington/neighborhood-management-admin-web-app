@@ -116,6 +116,7 @@ const citizenToForm = (c: Citizen, householdId: string): CitizenFormValues => ({
         ? c.temporaryResidenceExpiresAt.slice(0, 10)
         : "",
     isResidencyDeclared: c.isResidencyDeclared,
+    isUnemployed: c.isUnemployed,
     isElderly: c.isElderly,
     isChild: c.isChild,
     isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,

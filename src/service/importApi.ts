@@ -117,6 +117,7 @@ export interface CitizenImportPreviewRow {
     temporaryResidenceStartsAt?: string;
     temporaryResidenceExpiresAt?: string;
     isResidencyDeclared: boolean;
+    isUnemployed: boolean;
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;
@@ -150,6 +151,7 @@ export interface CitizenColumnMapping {
     temporaryResidenceStartsAt?: string;
     temporaryResidenceExpiresAt?: string;
     isResidencyDeclared?: string;
+    isUnemployed?: string;
     isElderly?: string;
     isChild?: string;
     isDisabledOrSupportNeeded?: string;
