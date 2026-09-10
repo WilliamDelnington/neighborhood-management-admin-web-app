@@ -11,14 +11,20 @@ import { request } from "./request";
 /**
  * Danh sach rut gon nhan vien co the duoc gan phu trach mot loai viec - mo cho
  * bat ky vai tro nao dang giu permission truyen vao (khong chi admin), tra ve
- * toi thieu du lieu (id, displayName). Mac dinh "complaints.assign" de tuong
- * thich cac noi da goi ham nay truoc khi co tham so nay.
+ * toi thieu du lieu (id, displayName, roles). Mac dinh "complaints.assign" de
+ * tuong thich cac noi da goi ham nay truoc khi co tham so nay.
+ *
+ * `wardCode`: tuy chon, thu hep danh sach theo pham vi phuong/xa cua ban ghi
+ * dang chon nguoi phu trach (vd wardCode cua mot Complaint cu the) - xem
+ * userService.listAssignableStaff o backend.
  */
 export const fetchAssignableStaff = (
     permission = "complaints.assign",
+    wardCode?: number,
 ): Promise<AssignableStaff[]> =>
     request<AssignableStaff[]>("GET", API.USERS_ASSIGNABLE_STAFF, {
         permission,
+        wardCode,
     });
 
 /**
