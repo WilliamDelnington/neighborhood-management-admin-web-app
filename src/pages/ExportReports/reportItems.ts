@@ -30,8 +30,11 @@ export const householdLabelOf = (householdId: Citizen["householdId"]): string =>
 
 export type ReportItem = {
     key: string;
-    order: number;
     label: string;
+    // Quyen rieng cho tung danh sach (dang ky trong permissionRegistry.ts o
+    // backend, nhom "export_reports") - cho phep phan quyen ai duoc xem/xuat
+    // TUNG danh sach cu the thay vi 1 quyen chung cho ca tinh nang.
+    permission: string;
     // Khong co "filter" nghia la du lieu chua ho tro loc/xem/xuat muc nay
     // (chua co truong tuong ung trong du lieu nhan khau/ho dan) - hien thi
     // nhan "Sắp có" thay vi cho bam vao xem de khong tao chuc nang gia.
@@ -45,13 +48,13 @@ export type ReportItem = {
 export const REPORT_ITEMS: ReportItem[] = [
     {
         key: "unregistered-residency",
-        order: 1,
         label: "Xuất danh sách chưa khai báo cư trú",
+        permission: "reports.export_citizens.unregistered_residency",
     },
     {
         key: "military-age-male",
-        order: 2,
         label: "Xuất danh sách nam trong độ tuổi nhập ngũ",
+        permission: "reports.export_citizens.military_age_male",
         filter: c => {
             const age = ageOf(c.birthDate);
             return (
@@ -64,50 +67,54 @@ export const REPORT_ITEMS: ReportItem[] = [
     },
     {
         key: "women",
-        order: 3,
         label: "Xuất danh sách Phụ nữ",
+        permission: "reports.export_citizens.women",
         filter: c => c.gender === "nu",
     },
     {
         key: "elderly",
-        order: 4,
         label: "Xuất danh sách Người cao tuổi",
+        permission: "reports.export_citizens.elderly",
         filter: c => c.isElderly,
     },
     {
         key: "children",
-        order: 5,
         label: "Xuất danh sách Trẻ em",
+        permission: "reports.export_citizens.children",
         filter: c => c.isChild,
     },
     {
         key: "veterans",
-        order: 6,
         label: "Xuất danh sách Cựu chiến binh",
+        permission: "reports.export_citizens.veterans",
         filter: c => c.isVeteran,
     },
     {
         key: "martyrs",
-        order: 7,
         label: "Xuất danh sách Liệt sĩ/TB/BB",
+        permission: "reports.export_citizens.martyrs",
         filter: c => c.isMartyr || c.isMartyrFamily,
     },
     {
         key: "poor-households",
-        order: 8,
         label: "Xuất danh sách Hộ nghèo/cận nghèo",
+        permission: "reports.export_citizens.poor_households",
     },
     {
         key: "disease-monitoring",
-        order: 9,
         label: "Xuất danh sách theo dõi dịch bệnh",
+        permission: "reports.export_citizens.disease_monitoring",
     },
     {
         key: "unemployed",
-        order: 10,
         label: "Xuất danh sách Thất nghiệp",
+        permission: "reports.export_citizens.unemployed",
     },
 ];
+
+export const ALL_REPORT_PERMISSIONS: string[] = REPORT_ITEMS.map(
+    item => item.permission,
+);
 
 export const fileNameFor = (label: string) =>
     `${label

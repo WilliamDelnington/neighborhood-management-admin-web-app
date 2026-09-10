@@ -6,16 +6,28 @@ import { Badge } from "@components/ui/badge";
 import { Card, CardContent } from "@components/ui/card";
 import PageHeader from "@components/admin/PageHeader";
 import { cn } from "@lib/utils";
-import { REPORT_ITEMS } from "./reportItems";
+import { useAuthStore } from "@store/authStore";
+import { ALL_REPORT_PERMISSIONS, REPORT_ITEMS } from "./reportItems";
 
 const ExportReportListPage: React.FC = () => (
-    <AdminGuard permissions={["reports.export"]}>
+    <AdminGuard permissions={ALL_REPORT_PERMISSIONS}>
         <ExportReportListContent />
     </AdminGuard>
 );
 
 const ExportReportListContent: React.FC = () => {
     const navigate = useNavigate();
+    // Lay thang tu store (khong goi usePermission trong .map ben duoi - goi
+    // hook ben trong callback vi pham rules of hooks) roi tu kiem tra quyen
+    // cho tung the.
+    const grantedPermissions = useAuthStore(
+        state => state.user?.permissions ?? [],
+    );
+    // An han cac danh sach khong duoc cap quyen thay vi hien "Khong co
+    // quyen" - nguoi khong co quyen se khong biet danh sach do ton tai.
+    const visibleItems = REPORT_ITEMS.filter(item =>
+        grantedPermissions.includes(item.permission),
+    );
 
     return (
         <div>
@@ -25,7 +37,7 @@ const ExportReportListContent: React.FC = () => {
             />
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {REPORT_ITEMS.map(item => {
+                {visibleItems.map((item, index) => {
                     const clickable = Boolean(item.filter);
                     return (
                         <Card
@@ -57,7 +69,7 @@ const ExportReportListContent: React.FC = () => {
                             <CardContent className="flex flex-1 items-start justify-between gap-3 p-4">
                                 <div className="flex flex-1 items-start gap-2.5">
                                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue_10 text-xs font-semibold text-primary">
-                                        {item.order}
+                                        {index + 1}
                                     </span>
                                     <span className="text-sm font-medium leading-snug">
                                         {item.label}

@@ -28,7 +28,12 @@ import { Citizen, Neighborhood } from "@dts";
 import { fetchAllCitizens } from "@service/citizenApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import { downloadExcel } from "./exportExcel";
-import { fileNameFor, householdLabelOf, REPORT_ITEMS } from "./reportItems";
+import {
+    ALL_REPORT_PERMISSIONS,
+    fileNameFor,
+    householdLabelOf,
+    REPORT_ITEMS,
+} from "./reportItems";
 
 const ALL_NEIGHBORHOOD = "all";
 
@@ -40,11 +45,20 @@ const initialsOf = (fullName: string) =>
         .map(part => part.charAt(0).toUpperCase())
         .join("");
 
-const ExportReportDetailPage: React.FC = () => (
-    <AdminGuard permissions={["reports.export"]}>
-        <ExportReportDetailContent />
-    </AdminGuard>
-);
+const ExportReportDetailPage: React.FC = () => {
+    const { key } = useParams<{ key: string }>();
+    const item = REPORT_ITEMS.find(i => i.key === key);
+    // Chi mot danh sach chua biet (:key la gia) moi fallback ve toan bo quyen
+    // - khi biet dung danh sach nao thi chi doi hoi DUNG quyen cua danh sach
+    // do, khong phai bat ky quyen export nao khac.
+    return (
+        <AdminGuard
+            permissions={item ? [item.permission] : ALL_REPORT_PERMISSIONS}
+        >
+            <ExportReportDetailContent />
+        </AdminGuard>
+    );
+};
 
 const ExportReportDetailContent: React.FC = () => {
     const { key } = useParams<{ key: string }>();
