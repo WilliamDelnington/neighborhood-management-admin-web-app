@@ -350,6 +350,57 @@ export const VERIFICATION_STATUS_TONE: Record<VerificationStatus, BadgeTone> = {
     locked: "red",
 };
 
+// 6 "trang thai dac biet" cua ho dan - 4 nhap tay (needsSupport la truong da
+// co san tu truoc) + 2 tu tinh tu Citizen cua ho dan (backend tu dong dong bo,
+// xem citizenService.recomputeHouseholdFlags ben backend). Dinh nghia 1 noi
+// duy nhat de HouseholdForm/HouseholdDetailPage/HouseholdListPage dung chung,
+// tranh lap lai danh sach 6 muc o nhieu file.
+export type HouseholdStateKey =
+    | "needsSupport"
+    | "isNearPoor"
+    | "isMartyrFamilyHousehold"
+    | "isLonelyElderly"
+    | "hasDisabledChild"
+    | "hasDisabledPerson";
+
+export interface HouseholdStateMeta {
+    key: HouseholdStateKey;
+    label: string;
+    tone: BadgeTone;
+    // true = tu tinh (chi doc, khong co checkbox chinh sua); false = nguoi
+    // dung tu bat/tat qua HouseholdForm.
+    auto: boolean;
+}
+
+export const HOUSEHOLD_STATE_LIST: HouseholdStateMeta[] = [
+    { key: "needsSupport", label: "Hộ cần hỗ trợ", tone: "yellow", auto: false },
+    { key: "isNearPoor", label: "Hộ cận nghèo", tone: "yellow", auto: false },
+    {
+        key: "isMartyrFamilyHousehold",
+        label: "Gia đình liệt sĩ",
+        tone: "red",
+        auto: false,
+    },
+    {
+        key: "isLonelyElderly",
+        label: "NCT sống một mình neo đơn",
+        tone: "blue",
+        auto: false,
+    },
+    {
+        key: "hasDisabledChild",
+        label: "Có trẻ em khuyết tật",
+        tone: "gray",
+        auto: true,
+    },
+    {
+        key: "hasDisabledPerson",
+        label: "Có người khuyết tật",
+        tone: "gray",
+        auto: true,
+    },
+];
+
 export const HOUSE_USAGE_TYPE_LABEL: Record<HouseUsageType, string> = {
     household: "Hộ dân",
     business: "Hộ kinh doanh",

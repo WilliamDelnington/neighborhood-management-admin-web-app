@@ -41,6 +41,7 @@ import { usePermission } from "@store/authStore";
 import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { AppError, Citizen, Household, VerificationStatus } from "@dts";
 import {
+    HOUSEHOLD_STATE_LIST,
     LOAI_SO_HUU_LABEL,
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
@@ -87,6 +88,9 @@ const toFormValues = (h: Household): HouseholdFormValues => ({
     memberCount: h.memberCount ? String(h.memberCount) : "",
     ownershipType: h.ownershipType,
     needsSupport: h.needsSupport,
+    isNearPoor: h.isNearPoor,
+    isMartyrFamilyHousehold: h.isMartyrFamilyHousehold,
+    isLonelyElderly: h.isLonelyElderly,
     note: h.note || "",
 });
 
@@ -101,6 +105,13 @@ const citizenToForm = (c: Citizen, householdId: string): CitizenFormValues => ({
     householdId,
     householdLabel: "",
     residenceType: c.residenceType,
+    temporaryResidenceStartsAt: c.temporaryResidenceStartsAt
+        ? c.temporaryResidenceStartsAt.slice(0, 10)
+        : "",
+    temporaryResidenceExpiresAt: c.temporaryResidenceExpiresAt
+        ? c.temporaryResidenceExpiresAt.slice(0, 10)
+        : "",
+    isResidencyDeclared: c.isResidencyDeclared,
     isElderly: c.isElderly,
     isChild: c.isChild,
     isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
@@ -344,11 +355,13 @@ const HouseholdDetailContent: React.FC = () => {
                                         {household.code}
                                     </h2>
                                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                                        {household.needsSupport && (
-                                            <Badge tone="yellow">
-                                                Cần hỗ trợ
+                                        {HOUSEHOLD_STATE_LIST.filter(
+                                            s => household[s.key],
+                                        ).map(s => (
+                                            <Badge key={s.key} tone={s.tone}>
+                                                {s.label}
                                             </Badge>
-                                        )}
+                                        ))}
                                         <Badge
                                             tone={
                                                 VERIFICATION_STATUS_TONE[

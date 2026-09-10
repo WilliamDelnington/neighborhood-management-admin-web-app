@@ -12,6 +12,9 @@ export interface CitizenInput {
     occupation?: string;
     householdId: string;
     residenceType?: LoaiCuTru;
+    temporaryResidenceStartsAt?: string;
+    temporaryResidenceExpiresAt?: string;
+    isResidencyDeclared?: boolean;
     isElderly?: boolean;
     isChild?: boolean;
     isDisabledOrSupportNeeded?: boolean;

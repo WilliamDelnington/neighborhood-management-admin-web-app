@@ -555,6 +555,12 @@ export type Household = {
     memberCount: number;
     ownershipType: LoaiSoHuu;
     needsSupport: boolean;
+    isNearPoor: boolean;
+    isMartyrFamilyHousehold: boolean;
+    isLonelyElderly: boolean;
+    // Tu tinh (backend tu dong dong bo tu Citizen cua ho dan) - chi doc.
+    hasDisabledChild: boolean;
+    hasDisabledPerson: boolean;
     houseId?: string | House;
     status: VerificationStatus;
     approvalNote?: string;
@@ -696,6 +702,9 @@ export type Citizen = {
     occupation?: string;
     householdId: string | Household;
     residenceType: LoaiCuTru;
+    temporaryResidenceStartsAt?: string;
+    temporaryResidenceExpiresAt?: string;
+    isResidencyDeclared: boolean;
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;

@@ -12,10 +12,12 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import HeadOfHouseholdUserPicker from "@components/admin/HeadOfHouseholdUserPicker";
-import { LOAI_SO_HUU_LABEL } from "@constants/domain";
+import { HOUSEHOLD_STATE_LIST, LOAI_SO_HUU_LABEL } from "@constants/domain";
 import { LoaiSoHuu } from "@dts";
 import { HouseholdInput } from "@service/householdApi";
 import { useAuthStore } from "@store/authStore";
+
+const MANUAL_HOUSEHOLD_STATES = HOUSEHOLD_STATE_LIST.filter(s => !s.auto);
 
 export interface HouseholdFormValues {
     cluster: string;
@@ -27,6 +29,9 @@ export interface HouseholdFormValues {
     memberCount: string;
     ownershipType: LoaiSoHuu;
     needsSupport: boolean;
+    isNearPoor: boolean;
+    isMartyrFamilyHousehold: boolean;
+    isLonelyElderly: boolean;
     note: string;
 }
 
@@ -40,6 +45,9 @@ export const EMPTY_HOUSEHOLD_FORM: HouseholdFormValues = {
     memberCount: "",
     ownershipType: "chinh_chu",
     needsSupport: false,
+    isNearPoor: false,
+    isMartyrFamilyHousehold: false,
+    isLonelyElderly: false,
     note: "",
 };
 
@@ -58,6 +66,9 @@ export function toHouseholdInput(
             : undefined,
         ownershipType: values.ownershipType,
         needsSupport: values.needsSupport,
+        isNearPoor: values.isNearPoor,
+        isMartyrFamilyHousehold: values.isMartyrFamilyHousehold,
+        isLonelyElderly: values.isLonelyElderly,
         houseId: houseId !== undefined ? houseId : undefined,
         note: values.note.trim() || undefined,
     };
@@ -231,19 +242,27 @@ const HouseholdForm: React.FC<HouseholdFormProps> = ({
                     ))}
                 </RadioGroup>
             </div>
-            <label
-                htmlFor="needsSupport"
-                className="flex items-center gap-2 text-sm"
-            >
-                <Checkbox
-                    id="needsSupport"
-                    checked={values.needsSupport}
-                    onCheckedChange={checked =>
-                        set("needsSupport", checked === true)
-                    }
-                />
-                Hộ cần hỗ trợ
-            </label>
+            <div className="flex flex-col gap-2">
+                {MANUAL_HOUSEHOLD_STATES.map(s => (
+                    <label
+                        key={s.key}
+                        htmlFor={s.key}
+                        className="flex items-center gap-2 text-sm"
+                    >
+                        <Checkbox
+                            id={s.key}
+                            checked={values[s.key as keyof HouseholdFormValues] as boolean}
+                            onCheckedChange={checked =>
+                                set(
+                                    s.key as keyof HouseholdFormValues,
+                                    checked === true,
+                                )
+                            }
+                        />
+                        {s.label}
+                    </label>
+                ))}
+            </div>
             <div className="space-y-1.5">
                 <Label>Ghi chú</Label>
                 <Textarea
