@@ -20,6 +20,7 @@ import {
     RefreshCw,
     ShieldAlert,
     Users,
+    Wallet,
     Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -124,6 +125,7 @@ const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "complaints",
         "requests",
         "risks",
+        "finance",
         "population",
     ],
     ward: [
@@ -132,6 +134,7 @@ const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "complaints",
         "population",
         "risks",
+        "finance",
     ],
     neighborhood: [
         "inspections",
@@ -268,6 +271,13 @@ const formatDateTime = (iso?: string) => {
         timeStyle: "short",
     });
 };
+
+const formatMoney = (value: number) =>
+    new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(value);
 
 type DashboardChartSpec = {
     key: string;
@@ -508,6 +518,24 @@ const DashboardContent: React.FC = () => {
             },
         ];
     }
+    let financeChartData = summary.charts.financeByMonth;
+    const hasFinanceHistory = financeChartData.some(
+        row => row.income > 0 || row.expense > 0,
+    );
+    if (
+        !hasFinanceHistory &&
+        summary.financeSummary.monthIncome + summary.financeSummary.monthExpense >
+            0
+    ) {
+        financeChartData = [
+            {
+                label: "Tháng hiện tại",
+                income: summary.financeSummary.monthIncome,
+                expense: summary.financeSummary.monthExpense,
+            },
+        ];
+    }
+
     const riskSeries: ReportBarChartSeries[] = [
         ...(summary.capabilities.pccc
             ? [
@@ -665,6 +693,24 @@ const DashboardContent: React.FC = () => {
                   },
               ]
             : []),
+        ...(summary.capabilities.finance &&
+        financeChartData.some(row => row.income > 0 || row.expense > 0)
+            ? [
+                  {
+                      key: "finance",
+                      title: "Thu – Chi 6 tháng gần nhất",
+                      description:
+                          "Không tính các giao dịch đã hủy; đơn vị hiển thị là đồng.",
+                      data: financeChartData.map(row => ({ ...row })),
+                      series: [
+                          { key: "income", name: "Thu", color: "#16a34a" },
+                          { key: "expense", name: "Chi", color: "#f97316" },
+                      ],
+                      variant: "line" as const,
+                      link: "/finance",
+                  },
+              ]
+            : []),
     ];
     const chartPriority = CHART_PRIORITY[summary.audience] || CHART_PRIORITY.staff;
     chartSpecs.sort(
@@ -676,7 +722,8 @@ const DashboardContent: React.FC = () => {
         summary.capabilities.complaints ||
         summary.capabilities.population ||
         summary.capabilities.pccc ||
-        summary.capabilities.security;
+        summary.capabilities.security ||
+        summary.capabilities.finance;
     const primaryCharts = chartSpecs.filter(chart => chart.variant !== "donut");
     const donutCharts = chartSpecs.filter(chart => chart.variant === "donut");
 
@@ -852,7 +899,8 @@ const DashboardContent: React.FC = () => {
             )}
 
             {(summary.capabilities.inspections ||
-                summary.capabilities.surveys) && (
+                summary.capabilities.surveys ||
+                summary.capabilities.finance) && (
                 <section>
                     <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
                         <Activity className="h-4 w-4 text-main" />
@@ -888,6 +936,21 @@ const DashboardContent: React.FC = () => {
                                     onClick={() => navigate("/surveys")}
                                 />
                             </>
+                        )}
+                        {summary.capabilities.finance && (
+                            <StatCard
+                                label="Chênh lệch Thu – Chi tháng"
+                                value={formatMoney(
+                                    summary.financeSummary.monthNet,
+                                )}
+                                icon={Wallet}
+                                tone={
+                                    summary.financeSummary.monthNet >= 0
+                                        ? "success"
+                                        : "danger"
+                                }
+                                onClick={() => navigate("/finance")}
+                            />
                         )}
                     </div>
                 </section>
