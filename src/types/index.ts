@@ -76,6 +76,10 @@ export type User = {
 export type AssignableStaff = {
     id: string;
     displayName: string;
+    // Optional: mot so noi dung chung shape nay chi de luu id+displayName
+    // (vd AppointmentService.assignedOfficerUserIds), khong goi qua
+    // listAssignableStaff nen khong co roles.
+    roles?: Role[];
 };
 
 export type ResidentSearchResult = {
