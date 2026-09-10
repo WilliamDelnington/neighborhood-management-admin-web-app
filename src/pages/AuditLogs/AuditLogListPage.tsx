@@ -46,6 +46,7 @@ const TARGET_MODELS = [
     "Meeting",
     "Announcement",
     "Survey",
+    "FinanceTransaction",
     "FileAsset",
     "Setting",
     "ImportJob",

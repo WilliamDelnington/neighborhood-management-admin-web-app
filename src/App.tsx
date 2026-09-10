@@ -178,6 +178,9 @@ const SurveyResultsPage = React.lazy(
 const SurveyHistoryPage = React.lazy(
     () => import("@pages/Surveys/SurveyHistoryPage"),
 );
+const FinanceListPage = React.lazy(
+    () => import("@pages/Finance/FinanceListPage"),
+);
 const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
 const KpiDashboardPage = React.lazy(() => import("@pages/Kpis/KpiDashboardPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
@@ -490,6 +493,7 @@ const App: React.FC = () => {
                             path="/utility-apps"
                             element={<UtilityAppListPage />}
                         />
+                        <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route path="/kpis" element={<KpiDashboardPage />} />
                         <Route path="/settings" element={<SettingsPage />} />

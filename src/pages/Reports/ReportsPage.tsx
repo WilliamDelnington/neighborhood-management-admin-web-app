@@ -23,6 +23,7 @@ import {
     fetchComplaintReport,
     fetchPcccReport,
     fetchSecurityReport,
+    fetchFinanceReport,
     fetchHouseReport,
     fetchBusinessReport,
     fetchHouseholdReport,
@@ -41,6 +42,7 @@ type ReportTabKey =
     | "complaints"
     | "pccc"
     | "security"
+    | "finance"
     | "houses"
     | "business"
     | "households"
@@ -56,9 +58,9 @@ type ReportTab = {
 type RangeMode = "all" | "range" | "month" | "year";
 
 // Nhan tieng Viet cho tung truong trong du lieu bao cao (xem cac kieu
-// PopulationReport/ComplaintReport/PcccReport/SecurityReport trong
-// reportService.ts) - de man hinh bao cao khong hien lai ten truong tieng
-// Anh/camelCase tho nhu "Total Households Checked".
+// PopulationReport/ComplaintReport/PcccReport/SecurityReport/FinanceReport
+// trong reportService.ts) - de man hinh bao cao khong hien lai ten truong
+// tieng Anh/camelCase tho nhu "Total Households Checked".
 const KEY_LABEL: Record<string, string> = {
     totalHouseholds: "Tổng số hộ",
     totalCitizens: "Tổng số nhân khẩu",
@@ -286,6 +288,22 @@ const CHART_SPECS: Partial<Record<ReportTabKey, ChartSpec[]>> = {
             series: [{ key: "count", name: "Số lượng", color: CHART_COLOR_1 }],
         },
     ],
+    finance: [
+        {
+            dataKey: "byMonth",
+            title: "Thu - Chi theo tháng",
+            labelKey: "monthLabel",
+            orientation: "categories-x",
+            series: [
+                { key: "income", name: "Thu", color: CHART_COLOR_1 },
+                { key: "expense", name: "Chi", color: CHART_COLOR_2 },
+            ],
+            transform: item => ({
+                ...item,
+                monthLabel: `${item.month}/${item.year}`,
+            }),
+        },
+    ],
 };
 
 // Truong ID ky thuat khong can hien thi cho nguoi dung (da co "code" lam ma
@@ -370,7 +388,7 @@ const renderValue = (value: unknown): React.ReactNode => {
 };
 
 const ReportsPage: React.FC = () => (
-    <AdminGuard permissions={["reports.read"]}>
+    <AdminGuard permissions={["reports.read", "finance.read"]}>
         <ReportsContent />
     </AdminGuard>
 );
@@ -383,6 +401,7 @@ const ReportsContent: React.FC = () => {
     // man Vai tro van khong thay tab nao. Doi sang loc theo quyen
     // (usePermission) de nhat quan voi cach backend gate.
     const canReadReports = usePermission("reports.read");
+    const canReadFinance = usePermission("finance.read");
     const canExport = usePermission("reports.export");
 
     const tabs: ReportTab[] = [
@@ -435,6 +454,16 @@ const ReportsContent: React.FC = () => {
                       label: "An ninh & Cư trú",
                       fetch: fetchSecurityReport,
                       excelFileName: "bao-cao-an-ninh.xlsx",
+                  },
+              ]
+            : []),
+        ...(canReadFinance
+            ? [
+                  {
+                      key: "finance" as ReportTabKey,
+                      label: "Tài chính",
+                      fetch: fetchFinanceReport,
+                      excelFileName: "bao-cao-tai-chinh.xlsx",
                   },
               ]
             : []),
