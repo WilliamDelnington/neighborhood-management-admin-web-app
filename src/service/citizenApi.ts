@@ -34,6 +34,27 @@ export const fetchCitizens = (params?: {
 }): Promise<PaginatedData<Citizen>> =>
     request<PaginatedData<Citizen>>("GET", API.CITIZENS, params);
 
+// Khong co endpoint rieng tra ve toan bo nhan khau (fetchCitizens luon phan
+// trang) - dung cho man hinh Xuat bao cao (ExportReportListPage.tsx) can loc
+// tren toan bo danh sach nhan khau (vd theo gioi tinh/do tuoi) truoc khi xuat
+// file, nen phai duyet qua tung trang voi limit lon roi gop lai.
+export const fetchAllCitizens = async (params?: {
+    search?: string;
+    householdId?: string;
+    neighborhoodId?: string;
+}): Promise<Citizen[]> => {
+    const limit = 500;
+    let page = 1;
+    const all: Citizen[] = [];
+    for (;;) {
+        const res = await fetchCitizens({ ...params, page, limit });
+        all.push(...res.items);
+        if (page >= res.totalPages || res.items.length === 0) break;
+        page += 1;
+    }
+    return all;
+};
+
 export const fetchCitizenById = (id: string): Promise<Citizen> =>
     request<Citizen>("GET", `${API.CITIZENS}/${id}`);
 

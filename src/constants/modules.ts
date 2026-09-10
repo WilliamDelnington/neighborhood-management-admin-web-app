@@ -38,6 +38,7 @@ import {
     Newspaper,
     Contact,
     Unlock,
+    FileDown,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -309,6 +310,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: BarChart3,
                 permission: "reports.read",
                 description: "Xem báo cáo tổng hợp số liệu quản lý theo địa bàn.",
+            },
+            {
+                key: "export-reports",
+                label: "Xuất báo cáo",
+                path: "/export-reports",
+                icon: FileDown,
+                permission: "reports.export",
+                description:
+                    "Xuất nhanh các danh sách nhân khẩu theo từng nhóm đối tượng (an sinh, y tế, an ninh...).",
             },
             {
                 key: "periodic-reports",

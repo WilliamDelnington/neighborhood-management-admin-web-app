@@ -182,6 +182,12 @@ const FinanceListPage = React.lazy(
     () => import("@pages/Finance/FinanceListPage"),
 );
 const ReportsPage = React.lazy(() => import("@pages/Reports/ReportsPage"));
+const ExportReportListPage = React.lazy(
+    () => import("@pages/ExportReports/ExportReportListPage"),
+);
+const ExportReportDetailPage = React.lazy(
+    () => import("@pages/ExportReports/ExportReportDetailPage"),
+);
 const KpiDashboardPage = React.lazy(() => import("@pages/Kpis/KpiDashboardPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
 const DigitalReadinessPage = React.lazy(
@@ -495,6 +501,14 @@ const App: React.FC = () => {
                         />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
+                        <Route
+                            path="/export-reports"
+                            element={<ExportReportListPage />}
+                        />
+                        <Route
+                            path="/export-reports/:key"
+                            element={<ExportReportDetailPage />}
+                        />
                         <Route path="/kpis" element={<KpiDashboardPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route
