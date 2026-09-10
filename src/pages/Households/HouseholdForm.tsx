@@ -12,8 +12,12 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import HeadOfHouseholdUserPicker from "@components/admin/HeadOfHouseholdUserPicker";
-import { HOUSEHOLD_STATE_LIST, LOAI_SO_HUU_LABEL } from "@constants/domain";
-import { LoaiSoHuu } from "@dts";
+import {
+    DISEASE_STATUS_LABEL,
+    HOUSEHOLD_STATE_LIST,
+    LOAI_SO_HUU_LABEL,
+} from "@constants/domain";
+import { DiseaseStatus, LoaiSoHuu } from "@dts";
 import { HouseholdInput } from "@service/householdApi";
 import { useAuthStore } from "@store/authStore";
 
@@ -32,6 +36,8 @@ export interface HouseholdFormValues {
     isNearPoor: boolean;
     isMartyrFamilyHousehold: boolean;
     isLonelyElderly: boolean;
+    diseaseStatus: DiseaseStatus;
+    diseaseName: string;
     note: string;
 }
 
@@ -48,6 +54,8 @@ export const EMPTY_HOUSEHOLD_FORM: HouseholdFormValues = {
     isNearPoor: false,
     isMartyrFamilyHousehold: false,
     isLonelyElderly: false,
+    diseaseStatus: "none",
+    diseaseName: "",
     note: "",
 };
 
@@ -69,6 +77,11 @@ export function toHouseholdInput(
         isNearPoor: values.isNearPoor,
         isMartyrFamilyHousehold: values.isMartyrFamilyHousehold,
         isLonelyElderly: values.isLonelyElderly,
+        diseaseStatus: values.diseaseStatus,
+        diseaseName:
+            values.diseaseStatus === "none"
+                ? undefined
+                : values.diseaseName.trim() || undefined,
         houseId: houseId !== undefined ? houseId : undefined,
         note: values.note.trim() || undefined,
     };
@@ -81,7 +94,8 @@ export function isHouseholdFormValid(
     const baseValid = !!(
         values.cluster.trim() &&
         values.address.trim() &&
-        values.headOfHousehold.trim()
+        values.headOfHousehold.trim() &&
+        (values.diseaseStatus === "none" || !!values.diseaseName.trim())
     );
     // Backend yeu cau phone khi tao moi ho dan (xem
     // validators/household.ts:createHouseholdSchema ben backend), nhung van
@@ -262,6 +276,43 @@ const HouseholdForm: React.FC<HouseholdFormProps> = ({
                         {s.label}
                     </label>
                 ))}
+            </div>
+            <div className="space-y-1.5">
+                <Label>Tình trạng bệnh/dịch bệnh</Label>
+                <RadioGroup
+                    className="flex flex-col gap-2"
+                    value={values.diseaseStatus}
+                    onValueChange={v =>
+                        set("diseaseStatus", v as DiseaseStatus)
+                    }
+                >
+                    {(
+                        Object.entries(DISEASE_STATUS_LABEL) as [
+                            DiseaseStatus,
+                            string,
+                        ][]
+                    ).map(([key, label]) => (
+                        <label
+                            key={key}
+                            htmlFor={`diseaseStatus-${key}`}
+                            className="flex items-center gap-2 text-sm"
+                        >
+                            <RadioGroupItem
+                                id={`diseaseStatus-${key}`}
+                                value={key}
+                            />
+                            {label}
+                        </label>
+                    ))}
+                </RadioGroup>
+                {values.diseaseStatus !== "none" && (
+                    <Input
+                        className="mt-2"
+                        placeholder="Nhập tên bệnh/dịch bệnh"
+                        value={values.diseaseName}
+                        onChange={e => set("diseaseName", e.target.value)}
+                    />
+                )}
             </div>
             <div className="space-y-1.5">
                 <Label>Ghi chú</Label>

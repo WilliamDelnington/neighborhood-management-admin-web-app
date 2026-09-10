@@ -1,15 +1,9 @@
 import ExcelJS from "exceljs";
 import { GIOI_TINH_LABEL } from "@constants/domain";
 import { Citizen } from "@dts";
-import { householdLabelOf } from "./reportItems";
+import { householdLabelOf, ReportColumn } from "./reportItems";
 
-type ReportColumn = {
-    label: string;
-    width: number;
-    value: (c: Citizen) => string;
-};
-
-const REPORT_COLUMNS: ReportColumn[] = [
+const BASE_REPORT_COLUMNS: ReportColumn[] = [
     { label: "STT", width: 6, value: () => "" },
     { label: "Họ tên", width: 26, value: c => c.fullName },
     { label: "Giới tính", width: 10, value: c => GIOI_TINH_LABEL[c.gender] },
@@ -35,20 +29,22 @@ export const downloadExcel = async (
     rows: Citizen[],
     fileName: string,
     sheetLabel: string,
+    extraColumns: ReportColumn[] = [],
 ): Promise<void> => {
+    const columns = [...BASE_REPORT_COLUMNS, ...extraColumns];
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(sanitizeSheetName(sheetLabel), {
         views: [{ state: "frozen", ySplit: 1 }],
     });
 
-    sheet.columns = REPORT_COLUMNS.map(col => ({
+    sheet.columns = columns.map(col => ({
         header: col.label,
         width: col.width,
     }));
 
     rows.forEach((row, index) => {
         sheet.addRow(
-            REPORT_COLUMNS.map((col, colIndex) =>
+            columns.map((col, colIndex) =>
                 colIndex === 0 ? index + 1 : col.value(row),
             ),
         );
@@ -67,7 +63,7 @@ export const downloadExcel = async (
     sheet.getColumn(1).alignment = { horizontal: "center" };
     sheet.autoFilter = {
         from: "A1",
-        to: `${sheet.getColumn(REPORT_COLUMNS.length).letter}1`,
+        to: `${sheet.getColumn(columns.length).letter}1`,
     };
 
     const buffer = await workbook.xlsx.writeBuffer();

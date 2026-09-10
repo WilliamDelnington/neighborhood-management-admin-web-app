@@ -3,6 +3,7 @@ import type {
     AppointmentStatus,
     BusinessDocumentStatus,
     DangKyHop,
+    DiseaseStatus,
     FileAssetCategory,
     GioiTinh,
     House,
@@ -400,6 +401,22 @@ export const HOUSEHOLD_STATE_LIST: HouseholdStateMeta[] = [
         auto: true,
     },
 ];
+
+// Tinh trang benh/dich benh cua ho dan - khac voi HOUSEHOLD_STATE_LIST (cac co
+// boolean co the cung ton tai), day la MOT trong 4 gia tri loai tru lan nhau,
+// nen dung Record LABEL/TONE rieng thay vi gop vao danh sach do.
+export const DISEASE_STATUS_LABEL: Record<DiseaseStatus, string> = {
+    none: "Không có",
+    recorded: "Mới ghi nhận",
+    monitoring: "Đang theo dõi",
+    resolved: "Đã xử lý - hết theo dõi",
+};
+export const DISEASE_STATUS_TONE: Record<DiseaseStatus, BadgeTone> = {
+    none: "gray",
+    recorded: "red",
+    monitoring: "yellow",
+    resolved: "green",
+};
 
 export const HOUSE_USAGE_TYPE_LABEL: Record<HouseUsageType, string> = {
     household: "Hộ dân",

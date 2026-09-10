@@ -1,6 +1,7 @@
 import { API } from "@constants/common";
 import { HouseholdStateKey } from "@constants/domain";
 import {
+    DiseaseStatus,
     EntityRequiredDocumentsResult,
     Household,
     PaginatedData,
@@ -30,6 +31,8 @@ export interface HouseholdInput {
     isNearPoor?: boolean;
     isMartyrFamilyHousehold?: boolean;
     isLonelyElderly?: boolean;
+    diseaseStatus?: DiseaseStatus;
+    diseaseName?: string;
     // id House, hoac null de go lien ket (chua gan nha so).
     houseId?: string | null;
     note?: string;

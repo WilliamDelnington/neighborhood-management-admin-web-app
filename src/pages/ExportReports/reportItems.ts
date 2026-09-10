@@ -1,4 +1,5 @@
-import { Citizen } from "@dts";
+import { DISEASE_STATUS_LABEL } from "@constants/domain";
+import { Citizen, Household } from "@dts";
 
 // Do tuoi nghia vu quan su ap dung cho nam gioi (Luat NVQS) - dung de loc
 // danh sach "Nam trong do tuoi nhap ngu" tu ngay sinh nhan khau, vi du lieu
@@ -28,6 +29,20 @@ export const householdLabelOf = (householdId: Citizen["householdId"]): string =>
         : `${householdId.code} — ${householdId.address}`;
 };
 
+// Household populated tren Citizen.householdId (xem citizenService.listCitizens
+// o backend) - null khi chua populate (van con la string id) hoac khong co ho.
+// Dung cho cac report can doc truong cua Household (vd diseaseStatus).
+export const householdOf = (
+    householdId: Citizen["householdId"],
+): Household | null =>
+    householdId && typeof householdId !== "string" ? householdId : null;
+
+export type ReportColumn = {
+    label: string;
+    width: number;
+    value: (c: Citizen) => string;
+};
+
 export type ReportItem = {
     key: string;
     label: string;
@@ -39,6 +54,11 @@ export type ReportItem = {
     // (chua co truong tuong ung trong du lieu nhan khau/ho dan) - hien thi
     // nhan "Sắp có" thay vi cho bam vao xem de khong tao chuc nang gia.
     filter?: (c: Citizen) => boolean;
+    // Cot bo sung RIENG cho danh sach nay (vd tinh trang dich benh cua ho dan)
+    // - noi them vao 6 cot chung (BASE_REPORT_COLUMNS trong exportExcel.ts),
+    // hien thi CA o bang tren man hinh (ExportReportDetailPage.tsx) lan file
+    // Excel xuat ra, khong anh huong cac danh sach khac.
+    extraColumns?: ReportColumn[];
 };
 
 // Danh sach phang, khong chia nhom/tieu de - hien thi thanh luoi cac o dong
@@ -104,6 +124,30 @@ export const REPORT_ITEMS: ReportItem[] = [
         key: "disease-monitoring",
         label: "Xuất danh sách theo dõi dịch bệnh",
         permission: "reports.export_citizens.disease_monitoring",
+        // Loc theo Household.diseaseStatus (khong phai cua chinh Citizen) - moi
+        // nhan khau thuoc ho dan dang co dich benh duoc ghi nhan/theo doi/da xu
+        // ly deu xuat hien trong danh sach nay.
+        filter: c => {
+            const household = householdOf(c.householdId);
+            return !!household && household.diseaseStatus !== "none";
+        },
+        extraColumns: [
+            {
+                label: "Tình trạng dịch bệnh",
+                width: 20,
+                value: c => {
+                    const household = householdOf(c.householdId);
+                    return household
+                        ? DISEASE_STATUS_LABEL[household.diseaseStatus]
+                        : "";
+                },
+            },
+            {
+                label: "Tên bệnh/dịch bệnh",
+                width: 24,
+                value: c => householdOf(c.householdId)?.diseaseName || "",
+            },
+        ],
     },
     {
         key: "unemployed",

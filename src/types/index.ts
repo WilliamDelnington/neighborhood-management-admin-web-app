@@ -158,6 +158,7 @@ export type RoleRecord = {
 export type LoaiSoHuu = "chinh_chu" | "cho_thue";
 export type GioiTinh = "nam" | "nu" | "khac";
 export type LoaiCuTru = "thuong_tru" | "tam_tru";
+export type DiseaseStatus = "none" | "recorded" | "monitoring" | "resolved";
 
 export type DocumentType = {
     _id: string;
@@ -565,6 +566,8 @@ export type Household = {
     // Tu tinh (backend tu dong dong bo tu Citizen cua ho dan) - chi doc.
     hasDisabledChild: boolean;
     hasDisabledPerson: boolean;
+    diseaseStatus: DiseaseStatus;
+    diseaseName?: string;
     houseId?: string | House;
     status: VerificationStatus;
     approvalNote?: string;

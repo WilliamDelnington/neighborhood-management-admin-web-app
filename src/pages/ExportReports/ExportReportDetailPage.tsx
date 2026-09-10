@@ -104,7 +104,12 @@ const ExportReportDetailContent: React.FC = () => {
         if (!item) return;
         try {
             setExporting(true);
-            await downloadExcel(rows, fileNameFor(item.label), item.label);
+            await downloadExcel(
+                rows,
+                fileNameFor(item.label),
+                item.label,
+                item.extraColumns,
+            );
         } catch (err) {
             toast.error(
                 err instanceof Error ? err.message : "Không thể xuất danh sách",
@@ -211,6 +216,11 @@ const ExportReportDetailContent: React.FC = () => {
                                 <TableHead>Ngày sinh</TableHead>
                                 <TableHead>CCCD</TableHead>
                                 <TableHead>Thuộc hộ</TableHead>
+                                {item.extraColumns?.map(col => (
+                                    <TableHead key={col.label}>
+                                        {col.label}
+                                    </TableHead>
+                                ))}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -243,6 +253,11 @@ const ExportReportDetailContent: React.FC = () => {
                                     <TableCell>
                                         {householdLabelOf(c.householdId) || "—"}
                                     </TableCell>
+                                    {item.extraColumns?.map(col => (
+                                        <TableCell key={col.label}>
+                                            {col.value(c) || "—"}
+                                        </TableCell>
+                                    ))}
                                 </TableRow>
                             ))}
                         </TableBody>

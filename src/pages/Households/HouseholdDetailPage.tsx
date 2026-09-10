@@ -41,6 +41,8 @@ import { usePermission } from "@store/authStore";
 import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { AppError, Citizen, Household, VerificationStatus } from "@dts";
 import {
+    DISEASE_STATUS_LABEL,
+    DISEASE_STATUS_TONE,
     HOUSEHOLD_STATE_LIST,
     LOAI_SO_HUU_LABEL,
     VERIFICATION_STATUS_LABEL,
@@ -91,6 +93,8 @@ const toFormValues = (h: Household): HouseholdFormValues => ({
     isNearPoor: h.isNearPoor,
     isMartyrFamilyHousehold: h.isMartyrFamilyHousehold,
     isLonelyElderly: h.isLonelyElderly,
+    diseaseStatus: h.diseaseStatus,
+    diseaseName: h.diseaseName || "",
     note: h.note || "",
 });
 
@@ -362,6 +366,24 @@ const HouseholdDetailContent: React.FC = () => {
                                                 {s.label}
                                             </Badge>
                                         ))}
+                                        {household.diseaseStatus !== "none" && (
+                                            <Badge
+                                                tone={
+                                                    DISEASE_STATUS_TONE[
+                                                        household.diseaseStatus
+                                                    ]
+                                                }
+                                            >
+                                                {
+                                                    DISEASE_STATUS_LABEL[
+                                                        household.diseaseStatus
+                                                    ]
+                                                }
+                                                {household.diseaseName
+                                                    ? `: ${household.diseaseName}`
+                                                    : ""}
+                                            </Badge>
+                                        )}
                                         <Badge
                                             tone={
                                                 VERIFICATION_STATUS_TONE[
