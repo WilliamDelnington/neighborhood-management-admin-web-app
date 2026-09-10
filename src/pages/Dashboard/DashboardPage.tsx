@@ -36,7 +36,7 @@ import ReportLineChart from "@components/admin/ReportLineChart";
 import { Badge } from "@components/ui/badge";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import { useAuthStore } from "@store/authStore";
-import { MODULES } from "@constants/modules";
+import { hasModulePermission, MODULES } from "@constants/modules";
 import {
     REQUEST_PRIORITY_LABEL,
     REQUEST_PRIORITY_TONE,
@@ -376,7 +376,7 @@ const DashboardContent: React.FC = () => {
         return MODULES.filter(
             module =>
                 module.key !== "dashboard" &&
-                user?.permissions?.includes(module.permission),
+                hasModulePermission(user?.permissions, module),
         )
             .sort((a, b) => {
                 const aIndex = priority.indexOf(a.key);
