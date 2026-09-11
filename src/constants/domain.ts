@@ -3,6 +3,7 @@ import type {
     AppointmentStatus,
     BusinessDocumentStatus,
     DangKyHop,
+    DashboardMetricKey,
     DiseaseStatus,
     FileAssetCategory,
     GioiTinh,
@@ -420,6 +421,29 @@ export const DISEASE_STATUS_TONE: Record<DiseaseStatus, BadgeTone> = {
     recorded: "red",
     monitoring: "yellow",
     resolved: "green",
+};
+
+// Danh muc so lieu dashboard co dinh - dung cho Role Management (chon
+// dashboardMetrics) va man Dashboard (grid so lieu chung khi
+// allowedDashboardMetrics != null) - xem DASHBOARD_METRIC_KEYS trong @dts.
+export const DASHBOARD_METRIC_LABEL: Record<DashboardMetricKey, string> = {
+    neighborhoods_count: "Tổ dân phố",
+    houses_count: "Nhà số",
+    owners_count: "Chủ sở hữu",
+    business_units_count: "Đơn vị kinh doanh",
+    complaints_summary: "Phản ánh (chưa/đang/đã xử lý, tổng)",
+    women_count: "Phụ nữ",
+    elderly_count: "Người cao tuổi",
+    children_count: "Trẻ em",
+    veterans_count: "Cựu chiến binh",
+    martyrs_count: "Liệt sĩ / Thương binh / Bệnh binh",
+    poor_households_count: "Hộ nghèo / cận nghèo",
+    unemployed_count: "Đang thất nghiệp",
+    military_age_men_count: "Nam trong độ tuổi nhập ngũ",
+    undeclared_residency_count: "Chưa khai báo cư trú",
+    disease_monitored_households_count: "Có dịch bệnh theo dõi",
+    registered_houses_count: "Nhà số đã đăng ký",
+    school_age_children_count: "Trẻ trong độ tuổi đi học",
 };
 
 export const HOUSE_USAGE_TYPE_LABEL: Record<HouseUsageType, string> = {

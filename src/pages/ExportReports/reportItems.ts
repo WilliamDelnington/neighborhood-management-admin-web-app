@@ -70,6 +70,7 @@ export const REPORT_ITEMS: ReportItem[] = [
         key: "unregistered-residency",
         label: "Xuất danh sách chưa khai báo cư trú",
         permission: "reports.export_citizens.unregistered_residency",
+        filter: c => !c.isResidencyDeclared,
     },
     {
         key: "military-age-male",
@@ -119,6 +120,10 @@ export const REPORT_ITEMS: ReportItem[] = [
         key: "poor-households",
         label: "Xuất danh sách Hộ nghèo/cận nghèo",
         permission: "reports.export_citizens.poor_households",
+        // Chua co truong rieng phan biet "ho ngheo" va "ho can ngheo" trong du
+        // lieu (chi co Household.isNearPoor) - cung quy uoc voi dashboardService,
+        // dung isNearPoor lam tieu chi loc chung cho danh sach nay.
+        filter: c => !!householdOf(c.householdId)?.isNearPoor,
     },
     {
         key: "disease-monitoring",
@@ -153,6 +158,7 @@ export const REPORT_ITEMS: ReportItem[] = [
         key: "unemployed",
         label: "Xuất danh sách Thất nghiệp",
         permission: "reports.export_citizens.unemployed",
+        filter: c => c.isUnemployed,
     },
 ];
 

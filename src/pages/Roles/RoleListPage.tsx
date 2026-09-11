@@ -44,6 +44,7 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import {
     AccessScopeTier,
     AppError,
+    DashboardMetricKey,
     ModulePermissionGroup,
     NeighborhoodCollaboratorScope,
     NhomPhanAnh,
@@ -55,6 +56,7 @@ import {
     ACCESS_SCOPE_TIER_LABEL,
     ACCOUNT_CREATION_RESERVED_ROLE_KEYS,
     COLLABORATOR_SCOPE_LABEL,
+    DASHBOARD_METRIC_LABEL,
     NHOM_PHAN_ANH_LABEL,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
@@ -85,6 +87,10 @@ type FormState = {
     allowedComplaintCategories: NhomPhanAnh[] | null;
     // null = khong gioi han (gui duoc tat ca loai yeu cau) - cung quy uoc.
     allowedRequestTypes: RequestType[] | null;
+    // null = khong gioi han (giu nguyen bo so lieu dashboard co dinh theo
+    // audience nhu truoc day) - cung quy uoc, danh muc CO DINH nen khong can
+    // fetch tu API (xem DASHBOARD_METRIC_LABEL).
+    dashboardMetrics: DashboardMetricKey[] | null;
     // KHAC 2 truong tren: mang thuong (khong co gia tri null/"khong gioi
     // han") - rong = khong duoc tao vai tro nao ngoai house_owner khi "Tạo
     // tài khoản" (mac dinh an toan, xem Role.ts o backend).
@@ -130,6 +136,7 @@ const EMPTY_FORM: FormState = {
     permissions: [],
     allowedComplaintCategories: null,
     allowedRequestTypes: null,
+    dashboardMetrics: null,
     allowedCreatableRoles: [],
     scopeType: "ALL",
     maxActivePerScope: null,
@@ -218,6 +225,7 @@ const RoleListContent: React.FC = () => {
             permissions: role.permissions,
             allowedComplaintCategories: role.allowedComplaintCategories ?? null,
             allowedRequestTypes: role.allowedRequestTypes ?? null,
+            dashboardMetrics: role.dashboardMetrics ?? null,
             allowedCreatableRoles: role.allowedCreatableRoles ?? [],
             scopeType: role.scopeType,
             maxActivePerScope: role.maxActivePerScope ?? null,
@@ -285,6 +293,25 @@ const RoleListContent: React.FC = () => {
         });
     };
 
+    const toggleDashboardMetricsRestriction = (restricted: boolean) => {
+        setForm(prev => ({
+            ...prev,
+            dashboardMetrics: restricted ? [] : null,
+        }));
+    };
+
+    const toggleDashboardMetric = (metric: DashboardMetricKey) => {
+        setForm(prev => {
+            const current = prev.dashboardMetrics || [];
+            return {
+                ...prev,
+                dashboardMetrics: current.includes(metric)
+                    ? current.filter(m => m !== metric)
+                    : [...current, metric],
+            };
+        });
+    };
+
     const toggleSubScopeKind = (kind: NeighborhoodCollaboratorScope) => {
         setForm(prev => ({
             ...prev,
@@ -346,6 +373,7 @@ const RoleListContent: React.FC = () => {
                         : {}),
                     allowedComplaintCategories: form.allowedComplaintCategories,
                     allowedRequestTypes: form.allowedRequestTypes,
+                    dashboardMetrics: form.dashboardMetrics,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
                 });
@@ -362,6 +390,7 @@ const RoleListContent: React.FC = () => {
                     allowedComplaintCategories:
                         form.allowedComplaintCategories ?? undefined,
                     allowedRequestTypes: form.allowedRequestTypes ?? undefined,
+                    dashboardMetrics: form.dashboardMetrics ?? undefined,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
                 });
@@ -871,6 +900,55 @@ const RoleListContent: React.FC = () => {
                                             />
                                             <Label className="text-sm font-normal">
                                                 {type.name}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-5 border-t border-divider_01 pt-4">
+                            <h3 className="mb-3 text-sm font-semibold">
+                                Số liệu dashboard được xem
+                            </h3>
+                            <div className="mb-2 flex items-center gap-2">
+                                <Checkbox
+                                    checked={form.dashboardMetrics === null}
+                                    disabled={!canEditCurrentRole}
+                                    onCheckedChange={checked =>
+                                        toggleDashboardMetricsRestriction(
+                                            !checked,
+                                        )
+                                    }
+                                />
+                                <Label>
+                                    Không giới hạn (giữ nguyên bộ số liệu mặc
+                                    định theo vai trò)
+                                </Label>
+                            </div>
+                            {form.dashboardMetrics !== null && (
+                                <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                    {(
+                                        Object.entries(DASHBOARD_METRIC_LABEL) as [
+                                            DashboardMetricKey,
+                                            string,
+                                        ][]
+                                    ).map(([key, label]) => (
+                                        <div
+                                            key={key}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Checkbox
+                                                checked={(
+                                                    form.dashboardMetrics || []
+                                                ).includes(key)}
+                                                disabled={!canEditCurrentRole}
+                                                onCheckedChange={() =>
+                                                    toggleDashboardMetric(key)
+                                                }
+                                            />
+                                            <Label className="text-sm font-normal">
+                                                {label}
                                             </Label>
                                         </div>
                                     ))}

@@ -47,6 +47,7 @@ import {
 } from "@constants/domain";
 import { DashboardSummary, User } from "@dts";
 import { fetchDashboardSummary } from "@service/dashboardApi";
+import CustomMetricsSection from "./CustomMetricsSection";
 import NeighborhoodDashboardView from "./NeighborhoodDashboardView";
 import WardDashboardView from "./WardDashboardView";
 
@@ -255,6 +256,9 @@ const normalizeDashboardSummary = (
             ...fallbackCapabilities,
             ...(payload.capabilities || {}),
         },
+        // allowedDashboardMetrics: khong co tren payload cu (truoc khi backend
+        // co tinh nang nay) - coi nhu null (khong gioi han), giu hanh vi cu.
+        allowedDashboardMetrics: payload.allowedDashboardMetrics ?? null,
         totalHouseholds: payload.totalHouseholds ?? 0,
         totalHouses: payload.totalHouses ?? 0,
         totalCitizens: payload.totalCitizens ?? 0,
@@ -808,11 +812,17 @@ const DashboardContent: React.FC = () => {
                 </div>
             </header>
 
-            {summary.audience === "neighborhood" && (
-                <NeighborhoodDashboardView summary={summary} />
-            )}
-            {WARD_FAMILY_AUDIENCES.includes(summary.audience) && (
-                <WardDashboardView summary={summary} />
+            {summary.allowedDashboardMetrics ? (
+                <CustomMetricsSection summary={summary} />
+            ) : (
+                <>
+                    {summary.audience === "neighborhood" && (
+                        <NeighborhoodDashboardView summary={summary} />
+                    )}
+                    {WARD_FAMILY_AUDIENCES.includes(summary.audience) && (
+                        <WardDashboardView summary={summary} />
+                    )}
+                </>
             )}
 
             {summary.audience !== "neighborhood" &&

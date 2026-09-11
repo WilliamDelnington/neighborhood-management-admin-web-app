@@ -120,6 +120,30 @@ export const ACCESS_SCOPE_TIERS = [
 export type AccessScopeTier = (typeof ACCESS_SCOPE_TIERS)[number];
 export type ScopeAssignmentMechanism = "ASSIGNED" | "OWNED";
 
+// Danh muc so lieu dashboard CO DINH (khac NhomPhanAnh/RequestType - khong co
+// collection quan tri duoc tuong ung) - xem Role.dashboardMetrics va
+// dashboardService.ts (backend) de biet gia tri nay duoc dung the nao.
+export const DASHBOARD_METRIC_KEYS = [
+    "neighborhoods_count",
+    "houses_count",
+    "owners_count",
+    "business_units_count",
+    "complaints_summary",
+    "women_count",
+    "elderly_count",
+    "children_count",
+    "veterans_count",
+    "martyrs_count",
+    "poor_households_count",
+    "unemployed_count",
+    "military_age_men_count",
+    "undeclared_residency_count",
+    "disease_monitored_households_count",
+    "registered_houses_count",
+    "school_age_children_count",
+] as const;
+export type DashboardMetricKey = (typeof DASHBOARD_METRIC_KEYS)[number];
+
 export type RoleRecord = {
     _id: string;
     key: string;
@@ -128,6 +152,11 @@ export type RoleRecord = {
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
     allowedRequestTypes?: RequestType[];
+    // Cung quy uoc voi 2 truong tren: undefined = khong gioi han (giu nguyen
+    // bo so lieu dashboard co dinh theo audience nhu truoc day). Khac 2 truong
+    // tren: danh muc CO DINH (DASHBOARD_METRIC_KEYS), khong phai danh muc quan
+    // tri duoc rieng.
+    dashboardMetrics?: DashboardMetricKey[];
     // Vai tro duoc phep chon khi "Tạo tài khoản" (POST /api/users) - KHAC 2
     // truong tren, khong dung quy uoc undefined = khong gioi han (mac dinh
     // rong la an toan vi day la quyen nhay cam) - xem Role.ts o backend.
@@ -1959,6 +1988,14 @@ export type DashboardSummary = {
     neighborhoodOverview?: NeighborhoodOverview;
     wardOverview?: WardOverview;
     departmentOverview?: DepartmentOverview;
+    // Duong di MOI (low-code): chi co gia tri khi CO IT NHAT 1 vai tro cua
+    // actor da cau hinh Role.dashboardMetrics (khac null) - xem
+    // dashboardService.computeFlatDashboardMetrics (backend). Khi
+    // allowedDashboardMetrics != null, uu tien hien thi metrics (mot grid so
+    // lieu chung, khong theo audience co dinh) thay vi neighborhoodOverview/
+    // wardOverview/departmentOverview.
+    metrics?: Partial<Record<DashboardMetricKey, number | ComplaintSummary>>;
+    allowedDashboardMetrics: DashboardMetricKey[] | null;
 };
 
 export type ComplaintSummary = {
