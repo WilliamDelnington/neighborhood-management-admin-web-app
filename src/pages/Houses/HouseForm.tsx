@@ -90,6 +90,11 @@ export interface HouseFormValues {
     streetId: string;
     neighborhoodId: string;
     address: string;
+    // Phan khu/day (vd "Dãy A", "BT An Vượng") - mo ta khu vuc con trong
+    // cluster, khong dung de RBAC/scoping (khac cluster). Tuy chon. Nam
+    // trong HOUSE_RECORD_PROTECTED_FIELDS o backend nen sau khi nha da
+    // "verified" phai sua qua ChangeRequest.
+    subZone: string;
     // Tinh/thanh pho + phuong/xa - hien thi dia chi day du, khong bat buoc
     // (xem administrativeDivisionApi.ts). provinceCode/wardCode la chuoi de
     // bind vao Select (giong streetId/neighborhoodId), provinceName/wardName
@@ -144,6 +149,7 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
     streetId: "",
     neighborhoodId: "",
     address: "",
+    subZone: "",
     provinceCode: "",
     provinceName: "",
     wardCode: "",
@@ -177,6 +183,7 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
         streetId: values.streetId || undefined,
         neighborhoodId: values.neighborhoodId || null,
         address: values.address.trim(),
+        subZone: values.subZone.trim() || undefined,
         provinceCode: values.provinceCode
             ? Number(values.provinceCode)
             : undefined,
@@ -513,6 +520,14 @@ const HouseForm: React.FC<HouseFormProps> = ({
                     placeholder="Số nhà, ngõ, đường..."
                     value={values.address}
                     onChange={e => set("address", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Phân khu/dãy</Label>
+                <Input
+                    placeholder="Vd: Dãy A, BT An Vượng..."
+                    value={values.subZone}
+                    onChange={e => set("subZone", e.target.value)}
                 />
             </div>
             <div className="space-y-1.5">

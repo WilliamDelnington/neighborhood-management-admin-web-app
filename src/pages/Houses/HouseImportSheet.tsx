@@ -426,9 +426,9 @@ const HouseImportSheet: React.FC<HouseImportSheetProps> = ({
                             ))}
 
                             <div className="space-y-1 border-t border-divider_01 pt-4">
-                                <Label>Cụm dân cư mặc định (nếu có)</Label>
+                                <Label>Cụm dân cư mặc định</Label>
                                 <Input
-                                    placeholder="Dùng khi cột 'Phân khu/dãy' để trống ở một số dòng"
+                                    placeholder="Bắt buộc để tạo nhà mới - áp dụng chung cho mọi nhà mới trong file này"
                                     value={defaultCluster}
                                     onChange={e =>
                                         setDefaultCluster(e.target.value)

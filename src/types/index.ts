@@ -340,6 +340,9 @@ export type House = {
     streetId?: string | Street | null;
     neighborhoodId?: string | Neighborhood | null;
     address: string;
+    // Phan khu/day - mo ta khu vuc con trong cluster, KHONG dung de
+    // RBAC/scoping (khac cluster) - xem models/HouseRecord.ts o backend.
+    subZone?: string;
     // Phuong/xa va tinh/thanh pho - hien thi dia chi day du, khong lien quan
     // RBAC/pham vi (khac cluster/neighborhoodId) - xem administrativeDivisionApi.ts.
     provinceCode?: number;

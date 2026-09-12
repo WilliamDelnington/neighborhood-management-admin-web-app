@@ -10,6 +10,7 @@ import {
     FileText,
     Home,
     Landmark,
+    LayoutGrid,
     MapPin,
     Plus,
     Route,
@@ -142,6 +143,7 @@ const toFormValues = (h: House): HouseFormValues => ({
             ? h.neighborhoodId._id
             : "",
     address: h.address,
+    subZone: h.subZone || "",
     provinceCode: h.provinceCode ? String(h.provinceCode) : "",
     provinceName: h.provinceName || "",
     wardCode: h.wardCode ? String(h.wardCode) : "",
@@ -878,6 +880,13 @@ const HouseDetailContent: React.FC = () => {
                                     label="Địa chỉ"
                                     value={house.address}
                                 />
+                                {house.subZone && (
+                                    <Field
+                                        icon={<LayoutGrid className="h-4 w-4" />}
+                                        label="Phân khu/dãy"
+                                        value={house.subZone}
+                                    />
+                                )}
                                 <Field
                                     icon={<Construction className="h-4 w-4" />}
                                     label="Tình trạng công trình"
