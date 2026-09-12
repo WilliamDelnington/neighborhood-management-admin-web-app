@@ -46,6 +46,8 @@ export interface HouseInput {
     streetId?: string;
     neighborhoodId?: string | null;
     address: string;
+    // Phan khu/day - mo ta khu vuc con trong cluster, khong dung de scoping.
+    subZone?: string;
     // Phuong/xa va tinh/thanh pho - hien thi dia chi day du, khong bat buoc va
     // khong gan voi RBAC/pham vi nao (xem administrativeDivisionApi.ts).
     provinceCode?: number;
