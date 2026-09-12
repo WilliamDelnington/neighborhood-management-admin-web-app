@@ -250,10 +250,19 @@ export function toHouseInput(values: HouseFormValues): HouseInput {
     };
 }
 
-export function isHouseFormValid(values: HouseFormValues): boolean {
+export function isHouseFormValid(
+    values: HouseFormValues,
+    mode: "create" | "edit" = "create",
+): boolean {
     if (!(values.cluster.trim() || values.streetId) || !values.address.trim()) {
         return false;
     }
+    // "Mã căn/hộ" chi hien/sua duoc o mode="edit" (xem HouseFormValues.code) -
+    // neu nguoi dung xoa trang, phai chan luu o day thay vi de
+    // toHouseInput() bien "" thanh undefined (bi JSON.stringify loai bo khoi
+    // request, backend hieu la "khong doi truong nay" nen gia tri cu van con
+    // nguyen ma khong bao loi gi ca).
+    if (mode === "edit" && !values.code.trim()) return false;
     if (values.usageTypes.length === 0) return false;
     if (values.ownerKind === "individual") {
         if (!(values.ownerName.trim() && values.ownerPhone.trim())) {

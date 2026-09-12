@@ -336,8 +336,10 @@ const HouseDetailContent: React.FC = () => {
 
     const handleSave = async () => {
         if (!houseId || !form) return;
-        if (!isHouseFormValid(form)) {
-            toast.error("Vui lòng chọn đường/phố hoặc nhập cụm dân cư, và địa chỉ");
+        if (!isHouseFormValid(form, "edit")) {
+            toast.error(
+                "Vui lòng nhập mã căn/hộ, chọn đường/phố hoặc nhập cụm dân cư, và địa chỉ",
+            );
             return;
         }
         try {
