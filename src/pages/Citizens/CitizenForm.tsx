@@ -36,6 +36,10 @@ export interface CitizenFormValues {
     householdId: string;
     householdLabel: string;
     residenceType: LoaiCuTru;
+    temporaryResidenceStartsAt: string;
+    temporaryResidenceExpiresAt: string;
+    isResidencyDeclared: boolean;
+    isUnemployed: boolean;
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;
@@ -60,6 +64,10 @@ export const EMPTY_CITIZEN_FORM: CitizenFormValues = {
     householdId: "",
     householdLabel: "",
     residenceType: "thuong_tru",
+    temporaryResidenceStartsAt: "",
+    temporaryResidenceExpiresAt: "",
+    isResidencyDeclared: false,
+    isUnemployed: false,
     isElderly: false,
     isChild: false,
     isDisabledOrSupportNeeded: false,
@@ -84,8 +92,20 @@ export function toCitizenInput(values: CitizenFormValues): CitizenInput {
             : undefined,
         gender: values.gender,
         relationToHead: values.relationToHead.trim() || undefined,
-        occupation: values.occupation.trim() || undefined,
+        // Dang that nghiep thi khong con nghe nghiep de khai - bo qua gia tri
+        // con sot lai trong o nhap (da an di) thay vi gui len backend.
+        occupation: values.isUnemployed
+            ? undefined
+            : values.occupation.trim() || undefined,
         residenceType: values.residenceType,
+        temporaryResidenceStartsAt: values.temporaryResidenceStartsAt
+            ? new Date(values.temporaryResidenceStartsAt).toISOString()
+            : undefined,
+        temporaryResidenceExpiresAt: values.temporaryResidenceExpiresAt
+            ? new Date(values.temporaryResidenceExpiresAt).toISOString()
+            : undefined,
+        isResidencyDeclared: values.isResidencyDeclared,
+        isUnemployed: values.isUnemployed,
         isElderly: values.isElderly,
         isChild: values.isChild,
         isDisabledOrSupportNeeded: values.isDisabledOrSupportNeeded,
@@ -104,6 +124,13 @@ export function isCitizenFormValid(values: CitizenFormValues): boolean {
     return !!(
         values.fullName.trim() &&
         values.householdId &&
+        (values.residenceType !== "tam_tru" ||
+            (!!values.temporaryResidenceStartsAt &&
+                !!values.temporaryResidenceExpiresAt)) &&
+        (!values.temporaryResidenceStartsAt ||
+            !values.temporaryResidenceExpiresAt ||
+            values.temporaryResidenceStartsAt <=
+                values.temporaryResidenceExpiresAt) &&
         (!values.isOtherSpecial || !!values.otherSpecialLabel.trim())
     );
 }
@@ -246,13 +273,28 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
                     />
                 )}
             </div>
-            <div className="space-y-1.5">
-                <Label>Nghề nghiệp/nơi làm việc</Label>
-                <Input
-                    value={values.occupation}
-                    onChange={e => set("occupation", e.target.value)}
+            <label
+                htmlFor="isUnemployed"
+                className="flex items-center gap-2 text-sm"
+            >
+                <Checkbox
+                    id="isUnemployed"
+                    checked={values.isUnemployed}
+                    onCheckedChange={checked =>
+                        set("isUnemployed", checked === true)
+                    }
                 />
-            </div>
+                Đang thất nghiệp
+            </label>
+            {!values.isUnemployed && (
+                <div className="space-y-1.5">
+                    <Label>Nghề nghiệp/nơi làm việc</Label>
+                    <Input
+                        value={values.occupation}
+                        onChange={e => set("occupation", e.target.value)}
+                    />
+                </div>
+            )}
             <div className="space-y-1.5">
                 <Label>Loại cư trú</Label>
                 <RadioGroup
@@ -280,6 +322,61 @@ const CitizenForm: React.FC<CitizenFormProps> = ({
                     ))}
                 </RadioGroup>
             </div>
+            <div className="space-y-1.5">
+                <Label>Tình trạng khai báo cư trú</Label>
+                <RadioGroup
+                    className="flex flex-row gap-5"
+                    value={values.isResidencyDeclared ? "true" : "false"}
+                    onValueChange={v =>
+                        set("isResidencyDeclared", v === "true")
+                    }
+                >
+                    <label
+                        htmlFor="isResidencyDeclared-true"
+                        className="flex items-center gap-2 text-sm"
+                    >
+                        <RadioGroupItem
+                            id="isResidencyDeclared-true"
+                            value="true"
+                        />
+                        Đã khai báo cư trú
+                    </label>
+                    <label
+                        htmlFor="isResidencyDeclared-false"
+                        className="flex items-center gap-2 text-sm"
+                    >
+                        <RadioGroupItem
+                            id="isResidencyDeclared-false"
+                            value="false"
+                        />
+                        Chưa khai báo cư trú
+                    </label>
+                </RadioGroup>
+            </div>
+            {values.residenceType === "tam_tru" && (
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                        <Label>Ngày bắt đầu tạm trú</Label>
+                        <Input
+                            type="date"
+                            value={values.temporaryResidenceStartsAt}
+                            onChange={e =>
+                                set("temporaryResidenceStartsAt", e.target.value)
+                            }
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label>Ngày hết hạn tạm trú</Label>
+                        <Input
+                            type="date"
+                            value={values.temporaryResidenceExpiresAt}
+                            onChange={e =>
+                                set("temporaryResidenceExpiresAt", e.target.value)
+                            }
+                        />
+                    </div>
+                </div>
+            )}
             <div className="flex flex-col gap-2">
                 <label
                     htmlFor="isElderly"

@@ -37,6 +37,7 @@ import {
 } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
+    ROLE_LABEL,
     TRANG_THAI_PHAN_ANH_LABEL,
     TRANG_THAI_PHAN_ANH_TONE,
 } from "@constants/domain";
@@ -57,6 +58,8 @@ const formatDateTime = (value?: string) =>
     value ? new Date(value).toLocaleString("vi-VN") : "";
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
+const staffRoleLabel = (staff: AssignableStaff) =>
+    (staff.roles || []).map(r => ROLE_LABEL[r] || r).join(", ");
 
 const ComplaintDetailPage: React.FC = () => (
     <AdminGuard permissions={["complaints.read"]}>
@@ -166,7 +169,7 @@ const ComplaintDetailContent: React.FC = () => {
         if (!assigneeDialogOpen) return;
         setTransferReason("");
         setAssigneeLoading(true);
-        fetchAssignableStaff()
+        fetchAssignableStaff("complaints.assign", complaint?.wardCode)
             .then(setAssigneeStaff)
             .catch(() => setAssigneeStaff([]))
             .finally(() => setAssigneeLoading(false));
@@ -180,7 +183,7 @@ const ComplaintDetailContent: React.FC = () => {
     useEffect(() => {
         if (!chooseDialogOpen) return;
         setChooseLoading(true);
-        fetchAssignableStaff()
+        fetchAssignableStaff("complaints.assign", complaint?.wardCode)
             .then(setChooseStaff)
             .catch(() => setChooseStaff([]))
             .finally(() => setChooseLoading(false));
@@ -635,7 +638,10 @@ const ComplaintDetailContent: React.FC = () => {
                                     className="block w-full border-b border-divider_01 py-2 text-left text-sm last:border-0 hover:bg-ng_10 disabled:opacity-50"
                                     onClick={() => handleAssign(u)}
                                 >
-                                    {u.displayName}
+                                    <div>{u.displayName}</div>
+                                    <div className="text-xs text-text_2">
+                                        {staffRoleLabel(u)}
+                                    </div>
                                 </button>
                             ))}
                     </div>
@@ -666,7 +672,10 @@ const ComplaintDetailContent: React.FC = () => {
                                     className="block w-full border-b border-divider_01 py-2 text-left text-sm last:border-0 hover:bg-ng_10 disabled:opacity-50"
                                     onClick={() => handleChoosePersonInCharge(u)}
                                 >
-                                    {u.displayName}
+                                    <div>{u.displayName}</div>
+                                    <div className="text-xs text-text_2">
+                                        {staffRoleLabel(u)}
+                                    </div>
                                 </button>
                             ))}
                     </div>

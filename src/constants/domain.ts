@@ -3,6 +3,8 @@ import type {
     AppointmentStatus,
     BusinessDocumentStatus,
     DangKyHop,
+    DashboardMetricKey,
+    DiseaseStatus,
     FileAssetCategory,
     GioiTinh,
     House,
@@ -57,6 +59,10 @@ export const ROLE_LABEL: Record<Role, string> = {
     secretary: "Bí thư",
     regional_police: "Công an khu vực",
     people_committee_official: "Cán bộ UBND",
+    social_affairs_official: "Cán bộ Văn hóa – Xã hội",
+    health_official: "Cán bộ Y tế",
+    education_official: "Cán bộ Giáo dục",
+    economy_labor_official: "Cán bộ Kinh tế, Lao động",
     admin: "Quản trị viên",
 };
 
@@ -348,6 +354,96 @@ export const VERIFICATION_STATUS_TONE: Record<VerificationStatus, BadgeTone> = {
     verified: "green",
     denied: "red",
     locked: "red",
+};
+
+// 6 "trang thai dac biet" cua ho dan - 4 nhap tay (needsSupport la truong da
+// co san tu truoc) + 2 tu tinh tu Citizen cua ho dan (backend tu dong dong bo,
+// xem citizenService.recomputeHouseholdFlags ben backend). Dinh nghia 1 noi
+// duy nhat de HouseholdForm/HouseholdDetailPage/HouseholdListPage dung chung,
+// tranh lap lai danh sach 6 muc o nhieu file.
+export type HouseholdStateKey =
+    | "needsSupport"
+    | "isNearPoor"
+    | "isMartyrFamilyHousehold"
+    | "isLonelyElderly"
+    | "hasDisabledChild"
+    | "hasDisabledPerson";
+
+export interface HouseholdStateMeta {
+    key: HouseholdStateKey;
+    label: string;
+    tone: BadgeTone;
+    // true = tu tinh (chi doc, khong co checkbox chinh sua); false = nguoi
+    // dung tu bat/tat qua HouseholdForm.
+    auto: boolean;
+}
+
+export const HOUSEHOLD_STATE_LIST: HouseholdStateMeta[] = [
+    { key: "needsSupport", label: "Hộ cần hỗ trợ", tone: "yellow", auto: false },
+    { key: "isNearPoor", label: "Hộ cận nghèo", tone: "yellow", auto: false },
+    {
+        key: "isMartyrFamilyHousehold",
+        label: "Gia đình liệt sĩ",
+        tone: "red",
+        auto: false,
+    },
+    {
+        key: "isLonelyElderly",
+        label: "NCT sống một mình neo đơn",
+        tone: "blue",
+        auto: false,
+    },
+    {
+        key: "hasDisabledChild",
+        label: "Có trẻ em khuyết tật",
+        tone: "gray",
+        auto: true,
+    },
+    {
+        key: "hasDisabledPerson",
+        label: "Có người khuyết tật",
+        tone: "gray",
+        auto: true,
+    },
+];
+
+// Tinh trang benh/dich benh cua ho dan - khac voi HOUSEHOLD_STATE_LIST (cac co
+// boolean co the cung ton tai), day la MOT trong 4 gia tri loai tru lan nhau,
+// nen dung Record LABEL/TONE rieng thay vi gop vao danh sach do.
+export const DISEASE_STATUS_LABEL: Record<DiseaseStatus, string> = {
+    none: "Không có",
+    recorded: "Mới ghi nhận",
+    monitoring: "Đang theo dõi",
+    resolved: "Đã xử lý - hết theo dõi",
+};
+export const DISEASE_STATUS_TONE: Record<DiseaseStatus, BadgeTone> = {
+    none: "gray",
+    recorded: "red",
+    monitoring: "yellow",
+    resolved: "green",
+};
+
+// Danh muc so lieu dashboard co dinh - dung cho Role Management (chon
+// dashboardMetrics) va man Dashboard (grid so lieu chung khi
+// allowedDashboardMetrics != null) - xem DASHBOARD_METRIC_KEYS trong @dts.
+export const DASHBOARD_METRIC_LABEL: Record<DashboardMetricKey, string> = {
+    neighborhoods_count: "Tổ dân phố",
+    houses_count: "Nhà số",
+    owners_count: "Chủ sở hữu",
+    business_units_count: "Đơn vị kinh doanh",
+    complaints_summary: "Phản ánh (chưa/đang/đã xử lý, tổng)",
+    women_count: "Phụ nữ",
+    elderly_count: "Người cao tuổi",
+    children_count: "Trẻ em",
+    veterans_count: "Cựu chiến binh",
+    martyrs_count: "Liệt sĩ / Thương binh / Bệnh binh",
+    poor_households_count: "Hộ nghèo / cận nghèo",
+    unemployed_count: "Đang thất nghiệp",
+    military_age_men_count: "Nam trong độ tuổi nhập ngũ",
+    undeclared_residency_count: "Chưa khai báo cư trú",
+    disease_monitored_households_count: "Có dịch bệnh theo dõi",
+    registered_houses_count: "Nhà số đã đăng ký",
+    school_age_children_count: "Trẻ trong độ tuổi đi học",
 };
 
 export const HOUSE_USAGE_TYPE_LABEL: Record<HouseUsageType, string> = {

@@ -69,6 +69,10 @@ const CITIZEN_MAPPING_FIELDS: {
     { key: "relationToHead", label: "Quan hệ với chủ hộ" },
     { key: "occupation", label: "Nghề nghiệp/nơi làm việc" },
     { key: "residenceType", label: "Thường trú/Tạm trú" },
+    { key: "temporaryResidenceStartsAt", label: "Ngày bắt đầu tạm trú" },
+    { key: "temporaryResidenceExpiresAt", label: "Ngày hết hạn tạm trú" },
+    { key: "isResidencyDeclared", label: "Đã khai báo cư trú" },
+    { key: "isUnemployed", label: "Đang thất nghiệp" },
     { key: "isElderly", label: "Người cao tuổi" },
     { key: "isChild", label: "Trẻ em" },
     { key: "isDisabledOrSupportNeeded", label: "Người khuyết tật" },
@@ -479,6 +483,9 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                             <TableHead>SĐT</TableHead>
                                             <TableHead>Giới tính</TableHead>
                                             <TableHead>Loại cư trú</TableHead>
+                                            <TableHead>Thời hạn tạm trú</TableHead>
+                                            <TableHead>Đã khai báo cư trú</TableHead>
+                                            <TableHead>Đang thất nghiệp</TableHead>
                                             <TableHead>Quan hệ với chủ hộ</TableHead>
                                             <TableHead>Nghề nghiệp</TableHead>
                                         </TableRow>
@@ -505,6 +512,36 @@ const CitizenImportSheet: React.FC<CitizenImportSheetProps> = ({
                                                     {LOAI_CU_TRU_LABEL[
                                                         row.residenceType as keyof typeof LOAI_CU_TRU_LABEL
                                                     ] || row.residenceType}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.temporaryResidenceStartsAt ||
+                                                    row.temporaryResidenceExpiresAt
+                                                        ? `${
+                                                              row.temporaryResidenceStartsAt
+                                                                  ? new Date(
+                                                                        row.temporaryResidenceStartsAt,
+                                                                    ).toLocaleDateString(
+                                                                        "vi-VN",
+                                                                    )
+                                                                  : "?"
+                                                          } – ${
+                                                              row.temporaryResidenceExpiresAt
+                                                                  ? new Date(
+                                                                        row.temporaryResidenceExpiresAt,
+                                                                    ).toLocaleDateString(
+                                                                        "vi-VN",
+                                                                    )
+                                                                  : "?"
+                                                          }`
+                                                        : "—"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.isResidencyDeclared
+                                                        ? "Đã khai báo"
+                                                        : "Chưa khai báo"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.isUnemployed ? "Có" : "Không"}
                                                 </TableCell>
                                                 <TableCell>
                                                     {row.relationToHead || "—"}

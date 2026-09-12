@@ -87,6 +87,14 @@ const citizenToForm = (c: Citizen): CitizenFormValues => ({
     householdId: householdIdOf(c.householdId),
     householdLabel: householdLabelOf(c.householdId),
     residenceType: c.residenceType,
+    temporaryResidenceStartsAt: c.temporaryResidenceStartsAt
+        ? c.temporaryResidenceStartsAt.slice(0, 10)
+        : "",
+    temporaryResidenceExpiresAt: c.temporaryResidenceExpiresAt
+        ? c.temporaryResidenceExpiresAt.slice(0, 10)
+        : "",
+    isResidencyDeclared: c.isResidencyDeclared,
+    isUnemployed: c.isUnemployed,
     isElderly: c.isElderly,
     isChild: c.isChild,
     isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,

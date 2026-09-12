@@ -76,6 +76,10 @@ export type User = {
 export type AssignableStaff = {
     id: string;
     displayName: string;
+    // Optional: mot so noi dung chung shape nay chi de luu id+displayName
+    // (vd AppointmentService.assignedOfficerUserIds), khong goi qua
+    // listAssignableStaff nen khong co roles.
+    roles?: Role[];
 };
 
 export type ResidentSearchResult = {
@@ -116,6 +120,30 @@ export const ACCESS_SCOPE_TIERS = [
 export type AccessScopeTier = (typeof ACCESS_SCOPE_TIERS)[number];
 export type ScopeAssignmentMechanism = "ASSIGNED" | "OWNED";
 
+// Danh muc so lieu dashboard CO DINH (khac NhomPhanAnh/RequestType - khong co
+// collection quan tri duoc tuong ung) - xem Role.dashboardMetrics va
+// dashboardService.ts (backend) de biet gia tri nay duoc dung the nao.
+export const DASHBOARD_METRIC_KEYS = [
+    "neighborhoods_count",
+    "houses_count",
+    "owners_count",
+    "business_units_count",
+    "complaints_summary",
+    "women_count",
+    "elderly_count",
+    "children_count",
+    "veterans_count",
+    "martyrs_count",
+    "poor_households_count",
+    "unemployed_count",
+    "military_age_men_count",
+    "undeclared_residency_count",
+    "disease_monitored_households_count",
+    "registered_houses_count",
+    "school_age_children_count",
+] as const;
+export type DashboardMetricKey = (typeof DASHBOARD_METRIC_KEYS)[number];
+
 export type RoleRecord = {
     _id: string;
     key: string;
@@ -124,6 +152,11 @@ export type RoleRecord = {
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
     allowedRequestTypes?: RequestType[];
+    // Cung quy uoc voi 2 truong tren: undefined = khong gioi han (giu nguyen
+    // bo so lieu dashboard co dinh theo audience nhu truoc day). Khac 2 truong
+    // tren: danh muc CO DINH (DASHBOARD_METRIC_KEYS), khong phai danh muc quan
+    // tri duoc rieng.
+    dashboardMetrics?: DashboardMetricKey[];
     // Vai tro duoc phep chon khi "Tạo tài khoản" (POST /api/users) - KHAC 2
     // truong tren, khong dung quy uoc undefined = khong gioi han (mac dinh
     // rong la an toan vi day la quyen nhay cam) - xem Role.ts o backend.
@@ -154,6 +187,7 @@ export type RoleRecord = {
 export type LoaiSoHuu = "chinh_chu" | "cho_thue";
 export type GioiTinh = "nam" | "nu" | "khac";
 export type LoaiCuTru = "thuong_tru" | "tam_tru";
+export type DiseaseStatus = "none" | "recorded" | "monitoring" | "resolved";
 
 export type DocumentType = {
     _id: string;
@@ -555,6 +589,14 @@ export type Household = {
     memberCount: number;
     ownershipType: LoaiSoHuu;
     needsSupport: boolean;
+    isNearPoor: boolean;
+    isMartyrFamilyHousehold: boolean;
+    isLonelyElderly: boolean;
+    // Tu tinh (backend tu dong dong bo tu Citizen cua ho dan) - chi doc.
+    hasDisabledChild: boolean;
+    hasDisabledPerson: boolean;
+    diseaseStatus: DiseaseStatus;
+    diseaseName?: string;
     houseId?: string | House;
     status: VerificationStatus;
     approvalNote?: string;
@@ -696,6 +738,10 @@ export type Citizen = {
     occupation?: string;
     householdId: string | Household;
     residenceType: LoaiCuTru;
+    temporaryResidenceStartsAt?: string;
+    temporaryResidenceExpiresAt?: string;
+    isResidencyDeclared: boolean;
+    isUnemployed: boolean;
     isElderly: boolean;
     isChild: boolean;
     isDisabledOrSupportNeeded: boolean;
@@ -1824,6 +1870,10 @@ export type DashboardSummary = {
         | "ward"
         | "neighborhood"
         | "police"
+        | "social_affairs"
+        | "health"
+        | "education"
+        | "economy_labor"
         | "staff";
     scopeLabel: string;
     generatedAt: string;
@@ -1937,6 +1987,49 @@ export type DashboardSummary = {
     };
     neighborhoodOverview?: NeighborhoodOverview;
     wardOverview?: WardOverview;
+    departmentOverview?: DepartmentOverview;
+    // Duong di MOI (low-code): chi co gia tri khi CO IT NHAT 1 vai tro cua
+    // actor da cau hinh Role.dashboardMetrics (khac null) - xem
+    // dashboardService.computeFlatDashboardMetrics (backend). Khi
+    // allowedDashboardMetrics != null, uu tien hien thi metrics (mot grid so
+    // lieu chung, khong theo audience co dinh) thay vi neighborhoodOverview/
+    // wardOverview/departmentOverview.
+    metrics?: Partial<Record<DashboardMetricKey, number | ComplaintSummary>>;
+    allowedDashboardMetrics: DashboardMetricKey[] | null;
+};
+
+export type ComplaintSummary = {
+    unprocessed: number;
+    inProgress: number;
+    processed: number;
+    total: number;
+};
+
+// Khoi rieng cho tung "phong ban" cap Phuong - chi field ung voi audience hien
+// tai duoc dien (xem summary.audience), cac field con lai la undefined.
+export type DepartmentOverview = {
+    police?: {
+        undeclaredResidency: number;
+        militaryAgeMen: number;
+    };
+    socialAffairs?: {
+        women: number;
+        elderly: number;
+        children: number;
+        veterans: number;
+        martyrs: number;
+        poorHouseholds: number;
+    };
+    health?: {
+        diseaseMonitoredHouseholds: number;
+    };
+    education?: {
+        schoolAgeChildren: number;
+    };
+    economyLabor?: {
+        businessUnits: number;
+        unemployed: number;
+    };
 };
 
 // Chi tra ve khi audience === "neighborhood" (to truong/to pho). Cong tac
@@ -1961,6 +2054,15 @@ export type NeighborhoodOverview = {
         elderly: number;
         children: number;
         needsSupport: number;
+        women: number;
+        veterans: number;
+        martyrs: number;
+        poorHouseholds: number;
+        unemployed: number;
+        militaryAgeMen: number;
+        undeclaredResidency: number;
+        diseaseMonitoredHouseholds: number;
+        registeredHouses: number;
     };
     business: {
         dataAvailable: boolean;
@@ -1989,6 +2091,7 @@ export type NeighborhoodOverview = {
         averageSatisfaction: number | null;
         ratedComplaintCount: number;
     };
+    complaintSummary: ComplaintSummary;
 };
 
 export type WardNeighborhoodRow = {
@@ -2007,6 +2110,13 @@ export type WardNeighborhoodRow = {
 // chinh duoc gan wardCode).
 export type WardOverview = {
     neighborhoods: WardNeighborhoodRow[];
+    houseSummary: {
+        neighborhoods: number;
+        houses: number;
+        owners: number;
+        businessUnits: number;
+    };
+    complaintSummary: ComplaintSummary;
     dataQuality: {
         duplicateAddressGroups: number;
         duplicateAddressHouses: number;

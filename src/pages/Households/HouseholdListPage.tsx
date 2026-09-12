@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UploadCloud } from "lucide-react";
+import { toast } from "sonner";
+import { Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
@@ -20,21 +21,38 @@ import {
     TableHeader,
     TableRow,
 } from "@components/ui/table";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetFooter,
+} from "@components/ui/sheet";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import HousePicker from "@components/admin/HousePicker";
 import {
+    HOUSEHOLD_STATE_LIST,
+    HouseholdStateKey,
     LOAI_SO_HUU_LABEL,
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
+import { cn } from "@lib/utils";
 import { usePermission } from "@store/authStore";
-import { Household, Neighborhood, VerificationStatus } from "@dts";
-import { fetchHouseholds } from "@service/householdApi";
+import { AppError, Household, Neighborhood, VerificationStatus } from "@dts";
+import { createHousehold, fetchHouseholds } from "@service/householdApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import HouseholdImportSheet from "./HouseholdImportSheet";
+import HouseholdForm, {
+    EMPTY_HOUSEHOLD_FORM,
+    HouseholdFormValues,
+    isHouseholdFormValid,
+    toHouseholdInput,
+} from "./HouseholdForm";
 
 const ALL_STATUS = "all";
 const ALL_ASSIGNMENT = "all";
@@ -59,10 +77,22 @@ const HouseholdListContent: React.FC = () => {
     const canImport = usePermission("imports.manage");
     const [importVisible, setImportVisible] = useState(false);
 
+    const canCreate = usePermission("households.create");
+    const [createVisible, setCreateVisible] = useState(false);
+    const [householdForm, setHouseholdForm] = useState<HouseholdFormValues>(
+        EMPTY_HOUSEHOLD_FORM,
+    );
+    const [houseId, setHouseId] = useState("");
+    const [houseLabel, setHouseLabel] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
     const [assignment, setAssignment] = useState<"" | typeof UNASSIGNED>("");
     const [neighborhoodId, setNeighborhoodId] = useState("");
+    const [selectedStates, setSelectedStates] = useState<HouseholdStateKey[]>(
+        [],
+    );
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [items, setItems] = useState<Household[]>([]);
     const [page, setPage] = useState(1);
@@ -81,6 +111,7 @@ const HouseholdListContent: React.FC = () => {
             unassigned: assignment === UNASSIGNED ? true : undefined,
             status: status || undefined,
             neighborhoodId: neighborhoodId || undefined,
+            states: selectedStates.length ? selectedStates : undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -95,7 +126,7 @@ const HouseholdListContent: React.FC = () => {
         const timer = setTimeout(() => load(1, search), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status, assignment, neighborhoodId]);
+    }, [search, status, assignment, neighborhoodId, selectedStates]);
 
     useEffect(() => {
         fetchNeighborhoods({ limit: 200 })
@@ -103,21 +134,64 @@ const HouseholdListContent: React.FC = () => {
             .catch(() => setNeighborhoods([]));
     }, []);
 
+    const toggleState = (key: HouseholdStateKey) => {
+        setSelectedStates(prev =>
+            prev.includes(key)
+                ? prev.filter(k => k !== key)
+                : [...prev, key],
+        );
+    };
+
+    const openCreate = () => {
+        setHouseholdForm(EMPTY_HOUSEHOLD_FORM);
+        setHouseId("");
+        setHouseLabel("");
+        setCreateVisible(true);
+    };
+
+    const handleCreate = async () => {
+        if (!isHouseholdFormValid(householdForm, "create")) {
+            toast.error(
+                "Vui lòng nhập đầy đủ cụm dân cư, địa chỉ, chủ hộ, số điện thoại",
+            );
+            return;
+        }
+        try {
+            setSubmitting(true);
+            await createHousehold(toHouseholdInput(householdForm, houseId || null));
+            toast.success("Đã thêm hộ dân mới");
+            setCreateVisible(false);
+            load(1, search);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Hộ dân"
                 description="Xem danh sách các hộ dân đang sinh sống trên địa bàn."
                 action={
-                    canImport && (
-                        <Button
-                            variant="outline"
-                            onClick={() => setImportVisible(true)}
-                        >
-                            <UploadCloud className="mr-1 h-4 w-4" />
-                            Nhập từ Excel
-                        </Button>
-                    )
+                    <div className="flex gap-2">
+                        {canImport && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setImportVisible(true)}
+                            >
+                                <UploadCloud className="mr-1 h-4 w-4" />
+                                Nhập từ Excel
+                            </Button>
+                        )}
+                        {canCreate && (
+                            <Button onClick={openCreate}>
+                                <Plus className="mr-1 h-4 w-4" />
+                                Thêm hộ dân mới
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 
@@ -202,6 +276,29 @@ const HouseholdListContent: React.FC = () => {
                 </Select>
             </div>
 
+            <div className="mb-4 flex flex-wrap gap-2">
+                {HOUSEHOLD_STATE_LIST.map(s => {
+                    const active = selectedStates.includes(s.key);
+                    return (
+                        <Badge
+                            key={s.key}
+                            tone={s.tone}
+                            role="button"
+                            aria-pressed={active}
+                            className={cn(
+                                "cursor-pointer select-none",
+                                active
+                                    ? "ring-2 ring-primary ring-offset-1"
+                                    : "opacity-60",
+                            )}
+                            onClick={() => toggleState(s.key)}
+                        >
+                            {s.label}
+                        </Badge>
+                    );
+                })}
+            </div>
+
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
                 {!loading && error && (
@@ -222,6 +319,7 @@ const HouseholdListContent: React.FC = () => {
                                 <TableHead>Hình thức sở hữu</TableHead>
                                 <TableHead>Số nhân khẩu</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead>Trạng thái đặc biệt</TableHead>
                                 <TableHead className="text-right">
                                     Thao tác
                                 </TableHead>
@@ -251,6 +349,21 @@ const HouseholdListContent: React.FC = () => {
                                         <Badge tone={VERIFICATION_STATUS_TONE[h.status]}>
                                             {VERIFICATION_STATUS_LABEL[h.status]}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {HOUSEHOLD_STATE_LIST.filter(
+                                                s => h[s.key],
+                                            ).map(s => (
+                                                <Badge
+                                                    key={s.key}
+                                                    tone={s.tone}
+                                                    className="px-1.5 text-[10px]"
+                                                >
+                                                    {s.label}
+                                                </Badge>
+                                            ))}
+                                        </div>
                                     </TableCell>
                                     <TableCell
                                         className="text-right"
@@ -287,6 +400,41 @@ const HouseholdListContent: React.FC = () => {
                 onOpenChange={setImportVisible}
                 onImported={() => load(1, search)}
             />
+
+            <Sheet open={createVisible} onOpenChange={setCreateVisible}>
+                <SheetContent>
+                    <SheetHeader>
+                        <SheetTitle>Thêm hộ dân mới</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto py-4">
+                        <div className="mb-4">
+                            <HousePicker
+                                label="Nhà số (tùy chọn)"
+                                value={houseId}
+                                valueLabel={houseLabel}
+                                onChange={(id, house) => {
+                                    setHouseId(id);
+                                    setHouseLabel(`${house.code} — ${house.address}`);
+                                }}
+                            />
+                        </div>
+                        <HouseholdForm
+                            values={householdForm}
+                            onChange={setHouseholdForm}
+                            mode="create"
+                        />
+                    </div>
+                    <SheetFooter>
+                        <Button
+                            className="w-full"
+                            loading={submitting}
+                            onClick={handleCreate}
+                        >
+                            Lưu hộ dân
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 };

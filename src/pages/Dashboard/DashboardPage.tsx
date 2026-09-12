@@ -20,6 +20,7 @@ import {
     RefreshCw,
     ShieldAlert,
     Users,
+    Wallet,
     Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -35,7 +36,7 @@ import ReportLineChart from "@components/admin/ReportLineChart";
 import { Badge } from "@components/ui/badge";
 import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import { useAuthStore } from "@store/authStore";
-import { MODULES } from "@constants/modules";
+import { hasModulePermission, MODULES } from "@constants/modules";
 import {
     REQUEST_PRIORITY_LABEL,
     REQUEST_PRIORITY_TONE,
@@ -46,8 +47,22 @@ import {
 } from "@constants/domain";
 import { DashboardSummary, User } from "@dts";
 import { fetchDashboardSummary } from "@service/dashboardApi";
+import CustomMetricsSection from "./CustomMetricsSection";
 import NeighborhoodDashboardView from "./NeighborhoodDashboardView";
 import WardDashboardView from "./WardDashboardView";
+
+// 6 audience "ho hang" cap Phuong - dung chung khoi Nha so/Phan anh
+// (WardDashboardView), khac audience "neighborhood" (To truong/To pho, xem
+// NeighborhoodDashboardView) va cac audience khac (system_admin/staff) van
+// dung bo section chung phia duoi trong file nay.
+const WARD_FAMILY_AUDIENCES: DashboardSummary["audience"][] = [
+    "ward",
+    "police",
+    "social_affairs",
+    "health",
+    "education",
+    "economy_labor",
+];
 
 const AUDIENCE_COPY: Record<
     DashboardSummary["audience"],
@@ -66,8 +81,24 @@ const AUDIENCE_COPY: Record<
         description: "Việc cần xử lý và tiến độ trong Tổ dân phố",
     },
     police: {
-        label: "An ninh khu vực",
+        label: "Công an phường",
         description: "Ưu tiên an ninh, cư trú và nguy cơ PCCC",
+    },
+    social_affairs: {
+        label: "Văn hóa – Xã hội",
+        description: "Số liệu an sinh xã hội trong phạm vi Phường/xã",
+    },
+    health: {
+        label: "Y tế",
+        description: "Theo dõi tình hình dịch bệnh trong phạm vi Phường/xã",
+    },
+    education: {
+        label: "Giáo dục",
+        description: "Số liệu trẻ trong độ tuổi đi học",
+    },
+    economy_labor: {
+        label: "Kinh tế, Lao động",
+        description: "Số liệu kinh tế và lao động trong phạm vi Phường/xã",
     },
     staff: {
         label: "Công việc được giao",
@@ -115,6 +146,14 @@ const QUICK_MODULE_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "reports",
         "houses",
     ],
+    // 4 vai tro "phong ban" moi - danh sach truy cap nhanh chi mang tinh tham
+    // khao (nhieu vai tro trong so nay chi co dashboard.read + vai quyen doc
+    // hep, se khong thay hau het cac module o day do khong du quyen truy cap
+    // module tuong ung - hasModulePermission da tu loc).
+    social_affairs: ["residents", "houses", "reports"],
+    health: ["houses", "reports"],
+    education: ["residents", "reports"],
+    economy_labor: ["businesses", "residents", "reports"],
     staff: ["requests", "houses", "reports"],
 };
 
@@ -124,6 +163,7 @@ const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "complaints",
         "requests",
         "risks",
+        "finance",
         "population",
     ],
     ward: [
@@ -132,6 +172,7 @@ const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "complaints",
         "population",
         "risks",
+        "finance",
     ],
     neighborhood: [
         "inspections",
@@ -141,6 +182,10 @@ const CHART_PRIORITY: Record<DashboardSummary["audience"], string[]> = {
         "population",
     ],
     police: ["risks", "complaints", "requests", "population"],
+    social_affairs: ["population", "requests"],
+    health: ["population", "requests"],
+    education: ["population", "requests"],
+    economy_labor: ["population", "requests"],
     staff: ["requests", "population", "complaints", "inspections"],
 };
 
@@ -150,18 +195,22 @@ const inferDashboardAudience = (
     const roles = user?.roles || [];
     if (roles.includes("admin")) return "system_admin";
     if (
-        roles.includes("secretary") ||
-        roles.includes("people_committee_official")
-    ) {
-        return "ward";
-    }
-    if (
         roles.includes("neighborhood_leader") ||
         roles.includes("neighborhood_coleader")
     ) {
         return "neighborhood";
     }
     if (roles.includes("regional_police")) return "police";
+    if (roles.includes("social_affairs_official")) return "social_affairs";
+    if (roles.includes("health_official")) return "health";
+    if (roles.includes("education_official")) return "education";
+    if (roles.includes("economy_labor_official")) return "economy_labor";
+    if (
+        roles.includes("secretary") ||
+        roles.includes("people_committee_official")
+    ) {
+        return "ward";
+    }
     return "staff";
 };
 
@@ -207,6 +256,9 @@ const normalizeDashboardSummary = (
             ...fallbackCapabilities,
             ...(payload.capabilities || {}),
         },
+        // allowedDashboardMetrics: khong co tren payload cu (truoc khi backend
+        // co tinh nang nay) - coi nhu null (khong gioi han), giu hanh vi cu.
+        allowedDashboardMetrics: payload.allowedDashboardMetrics ?? null,
         totalHouseholds: payload.totalHouseholds ?? 0,
         totalHouses: payload.totalHouses ?? 0,
         totalCitizens: payload.totalCitizens ?? 0,
@@ -268,6 +320,13 @@ const formatDateTime = (iso?: string) => {
         timeStyle: "short",
     });
 };
+
+const formatMoney = (value: number) =>
+    new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0,
+    }).format(value);
 
 type DashboardChartSpec = {
     key: string;
@@ -366,7 +425,7 @@ const DashboardContent: React.FC = () => {
         return MODULES.filter(
             module =>
                 module.key !== "dashboard" &&
-                user?.permissions?.includes(module.permission),
+                hasModulePermission(user?.permissions, module),
         )
             .sort((a, b) => {
                 const aIndex = priority.indexOf(a.key);
@@ -508,6 +567,24 @@ const DashboardContent: React.FC = () => {
             },
         ];
     }
+    let financeChartData = summary.charts.financeByMonth;
+    const hasFinanceHistory = financeChartData.some(
+        row => row.income > 0 || row.expense > 0,
+    );
+    if (
+        !hasFinanceHistory &&
+        summary.financeSummary.monthIncome + summary.financeSummary.monthExpense >
+            0
+    ) {
+        financeChartData = [
+            {
+                label: "Tháng hiện tại",
+                income: summary.financeSummary.monthIncome,
+                expense: summary.financeSummary.monthExpense,
+            },
+        ];
+    }
+
     const riskSeries: ReportBarChartSeries[] = [
         ...(summary.capabilities.pccc
             ? [
@@ -665,6 +742,24 @@ const DashboardContent: React.FC = () => {
                   },
               ]
             : []),
+        ...(summary.capabilities.finance &&
+        financeChartData.some(row => row.income > 0 || row.expense > 0)
+            ? [
+                  {
+                      key: "finance",
+                      title: "Thu – Chi 6 tháng gần nhất",
+                      description:
+                          "Không tính các giao dịch đã hủy; đơn vị hiển thị là đồng.",
+                      data: financeChartData.map(row => ({ ...row })),
+                      series: [
+                          { key: "income", name: "Thu", color: "#16a34a" },
+                          { key: "expense", name: "Chi", color: "#f97316" },
+                      ],
+                      variant: "line" as const,
+                      link: "/finance",
+                  },
+              ]
+            : []),
     ];
     const chartPriority = CHART_PRIORITY[summary.audience] || CHART_PRIORITY.staff;
     chartSpecs.sort(
@@ -676,7 +771,8 @@ const DashboardContent: React.FC = () => {
         summary.capabilities.complaints ||
         summary.capabilities.population ||
         summary.capabilities.pccc ||
-        summary.capabilities.security;
+        summary.capabilities.security ||
+        summary.capabilities.finance;
     const primaryCharts = chartSpecs.filter(chart => chart.variant !== "donut");
     const donutCharts = chartSpecs.filter(chart => chart.variant === "donut");
 
@@ -716,15 +812,21 @@ const DashboardContent: React.FC = () => {
                 </div>
             </header>
 
-            {summary.audience === "neighborhood" && (
-                <NeighborhoodDashboardView summary={summary} />
-            )}
-            {summary.audience === "ward" && (
-                <WardDashboardView summary={summary} />
+            {summary.allowedDashboardMetrics ? (
+                <CustomMetricsSection summary={summary} />
+            ) : (
+                <>
+                    {summary.audience === "neighborhood" && (
+                        <NeighborhoodDashboardView summary={summary} />
+                    )}
+                    {WARD_FAMILY_AUDIENCES.includes(summary.audience) && (
+                        <WardDashboardView summary={summary} />
+                    )}
+                </>
             )}
 
             {summary.audience !== "neighborhood" &&
-                summary.audience !== "ward" && (
+                !WARD_FAMILY_AUDIENCES.includes(summary.audience) && (
                     <>
                         {attentionItems.length > 0 && (
                 <section>
@@ -852,7 +954,8 @@ const DashboardContent: React.FC = () => {
             )}
 
             {(summary.capabilities.inspections ||
-                summary.capabilities.surveys) && (
+                summary.capabilities.surveys ||
+                summary.capabilities.finance) && (
                 <section>
                     <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
                         <Activity className="h-4 w-4 text-main" />
@@ -888,6 +991,21 @@ const DashboardContent: React.FC = () => {
                                     onClick={() => navigate("/surveys")}
                                 />
                             </>
+                        )}
+                        {summary.capabilities.finance && (
+                            <StatCard
+                                label="Chênh lệch Thu – Chi tháng"
+                                value={formatMoney(
+                                    summary.financeSummary.monthNet,
+                                )}
+                                icon={Wallet}
+                                tone={
+                                    summary.financeSummary.monthNet >= 0
+                                        ? "success"
+                                        : "danger"
+                                }
+                                onClick={() => navigate("/finance")}
+                            />
                         )}
                     </div>
                 </section>

@@ -1,5 +1,7 @@
 import { API } from "@constants/common";
+import { HouseholdStateKey } from "@constants/domain";
 import {
+    DiseaseStatus,
     EntityRequiredDocumentsResult,
     Household,
     PaginatedData,
@@ -26,6 +28,11 @@ export interface HouseholdInput {
     memberCount?: number;
     ownershipType?: "chinh_chu" | "cho_thue";
     needsSupport?: boolean;
+    isNearPoor?: boolean;
+    isMartyrFamilyHousehold?: boolean;
+    isLonelyElderly?: boolean;
+    diseaseStatus?: DiseaseStatus;
+    diseaseName?: string;
     // id House, hoac null de go lien ket (chua gan nha so).
     houseId?: string | null;
     note?: string;
@@ -40,6 +47,7 @@ export const fetchHouseholds = (params?: {
     neighborhoodId?: string;
     unassigned?: boolean;
     status?: VerificationStatus;
+    states?: HouseholdStateKey[];
 }): Promise<PaginatedData<Household>> =>
     request<PaginatedData<Household>>("GET", API.HOUSEHOLDS, params);
 

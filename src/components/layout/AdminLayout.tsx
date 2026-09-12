@@ -16,7 +16,12 @@ import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
 import { useSurveyBadgeStore } from "@store/surveyBadgeStore";
 import { useCorrespondenceBadgeStore } from "@store/correspondenceBadgeStore";
 import { ROLE_LABEL } from "@constants/domain";
-import { ModuleItem, MODULE_GROUPS, TOP_LEVEL_MODULES } from "@constants/modules";
+import {
+    hasModulePermission,
+    ModuleItem,
+    MODULE_GROUPS,
+    TOP_LEVEL_MODULES,
+} from "@constants/modules";
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
@@ -124,7 +129,7 @@ const AdminLayout: React.FC = () => {
     };
 
     const hasPermission = (m: ModuleItem) =>
-        !!user?.permissions?.includes(m.permission);
+        hasModulePermission(user?.permissions, m);
 
     const visibleTopLevel = TOP_LEVEL_MODULES.filter(hasPermission);
     const visibleGroups = MODULE_GROUPS.map(group => ({

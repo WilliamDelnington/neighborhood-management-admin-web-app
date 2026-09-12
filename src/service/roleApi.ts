@@ -1,6 +1,7 @@
 import { API } from "@constants/common";
 import {
     AccessScopeTier,
+    DashboardMetricKey,
     ModulePermissionGroup,
     NeighborhoodCollaboratorScope,
     NhomPhanAnh,
@@ -43,6 +44,7 @@ export interface CreateRoleParams extends RoleScopeFields {
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
     allowedRequestTypes?: RequestType[];
+    dashboardMetrics?: DashboardMetricKey[];
     allowedCreatableRoles?: string[];
     active?: boolean;
     sortOrder?: number;
@@ -57,6 +59,7 @@ export interface UpdateRoleParams extends RoleScopeFields {
     permissions?: string[];
     allowedComplaintCategories?: NhomPhanAnh[] | null;
     allowedRequestTypes?: RequestType[] | null;
+    dashboardMetrics?: DashboardMetricKey[] | null;
     allowedCreatableRoles?: string[];
     active?: boolean;
     sortOrder?: number;

@@ -1,14 +1,18 @@
 import React from "react";
 import {
+    AlertTriangle,
+    Briefcase,
     Building2,
     CheckCircle2,
     ClipboardCheck,
     ClipboardList,
     Flame,
+    Heart,
     Home,
     MapPin,
     ShieldAlert,
     ShoppingBag,
+    Stethoscope,
     Store,
     Users,
 } from "lucide-react";
@@ -112,6 +116,33 @@ const NeighborhoodDashboardView: React.FC<{ summary: DashboardSummary }> = ({
                         icon={Building2}
                         tone={overview.houses.vacant > 0 ? "warning" : "default"}
                     />
+                    <StatCard
+                        label="Nhà số đã đăng ký"
+                        value={overview.population.registeredHouses}
+                        icon={CheckCircle2}
+                        tone="success"
+                    />
+                    <StatCard
+                        label="Chưa khai báo cư trú"
+                        value={overview.population.undeclaredResidency}
+                        icon={AlertTriangle}
+                        tone={
+                            overview.population.undeclaredResidency > 0
+                                ? "warning"
+                                : "default"
+                        }
+                        onClick={() => navigate("/residents")}
+                    />
+                    <StatCard
+                        label="Có dịch bệnh theo dõi"
+                        value={overview.population.diseaseMonitoredHouseholds}
+                        icon={Stethoscope}
+                        tone={
+                            overview.population.diseaseMonitoredHouseholds > 0
+                                ? "danger"
+                                : "default"
+                        }
+                    />
                 </div>
                 {houseStatusChart.length > 0 && (
                     <div className="mt-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
@@ -170,6 +201,41 @@ const NeighborhoodDashboardView: React.FC<{ summary: DashboardSummary }> = ({
                     <StatCard
                         label="Trẻ em"
                         value={overview.population.children}
+                        icon={Users}
+                    />
+                    <StatCard
+                        label="Phụ nữ"
+                        value={overview.population.women}
+                        icon={Users}
+                    />
+                    <StatCard
+                        label="Cựu chiến binh"
+                        value={overview.population.veterans}
+                        icon={Users}
+                    />
+                    <StatCard
+                        label="Liệt sĩ/TB/BB"
+                        value={overview.population.martyrs}
+                        icon={Users}
+                    />
+                    <StatCard
+                        label="Hộ nghèo/cận nghèo"
+                        value={overview.population.poorHouseholds}
+                        icon={Heart}
+                        tone={
+                            overview.population.poorHouseholds > 0
+                                ? "warning"
+                                : "default"
+                        }
+                    />
+                    <StatCard
+                        label="Đang thất nghiệp"
+                        value={overview.population.unemployed}
+                        icon={Briefcase}
+                    />
+                    <StatCard
+                        label="Nam trong độ tuổi nhập ngũ"
+                        value={overview.population.militaryAgeMen}
                         icon={Users}
                     />
                     <StatCard
@@ -332,16 +398,32 @@ const NeighborhoodDashboardView: React.FC<{ summary: DashboardSummary }> = ({
             >
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-5">
                     <StatCard
-                        label="Phản ánh mới"
-                        value={overview.tasks.newComplaints}
+                        label="Tổng phản ánh"
+                        value={overview.complaintSummary.total}
                         icon={ClipboardList}
+                        onClick={() => navigate("/complaints")}
+                    />
+                    <StatCard
+                        label="Chưa xử lý"
+                        value={overview.complaintSummary.unprocessed}
+                        icon={AlertTriangle}
+                        tone={
+                            overview.complaintSummary.unprocessed > 0
+                                ? "danger"
+                                : "default"
+                        }
                         onClick={() => navigate("/complaints?status=moi_tiep_nhan")}
                     />
                     <StatCard
                         label="Đang xử lý"
-                        value={overview.tasks.inProgressComplaints}
+                        value={overview.complaintSummary.inProgress}
                         icon={ClipboardList}
                         onClick={() => navigate("/complaints")}
+                    />
+                    <StatCard
+                        label="Đã xử lý"
+                        value={overview.complaintSummary.processed}
+                        icon={ClipboardCheck}
                     />
                     <StatCard
                         label="Lượt việc quá hạn"

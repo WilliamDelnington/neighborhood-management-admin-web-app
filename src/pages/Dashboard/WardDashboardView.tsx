@@ -1,15 +1,22 @@
 import React from "react";
 import {
     AlertTriangle,
+    Briefcase,
     Building2,
     ClipboardCheck,
     ClipboardList,
     Database,
     Flame,
+    GraduationCap,
+    Heart,
+    HeartHandshake,
+    Home,
     LayoutGrid,
+    MessageSquare,
     ShieldAlert,
     ShoppingBag,
     Sparkles,
+    Stethoscope,
     Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -78,6 +85,74 @@ const WardDashboardView: React.FC<{ summary: DashboardSummary }> = ({
 
     return (
         <div className="space-y-5">
+            <Section
+                title="Nhà số"
+                icon={Home}
+                description="Số liệu tổng hợp Nhà số/Tổ dân phố/chủ sở hữu/đơn vị kinh doanh trong toàn Phường."
+            >
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <StatCard
+                        label="Tổ dân phố"
+                        value={overview.houseSummary.neighborhoods}
+                        icon={LayoutGrid}
+                    />
+                    <StatCard
+                        label="Nhà số"
+                        value={overview.houseSummary.houses}
+                        icon={Building2}
+                        onClick={() => navigate("/houses")}
+                    />
+                    <StatCard
+                        label="Chủ sở hữu"
+                        value={overview.houseSummary.owners}
+                        icon={Users}
+                    />
+                    <StatCard
+                        label="Đơn vị kinh doanh"
+                        value={overview.houseSummary.businessUnits}
+                        icon={ShoppingBag}
+                    />
+                </div>
+            </Section>
+
+            <Section
+                title="Phản ánh"
+                icon={MessageSquare}
+                description="Tình hình tiếp nhận và xử lý phản ánh trong toàn Phường."
+            >
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <StatCard
+                        label="Tổng số"
+                        value={overview.complaintSummary.total}
+                        icon={MessageSquare}
+                        onClick={() => navigate("/complaints")}
+                    />
+                    <StatCard
+                        label="Chưa xử lý"
+                        value={overview.complaintSummary.unprocessed}
+                        icon={AlertTriangle}
+                        tone={
+                            overview.complaintSummary.unprocessed > 0
+                                ? "danger"
+                                : "default"
+                        }
+                        onClick={() =>
+                            navigate("/complaints?status=moi_tiep_nhan")
+                        }
+                    />
+                    <StatCard
+                        label="Đang xử lý"
+                        value={overview.complaintSummary.inProgress}
+                        icon={ClipboardList}
+                    />
+                    <StatCard
+                        label="Đã xử lý"
+                        value={overview.complaintSummary.processed}
+                        icon={ClipboardCheck}
+                    />
+                </div>
+            </Section>
+
             <Section
                 title={`Toàn cảnh ${overview.neighborhoods.length} Tổ dân phố`}
                 icon={LayoutGrid}
@@ -272,11 +347,6 @@ const WardDashboardView: React.FC<{ summary: DashboardSummary }> = ({
                         icon={Users}
                     />
                     <StatCard
-                        label="Trẻ trong độ tuổi đi học (ước tính)"
-                        value={overview.population.childrenApprox}
-                        icon={Users}
-                    />
-                    <StatCard
                         label="Hộ cần hỗ trợ"
                         value={overview.population.needsSupport}
                         icon={Users}
@@ -434,6 +504,170 @@ const WardDashboardView: React.FC<{ summary: DashboardSummary }> = ({
                     <EmptyNote label="Tài khoản chưa có quyền xem dữ liệu PCCC/an ninh." />
                 )}
             </Section>
+
+            {summary.departmentOverview?.police && (
+                <Section
+                    title="Công an phường"
+                    icon={ShieldAlert}
+                    description="Số liệu cư trú và độ tuổi nhập ngũ trong toàn Phường."
+                >
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <StatCard
+                            label="Chưa khai báo cư trú"
+                            value={
+                                summary.departmentOverview.police
+                                    .undeclaredResidency
+                            }
+                            icon={AlertTriangle}
+                            tone={
+                                summary.departmentOverview.police
+                                    .undeclaredResidency > 0
+                                    ? "warning"
+                                    : "default"
+                            }
+                            onClick={() => navigate("/residents")}
+                        />
+                        <StatCard
+                            label="Nam trong độ tuổi nhập ngũ"
+                            value={
+                                summary.departmentOverview.police
+                                    .militaryAgeMen
+                            }
+                            icon={Users}
+                        />
+                    </div>
+                </Section>
+            )}
+
+            {summary.departmentOverview?.socialAffairs && (
+                <Section
+                    title="Văn hóa – Xã hội (An sinh)"
+                    icon={HeartHandshake}
+                    description="Số liệu an sinh xã hội trong toàn Phường."
+                >
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <StatCard
+                            label="Phụ nữ"
+                            value={summary.departmentOverview.socialAffairs.women}
+                            icon={Users}
+                        />
+                        <StatCard
+                            label="Người cao tuổi"
+                            value={
+                                summary.departmentOverview.socialAffairs.elderly
+                            }
+                            icon={Users}
+                        />
+                        <StatCard
+                            label="Trẻ em"
+                            value={
+                                summary.departmentOverview.socialAffairs.children
+                            }
+                            icon={Users}
+                        />
+                        <StatCard
+                            label="Cựu chiến binh"
+                            value={
+                                summary.departmentOverview.socialAffairs.veterans
+                            }
+                            icon={Users}
+                        />
+                        <StatCard
+                            label="Liệt sĩ/TB/BB"
+                            value={
+                                summary.departmentOverview.socialAffairs.martyrs
+                            }
+                            icon={Users}
+                        />
+                        <StatCard
+                            label="Hộ nghèo/cận nghèo"
+                            value={
+                                summary.departmentOverview.socialAffairs
+                                    .poorHouseholds
+                            }
+                            icon={Heart}
+                            tone={
+                                summary.departmentOverview.socialAffairs
+                                    .poorHouseholds > 0
+                                    ? "warning"
+                                    : "default"
+                            }
+                        />
+                    </div>
+                </Section>
+            )}
+
+            {summary.departmentOverview?.health && (
+                <Section
+                    title="Y tế"
+                    icon={Stethoscope}
+                    description="Tình hình theo dõi dịch bệnh trong toàn Phường."
+                >
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <StatCard
+                            label="Đang theo dõi dịch bệnh"
+                            value={
+                                summary.departmentOverview.health
+                                    .diseaseMonitoredHouseholds
+                            }
+                            icon={Stethoscope}
+                            tone={
+                                summary.departmentOverview.health
+                                    .diseaseMonitoredHouseholds > 0
+                                    ? "danger"
+                                    : "default"
+                            }
+                        />
+                    </div>
+                </Section>
+            )}
+
+            {summary.departmentOverview?.education && (
+                <Section
+                    title="Giáo dục"
+                    icon={GraduationCap}
+                    description="Số liệu trẻ trong độ tuổi đi học trong toàn Phường."
+                >
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <StatCard
+                            label="Trẻ trong độ tuổi đi học"
+                            value={
+                                summary.departmentOverview.education
+                                    .schoolAgeChildren
+                            }
+                            icon={GraduationCap}
+                        />
+                    </div>
+                </Section>
+            )}
+
+            {summary.departmentOverview?.economyLabor && (
+                <Section
+                    title="Kinh tế, Lao động"
+                    icon={Briefcase}
+                    description="Số liệu kinh tế và lao động trong toàn Phường."
+                >
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <StatCard
+                            label="Đơn vị kinh doanh"
+                            value={
+                                summary.departmentOverview.economyLabor
+                                    .businessUnits
+                            }
+                            icon={ShoppingBag}
+                            onClick={() => navigate("/businesses")}
+                        />
+                        <StatCard
+                            label="Đang thất nghiệp"
+                            value={
+                                summary.departmentOverview.economyLabor
+                                    .unemployed
+                            }
+                            icon={Briefcase}
+                        />
+                    </div>
+                </Section>
+            )}
 
             <ComingSoonSection
                 title="Dịch vụ số"

@@ -7,6 +7,7 @@ import {
     CalendarDays,
     Megaphone,
     ClipboardList,
+    Wallet,
     BarChart3,
     UserCog,
     Settings,
@@ -37,6 +38,7 @@ import {
     Newspaper,
     Contact,
     Unlock,
+    FileDown,
 } from "lucide-react";
 
 export type ModuleItem = {
@@ -44,7 +46,11 @@ export type ModuleItem = {
     label: string;
     path: string;
     icon: typeof Home;
-    permission: string;
+    // Mot chuoi quyen duy nhat (bat buoc co dung quyen do), hoac 1 mang quyen
+    // (chi can co MOT trong so do la du) - dung cho cac muc nhu "Xuat bao
+    // cao" duoc chia thanh nhieu quyen rieng theo tung danh sach, khong con 1
+    // quyen chung duy nhat de doi chieu.
+    permission: string | string[];
     description?: string;
 };
 
@@ -53,6 +59,20 @@ export type ModuleGroup = {
     label: string;
     icon: typeof Home;
     items: ModuleItem[];
+};
+
+// Dung chung cho sidebar (AdminLayout.tsx) va shortcut cards (DashboardPage.tsx)
+// de kiem tra quyen cua 1 module - tranh lap lai logic xu ly permission dang
+// string | string[] o nhieu noi.
+export const hasModulePermission = (
+    userPermissions: string[] | undefined,
+    module: ModuleItem,
+): boolean => {
+    if (!userPermissions) return false;
+    const required = Array.isArray(module.permission)
+        ? module.permission
+        : [module.permission];
+    return required.some(p => userPermissions.includes(p));
 };
 
 // Muc luon hien o dau sidebar, khong thuoc nhom nao (trang chu).
@@ -310,6 +330,31 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 description: "Xem báo cáo tổng hợp số liệu quản lý theo địa bàn.",
             },
             {
+                key: "export-reports",
+                label: "Xuất báo cáo",
+                path: "/export-reports",
+                icon: FileDown,
+                // Khong con 1 quyen chung - moi danh sach trong trang co
+                // quyen rieng (xem REPORT_ITEMS trong reportItems.ts). Hien
+                // menu neu co it nhat 1 trong so cac quyen nay; danh sach nay
+                // phai them dung theo permissionRegistry.ts (nhom
+                // "export_reports") o backend.
+                permission: [
+                    "reports.export_citizens.unregistered_residency",
+                    "reports.export_citizens.military_age_male",
+                    "reports.export_citizens.women",
+                    "reports.export_citizens.elderly",
+                    "reports.export_citizens.children",
+                    "reports.export_citizens.veterans",
+                    "reports.export_citizens.martyrs",
+                    "reports.export_citizens.poor_households",
+                    "reports.export_citizens.disease_monitoring",
+                    "reports.export_citizens.unemployed",
+                ],
+                description:
+                    "Xuất nhanh các danh sách nhân khẩu theo từng nhóm đối tượng (an sinh, y tế, an ninh...).",
+            },
+            {
                 key: "periodic-reports",
                 label: "Báo cáo định kỳ",
                 path: "/periodic-reports",
@@ -463,6 +508,22 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: ClipboardList,
                 permission: "surveys.read",
                 description: "Tạo khảo sát và thu thập ý kiến cư dân.",
+            },
+        ],
+    },
+    {
+        key: "finance",
+        label: "Tài chính",
+        icon: Wallet,
+        items: [
+            {
+                key: "finance",
+                label: "Tài chính",
+                path: "/finance",
+                icon: Wallet,
+                permission: "finance.read",
+                description:
+                    "Quản lý các khoản thu chi tài chính của tổ dân phố.",
             },
         ],
     },

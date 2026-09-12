@@ -50,6 +50,14 @@ const citizenToForm = (c: Citizen): CitizenFormValues => {
             ? `${household.code} — ${household.address}`
             : "",
         residenceType: c.residenceType,
+        temporaryResidenceStartsAt: c.temporaryResidenceStartsAt
+            ? c.temporaryResidenceStartsAt.slice(0, 10)
+            : "",
+        temporaryResidenceExpiresAt: c.temporaryResidenceExpiresAt
+            ? c.temporaryResidenceExpiresAt.slice(0, 10)
+            : "",
+        isResidencyDeclared: c.isResidencyDeclared,
+        isUnemployed: c.isUnemployed,
         isElderly: c.isElderly,
         isChild: c.isChild,
         isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
@@ -172,6 +180,22 @@ const CitizenDetailContent: React.FC = () => {
               age !== null ? ` (${age} tuổi)` : ""
           }`
         : "Chưa cập nhật";
+    const temporaryResidenceLabel = citizen
+        ? [
+              citizen.temporaryResidenceStartsAt
+                  ? new Date(
+                        citizen.temporaryResidenceStartsAt,
+                    ).toLocaleDateString("vi-VN")
+                  : null,
+              citizen.temporaryResidenceExpiresAt
+                  ? new Date(
+                        citizen.temporaryResidenceExpiresAt,
+                    ).toLocaleDateString("vi-VN")
+                  : null,
+          ]
+              .filter(Boolean)
+              .join(" – ") || "Chưa cập nhật"
+        : "Chưa cập nhật";
 
     return (
         <div>
@@ -216,6 +240,22 @@ const CitizenDetailContent: React.FC = () => {
                                                 ]
                                             }
                                         </Badge>
+                                        <Badge
+                                            tone={
+                                                citizen.isResidencyDeclared
+                                                    ? "green"
+                                                    : "yellow"
+                                            }
+                                        >
+                                            {citizen.isResidencyDeclared
+                                                ? "Đã khai báo cư trú"
+                                                : "Chưa khai báo cư trú"}
+                                        </Badge>
+                                        {citizen.isUnemployed && (
+                                            <Badge tone="yellow">
+                                                Đang thất nghiệp
+                                            </Badge>
+                                        )}
                                         {citizen.isElderly && (
                                             <Badge tone="blue">
                                                 Người cao tuổi
@@ -343,6 +383,13 @@ const CitizenDetailContent: React.FC = () => {
                                     label="Nghề nghiệp/nơi làm việc"
                                     value={citizen.occupation || "—"}
                                 />
+                                {citizen.residenceType === "tam_tru" && (
+                                    <Field
+                                        icon={<Calendar className="h-4 w-4" />}
+                                        label="Thời hạn tạm trú"
+                                        value={temporaryResidenceLabel}
+                                    />
+                                )}
                             </div>
                         )}
                     </div>
