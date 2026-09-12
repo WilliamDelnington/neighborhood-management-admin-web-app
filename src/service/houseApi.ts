@@ -42,6 +42,9 @@ export interface HouseOwnerOrganizationInput {
 }
 
 export interface HouseInput {
+    // Chi co y nghia luc SUA (cap nhat) - luc tao moi backend luon tu sinh,
+    // bo qua gia tri nay du co gui.
+    code?: string;
     cluster?: string;
     streetId?: string;
     neighborhoodId?: string | null;

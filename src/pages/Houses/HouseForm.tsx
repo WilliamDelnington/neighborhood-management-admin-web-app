@@ -86,6 +86,11 @@ function useOwnerPhoneCheck(phone: string): OwnerPhoneCheckResult | null {
 export type HouseOwnerKind = "individual" | "organization" | "none";
 
 export interface HouseFormValues {
+    // Chi hien/sua duoc o mode="edit" (xem HouseForm ben duoi) - luc tao moi
+    // van luon tu sinh (generateSequentialCode), khong nhan tu form. Nam
+    // trong HOUSE_RECORD_PROTECTED_FIELDS o backend nen sau khi nha da
+    // "verified" phai sua qua ChangeRequest.
+    code: string;
     cluster: string;
     streetId: string;
     neighborhoodId: string;
@@ -145,6 +150,7 @@ export interface HouseFormValues {
 }
 
 export const EMPTY_HOUSE_FORM: HouseFormValues = {
+    code: "",
     cluster: "",
     streetId: "",
     neighborhoodId: "",
@@ -179,6 +185,9 @@ export const EMPTY_HOUSE_FORM: HouseFormValues = {
 
 export function toHouseInput(values: HouseFormValues): HouseInput {
     return {
+        // "" luc tao moi (khong hien input) - backend tu sinh, gui undefined
+        // se bi bo qua. Luc sua, gia tri nhap vao duoc gui de doi ma.
+        code: values.code.trim() || undefined,
         cluster: values.streetId ? undefined : values.cluster.trim(),
         streetId: values.streetId || undefined,
         neighborhoodId: values.neighborhoodId || null,
@@ -455,6 +464,16 @@ const HouseForm: React.FC<HouseFormProps> = ({
                         : undefined
                 }
             />
+            {mode === "edit" && (
+                <div className="space-y-1.5">
+                    <Label>Mã căn/hộ</Label>
+                    <Input
+                        placeholder="Vd: H01-L19"
+                        value={values.code}
+                        onChange={e => set("code", e.target.value)}
+                    />
+                </div>
+            )}
             {canPickStreet ? (
                 <FilterableSelect
                     label="Đường/phố"
