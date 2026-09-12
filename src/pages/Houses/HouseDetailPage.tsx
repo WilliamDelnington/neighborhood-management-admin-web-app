@@ -135,6 +135,7 @@ const neighborhoodName = (
 };
 
 const toFormValues = (h: House): HouseFormValues => ({
+    code: h.code,
     cluster: h.cluster,
     streetId:
         h.streetId && typeof h.streetId !== "string" ? h.streetId._id : "",
