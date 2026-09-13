@@ -315,7 +315,7 @@ const HouseListContent: React.FC = () => {
                 </div>
             )}
 
-            <HouseMapPanel />
+            {/* <HouseMapPanel /> */}
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
                 <PageSizeSelect

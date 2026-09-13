@@ -464,6 +464,7 @@ const NeighborhoodDashboardView: React.FC<{ summary: DashboardSummary }> = ({
                 </div>
             </Section>
 
+            {/* Temporarily removed from UI: no border map data to visualize yet
             <Section
                 title="Bản đồ TDP"
                 icon={MapPin}
@@ -474,6 +475,7 @@ const NeighborhoodDashboardView: React.FC<{ summary: DashboardSummary }> = ({
                     onOpenHouse={houseId => navigate(`/houses/${houseId}`)}
                 />
             </Section>
+            */}
 
             <p className="text-right text-xs text-text_2">
                 <MapPin className="mr-1 inline h-3.5 w-3.5" />
