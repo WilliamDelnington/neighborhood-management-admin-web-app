@@ -43,7 +43,7 @@ import {
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { cn } from "@lib/utils";
-import { usePermission } from "@store/authStore";
+import { useLockedNeighborhoodId, usePermission } from "@store/authStore";
 import { AppError, Household, Neighborhood, VerificationStatus } from "@dts";
 import { createHousehold, fetchHouseholds } from "@service/householdApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
@@ -77,6 +77,10 @@ const HouseholdListContent: React.FC = () => {
     // /api/import/households), giong CitizenListPage/HouseListPage.
     const canImport = usePermission("imports.manage");
     const [importVisible, setImportVisible] = useState(false);
+    // To truong/To pho khoa cung vao 1 to dan pho thi bo loc "Tổ dân phố" la
+    // vo nghia (backend da tu loc theo dung to do) - xem ghi chu o
+    // HouseListPage.tsx.
+    const lockedNeighborhoodId = useLockedNeighborhoodId();
 
     const canCreate = usePermission("households.create");
     const [createVisible, setCreateVisible] = useState(false);
@@ -255,26 +259,28 @@ const HouseholdListContent: React.FC = () => {
                         </SelectItem>
                     </SelectContent>
                 </Select>
-                <Select
-                    value={neighborhoodId || ALL_NEIGHBORHOOD}
-                    onValueChange={v =>
-                        setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Tất cả tổ dân phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_NEIGHBORHOOD}>
-                            Tất cả tổ dân phố
-                        </SelectItem>
-                        {neighborhoods.map(n => (
-                            <SelectItem key={n._id} value={n._id}>
-                                {n.name}
+                {!lockedNeighborhoodId && (
+                    <Select
+                        value={neighborhoodId || ALL_NEIGHBORHOOD}
+                        onValueChange={v =>
+                            setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Tất cả tổ dân phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_NEIGHBORHOOD}>
+                                Tất cả tổ dân phố
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                            {neighborhoods.map(n => (
+                                <SelectItem key={n._id} value={n._id}>
+                                    {n.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </FilterBar>
 
             <div className="mb-4 flex flex-wrap gap-2">

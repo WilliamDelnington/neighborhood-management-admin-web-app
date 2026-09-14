@@ -40,7 +40,7 @@ import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterBar from "@components/admin/FilterBar";
-import { usePermission } from "@store/authStore";
+import { useLockedNeighborhoodId, usePermission } from "@store/authStore";
 import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Citizen, Neighborhood } from "@dts";
@@ -118,6 +118,10 @@ const CitizenListContent: React.FC = () => {
     // /api/import/citizens), khac voi "citizens.create" - phai kiem tra rieng
     // giong HouseListPage.
     const canImport = usePermission("imports.manage");
+    // To truong/To pho khoa cung vao 1 to dan pho thi bo loc "Tổ dân phố" la
+    // vo nghia (backend da tu loc theo dung to do) - xem ghi chu o
+    // HouseListPage.tsx.
+    const lockedNeighborhoodId = useLockedNeighborhoodId();
 
     const [search, setSearch] = useState("");
     const [neighborhoodId, setNeighborhoodId] = useState("");
@@ -267,26 +271,28 @@ const CitizenListContent: React.FC = () => {
                         onChange={e => setSearch(e.target.value)}
                     />
                 </div>
-                <Select
-                    value={neighborhoodId || ALL_NEIGHBORHOOD}
-                    onValueChange={v =>
-                        setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Tất cả tổ dân phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_NEIGHBORHOOD}>
-                            Tất cả tổ dân phố
-                        </SelectItem>
-                        {neighborhoods.map(n => (
-                            <SelectItem key={n._id} value={n._id}>
-                                {n.name}
+                {!lockedNeighborhoodId && (
+                    <Select
+                        value={neighborhoodId || ALL_NEIGHBORHOOD}
+                        onValueChange={v =>
+                            setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Tất cả tổ dân phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_NEIGHBORHOOD}>
+                                Tất cả tổ dân phố
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                            {neighborhoods.map(n => (
+                                <SelectItem key={n._id} value={n._id}>
+                                    {n.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
