@@ -115,7 +115,9 @@ const HouseListContent: React.FC = () => {
     // To truong/To pho khoa cung vao 1 to dan pho, hoac Bi thu/Can bo UBND/
     // Cong an khu vuc khoa cung vao 1 Phuong/Xa, thi chi bao gio thay du lieu
     // cua dung pham vi do (backend da tu loc) - bo loc tuong ung la vo nghia,
-    // an di thay vi de nguoi dung tuong minh chon duoc pham vi khac.
+    // an di thay vi de nguoi dung tuong minh chon duoc pham vi khac. Bo loc
+    // tinh/thanh pho cung an theo CA HAI truong hop (ward hoac neighborhood
+    // khoa cung deu ke theo 1 tinh/thanh pho co dinh duy nhat).
     const lockedNeighborhoodId = useLockedNeighborhoodId();
     const lockedWardCode = useLockedWardCode();
 
@@ -393,26 +395,28 @@ const HouseListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-                <Select
-                    value={provinceCode ? String(provinceCode) : ALL_STATUSES}
-                    onValueChange={v =>
-                        setProvinceCode(v === ALL_STATUSES ? "" : Number(v))
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Lọc theo tỉnh/thành phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_STATUSES}>
-                            Tất cả tỉnh/thành phố
-                        </SelectItem>
-                        {provinces.map(p => (
-                            <SelectItem key={p.code} value={String(p.code)}>
-                                {p.name}
+                {!lockedWardCode && !lockedNeighborhoodId && (
+                    <Select
+                        value={provinceCode ? String(provinceCode) : ALL_STATUSES}
+                        onValueChange={v =>
+                            setProvinceCode(v === ALL_STATUSES ? "" : Number(v))
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Lọc theo tỉnh/thành phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_STATUSES}>
+                                Tất cả tỉnh/thành phố
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                            {provinces.map(p => (
+                                <SelectItem key={p.code} value={String(p.code)}>
+                                    {p.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
                 {!lockedWardCode && (
                     <Select
                         value={wardCode ? String(wardCode) : ALL_STATUSES}
