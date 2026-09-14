@@ -104,6 +104,26 @@ export interface BusinessImportPreviewRow {
     note?: string;
 }
 
+// Xem COMPANY_COLUMNS/applyCompanyImportMapping o backend importService.ts -
+// giong BusinessImportPreviewRow, nhung "taxCode" luon co gia tri (bat buoc,
+// khac Business - tuy chon) va them "companyTypeId"/"companyTypeName" (doi
+// chieu tu cot "Loại hình doanh nghiệp" voi CompanyType, doc lap voi
+// businessTypeId/businessTypeName).
+export interface CompanyImportPreviewRow {
+    name: string;
+    houseCode: string;
+    houseId: string;
+    taxCode: string;
+    companyTypeId?: string;
+    companyTypeName?: string;
+    businessTypeId?: string;
+    businessTypeName?: string;
+    ownerName?: string;
+    phone?: string;
+    active: boolean;
+    note?: string;
+}
+
 export interface CitizenImportPreviewRow {
     fullName: string;
     phone?: string;
@@ -231,6 +251,21 @@ export interface BusinessColumnMapping {
     note?: string;
 }
 
+// Giong BusinessColumnMapping, nhung "taxCode" bat buoc (khac Business - tuy
+// chon) vi Company.taxCode required+unique o backend - xem
+// companyImportMappingSchema/applyCompanyImportMapping.
+export interface CompanyColumnMapping {
+    name: string;
+    houseCode: string;
+    taxCode: string;
+    companyTypeName?: string;
+    businessTypeName?: string;
+    ownerName?: string;
+    phone?: string;
+    active?: string;
+    note?: string;
+}
+
 export const uploadHouseholdImportFile = (
     file: File,
     sheetName?: string,
@@ -338,6 +373,38 @@ export const commitBusinessImport = (
     request<ImportJob<BusinessImportPreviewRow>>(
         "POST",
         `${API.IMPORT}/businesses/${jobId}/commit`,
+    );
+
+export const uploadCompanyImportFile = (
+    file: File,
+    sheetName?: string,
+): Promise<ImportJob<CompanyImportPreviewRow>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (sheetName) formData.append("sheetName", sheetName);
+    return request<ImportJob<CompanyImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/companies`,
+        formData,
+    );
+};
+
+export const applyCompanyImportMapping = (
+    jobId: string,
+    mapping: CompanyColumnMapping,
+): Promise<ImportJob<CompanyImportPreviewRow>> =>
+    request<ImportJob<CompanyImportPreviewRow>>(
+        "PUT",
+        `${API.IMPORT}/companies/${jobId}/mapping`,
+        mapping,
+    );
+
+export const commitCompanyImport = (
+    jobId: string,
+): Promise<ImportJob<CompanyImportPreviewRow>> =>
+    request<ImportJob<CompanyImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/companies/${jobId}/commit`,
     );
 
 export const uploadCitizenImportFile = (
@@ -462,9 +529,15 @@ export const downloadBusinessImportTemplate = (): Promise<void> =>
         "mau-nhap-ho-kinh-doanh.xlsx",
     );
 
+export const downloadCompanyImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/companies/template`,
+        "mau-nhap-cong-ty.xlsx",
+    );
+
 /**
  * Xuat toan bo rowErrors cua mot import job ra file Excel (dung chung cho ca
- * 5 loai import - xem buildImportErrorsWorkbook o backend). filename nen dat
+ * 6 loai import - xem buildImportErrorsWorkbook o backend). filename nen dat
  * theo loai import de nguoi dung de phan biet khi tai nhieu file.
  */
 export const downloadImportJobErrors = (

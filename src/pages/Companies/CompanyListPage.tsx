@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -32,6 +33,8 @@ import { BusinessType, Company, CompanyType, VerificationStatus } from "@dts";
 import { fetchCompanies } from "@service/companyApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
 import { fetchCompanyTypes } from "@service/companyTypeApi";
+import { usePermission } from "@store/authStore";
+import CompanyImportSheet from "./CompanyImportSheet";
 
 const ALL_STATUS = "all";
 const ALL_BUSINESS_TYPE = "all";
@@ -57,6 +60,12 @@ const houseLabelOf = (c: Company): string => {
 
 const CompanyListContent: React.FC = () => {
     const navigate = useNavigate();
+    // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
+    // /api/import/companies), giong House/Business, khong lien quan quyen
+    // "companies.create" (hien khong co nut tao cong ty rieng tren trang
+    // danh sach nay - tao cong ty van thuc hien qua trang chi tiet nha).
+    const canImport = usePermission("imports.manage");
+    const [importVisible, setImportVisible] = useState(false);
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<VerificationStatus | "">("");
@@ -111,6 +120,17 @@ const CompanyListContent: React.FC = () => {
             <PageHeader
                 title="Công ty"
                 description="Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn."
+                action={
+                    canImport && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setImportVisible(true)}
+                        >
+                            <UploadCloud className="mr-1 h-4 w-4" />
+                            Nhập từ Excel
+                        </Button>
+                    )
+                }
             />
 
             <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -296,6 +316,12 @@ const CompanyListContent: React.FC = () => {
                     disabled={loading}
                 />
             )}
+
+            <CompanyImportSheet
+                open={importVisible}
+                onOpenChange={setImportVisible}
+                onImported={() => load(1, search)}
+            />
         </div>
     );
 };
