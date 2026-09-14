@@ -26,6 +26,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -290,7 +291,7 @@ const FinanceListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -298,7 +299,7 @@ const FinanceListContent: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="mb-4 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
                 <h2 className="mb-2 text-base font-semibold">

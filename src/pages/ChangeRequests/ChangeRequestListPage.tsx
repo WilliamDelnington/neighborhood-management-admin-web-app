@@ -25,6 +25,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AppError,
@@ -189,7 +190,7 @@ const ChangeRequestListContent: React.FC = () => {
                 description="Duyệt các yêu cầu thay đổi thông tin nhà, hộ khẩu hoặc tài khoản đã xác minh."
             />
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <Tabs
                     value={status}
                     onValueChange={value => setStatus(value as ChangeRequestStatus)}
@@ -209,7 +210,7 @@ const ChangeRequestListContent: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

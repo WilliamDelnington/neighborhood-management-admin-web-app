@@ -28,6 +28,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { AuditLogRecord } from "@dts";
 import { fetchAuditLogs } from "@service/auditLogApi";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
@@ -121,7 +122,7 @@ const AuditLogListContent: React.FC = () => {
                 description="Tra cứu nhật ký thao tác của người dùng trong hệ thống."
             />
 
-            <div className="mb-3 flex flex-wrap items-end gap-3">
+            <FilterBar>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -175,7 +176,7 @@ const AuditLogListContent: React.FC = () => {
                         onChange={e => setTo(e.target.value)}
                     />
                 </div>
-            </div>
+            </FilterBar>
 
             {total > 0 && (
                 <div className="mb-2 text-xs text-text_2">{total} bản ghi</div>

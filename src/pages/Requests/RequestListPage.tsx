@@ -35,6 +35,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import { usePermission } from "@store/authStore";
 import { AppError, MyRequestItem, RequestItem, RequestStatus, RequestType } from "@dts";
@@ -218,14 +219,14 @@ const SentRequestsTab: React.FC<{ reloadKey: number }> = ({ reloadKey }) => {
 
     return (
         <div>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <Select
                     value={type || ALL_TYPES}
                     onValueChange={v =>
                         setType(v === ALL_TYPES ? "" : (v as RequestType))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo loại yêu cầu" />
                     </SelectTrigger>
                     <SelectContent>
@@ -244,7 +245,7 @@ const SentRequestsTab: React.FC<{ reloadKey: number }> = ({ reloadKey }) => {
                         load(1, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
@@ -409,14 +410,14 @@ const AllRequestsTab: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <Select
                     value={type || ALL_TYPES}
                     onValueChange={v =>
                         setType(v === ALL_TYPES ? "" : (v as RequestType))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo loại yêu cầu" />
                     </SelectTrigger>
                     <SelectContent>
@@ -435,7 +436,7 @@ const AllRequestsTab: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
@@ -665,14 +666,14 @@ const AssignedRequestsTab: React.FC = () => {
 
     return (
         <div>
-            <div className="mb-4 flex flex-wrap items-center gap-3">
+            <FilterBar>
                 <Select
                     value={status || ALL}
                     onValueChange={v =>
                         setStatus(v === ALL ? "" : (v as RequestStatus))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo trạng thái" />
                     </SelectTrigger>
                     <SelectContent>
@@ -696,7 +697,7 @@ const AssignedRequestsTab: React.FC = () => {
                         setType(v === ALL ? "" : (v as RequestType))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo loại yêu cầu" />
                     </SelectTrigger>
                     <SelectContent>
@@ -724,7 +725,7 @@ const AssignedRequestsTab: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

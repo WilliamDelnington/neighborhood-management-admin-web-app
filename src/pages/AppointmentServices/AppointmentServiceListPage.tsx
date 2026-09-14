@@ -5,6 +5,7 @@ import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import AssigneeMultiPicker from "@components/admin/AssigneeMultiPicker";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -298,7 +299,7 @@ const AppointmentServiceListContent: React.FC = () => {
                 )}
             </div>
 
-            <div className="mb-3 flex justify-end">
+            <FilterBar>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -306,7 +307,7 @@ const AppointmentServiceListContent: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

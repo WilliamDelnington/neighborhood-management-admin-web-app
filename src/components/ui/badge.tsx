@@ -4,7 +4,7 @@ import { cn } from "@lib/utils";
 export type BadgeTone = "gray" | "blue" | "yellow" | "green" | "red";
 
 const TONE_CLASS: Record<BadgeTone, string> = {
-    gray: "bg-ng_10 text-text_2",
+    gray: "bg-badge_neutral-soft text-badge_neutral",
     blue: "bg-blue_10 text-primary",
     yellow: "bg-warning-soft text-warning",
     green: "bg-success-soft text-success",
@@ -19,7 +19,7 @@ function Badge({ className, tone = "gray", ...props }: BadgeProps) {
     return (
         <span
             className={cn(
-                "inline-flex h-[26px] items-center rounded-md text-xs font-medium",
+                "inline-flex h-[26px] items-center rounded-md px-2.5 text-xs font-semibold",
                 TONE_CLASS[tone],
                 className,
             )}

@@ -23,6 +23,7 @@ import {
 import { EmptyState, ErrorState, LoadingState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { GIOI_TINH_LABEL } from "@constants/domain";
 import { Citizen, Neighborhood } from "@dts";
 import { fetchAllCitizens } from "@service/citizenApi";
@@ -168,7 +169,7 @@ const ExportReportDetailContent: React.FC = () => {
                 </Button>
             </div>
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <Select
                     value={neighborhoodId || ALL_NEIGHBORHOOD}
                     onValueChange={v =>
@@ -196,7 +197,7 @@ const ExportReportDetailContent: React.FC = () => {
                         setPage(1);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="overflow-hidden rounded-xl border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

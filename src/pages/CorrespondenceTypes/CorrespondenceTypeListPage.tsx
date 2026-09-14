@@ -35,6 +35,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, CorrespondenceType, Role, RoleRecord } from "@dts";
 import {
@@ -221,21 +222,23 @@ const CorrespondenceTypeListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-3 flex items-center gap-2">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm flex-1"
-                    placeholder="Tìm theo tên loại văn bản..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-            </div>
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên loại văn bản..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { findModuleKeyForPath } from "@constants/modules";
 import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
+import Breadcrumb from "./Breadcrumb";
 
 // "description" truyen vao la mo ta mac dinh (hardcode) - neu trang hien tai
 // khop voi mot mo-dun trong constants/modules.ts VA admin da tuy chinh mo ta
@@ -28,16 +29,19 @@ const PageHeader: React.FC<{
         : description;
 
     return (
-        <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-                <h1 className="text-lg font-semibold">{title}</h1>
-                {effectiveDescription && (
-                    <p className="mt-0.5 text-sm text-text_2">
-                        {effectiveDescription}
-                    </p>
-                )}
+        <div className="mb-4">
+            <Breadcrumb />
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-lg font-semibold">{title}</h1>
+                    {effectiveDescription && (
+                        <p className="mt-0.5 text-sm text-text_2">
+                            {effectiveDescription}
+                        </p>
+                    )}
+                </div>
+                {action}
             </div>
-            {action}
         </div>
     );
 };
