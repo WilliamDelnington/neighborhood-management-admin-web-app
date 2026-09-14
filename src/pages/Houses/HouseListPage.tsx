@@ -53,6 +53,7 @@ import { House, HouseStatus, Neighborhood, Province, Ward, AppError } from "@dts
 import {
     BulkHouseActionResult,
     bulkAssignHouseNeighborhood,
+    bulkDeleteHouses,
     bulkUpdateHouseStatus,
     createHouse,
     fetchHouses,
@@ -105,6 +106,7 @@ const HouseListContent: React.FC = () => {
     // "Duyệt đã chọn" can houses.verify (giong endpoint don le tuong ung).
     const canBulkAssignNeighborhood = usePermission("houses.update");
     const canBulkVerify = usePermission("houses.verify");
+    const canBulkDelete = usePermission("houses.delete");
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
@@ -136,6 +138,7 @@ const HouseListContent: React.FC = () => {
     const [bulkNeighborhoodId, setBulkNeighborhoodId] = useState("");
     const [bulkAssigning, setBulkAssigning] = useState(false);
     const [bulkVerifying, setBulkVerifying] = useState(false);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
 
     const load = (
         targetPage = 1,
@@ -244,6 +247,27 @@ const HouseListContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setBulkVerifying(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        if (
+            !window.confirm(
+                `Xóa ${selectedIds.length} nhà số đã chọn? Nhà còn hộ dân/hộ kinh doanh liên kết sẽ không xóa được.`,
+            )
+        ) {
+            return;
+        }
+        try {
+            setBulkDeleting(true);
+            const result = await bulkDeleteHouses(selectedIds);
+            reportBulkResult(result, "xóa");
+            load(page, search, status);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setBulkDeleting(false);
         }
     };
 
@@ -425,7 +449,8 @@ const HouseListContent: React.FC = () => {
                 </Select>
             </div>
 
-            {selectedIds.length > 0 && (canBulkAssignNeighborhood || canBulkVerify) && (
+            {selectedIds.length > 0 &&
+                (canBulkAssignNeighborhood || canBulkVerify || canBulkDelete) && (
                 <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-divider_01 bg-bg_2 px-3 py-2 text-sm">
                     <span className="font-medium">
                         Đã chọn {selectedIds.length} nhà số
@@ -447,6 +472,16 @@ const HouseListContent: React.FC = () => {
                             onClick={handleBulkVerify}
                         >
                             Duyệt đã chọn
+                        </Button>
+                    )}
+                    {canBulkDelete && (
+                        <Button
+                            size="sm"
+                            variant="destructive"
+                            loading={bulkDeleting}
+                            onClick={handleBulkDelete}
+                        >
+                            Xóa đã chọn
                         </Button>
                     )}
                     <Button
@@ -472,7 +507,9 @@ const HouseListContent: React.FC = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                {(canBulkAssignNeighborhood || canBulkVerify) && (
+                                {(canBulkAssignNeighborhood ||
+                                    canBulkVerify ||
+                                    canBulkDelete) && (
                                     <TableHead className="w-10">
                                         <Checkbox
                                             checked={allOnPageSelected}
@@ -498,7 +535,9 @@ const HouseListContent: React.FC = () => {
                                     className="cursor-pointer"
                                     onClick={() => navigate(`/houses/${h._id}`)}
                                 >
-                                    {(canBulkAssignNeighborhood || canBulkVerify) && (
+                                    {(canBulkAssignNeighborhood ||
+                                    canBulkVerify ||
+                                    canBulkDelete) && (
                                         <TableCell onClick={e => e.stopPropagation()}>
                                             <Checkbox
                                                 checked={selectedIds.includes(h._id)}

@@ -216,6 +216,14 @@ export const bulkUpdateHouseStatus = (
         note,
     });
 
+// Xoa nhieu nha so cung luc (chon tu "Danh sach nha so") - nha con ho
+// dan/ho kinh doanh lien ket, hoac ngoai pham vi nguoi dung, se rot vao
+// "failed", xem houseRecordService.bulkDeleteHouseRecords o backend.
+export const bulkDeleteHouses = (
+    ids: string[],
+): Promise<BulkHouseActionResult> =>
+    request<BulkHouseActionResult>("DELETE", API.HOUSES_BULK_DELETE, { ids });
+
 export const fetchHouseAuditLogs = (
     id: string,
     params?: { page?: number; limit?: number },
