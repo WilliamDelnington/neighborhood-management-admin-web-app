@@ -17,8 +17,6 @@ import { request } from "./request";
 interface RoleScopeFields {
     scopeType?: AccessScopeTier;
     scopeMechanism?: ScopeAssignmentMechanism;
-    maxActivePerScope?: number | null;
-    maxActiveScopesPerUser?: number | null;
     subScopeKinds?: NeighborhoodCollaboratorScope[];
 }
 

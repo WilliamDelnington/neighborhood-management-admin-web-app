@@ -512,9 +512,8 @@ const UserListContent: React.FC = () => {
         if (!roleKey) return;
         // So voi wardCode HIEN TAI cua chinh selectedUser (khong phai form) -
         // neu doi sang mot Phuong KHAC (khong phai bo trong), phai go phan
-        // cong cu truoc: assignScope chi tu dong thay nguoi CU CUNG mot
-        // Phuong (maxActivePerScope), khong biet tu go phan cong o Phuong CU
-        // cua chinh nguoi nay, se de lai 2 phan cong active cung luc neu bo qua.
+        // cong cu truoc: assignScope khong tu biet go phan cong o Phuong CU cua
+        // chinh nguoi nay, se de lai 2 phan cong active cung luc neu bo qua.
         const previousWardCode = selectedUser.wardCode;
         const nextWardCode = wardCode ? Number(wardCode) : undefined;
         if (previousWardCode === nextWardCode) return;
