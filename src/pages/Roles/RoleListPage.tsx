@@ -96,10 +96,6 @@ type FormState = {
     // tài khoản" (mac dinh an toan, xem Role.ts o backend).
     allowedCreatableRoles: string[];
     scopeType: AccessScopeTier;
-    // "1 nguoi" (gia tri 1) hoac "khong gioi han" (null) - khong cho nhap so
-    // tuy y, xem ghi chu tai UI (chua co quy uoc UI/UX cho gia tri > 1).
-    maxActivePerScope: number | null;
-    maxActiveScopesPerUser: number | null;
     subScopeKinds: NeighborhoodCollaboratorScope[];
 };
 
@@ -139,8 +135,6 @@ const EMPTY_FORM: FormState = {
     dashboardMetrics: null,
     allowedCreatableRoles: [],
     scopeType: "ALL",
-    maxActivePerScope: null,
-    maxActiveScopesPerUser: null,
     subScopeKinds: [],
 };
 
@@ -228,8 +222,6 @@ const RoleListContent: React.FC = () => {
             dashboardMetrics: role.dashboardMetrics ?? null,
             allowedCreatableRoles: role.allowedCreatableRoles ?? [],
             scopeType: role.scopeType,
-            maxActivePerScope: role.maxActivePerScope ?? null,
-            maxActiveScopesPerUser: role.maxActiveScopesPerUser ?? null,
             subScopeKinds: role.subScopeKinds ?? [],
         });
         setSheetOpen(true);
@@ -351,10 +343,6 @@ const RoleListContent: React.FC = () => {
         const scopeFields = {
             scopeType: form.scopeType,
             scopeMechanism: mechanism,
-            maxActivePerScope:
-                mechanism === "ASSIGNED" ? form.maxActivePerScope : null,
-            maxActiveScopesPerUser:
-                mechanism === "ASSIGNED" ? form.maxActiveScopesPerUser : null,
             subScopeKinds:
                 form.scopeType === "NEIGHBORHOOD"
                     ? form.subScopeKinds
@@ -593,9 +581,7 @@ const RoleListContent: React.FC = () => {
                                 Phạm vi dữ liệu quản lý
                             </h3>
                             <p className="mb-3 text-xs text-text_2">
-                                Vai trò này quản lý dữ liệu trong phạm vi nào,
-                                và (nếu là phạm vi được gán) quy tắc số người/
-                                số phạm vi được active cùng lúc.
+                                Vai trò này quản lý dữ liệu trong phạm vi nào.
                             </p>
                             <div className="space-y-1.5">
                                 <Label>Phạm vi</Label>
@@ -607,11 +593,9 @@ const RoleListContent: React.FC = () => {
                                         setForm(prev => ({
                                             ...prev,
                                             scopeType,
-                                            // Reset cac truong con - tranh
-                                            // gia tri "con sot" tu lua chon
-                                            // pham vi truoc do.
-                                            maxActivePerScope: null,
-                                            maxActiveScopesPerUser: null,
+                                            // Reset truong con - tranh gia tri
+                                            // "con sot" tu lua chon pham vi
+                                            // truoc do.
                                             subScopeKinds: [],
                                         }));
                                     }}
@@ -632,85 +616,6 @@ const RoleListContent: React.FC = () => {
                                     </SelectContent>
                                 </Select>
                             </div>
-
-                            {deriveScopeMechanism(form.scopeType) ===
-                                "ASSIGNED" && (
-                                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="space-y-1.5">
-                                        <Label>
-                                            Số người được active tại 1 phạm vi
-                                        </Label>
-                                        <Select
-                                            value={
-                                                form.maxActivePerScope === 1
-                                                    ? "ONE"
-                                                    : "UNLIMITED"
-                                            }
-                                            disabled={!canEditCurrentRole}
-                                            onValueChange={value =>
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    maxActivePerScope:
-                                                        value === "ONE"
-                                                            ? 1
-                                                            : null,
-                                                }))
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="ONE">
-                                                    Duy nhất 1 người (VD: Bí
-                                                    thư, Tổ trưởng)
-                                                </SelectItem>
-                                                <SelectItem value="UNLIMITED">
-                                                    Không giới hạn (VD: PCO,
-                                                    Tổ phó)
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label>
-                                            Số phạm vi 1 người được active
-                                            cùng lúc
-                                        </Label>
-                                        <Select
-                                            value={
-                                                form.maxActiveScopesPerUser ===
-                                                1
-                                                    ? "ONE"
-                                                    : "UNLIMITED"
-                                            }
-                                            disabled={!canEditCurrentRole}
-                                            onValueChange={value =>
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    maxActiveScopesPerUser:
-                                                        value === "ONE"
-                                                            ? 1
-                                                            : null,
-                                                }))
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="ONE">
-                                                    Duy nhất 1 phạm vi (VD: Tổ
-                                                    phó)
-                                                </SelectItem>
-                                                <SelectItem value="UNLIMITED">
-                                                    Không giới hạn
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            )}
 
                             {form.scopeType === "NEIGHBORHOOD" && (
                                 <div className="mt-4">

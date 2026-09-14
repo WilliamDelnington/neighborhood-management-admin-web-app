@@ -163,15 +163,8 @@ export type RoleRecord = {
     allowedCreatableRoles: string[];
     scopeType: AccessScopeTier;
     scopeMechanism?: ScopeAssignmentMechanism;
-    // Chi co y nghia khi scopeMechanism="ASSIGNED". 1 = chi 1 nguoi duoc active
-    // tai 1 pham vi cung luc (vd Bi thu/To truong). null/undefined = khong
-    // gioi han so nguoi active tai cung 1 pham vi (vd PCO/To pho/Cong tac vien).
-    maxActivePerScope?: number | null;
-    // Truc doc lap: gioi han so pham vi MA MOT NGUOI duoc active cung luc voi
-    // vai tro nay (vd To pho: 1 nguoi chi duoc active o DUY NHAT 1 To dan pho).
-    maxActiveScopesPerUser?: number | null;
-    // Chi co y nghia voi vai tro dang "Cong tac vien" (scopeType=NEIGHBORHOOD,
-    // maxActivePerScope=null): cac kieu pham vi con duoc phep chon khi gan.
+    // Chi co y nghia voi vai tro dang "Cong tac vien" (scopeType=NEIGHBORHOOD):
+    // cac kieu pham vi con duoc phep chon khi gan.
     subScopeKinds?: NeighborhoodCollaboratorScope[];
     system: boolean;
     active: boolean;
