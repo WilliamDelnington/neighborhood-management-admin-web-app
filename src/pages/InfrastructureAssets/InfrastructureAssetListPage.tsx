@@ -34,6 +34,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import {
@@ -322,7 +323,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <FilterBar>
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -382,7 +383,7 @@ const InfrastructureAssetListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             {total > 0 && (
                 <div className="mb-2 text-xs text-text_2">

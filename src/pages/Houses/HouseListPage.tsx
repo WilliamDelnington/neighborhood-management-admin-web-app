@@ -42,6 +42,7 @@ import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import HouseMapPanel from "@components/admin/HouseMapPanel";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -317,27 +318,29 @@ const HouseListContent: React.FC = () => {
 
             {/* <HouseMapPanel /> */}
 
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, search, status, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm"
-                    placeholder="Tìm theo mã nhà, địa chỉ..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, status, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo mã nhà, địa chỉ..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || ALL_STATUSES}
                     onValueChange={v =>
                         setStatus(v === ALL_STATUSES ? "" : (v as HouseStatus))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo trạng thái" />
                     </SelectTrigger>
                     <SelectContent>
@@ -362,7 +365,7 @@ const HouseListContent: React.FC = () => {
                         setProvinceCode(v === ALL_STATUSES ? "" : Number(v))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo tỉnh/thành phố" />
                     </SelectTrigger>
                     <SelectContent>
@@ -383,7 +386,7 @@ const HouseListContent: React.FC = () => {
                     }
                     disabled={!provinceCode}
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue
                             placeholder={
                                 provinceCode
@@ -409,7 +412,7 @@ const HouseListContent: React.FC = () => {
                         setNeighborhoodId(v === ALL_NEIGHBORHOODS ? "" : v)
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo tổ dân phố" />
                     </SelectTrigger>
                     <SelectContent>
@@ -423,7 +426,7 @@ const HouseListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             {selectedIds.length > 0 && (canBulkAssignNeighborhood || canBulkVerify) && (
                 <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-divider_01 bg-bg_2 px-3 py-2 text-sm">

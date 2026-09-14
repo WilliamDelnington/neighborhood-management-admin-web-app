@@ -93,6 +93,8 @@ export const API = {
     NOTIFICATIONS: "/api/notifications",
     NOTIFICATIONS_UNREAD_COUNT: "/api/notifications/unread-count",
     NOTIFICATIONS_READ_ALL: "/api/notifications/read-all",
+
+    AI_CHAT: "/api/ai/chat",
 };
 
 export const DEFAULT_PAGE_SIZE = 10;

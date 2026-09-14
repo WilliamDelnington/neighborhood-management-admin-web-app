@@ -32,6 +32,7 @@ import {
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
 import {
@@ -589,21 +590,23 @@ const UserListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-3 flex items-center gap-2">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, search, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm flex-1"
-                    placeholder="Tìm theo tên hoặc số điện thoại..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-            </div>
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên hoặc số điện thoại..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+            </FilterBar>
 
             <div className="mb-3 flex flex-wrap gap-2">
                 <Button

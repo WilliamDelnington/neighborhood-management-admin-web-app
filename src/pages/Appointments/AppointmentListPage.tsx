@@ -22,6 +22,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import AppointmentDetailSheet from "./AppointmentDetailSheet";
 import { Appointment, AppointmentService, AppointmentStatus } from "@dts";
 import {
@@ -117,7 +118,7 @@ const AppointmentListContent: React.FC = () => {
                 description="Quản lý lịch hẹn làm việc của cư dân với tổ dân phố/phường."
             />
 
-            <div className="mb-4 flex flex-wrap items-center gap-3">
+            <FilterBar>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -131,7 +132,7 @@ const AppointmentListContent: React.FC = () => {
                         setStatus(v === ALL ? "" : (v as AppointmentStatus))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo trạng thái" />
                     </SelectTrigger>
                     <SelectContent>
@@ -153,7 +154,7 @@ const AppointmentListContent: React.FC = () => {
                     value={serviceId || ALL}
                     onValueChange={v => setServiceId(v === ALL ? "" : v)}
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo dịch vụ" />
                     </SelectTrigger>
                     <SelectContent>
@@ -172,7 +173,7 @@ const AppointmentListContent: React.FC = () => {
                     value={date}
                     onChange={e => setDate(e.target.value)}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

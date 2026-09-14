@@ -42,6 +42,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import { AppError, DocumentType } from "@dts";
 import {
@@ -226,23 +227,22 @@ const DocumentTypeListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-3 flex items-center gap-2">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm flex-1"
-                    placeholder="Tìm theo tên loại giấy tờ..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-            </div>
-
-            <div className="mb-4 grid max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên loại giấy tờ..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={active || TRI_ALL}
                     onValueChange={v =>
@@ -288,7 +288,7 @@ const DocumentTypeListContent: React.FC = () => {
                         <SelectItem value="false">Không có hạn dùng</SelectItem>
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

@@ -15,13 +15,17 @@ export interface ReportDonutChartProps {
     colors?: string[];
 }
 
+// Bang mau categorical co dinh thu tu, da kiem tra an toan cho nguoi mu mau
+// (xem dataviz skill) - thay the bang cu chi toan sac xanh gay kho phan biet.
 const DEFAULT_COLORS = [
-    "#1E5A8A",
-    "#5B8AB0",
-    "#163A5F",
-    "#94A3B8",
-    "#8FB4D1",
-    "#CBD5E1",
+    "#2a78d6", // blue
+    "#eb6834", // orange
+    "#1baf7a", // aqua
+    "#eda100", // yellow
+    "#e87ba4", // magenta
+    "#008300", // green
+    "#4a3aa7", // violet
+    "#e34948", // red
 ];
 
 /** Biểu đồ donut dành cho cơ cấu trạng thái, chỉ vẽ các lát có giá trị. */

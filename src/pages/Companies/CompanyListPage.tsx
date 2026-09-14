@@ -23,6 +23,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
@@ -113,7 +114,7 @@ const CompanyListContent: React.FC = () => {
                 description="Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn."
             />
 
-            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+            <FilterBar>
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -194,7 +195,7 @@ const CompanyListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}
@@ -211,8 +212,6 @@ const CompanyListContent: React.FC = () => {
                                 <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên công ty</TableHead>
                                 <TableHead>Nhà số</TableHead>
-                                <TableHead>Cụm</TableHead>
-                                <TableHead>Tổ chức liên kết</TableHead>
                                 <TableHead>Loại hình kinh doanh</TableHead>
                                 <TableHead>Loại hình DN</TableHead>
                                 <TableHead>Trạng thái</TableHead>
@@ -237,13 +236,6 @@ const CompanyListContent: React.FC = () => {
                                         {c.name}
                                     </TableCell>
                                     <TableCell>{houseLabelOf(c)}</TableCell>
-                                    <TableCell>{c.cluster}</TableCell>
-                                    <TableCell>
-                                        {c.organizationId &&
-                                        typeof c.organizationId === "object"
-                                            ? c.organizationId.name
-                                            : "—"}
-                                    </TableCell>
                                     <TableCell>
                                         {(c.businessTypeIds || [])
                                             .map(bt =>

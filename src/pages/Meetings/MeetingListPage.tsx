@@ -17,6 +17,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import PageHeader from "@components/admin/PageHeader";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { Meeting } from "@dts";
 import { fetchMeetings } from "@service/meetingApi";
@@ -78,7 +79,7 @@ const MeetingListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -86,7 +87,7 @@ const MeetingListContent: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

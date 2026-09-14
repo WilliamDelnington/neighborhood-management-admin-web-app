@@ -37,6 +37,10 @@ module.exports = {
                 ng_20: "rgb(var(--c-border-strong) / <alpha-value>)",
                 divider_01: "rgb(var(--c-border-strong) / <alpha-value>)",
                 divider_02: "rgb(var(--c-border) / <alpha-value>)",
+                badge_neutral: {
+                    DEFAULT: "rgb(var(--c-neutral) / <alpha-value>)",
+                    soft: "rgb(var(--c-neutral-soft) / <alpha-value>)",
+                },
                 success: {
                     DEFAULT: "rgb(var(--c-success) / <alpha-value>)",
                     soft: "rgb(var(--c-success-soft) / <alpha-value>)",

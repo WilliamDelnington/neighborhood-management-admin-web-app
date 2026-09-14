@@ -23,6 +23,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { LoaiYeuCauHoTro, SupportTicket, TrangThaiYeuCauHoTro } from "@dts";
 import {
@@ -122,23 +123,22 @@ const SupportTicketListContent: React.FC = () => {
                 description="Tiếp nhận và xử lý yêu cầu hỗ trợ từ cư dân."
             />
 
-            <div className="mb-4 flex items-center gap-2">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm flex-1"
-                    placeholder="Tìm theo mã yêu cầu, tiêu đề..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-            </div>
-
-            <div className="mb-4 grid grid-cols-2 gap-3">
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo mã yêu cầu, tiêu đề..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || ALL_STATUS}
                     onValueChange={handleStatusChange}
@@ -181,7 +181,7 @@ const SupportTicketListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

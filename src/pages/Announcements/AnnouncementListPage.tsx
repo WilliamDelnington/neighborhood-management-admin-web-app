@@ -19,6 +19,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import PageHeader from "@components/admin/PageHeader";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import {
     LOAI_THONG_BAO_LABEL,
     TRANG_THAI_THONG_BAO_LABEL,
@@ -114,7 +115,7 @@ const AnnouncementListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <Tabs
                     value={status}
                     onValueChange={value => setStatus(value as StatusFilter)}
@@ -134,7 +135,7 @@ const AnnouncementListContent: React.FC = () => {
                         load(1, status, size);
                     }}
                 />
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

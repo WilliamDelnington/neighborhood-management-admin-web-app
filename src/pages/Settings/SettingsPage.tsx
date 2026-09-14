@@ -383,46 +383,57 @@ const SettingsContent: React.FC = () => {
                             không tải ảnh lên, chữ mặc định sẽ được giữ
                             nguyên.
                         </p>
-                        <div className="flex items-center gap-4">
-                            {logoUrl ? (
+                        {logoUrl ? (
+                            <div className="flex flex-col items-center gap-4">
                                 <img
                                     src={resolveAssetUrl(logoUrl)}
                                     alt="Logo hiện tại"
-                                    className="h-12 max-w-[200px] rounded-lg border border-divider_01 object-contain p-1"
+                                    className="h-28 max-w-[320px] rounded-lg border border-divider_01 object-contain p-2"
                                 />
-                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        loading={uploadingLogo}
+                                        onClick={handleLogoUploadClick}
+                                    >
+                                        <Upload className="mr-1 h-3.5 w-3.5" />
+                                        Đổi logo
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="!text-red-500"
+                                        loading={removingLogo}
+                                        onClick={handleRemoveLogo}
+                                    >
+                                        Xóa logo
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-4">
                                 <span className="text-sm text-text_2">
                                     Chưa có logo, đang dùng chữ mặc định
                                 </span>
-                            )}
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                loading={uploadingLogo}
-                                onClick={handleLogoUploadClick}
-                            >
-                                <Upload className="mr-1 h-3.5 w-3.5" />
-                                {logoUrl ? "Đổi logo" : "Tải logo lên"}
-                            </Button>
-                            {logoUrl && (
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    className="!text-red-500"
-                                    loading={removingLogo}
-                                    onClick={handleRemoveLogo}
+                                    loading={uploadingLogo}
+                                    onClick={handleLogoUploadClick}
                                 >
-                                    Xóa logo
+                                    <Upload className="mr-1 h-3.5 w-3.5" />
+                                    Tải logo lên
                                 </Button>
-                            )}
-                            <input
-                                ref={logoInputRef}
-                                type="file"
-                                className="hidden"
-                                accept=".jpg,.jpeg,.png,.svg,.webp"
-                                onChange={handleLogoFileSelected}
-                            />
-                        </div>
+                            </div>
+                        )}
+                        <input
+                            ref={logoInputRef}
+                            type="file"
+                            className="hidden"
+                            accept=".jpg,.jpeg,.png,.svg,.webp"
+                            onChange={handleLogoFileSelected}
+                        />
                     </div>
 
                     <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
