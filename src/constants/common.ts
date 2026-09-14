@@ -29,6 +29,7 @@ export const API = {
     HOUSES_GIS_OVERVIEW: "/api/houses/gis-overview",
     HOUSES_BULK_NEIGHBORHOOD: "/api/houses/bulk-neighborhood",
     HOUSES_BULK_STATUS: "/api/houses/bulk-status",
+    HOUSES_BULK_DELETE: "/api/houses/bulk-delete",
     ADMINISTRATIVE_DIVISIONS_PROVINCES: "/api/administrative-divisions/provinces",
     ADMINISTRATIVE_DIVISIONS_WARDS: "/api/administrative-divisions/wards",
     WARD_MANAGERS: "/api/wards/managers",
