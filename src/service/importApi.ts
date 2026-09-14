@@ -113,7 +113,10 @@ export interface CompanyImportPreviewRow {
     name: string;
     houseCode: string;
     houseId: string;
-    taxCode: string;
+    // Tuy chon (giong Business) - dong khong co ma so thue van duoc nhap,
+    // chi duoc gan canh bao vao "note" (xem applyCompanyImportMapping o
+    // backend), khong con bi loai nhu truoc.
+    taxCode?: string;
     companyTypeId?: string;
     companyTypeName?: string;
     businessTypeId?: string;
@@ -251,13 +254,13 @@ export interface BusinessColumnMapping {
     note?: string;
 }
 
-// Giong BusinessColumnMapping, nhung "taxCode" bat buoc (khac Business - tuy
-// chon) vi Company.taxCode required+unique o backend - xem
-// companyImportMappingSchema/applyCompanyImportMapping.
+// Giong BusinessColumnMapping - "taxCode" tuy chon, dong khong co ma so thue
+// van duoc nhap (chi gan canh bao vao "note") thay vi bi loai - xem
+// companyImportMappingSchema/applyCompanyImportMapping o backend.
 export interface CompanyColumnMapping {
     name: string;
     houseCode: string;
-    taxCode: string;
+    taxCode?: string;
     companyTypeName?: string;
     businessTypeName?: string;
     ownerName?: string;

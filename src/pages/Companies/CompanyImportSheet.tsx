@@ -47,11 +47,12 @@ interface CompanyImportSheetProps {
 
 const NONE_VALUE = "__none__";
 
-// Nhan hien thi cho tung truong co the mapping - "required" ap dung cho
-// "name" ("Tên công ty"), "houseCode" ("Mã nhà" - phai khop mot nha da ton
-// tai trong he thong) VA "taxCode" ("Mã số thuế" - khac Business, o day bat
-// buoc vi Company.taxCode required+unique o backend), con lai deu tuy chon
-// (bo qua = khong dung cot nao, xem companyImportMappingSchema o backend).
+// Nhan hien thi cho tung truong co the mapping - "required" chi ap dung cho
+// "name" ("Tên công ty") va "houseCode" ("Mã nhà" - phai khop mot nha da ton
+// tai trong he thong), con lai deu tuy chon (bo qua = khong dung cot nao,
+// xem companyImportMappingSchema o backend). "taxCode" TUY CHON - dong
+// khong co ma so thue van duoc nhap, chi gan them canh bao vao ghi chu cua
+// cong ty do de biet ma bo sung sau (xem applyCompanyImportMapping).
 const COMPANY_MAPPING_FIELDS: {
     key: keyof CompanyColumnMapping;
     label: string;
@@ -59,7 +60,7 @@ const COMPANY_MAPPING_FIELDS: {
 }[] = [
     { key: "name", label: "Tên công ty", required: true },
     { key: "houseCode", label: "Mã nhà", required: true },
-    { key: "taxCode", label: "Mã số thuế", required: true },
+    { key: "taxCode", label: "Mã số thuế" },
     { key: "companyTypeName", label: "Loại hình doanh nghiệp" },
     { key: "businessTypeName", label: "Loại hình kinh doanh" },
     { key: "ownerName", label: "Người đại diện" },
@@ -166,9 +167,7 @@ const CompanyImportSheet: React.FC<CompanyImportSheetProps> = ({
     };
 
     const handleApplyMapping = async () => {
-        if (!job || !mapping.name || !mapping.houseCode || !mapping.taxCode) {
-            return;
-        }
+        if (!job || !mapping.name || !mapping.houseCode) return;
         try {
             setApplying(true);
             const payload: Partial<
@@ -176,7 +175,6 @@ const CompanyImportSheet: React.FC<CompanyImportSheetProps> = ({
             > = {
                 name: mapping.name,
                 houseCode: mapping.houseCode,
-                taxCode: mapping.taxCode,
             };
             COMPANY_MAPPING_FIELDS.forEach(f => {
                 if (f.required) return;
@@ -257,8 +255,7 @@ const CompanyImportSheet: React.FC<CompanyImportSheetProps> = ({
         }
     };
 
-    const canApplyMapping =
-        !!mapping.name && !!mapping.houseCode && !!mapping.taxCode;
+    const canApplyMapping = !!mapping.name && !!mapping.houseCode;
     const canCommit =
         !!job &&
         !showMapping &&
@@ -284,9 +281,10 @@ const CompanyImportSheet: React.FC<CompanyImportSheetProps> = ({
                                 không cần tên cột phải khớp chính xác. Cột
                                 &quot;Mã nhà&quot; phải khớp với mã một nhà số
                                 ĐÃ có sẵn trong hệ thống (hệ thống không tự
-                                tạo nhà mới từ import này). Khác với hộ kinh
-                                doanh, &quot;Mã số thuế&quot; là bắt buộc cho
-                                mỗi công ty.
+                                tạo nhà mới từ import này). &quot;Mã số
+                                thuế&quot; không bắt buộc — công ty chưa có mã
+                                số thuế vẫn được nhập, chỉ kèm cảnh báo trong
+                                ghi chú để bổ sung sau.
                             </div>
                             <Button
                                 type="button"
@@ -343,11 +341,11 @@ const CompanyImportSheet: React.FC<CompanyImportSheetProps> = ({
                         <div className="space-y-4">
                             <div className="rounded-lg border border-divider_01 bg-surface_2 p-3 text-xs text-text_2">
                                 Đã đọc {job.totalRows} dòng dữ liệu với các cột:{" "}
-                                {job.headers.join(", ")}. &quot;Tên công
-                                ty&quot;, &quot;Mã nhà&quot; và &quot;Mã số
-                                thuế&quot; là bắt buộc — các trường khác có
-                                thể để &quot;Không dùng&quot; nếu file không
-                                có cột tương ứng.
+                                {job.headers.join(", ")}. Chỉ &quot;Tên công
+                                ty&quot; và &quot;Mã nhà&quot; là bắt buộc —
+                                các trường khác (kể cả &quot;Mã số
+                                thuế&quot;) có thể để &quot;Không dùng&quot;
+                                nếu file không có cột tương ứng.
                             </div>
 
                             {COMPANY_MAPPING_FIELDS.map(f => (
@@ -477,7 +475,7 @@ const CompanyImportSheet: React.FC<CompanyImportSheetProps> = ({
                                     <TableBody>
                                         {job.previewData.map((row, idx) => (
                                             // eslint-disable-next-line react/no-array-index-key
-                                            <TableRow key={`${row.taxCode}-${idx}`}>
+                                            <TableRow key={`${row.houseCode}-${idx}`}>
                                                 <TableCell className="text-center text-text_2">
                                                     {idx + 1}
                                                 </TableCell>
@@ -488,7 +486,7 @@ const CompanyImportSheet: React.FC<CompanyImportSheetProps> = ({
                                                     {row.houseCode}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {row.taxCode}
+                                                    {row.taxCode || "—"}
                                                 </TableCell>
                                                 <TableCell>
                                                     {row.companyTypeName || "—"}
