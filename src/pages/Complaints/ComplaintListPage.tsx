@@ -30,6 +30,7 @@ import {
     TableHeader,
     TableRow,
 } from "@components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
@@ -76,6 +77,14 @@ const ComplaintListContent: React.FC = () => {
     );
     const currentUserRoles = useAuthStore(state => state.user?.roles) || [];
     const canCreateComplaint = usePermission("complaints.create");
+    // To truong/To pho co 2 goc nhin rieng biet - xem ghi chu o
+    // listComplaints (backend): "Nhận từ cư dân" (mac dinh) khong gom cac de
+    // xuat chinh ho/dong nghiep da gui len Phuong, "Đã gửi" chi gom cac de
+    // xuat do. Vai tro khac khong co tab nay (xem gia tri view co dinh).
+    const isNeighborhoodTier =
+        currentUserRoles.includes("neighborhood_leader") ||
+        currentUserRoles.includes("neighborhood_coleader");
+    const [view, setView] = useState<"received" | "sent">("received");
 
     // Danh sach day du (ke ca da ngung dung) - dung de hien nhan cho cac
     // phan anh cu, tranh hien key tho/trong neu loai da bi ngung dung sau khi
@@ -153,6 +162,8 @@ const ComplaintListContent: React.FC = () => {
             search: search || undefined,
             relatedAssetId,
             neighborhoodId: neighborhoodId || undefined,
+            view:
+                isNeighborhoodTier && view === "sent" ? "sent" : undefined,
         })
             .then(res => {
                 setItems(res.items);
@@ -167,7 +178,7 @@ const ComplaintListContent: React.FC = () => {
         const timer = setTimeout(() => load(1), 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search, status, category, neighborhoodId]);
+    }, [search, status, category, neighborhoodId, view]);
 
     const handleStatusChange = (value: string) => {
         const next = (value === ALL_STATUS ? "" : value) as
@@ -284,6 +295,23 @@ const ComplaintListContent: React.FC = () => {
                     )
                 }
             />
+
+            {isNeighborhoodTier && (
+                <Tabs
+                    className="mb-4"
+                    value={view}
+                    onValueChange={value =>
+                        setView(value as "received" | "sent")
+                    }
+                >
+                    <TabsList>
+                        <TabsTrigger value="received">
+                            Nhận từ cư dân
+                        </TabsTrigger>
+                        <TabsTrigger value="sent">Đã gửi</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            )}
 
             <FilterBar>
                 <div className="flex items-center gap-2">

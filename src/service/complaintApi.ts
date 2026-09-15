@@ -20,6 +20,11 @@ export const fetchComplaints = (params?: {
     search?: string;
     relatedAssetId?: string;
     neighborhoodId?: string;
+    // Chi co y nghia voi To truong/To pho - "received" (mac dinh, khong can
+    // truyen) = phan anh cua cu dan trong To, "sent" = de xuat chinh ho da
+    // gui len Phuong. Vai tro khac bo qua tham so nay (xem listComplaints o
+    // backend).
+    view?: "sent";
 }): Promise<PaginatedData<Complaint>> =>
     request<PaginatedData<Complaint>>("GET", API.COMPLAINTS, {
         page: params?.page || 1,
@@ -29,6 +34,7 @@ export const fetchComplaints = (params?: {
         search: params?.search,
         relatedAssetId: params?.relatedAssetId,
         neighborhoodId: params?.neighborhoodId,
+        view: params?.view,
     });
 
 export const fetchComplaintDetail = (id: string): Promise<ComplaintDetail> =>
