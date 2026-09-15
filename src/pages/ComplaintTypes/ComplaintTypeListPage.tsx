@@ -49,6 +49,9 @@ type FormState = {
     // mang / bo di dung vi tri, khong sap xep lai - thu tu check chinh la
     // thu tu uu tien.
     allowedReceiverRoles: string[];
+    // Vai tro duoc phep GUI danh muc nay - KHONG co y nghia thu tu (khac
+    // allowedReceiverRoles) - xem createComplaint o backend.
+    allowedSenderRoles: string[];
 };
 
 const EMPTY_FORM: FormState = {
@@ -57,6 +60,7 @@ const EMPTY_FORM: FormState = {
     description: "",
     active: true,
     allowedReceiverRoles: [],
+    allowedSenderRoles: [],
 };
 
 const ComplaintTypeListPage: React.FC = () => (
@@ -115,16 +119,20 @@ const ComplaintTypeListContent: React.FC = () => {
             description: item.description || "",
             active: item.active !== false,
             allowedReceiverRoles: item.allowedReceiverRoles || [],
+            allowedSenderRoles: item.allowedSenderRoles || [],
         });
         setOpen(true);
     };
 
-    const toggleRole = (roleKey: string) => {
+    const toggleRole = (
+        target: "allowedReceiverRoles" | "allowedSenderRoles",
+        roleKey: string,
+    ) => {
         setForm(current => ({
             ...current,
-            allowedReceiverRoles: current.allowedReceiverRoles.includes(roleKey)
-                ? current.allowedReceiverRoles.filter(key => key !== roleKey)
-                : [...current.allowedReceiverRoles, roleKey],
+            [target]: current[target].includes(roleKey)
+                ? current[target].filter(key => key !== roleKey)
+                : [...current[target], roleKey],
         }));
     };
 
@@ -132,9 +140,12 @@ const ComplaintTypeListContent: React.FC = () => {
         if (
             !form.name.trim() ||
             (!editing && !form.key.trim()) ||
-            form.allowedReceiverRoles.length === 0
+            form.allowedReceiverRoles.length === 0 ||
+            form.allowedSenderRoles.length === 0
         ) {
-            toast.error("Vui lòng nhập đủ tên và vai trò nhận phản ánh");
+            toast.error(
+                "Vui lòng nhập đủ tên, vai trò gửi và vai trò nhận phản ánh",
+            );
             return;
         }
         const payload = {
@@ -143,6 +154,7 @@ const ComplaintTypeListContent: React.FC = () => {
             description: form.description.trim() || undefined,
             active: form.active,
             allowedReceiverRoles: form.allowedReceiverRoles,
+            allowedSenderRoles: form.allowedSenderRoles,
         };
         try {
             setSaving(true);
@@ -347,6 +359,36 @@ const ComplaintTypeListContent: React.FC = () => {
                             />
                         </div>
                         <div>
+                            <Label>Vai trò được gửi phản ánh</Label>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Chỉ các vai trò được chọn ở đây mới gửi được
+                                danh mục này (vd chỉ Tổ trưởng/Tổ phó được gửi
+                                đề xuất lên Phường, chỉ chủ nhà/chủ hộ được gửi
+                                phản ánh dân sinh thông thường).
+                            </p>
+                            <div className="mt-2 space-y-2 rounded-lg border p-3">
+                                {roles.map(role => (
+                                    <label
+                                        key={role.key}
+                                        className="flex items-center gap-2 text-sm"
+                                    >
+                                        <Checkbox
+                                            checked={form.allowedSenderRoles.includes(
+                                                role.key,
+                                            )}
+                                            onCheckedChange={() =>
+                                                toggleRole(
+                                                    "allowedSenderRoles",
+                                                    role.key,
+                                                )
+                                            }
+                                        />
+                                        {role.name}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
                             <Label>Vai trò được nhận phản ánh</Label>
                             <p className="mt-1 text-xs text-muted-foreground">
                                 Chọn theo thứ tự ưu tiên: vai trò chọn trước sẽ được ưu
@@ -365,7 +407,12 @@ const ComplaintTypeListContent: React.FC = () => {
                                         >
                                             <Checkbox
                                                 checked={priority !== -1}
-                                                onCheckedChange={() => toggleRole(role.key)}
+                                                onCheckedChange={() =>
+                                                    toggleRole(
+                                                        "allowedReceiverRoles",
+                                                        role.key,
+                                                    )
+                                                }
                                             />
                                             {role.name}
                                             {priority !== -1 && (

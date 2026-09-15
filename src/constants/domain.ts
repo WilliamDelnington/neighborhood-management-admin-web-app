@@ -481,6 +481,20 @@ export const HOUSE_AUDIT_ACTION_LABEL: Record<string, string> = {
     "house.delete": "Xóa nhà số",
 };
 
+export const USER_AUDIT_ACTION_LABEL: Record<string, string> = {
+    "user.create_house_owner": "Tạo tài khoản chủ nhà",
+    "user.create_household_head": "Tạo tài khoản chủ hộ",
+    "user.create_business_representative": "Tạo tài khoản đại diện hộ kinh doanh",
+    "user.create_company_representative": "Tạo tài khoản đại diện công ty",
+    "user.update": "Cập nhật thông tin",
+    "user.avatar.upload": "Cập nhật ảnh đại diện",
+    "user.reset_password": "Đặt lại mật khẩu",
+    "role.assign": "Gán vai trò",
+    "role.revoke": "Thu hồi vai trò",
+    "attachment.upload": "Tải lên tài liệu đính kèm",
+    "attachment.delete": "Xóa tài liệu đính kèm",
+};
+
 // Cac nhan hien thi cho khu vuc "Lich su chinh sua" cua tung module - xem
 // RecordHistorySection/RecordHistoryPage (src/components/admin). Action la
 // chuoi tu do nen fallback ve chinh no neu chua co trong danh sach.

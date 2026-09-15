@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
+import { Label } from "@components/ui/label";
+import { Textarea } from "@components/ui/textarea";
 import { Badge } from "@components/ui/badge";
 import {
     Select,
@@ -11,6 +15,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetFooter,
+} from "@components/ui/sheet";
 import {
     Table,
     TableBody,
@@ -26,6 +37,7 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
+    AppError,
     Complaint,
     ComplaintTypeDefinition,
     Neighborhood,
@@ -37,10 +49,10 @@ import {
     TRANG_THAI_PHAN_ANH_LABEL,
     TRANG_THAI_PHAN_ANH_TONE,
 } from "@constants/domain";
-import { fetchComplaints } from "@service/complaintApi";
+import { createComplaint, fetchComplaints } from "@service/complaintApi";
 import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
-import { useAuthStore } from "@store/authStore";
+import { usePermission, useAuthStore } from "@store/authStore";
 
 const ALL_STATUS = "all";
 const ALL_CATEGORY = "all";
@@ -62,6 +74,8 @@ const ComplaintListContent: React.FC = () => {
     const allowedCategories = useAuthStore(
         state => state.user?.allowedComplaintCategories,
     );
+    const currentUserRoles = useAuthStore(state => state.user?.roles) || [];
+    const canCreateComplaint = usePermission("complaints.create");
 
     // Danh sach day du (ke ca da ngung dung) - dung de hien nhan cho cac
     // phan anh cu, tranh hien key tho/trong neu loai da bi ngung dung sau khi
@@ -201,11 +215,74 @@ const ComplaintListContent: React.FC = () => {
         });
     };
 
+    // Danh muc actor DANG DANG NHAP duoc phep gui (vd To truong/To pho chi
+    // thay danh muc "to_de_xuat_len_phuong") - loc theo allowedSenderRoles,
+    // KHONG dung chung voi bo loc danh sach o tren (allowedCategories la bo
+    // loc XEM, khac quyen GUI).
+    const sendableCategories = complaintTypes.filter(
+        t =>
+            t.active !== false &&
+            (t.allowedSenderRoles || []).some(role =>
+                currentUserRoles.includes(role),
+            ),
+    );
+
+    const [createSheetOpen, setCreateSheetOpen] = useState(false);
+    const [createCategory, setCreateCategory] = useState("");
+    const [createTitle, setCreateTitle] = useState("");
+    const [createContent, setCreateContent] = useState("");
+    const [creatingComplaint, setCreatingComplaint] = useState(false);
+
+    const openCreateSheet = () => {
+        setCreateCategory(sendableCategories[0]?.key || "");
+        setCreateTitle("");
+        setCreateContent("");
+        setCreateSheetOpen(true);
+    };
+
+    const isCreateFormValid =
+        !!createCategory &&
+        createTitle.trim().length >= 3 &&
+        createContent.trim().length >= 10;
+
+    const handleCreateComplaint = async () => {
+        if (!isCreateFormValid) {
+            toast.error(
+                "Vui lòng chọn loại phản ánh, nhập tiêu đề (≥3 ký tự) và nội dung (≥10 ký tự)",
+            );
+            return;
+        }
+        try {
+            setCreatingComplaint(true);
+            await createComplaint({
+                category: createCategory,
+                title: createTitle.trim(),
+                content: createContent.trim(),
+            });
+            toast.success("Đã gửi phản ánh");
+            setCreateSheetOpen(false);
+            load(1);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setCreatingComplaint(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Phản ánh kiến nghị"
                 description="Tiếp nhận và xử lý phản ánh, kiến nghị của cư dân."
+                action={
+                    canCreateComplaint &&
+                    sendableCategories.length > 0 && (
+                        <Button onClick={openCreateSheet}>
+                            <Plus className="mr-1 h-4 w-4" />
+                            Gửi phản ánh
+                        </Button>
+                    )
+                }
             />
 
             <FilterBar>
@@ -382,6 +459,60 @@ const ComplaintListContent: React.FC = () => {
                     disabled={loading}
                 />
             )}
+
+            <Sheet open={createSheetOpen} onOpenChange={setCreateSheetOpen}>
+                <SheetContent className="flex flex-col">
+                    <SheetHeader>
+                        <SheetTitle>Gửi phản ánh</SheetTitle>
+                    </SheetHeader>
+                    <div className="flex-1 space-y-4 overflow-y-auto py-4">
+                        <div className="space-y-1.5">
+                            <Label>Loại phản ánh</Label>
+                            <Select
+                                value={createCategory}
+                                onValueChange={setCreateCategory}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Chọn loại phản ánh" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {sendableCategories.map(t => (
+                                        <SelectItem key={t.key} value={t.key}>
+                                            {t.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Tiêu đề</Label>
+                            <Input
+                                value={createTitle}
+                                onChange={e => setCreateTitle(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label>Nội dung</Label>
+                            <Textarea
+                                value={createContent}
+                                onChange={e =>
+                                    setCreateContent(e.target.value)
+                                }
+                            />
+                        </div>
+                    </div>
+                    <SheetFooter>
+                        <Button
+                            className="w-full"
+                            loading={creatingComplaint}
+                            disabled={!isCreateFormValid}
+                            onClick={handleCreateComplaint}
+                        >
+                            Gửi phản ánh
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 };

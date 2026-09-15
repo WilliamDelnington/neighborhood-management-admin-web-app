@@ -46,6 +46,9 @@ export type User = {
     phone?: string;
     email?: string;
     address?: string;
+    // Da duoc mask boi backend (chi giu 4 so cuoi) - xem sanitizeUser o
+    // backend, khong bao gio tra ve gia tri that qua API.
+    idNumber?: string;
     roles: Role[];
     primaryRole: Role;
     permissions: string[];
@@ -813,6 +816,8 @@ export type ComplaintTypeDefinition = {
     // Thu tu mang the hien uu tien dieu huong nguoi nhan (xem
     // resolveComplaintTypeRecipientIds trong backend complaintService.ts).
     allowedReceiverRoles: string[];
+    // Vai tro duoc phep gui danh muc nay - khong co y nghia thu tu.
+    allowedSenderRoles?: string[];
     isBuiltIn?: boolean;
     active?: boolean;
     wardCode?: number;

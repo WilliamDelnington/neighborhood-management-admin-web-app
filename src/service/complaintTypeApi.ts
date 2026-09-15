@@ -7,6 +7,7 @@ export type ComplaintTypeDefinitionInput = {
     name: string;
     description?: string;
     allowedReceiverRoles: string[];
+    allowedSenderRoles: string[];
     active: boolean;
 };
 

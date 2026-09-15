@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -6,7 +7,6 @@ import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
-import { Textarea } from "@components/ui/textarea";
 import { Badge } from "@components/ui/badge";
 import {
     Select,
@@ -34,7 +34,7 @@ import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterBar from "@components/admin/FilterBar";
 import FilterableSelect from "@components/admin/FilterableSelect";
-import { AppError, Neighborhood, Province, Role, RoleRecord, User, UserStatus, Ward } from "@dts";
+import { AppError, Neighborhood, Role, RoleRecord, User } from "@dts";
 import {
     NEIGHBORHOOD_ASSIGNABLE_ROLE_KEYS,
     ROLE_LABEL,
@@ -43,17 +43,10 @@ import {
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
-    assignUserRole,
     createHouseOwner,
     CreatableStaffRole,
     fetchCreatableRoles,
-    fetchUserById,
     fetchUsers,
-    lockUserAccount,
-    resetUserPassword,
-    revokeUserRole,
-    revokeUserSession,
-    updateUser,
 } from "@service/userApi";
 import { fetchRoles } from "@service/roleApi";
 import {
@@ -61,27 +54,10 @@ import {
     assignNeighborhoodLeader,
     fetchNeighborhoods,
 } from "@service/neighborhoodApi";
-import { assignScope, unassignScope } from "@service/scopeAssignmentApi";
-import {
-    fetchProvinces,
-    fetchWardsByProvince,
-} from "@service/administrativeDivisionApi";
 import { usePermission } from "@store/authStore";
 
 const NEIGHBORHOOD_LEADER_ROLE = "neighborhood_leader";
 const NEIGHBORHOOD_COLEADER_ROLE = "neighborhood_coleader";
-const PEOPLE_COMMITTEE_OFFICIAL_ROLE = "people_committee_official";
-const SECRETARY_ROLE = "secretary";
-const REGIONAL_POLICE_ROLE = "regional_police";
-// 3 vai tro cap Phuong hien tai (xem SYSTEM_ROLE_SCOPE_CONFIG o backend) -
-// regional_police truoc day bi thieu o day (chi co secretary/
-// people_committee_official), khien Cong an khu vuc khong the duoc gan
-// Phuong/Xa phu trach tu man nay.
-const WARD_SCOPED_ROLES: Role[] = [
-    PEOPLE_COMMITTEE_OFFICIAL_ROLE,
-    SECRETARY_ROLE,
-    REGIONAL_POLICE_ROLE,
-];
 // 2 vai tro duoc phep chon truc tiep khi "Tạo tài khoản" ma con duoc gan vao
 // mot To dan pho cu the ngay luc tao (xem handleCreateAccount) - Cong tac
 // vien (neighborhood_collaborator) KHONG nam trong danh sach nay vi con can
@@ -124,21 +100,11 @@ const UserListPage: React.FC = () => (
 );
 
 const UserListContent: React.FC = () => {
-    // to truong (neighborhood_leader) chi co users.lock: xem duoc danh sach
-    // (users.read, da gioi han theo to dan pho o backend) nhung chi doi duoc
-    // trang thai tai khoan (qua lockUserAccount), khong sua ten/sdt/vai tro -
-    // xem userService.listUsers/lockUserStatus o backend.
-    const canFullUpdate = usePermission("users.update");
-    const canAssignRoles = usePermission("users.assign_roles");
+    const navigate = useNavigate();
     const canCreateAccount = usePermission("users.create");
-    // Quyen rieng, KHAC canFullUpdate - to truong/to pho co users.reset_password
-    // (gioi han theo pham vi to dan pho o backend) nhung khong co users.update -
-    // xem systemRoles.ts.
-    const canResetPassword = usePermission("users.reset_password");
     // to truong khong co roles.read - goi fetchRoles se luon 403. Danh sach
-    // nay chi phuc vu bo loc theo vai tro + man gan vai tro (da an voi to
-    // truong qua canAssignRoles), nen bo qua hoan toan thay vi goi roi bo ket
-    // qua qua .catch().
+    // nay chi phuc vu bo loc theo vai tro + hien ten vai tro trong bang, nen
+    // bo qua hoan toan thay vi goi roi bo ket qua qua .catch().
     const canReadRoles = usePermission("roles.read");
     const [search, setSearch] = useState("");
     const [role, setRole] = useState<Role | "">("");
@@ -189,38 +155,6 @@ const UserListContent: React.FC = () => {
     const [createNeighborhoods, setCreateNeighborhoods] = useState<
         Neighborhood[]
     >([]);
-
-    const [sheetOpen, setSheetOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
-    const [displayName, setDisplayName] = useState("");
-    const [phone, setPhone] = useState("");
-    const [status, setStatus] = useState<UserStatus>("active");
-    const [originalStatus, setOriginalStatus] = useState<UserStatus>("active");
-    const [statusReason, setStatusReason] = useState("");
-    const [saving, setSaving] = useState(false);
-    const [roleToAssign, setRoleToAssign] = useState<Role>("resident");
-    const [assigningRole, setAssigningRole] = useState(false);
-    const [revokingRole, setRevokingRole] = useState<Role | null>(null);
-    const [settingPrimaryRole, setSettingPrimaryRole] = useState<Role | null>(
-        null,
-    );
-    const [revokingSession, setRevokingSession] = useState(false);
-    const [newPassword, setNewPassword] = useState("");
-    const [resettingPassword, setResettingPassword] = useState(false);
-
-    const [managedNeighborhoods, setManagedNeighborhoods] = useState<
-        Neighborhood[]
-    >([]);
-
-    // Pham vi phuong/xa cho can bo UBND va bi thu. `wardCode` la ma dinh danh
-    // on dinh tu danh muc hanh chinh, dung kem ten de hien thi.
-    const [provinces, setProvinces] = useState<Province[]>([]);
-    const [wards, setWards] = useState<Ward[]>([]);
-    const [wardProvinceCode, setWardProvinceCode] = useState("");
-    const [wardProvinceName, setWardProvinceName] = useState("");
-    const [wardCode, setWardCode] = useState("");
-    const [wardName, setWardName] = useState("");
-    const [savingWard, setSavingWard] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -343,237 +277,6 @@ const UserListContent: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canCreateAccount]);
 
-    useEffect(() => {
-        if (!canFullUpdate) return;
-        fetchProvinces()
-            .then(setProvinces)
-            .catch(() => setProvinces([]));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [canFullUpdate]);
-
-    useEffect(() => {
-        if (!wardProvinceCode) {
-            setWards([]);
-            return;
-        }
-        fetchWardsByProvince(Number(wardProvinceCode))
-            .then(setWards)
-            .catch(() => setWards([]));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [wardProvinceCode]);
-
-    const loadNeighborhoodSections = (user: User) => {
-        if (!user.roles.includes(NEIGHBORHOOD_LEADER_ROLE)) {
-            setManagedNeighborhoods([]);
-            return;
-        }
-        fetchNeighborhoods({ leaderUserId: user.id })
-            .then(res => setManagedNeighborhoods(res.items))
-            .catch(() => setManagedNeighborhoods([]));
-    };
-
-    const openManageSheet = (user: User) => {
-        setSelectedUser(user);
-        setDisplayName(user.displayName || "");
-        setPhone(user.phone || "");
-        setStatus(user.status);
-        setOriginalStatus(user.status);
-        setStatusReason("");
-        setRoleToAssign("resident");
-        setNewPassword("");
-        loadNeighborhoodSections(user);
-        setWardProvinceCode(user.provinceCode ? String(user.provinceCode) : "");
-        setWardProvinceName(user.provinceName || "");
-        setWardCode(user.wardCode ? String(user.wardCode) : "");
-        setWardName(user.wardName || "");
-        setSheetOpen(true);
-    };
-
-    const refreshSelected = (updated: User) => {
-        setSelectedUser(updated);
-        setItems(prev => prev.map(u => (u.id === updated.id ? updated : u)));
-    };
-
-    const statusChanged = status !== originalStatus;
-
-    const handleSaveProfile = async () => {
-        if (!selectedUser) return;
-        if (statusChanged && !statusReason.trim()) {
-            toast.error("Vui lòng nhập lý do khi khóa/mở tài khoản");
-            return;
-        }
-        try {
-            setSaving(true);
-            let updated: User;
-            if (canFullUpdate) {
-                updated = await updateUser(selectedUser.id, {
-                    displayName: displayName.trim(),
-                    phone: phone.trim() || undefined,
-                    // Chi gui status/statusReason khi thuc su thay doi trang
-                    // thai - tranh bat buoc nhap ly do cho cac lan chi sua
-                    // ten/sdt (xem updateUserSchema o backend, yeu cau
-                    // statusReason bat cu khi nao status co mat trong payload).
-                    ...(statusChanged
-                        ? { status, statusReason: statusReason.trim() }
-                        : {}),
-                });
-            } else {
-                // To truong (users.lock, khong co users.update) chi doi duoc
-                // trang thai tai khoan, khong sua ten/sdt - xem
-                // PATCH /api/users/:id/lock o backend.
-                if (!statusChanged) return;
-                // UI chi cho chon "active"/"locked" khi khong co canFullUpdate
-                // (xem filter cua Select ben duoi) - "pending" khong the toi
-                // day trong nhanh nay.
-                updated = await lockUserAccount(
-                    selectedUser.id,
-                    status as "active" | "locked",
-                    statusReason.trim(),
-                );
-            }
-            refreshSelected(updated);
-            setOriginalStatus(updated.status);
-            setStatusReason("");
-            toast.success("Đã cập nhật người dùng");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleAssignRole = async () => {
-        if (!selectedUser) return;
-        try {
-            setAssigningRole(true);
-            await assignUserRole(selectedUser.id, roleToAssign);
-            toast.success(`Đã gán vai trò ${roleLabel(roleToAssign)}`);
-            const updatedUser = {
-                ...selectedUser,
-                roles: selectedUser.roles.includes(roleToAssign)
-                    ? selectedUser.roles
-                    : [...selectedUser.roles, roleToAssign],
-            };
-            refreshSelected(updatedUser);
-            if (roleToAssign === NEIGHBORHOOD_LEADER_ROLE) {
-                loadNeighborhoodSections(updatedUser);
-            }
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setAssigningRole(false);
-        }
-    };
-
-    const handleSetPrimaryRole = async (r: Role) => {
-        if (!selectedUser) return;
-        try {
-            setSettingPrimaryRole(r);
-            const updated = await updateUser(selectedUser.id, {
-                primaryRole: r,
-            });
-            refreshSelected(updated);
-            toast.success(`Đã đặt ${roleLabel(r)} làm vai trò chính`);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setSettingPrimaryRole(null);
-        }
-    };
-
-    const handleRevokeRole = async (r: Role) => {
-        if (!selectedUser) return;
-        try {
-            setRevokingRole(r);
-            const updated = await revokeUserRole(selectedUser.id, r);
-            refreshSelected(updated);
-            if (r === NEIGHBORHOOD_LEADER_ROLE) {
-                loadNeighborhoodSections(updated);
-            }
-            toast.success(`Đã thu hồi vai trò ${roleLabel(r)}`);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setRevokingRole(null);
-        }
-    };
-
-    // Doi tu updateUser(wardCode...) truc tiep sang assignScope/unassignScope -
-    // gan wardCode thang khong con di qua cardinality (vd chi 1 Bi thu/Phuong)
-    // tu khi co ScopeAssignment (xem scopeAssignmentService o backend); man
-    // nay la duong THU HAI (ngoai WardManagementPage.tsx) co the gan Phuong/
-    // Xa cho mot tai khoan, nen phai dung chung co che moi, khong the con
-    // bo qua rieng o day.
-    const handleSaveWard = async () => {
-        if (!selectedUser) return;
-        const roleKey = WARD_SCOPED_ROLES.find(r =>
-            selectedUser.roles.includes(r),
-        );
-        if (!roleKey) return;
-        // So voi wardCode HIEN TAI cua chinh selectedUser (khong phai form) -
-        // neu doi sang mot Phuong KHAC (khong phai bo trong), phai go phan
-        // cong cu truoc: assignScope khong tu biet go phan cong o Phuong CU cua
-        // chinh nguoi nay, se de lai 2 phan cong active cung luc neu bo qua.
-        const previousWardCode = selectedUser.wardCode;
-        const nextWardCode = wardCode ? Number(wardCode) : undefined;
-        if (previousWardCode === nextWardCode) return;
-        try {
-            setSavingWard(true);
-            if (previousWardCode) {
-                await unassignScope({
-                    userId: selectedUser.id,
-                    roleKey,
-                    scopeType: "WARD",
-                    scopeId: previousWardCode,
-                });
-            }
-            if (nextWardCode) {
-                await assignScope({
-                    userId: selectedUser.id,
-                    roleKey,
-                    scopeType: "WARD",
-                    scopeId: nextWardCode,
-                });
-            }
-            const updated = await fetchUserById(selectedUser.id);
-            refreshSelected(updated);
-            toast.success("Đã cập nhật phường/xã phụ trách");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setSavingWard(false);
-        }
-    };
-
-    const handleRevokeSession = async () => {
-        if (!selectedUser) return;
-        try {
-            setRevokingSession(true);
-            await revokeUserSession(selectedUser.id);
-            toast.success("Đã thu hồi phiên đăng nhập");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setRevokingSession(false);
-        }
-    };
-
-    const handleResetPassword = async () => {
-        if (!selectedUser || newPassword.trim().length < 6) return;
-        try {
-            setResettingPassword(true);
-            await resetUserPassword(selectedUser.id, newPassword.trim());
-            toast.success(
-                "Đã đặt lại mật khẩu, tài khoản này sẽ phải đăng nhập lại",
-            );
-            setNewPassword("");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setResettingPassword(false);
-        }
-    };
-
     return (
         <div>
             <PageHeader
@@ -658,7 +361,7 @@ const UserListContent: React.FC = () => {
                                 <TableRow
                                     key={u.id}
                                     className="cursor-pointer"
-                                    onClick={() => openManageSheet(u)}
+                                    onClick={() => navigate(`/users/${u.id}`)}
                                 >
                                     <TableCell className="text-center text-text_2">
                                         {(page - 1) * DEFAULT_PAGE_SIZE + index + 1}
@@ -682,7 +385,9 @@ const UserListContent: React.FC = () => {
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => openManageSheet(u)}
+                                            onClick={() =>
+                                                navigate(`/users/${u.id}`)
+                                            }
                                         >
                                             Chi tiết
                                         </Button>
@@ -702,332 +407,6 @@ const UserListContent: React.FC = () => {
                     disabled={loading}
                 />
             )}
-
-            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetContent className="flex flex-col">
-                    <SheetHeader>
-                        <SheetTitle>Quản lý người dùng</SheetTitle>
-                    </SheetHeader>
-
-                    {selectedUser && (
-                        <div className="flex-1 overflow-y-auto py-4">
-                            <div className="flex flex-col gap-4">
-                                {!canFullUpdate && (
-                                    <p className="rounded-lg bg-ng_10 px-3 py-2 text-xs text-text_2">
-                                        Bạn chỉ có thể khóa/mở tài khoản chủ nhà
-                                        thuộc tổ dân phố phụ trách, không sửa
-                                        được tên/số điện thoại hoặc vai trò.
-                                    </p>
-                                )}
-                                <div className="space-y-1.5">
-                                    <Label>Họ tên</Label>
-                                    <Input
-                                        value={displayName}
-                                        disabled={!canFullUpdate}
-                                        onChange={e =>
-                                            setDisplayName(e.target.value)
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Số điện thoại</Label>
-                                    <Input
-                                        value={phone}
-                                        disabled={!canFullUpdate}
-                                        onChange={e => setPhone(e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Trạng thái tài khoản</Label>
-                                    <Select
-                                        value={status}
-                                        onValueChange={v =>
-                                            setStatus(v as UserStatus)
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {(
-                                                Object.entries(
-                                                    USER_STATUS_LABEL,
-                                                ) as [UserStatus, string][]
-                                            )
-                                                // To truong chi doi qua PATCH
-                                                // /api/users/:id/lock, chi
-                                                // nhan "active"/"locked" (xem
-                                                // lockUserStatusSchema o
-                                                // backend) - an "pending" de
-                                                // khong chon duoc gia tri gui
-                                                // len se bi tu choi.
-                                                .filter(
-                                                    ([key]) =>
-                                                        canFullUpdate ||
-                                                        key === "active" ||
-                                                        key === "locked",
-                                                )
-                                                .map(([key, label]) => (
-                                                <SelectItem
-                                                    key={key}
-                                                    value={key}
-                                                >
-                                                    {label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                {statusChanged && (
-                                    <div className="space-y-1.5">
-                                        <Label>
-                                            Lý do đổi trạng thái tài khoản
-                                        </Label>
-                                        <Textarea
-                                            value={statusReason}
-                                            onChange={e =>
-                                                setStatusReason(e.target.value)
-                                            }
-                                            placeholder="VD: Vi phạm quy định, yêu cầu của tổ dân phố, mở lại sau xác minh..."
-                                        />
-                                    </div>
-                                )}
-                                <Button
-                                    loading={saving}
-                                    disabled={!canFullUpdate && !statusChanged}
-                                    onClick={handleSaveProfile}
-                                >
-                                    Lưu thông tin
-                                </Button>
-                            </div>
-
-                            {canAssignRoles && (
-                            <div className="mt-5 border-t border-divider_01 pt-4">
-                                <h3 className="mb-2 text-sm font-semibold">
-                                    Vai trò hiện tại
-                                </h3>
-                                {selectedUser.roles.length === 0 && (
-                                    <div className="mb-2 text-xs text-text_2">
-                                        Chưa có vai trò nào
-                                    </div>
-                                )}
-                                {selectedUser.roles.map(r => (
-                                    <div
-                                        key={r}
-                                        className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
-                                    >
-                                        <div className="text-sm">
-                                            {roleLabel(r)}
-                                            {r === selectedUser.primaryRole && (
-                                                <span className="text-xs text-primary">
-                                                    {" "}
-                                                    (Vai trò chính)
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-1.5">
-                                            {r !== selectedUser.primaryRole && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    loading={
-                                                        settingPrimaryRole === r
-                                                    }
-                                                    onClick={() =>
-                                                        handleSetPrimaryRole(r)
-                                                    }
-                                                >
-                                                    Đặt làm chính
-                                                </Button>
-                                            )}
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                loading={revokingRole === r}
-                                                onClick={() =>
-                                                    handleRevokeRole(r)
-                                                }
-                                            >
-                                                Thu hồi
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
-
-                                <div className="mt-3 flex items-end gap-2">
-                                    <div className="flex-1 space-y-1.5">
-                                        <Label>Gán vai trò mới</Label>
-                                        <Select
-                                            value={roleToAssign}
-                                            onValueChange={v =>
-                                                setRoleToAssign(v as Role)
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {roles.map(r => (
-                                                    <SelectItem
-                                                        key={r.key}
-                                                        value={r.key}
-                                                    >
-                                                        {r.name}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <Button
-                                        loading={assigningRole}
-                                        onClick={handleAssignRole}
-                                    >
-                                        Gán
-                                    </Button>
-                                </div>
-                            </div>
-                            )}
-
-                            {selectedUser.roles.includes(
-                                NEIGHBORHOOD_LEADER_ROLE,
-                            ) && (
-                                <div className="mt-5 border-t border-divider_01 pt-4">
-                                    <h3 className="mb-2 text-sm font-semibold">
-                                        Tổ dân phố phụ trách
-                                    </h3>
-                                    {managedNeighborhoods.length === 0 && (
-                                        <div className="mb-2 text-xs text-text_2">
-                                            Chưa phụ trách tổ dân phố nào
-                                        </div>
-                                    )}
-                                    {managedNeighborhoods.map(n => (
-                                        <div
-                                            key={n._id}
-                                            className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
-                                        >
-                                            <div className="text-sm">
-                                                {n.name}
-                                                <span className="text-xs text-text_2">
-                                                    {" "}
-                                                    ({n.code})
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <div className="mt-2 text-xs text-text_2">
-                                        Việc phân công tổ trưởng được thực
-                                        hiện ở trang thông tin tổ dân phố,
-                                        không thực hiện ở đây.
-                                    </div>
-                                </div>
-                            )}
-
-                            {canFullUpdate &&
-                                selectedUser.roles.some(role =>
-                                    WARD_SCOPED_ROLES.includes(role),
-                                ) && (
-                                <div className="mt-5 border-t border-divider_01 pt-4">
-                                    <h3 className="mb-2 text-sm font-semibold">
-                                        Phường/xã phụ trách
-                                    </h3>
-                                    <p className="mb-3 text-xs text-text_2">
-                                        Xác định phường/xã thuộc phạm vi quản
-                                        lý của cán bộ hoặc bí thư này.
-                                    </p>
-                                    <div className="flex flex-col gap-3">
-                                        <FilterableSelect
-                                            label="Tỉnh/Thành phố"
-                                            placeholder="Chọn tỉnh/thành phố"
-                                            searchPlaceholder="Tìm theo tên tỉnh/thành phố..."
-                                            items={provinces}
-                                            getId={p => String(p.code)}
-                                            getLabel={p => p.name}
-                                            value={wardProvinceCode}
-                                            valueLabel={wardProvinceName}
-                                            onChange={(code, province) => {
-                                                setWardProvinceCode(code || "");
-                                                setWardProvinceName(
-                                                    province?.name || "",
-                                                );
-                                                setWardCode("");
-                                                setWardName("");
-                                            }}
-                                        />
-                                        <FilterableSelect
-                                            label="Phường/Xã"
-                                            placeholder={
-                                                wardProvinceCode
-                                                    ? "Chọn phường/xã"
-                                                    : "Chọn tỉnh/thành phố trước"
-                                            }
-                                            searchPlaceholder="Tìm theo tên phường/xã..."
-                                            items={wards}
-                                            getId={w => String(w.code)}
-                                            getLabel={w => w.name}
-                                            value={wardCode}
-                                            valueLabel={wardName}
-                                            onChange={(code, ward) => {
-                                                setWardCode(code || "");
-                                                setWardName(ward?.name || "");
-                                            }}
-                                            disabled={!wardProvinceCode}
-                                        />
-                                        <Button
-                                            loading={savingWard}
-                                            onClick={handleSaveWard}
-                                        >
-                                            Lưu phường/xã phụ trách
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {canResetPassword && (
-                            <div className="mt-5 border-t border-divider_01 pt-4">
-                                <Label>Đặt lại mật khẩu</Label>
-                                <p className="mb-2 mt-1 text-xs text-text_2">
-                                    Dùng khi tài khoản chưa có mật khẩu (vd tạo
-                                    qua Nhập Excel) hoặc chủ tài khoản quên mật
-                                    khẩu và cần được hỗ trợ. Sau khi đặt lại,
-                                    tài khoản sẽ phải đăng nhập lại bằng mật
-                                    khẩu mới.
-                                </p>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="text"
-                                        placeholder="Mật khẩu mới (ít nhất 6 ký tự)"
-                                        value={newPassword}
-                                        onChange={e =>
-                                            setNewPassword(e.target.value)
-                                        }
-                                    />
-                                    <Button
-                                        disabled={newPassword.trim().length < 6}
-                                        loading={resettingPassword}
-                                        onClick={handleResetPassword}
-                                    >
-                                        Đặt lại
-                                    </Button>
-                                </div>
-                            </div>
-                            )}
-
-                            {canFullUpdate && (
-                            <div className="mt-5 border-t border-divider_01 pt-4">
-                                <Button
-                                    className="w-full !text-red-500"
-                                    variant="outline"
-                                    loading={revokingSession}
-                                    onClick={handleRevokeSession}
-                                >
-                                    Thu hồi phiên đăng nhập (đăng xuất bắt buộc)
-                                </Button>
-                            </div>
-                            )}
-                        </div>
-                    )}
-                </SheetContent>
-            </Sheet>
 
             <Sheet open={createSheetOpen} onOpenChange={setCreateSheetOpen}>
                 <SheetContent className="flex flex-col">

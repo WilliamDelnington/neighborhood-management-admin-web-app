@@ -830,13 +830,16 @@ const AssignedRequestsTab: React.FC = () => {
                                                             onClick={() =>
                                                                 handleStatusChange(
                                                                     item,
-                                                                    "acknowledged",
+                                                                    "in_progress",
                                                                 )
                                                             }
                                                         >
                                                             Tiếp nhận
                                                         </Button>
                                                     )}
+                                                    {/* "acknowledged" khong con duoc gan moi tu "pending" nua (bo qua
+                                                        buoc trung gian, xem nhanh "pending" o tren) - nhanh nay chi con
+                                                        phuc vu cac yeu cau CU da o trang thai nay tu truoc khi doi. */}
                                                     {item.status ===
                                                         "acknowledged" && (
                                                         <Button
