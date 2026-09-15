@@ -48,7 +48,6 @@ import {
     ModulePermissionGroup,
     NeighborhoodCollaboratorScope,
     NhomPhanAnh,
-    RequestType,
     RoleRecord,
     ScopeAssignmentMechanism,
 } from "@dts";
@@ -67,7 +66,6 @@ import {
     fetchRoles,
     updateRole,
 } from "@service/roleApi";
-import { fetchRequestTypeDefinitions } from "@service/requestTypeApi";
 import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 
 const RoleListPage: React.FC = () => (
@@ -85,8 +83,6 @@ type FormState = {
     permissions: string[];
     // null = khong gioi han (xem tat ca nhom phan anh) - mac dinh cho den khi admin chot.
     allowedComplaintCategories: NhomPhanAnh[] | null;
-    // null = khong gioi han (gui duoc tat ca loai yeu cau) - cung quy uoc.
-    allowedRequestTypes: RequestType[] | null;
     // null = khong gioi han (giu nguyen bo so lieu dashboard co dinh theo
     // audience nhu truoc day) - cung quy uoc, danh muc CO DINH nen khong can
     // fetch tu API (xem DASHBOARD_METRIC_LABEL).
@@ -131,7 +127,6 @@ const EMPTY_FORM: FormState = {
     sortOrder: 0,
     permissions: [],
     allowedComplaintCategories: null,
-    allowedRequestTypes: null,
     dashboardMetrics: null,
     allowedCreatableRoles: [],
     scopeType: "ALL",
@@ -145,9 +140,6 @@ const RoleListContent: React.FC = () => {
     const canManagePermissions = usePermission("roles.manage");
     const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
-    const [requestTypeOptions, setRequestTypeOptions] = useState<
-        Array<{ key: RequestType; name: string }>
-    >([]);
     const [complaintCategoryOptions, setComplaintCategoryOptions] = useState<
         Array<{ key: NhomPhanAnh; name: string }>
     >(
@@ -173,20 +165,13 @@ const RoleListContent: React.FC = () => {
         Promise.all([
             fetchRoles({ page: targetPage, limit: size }),
             fetchRolePermissionRegistry(),
-            fetchRequestTypeDefinitions({ active: true, limit: 200 }),
             fetchComplaintTypeDefinitions({ active: true, limit: 200 }),
         ])
-            .then(([roleList, permissionRegistry, customTypes, complaintTypes]) => {
+            .then(([roleList, permissionRegistry, complaintTypes]) => {
                 setRoles(roleList.items);
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
-                setRequestTypeOptions(
-                    customTypes.items.map(type => ({
-                        key: type.key,
-                        name: type.name,
-                    })),
-                );
                 setComplaintCategoryOptions(
                     complaintTypes.items.map(type => ({
                         key: type.key,
@@ -218,7 +203,6 @@ const RoleListContent: React.FC = () => {
             sortOrder: role.sortOrder,
             permissions: role.permissions,
             allowedComplaintCategories: role.allowedComplaintCategories ?? null,
-            allowedRequestTypes: role.allowedRequestTypes ?? null,
             dashboardMetrics: role.dashboardMetrics ?? null,
             allowedCreatableRoles: role.allowedCreatableRoles ?? [],
             scopeType: role.scopeType,
@@ -262,25 +246,6 @@ const RoleListContent: React.FC = () => {
                 allowedComplaintCategories: current.includes(category)
                     ? current.filter(c => c !== category)
                     : [...current, category],
-            };
-        });
-    };
-
-    const toggleRequestTypeRestriction = (restricted: boolean) => {
-        setForm(prev => ({
-            ...prev,
-            allowedRequestTypes: restricted ? [] : null,
-        }));
-    };
-
-    const toggleRequestType = (type: RequestType) => {
-        setForm(prev => {
-            const current = prev.allowedRequestTypes || [];
-            return {
-                ...prev,
-                allowedRequestTypes: current.includes(type)
-                    ? current.filter(t => t !== type)
-                    : [...current, type],
             };
         });
     };
@@ -360,7 +325,6 @@ const RoleListContent: React.FC = () => {
                         ? { permissions: form.permissions }
                         : {}),
                     allowedComplaintCategories: form.allowedComplaintCategories,
-                    allowedRequestTypes: form.allowedRequestTypes,
                     dashboardMetrics: form.dashboardMetrics,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
@@ -377,7 +341,6 @@ const RoleListContent: React.FC = () => {
                     permissions: form.permissions,
                     allowedComplaintCategories:
                         form.allowedComplaintCategories ?? undefined,
-                    allowedRequestTypes: form.allowedRequestTypes ?? undefined,
                     dashboardMetrics: form.dashboardMetrics ?? undefined,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
@@ -763,48 +726,6 @@ const RoleListContent: React.FC = () => {
                                             />
                                             <Label className="text-sm font-normal">
                                                 {category.name}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-5 border-t border-divider_01 pt-4">
-                            <h3 className="mb-3 text-sm font-semibold">
-                                Phạm vi gửi yêu cầu công việc
-                            </h3>
-                            <div className="mb-2 flex items-center gap-2">
-                                <Checkbox
-                                    checked={form.allowedRequestTypes === null}
-                                    disabled={!canEditCurrentRole}
-                                    onCheckedChange={checked =>
-                                        toggleRequestTypeRestriction(!checked)
-                                    }
-                                />
-                                <Label>
-                                    Không giới hạn (gửi được tất cả loại yêu
-                                    cầu)
-                                </Label>
-                            </div>
-                            {form.allowedRequestTypes !== null && (
-                                <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {requestTypeOptions.map(type => (
-                                        <div
-                                            key={type.key}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Checkbox
-                                                checked={(
-                                                    form.allowedRequestTypes || []
-                                                ).includes(type.key)}
-                                                disabled={!canEditCurrentRole}
-                                                onCheckedChange={() =>
-                                                    toggleRequestType(type.key)
-                                                }
-                                            />
-                                            <Label className="text-sm font-normal">
-                                                {type.name}
                                             </Label>
                                         </div>
                                     ))}

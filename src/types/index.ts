@@ -154,8 +154,7 @@ export type RoleRecord = {
     description?: string;
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
-    allowedRequestTypes?: RequestType[];
-    // Cung quy uoc voi 2 truong tren: undefined = khong gioi han (giu nguyen
+    // Cung quy uoc voi truong tren: undefined = khong gioi han (giu nguyen
     // bo so lieu dashboard co dinh theo audience nhu truoc day). Khac 2 truong
     // tren: danh muc CO DINH (DASHBOARD_METRIC_KEYS), khong phai danh muc quan
     // tri duoc rieng.
