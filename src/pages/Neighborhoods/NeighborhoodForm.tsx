@@ -87,11 +87,6 @@ export function toNeighborhoodInput(
         description: values.description.trim() || undefined,
         contactPhone: values.contactPhone.trim() || undefined,
         notes: values.notes.trim() || undefined,
-        streetIds: values.streetIds,
-        alleyDescriptions: values.alleyDescriptions
-            .split("\n")
-            .map(value => value.trim())
-            .filter(Boolean),
         boundaryType: values.boundaryType,
     };
 }
@@ -174,10 +169,12 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
     }, []);
 
     useEffect(() => {
+        // Chi can khi mode="edit" - "Tuyến đường phụ trách" bi an luc tao moi.
+        if (mode !== "edit") return;
         fetchStreets({ active: true, limit: 200 })
             .then(result => setStreets(result.items))
             .catch(() => setStreets([]));
-    }, []);
+    }, [mode]);
 
     useEffect(() => {
         if (!values.provinceCode) {
@@ -315,38 +312,45 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
                     </SelectContent>
                 </Select>
             </div>
-            <div className="space-y-2">
-                <Label>Tuyến đường phụ trách</Label>
-                <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-divider_01 p-3">
-                    {streets.length === 0 && (
-                        <p className="text-xs text-text_2">Chưa có tuyến đường để chọn</p>
-                    )}
-                    {streets.map(street => (
-                        <label key={street._id} className="flex items-center gap-2 text-sm">
-                            <Checkbox
-                                checked={values.streetIds.includes(street._id)}
-                                onCheckedChange={checked =>
-                                    set(
-                                        "streetIds",
-                                        checked === true
-                                            ? [...values.streetIds, street._id]
-                                            : values.streetIds.filter(id => id !== street._id),
-                                    )
-                                }
-                            />
-                            {street.name} ({street.code})
-                        </label>
-                    ))}
+            {/* An khi tao moi - to dan pho moi tao chua co du lieu de gan
+                tuyen/hem ngo ngay, chi quan ly duoc sau khi da co (sua o
+                trang chi tiet). */}
+            {mode === "edit" && (
+                <div className="space-y-2">
+                    <Label>Tuyến đường phụ trách</Label>
+                    <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-divider_01 p-3">
+                        {streets.length === 0 && (
+                            <p className="text-xs text-text_2">Chưa có tuyến đường để chọn</p>
+                        )}
+                        {streets.map(street => (
+                            <label key={street._id} className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                    checked={values.streetIds.includes(street._id)}
+                                    onCheckedChange={checked =>
+                                        set(
+                                            "streetIds",
+                                            checked === true
+                                                ? [...values.streetIds, street._id]
+                                                : values.streetIds.filter(id => id !== street._id),
+                                        )
+                                    }
+                                />
+                                {street.name} ({street.code})
+                            </label>
+                        ))}
+                    </div>
                 </div>
-            </div>
-            <div className="space-y-1.5">
-                <Label>Hẻm/ngõ phụ trách</Label>
-                <Textarea
-                    placeholder="Mỗi hẻm/ngõ một dòng"
-                    value={values.alleyDescriptions}
-                    onChange={e => set("alleyDescriptions", e.target.value)}
-                />
-            </div>
+            )}
+            {mode === "edit" && (
+                <div className="space-y-1.5">
+                    <Label>Hẻm/ngõ phụ trách</Label>
+                    <Textarea
+                        placeholder="Mỗi hẻm/ngõ một dòng"
+                        value={values.alleyDescriptions}
+                        onChange={e => set("alleyDescriptions", e.target.value)}
+                    />
+                </div>
+            )}
             <div className="space-y-1.5">
                 <Label>Dữ liệu ranh giới</Label>
                 <Select
@@ -372,7 +376,7 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
                 </p>
             </div>
             <div className="space-y-1.5">
-                <Label>Số điện thoại liên hệ</Label>
+                <Label>Số điện thoại liên hệ (Tùy chọn)</Label>
                 <Input
                     value={values.contactPhone}
                     onChange={e => set("contactPhone", e.target.value)}
