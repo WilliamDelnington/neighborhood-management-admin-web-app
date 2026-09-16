@@ -362,14 +362,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "reports.author",
                 description: "Quản lý báo cáo định kỳ theo lịch của tổ dân phố.",
             },
-            {
-                key: "kpis",
-                label: "KPI Phường",
-                path: "/kpis",
-                icon: BarChart3,
-                permission: "reports.kpi_read",
-                description: "Theo dõi chỉ số KPI đánh giá hoạt động của phường.",
-            },
         ],
     },
     {
