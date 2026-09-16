@@ -23,6 +23,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, PasswordResetRequest, TrangThaiYeuCauDatLaiMatKhau } from "@dts";
 import {
@@ -127,23 +128,22 @@ const PasswordResetRequestListContent: React.FC = () => {
                 description="Yêu cầu hỗ trợ đặt lại mật khẩu từ người dùng không đăng nhập được (gửi từ màn hình đăng nhập, không qua tài khoản). Xác minh danh tính qua điện thoại rồi đặt lại mật khẩu tại màn Người dùng."
             />
 
-            <div className="mb-4 flex items-center gap-2">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm flex-1"
-                    placeholder="Tìm theo số điện thoại..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-            </div>
-
-            <div className="mb-4 max-w-xs">
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo số điện thoại..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || ALL_STATUS}
                     onValueChange={handleStatusFilterChange}
@@ -166,7 +166,7 @@ const PasswordResetRequestListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

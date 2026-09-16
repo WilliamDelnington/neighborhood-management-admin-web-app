@@ -1,6 +1,8 @@
 import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AssignableStaff,
+    AuditLogRecord,
+    FileAsset,
     PaginatedData,
     ResidentSearchResult,
     Role,
@@ -92,6 +94,8 @@ export interface UpdateUserParams {
     statusReason?: string;
     householdId?: string | null;
     citizenId?: string | null;
+    idNumber?: string;
+    address?: string;
     assignedClusters?: string[];
     primaryRole?: Role;
     provinceCode?: number | null;
@@ -181,3 +185,56 @@ export const assignUserRole = (
 
 export const revokeUserRole = (userId: string, role: Role): Promise<User> =>
     request<User>("POST", API.ROLES_REVOKE, { userId, role });
+
+/**
+ * Tai len/thay anh dai dien - upload truc tiep tu admin-web-app (khac co che
+ * token cua Zalo mini app) - xem userService.uploadUserAvatar o backend.
+ */
+export const uploadUserAvatar = (id: string, file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<User>("POST", `${API.USERS}/${id}/avatar`, formData);
+};
+
+export const fetchUserAttachments = (id: string): Promise<FileAsset[]> =>
+    request<FileAsset[]>("GET", `${API.USERS}/${id}/attachments`);
+
+export const uploadUserAttachment = (
+    id: string,
+    file: File,
+): Promise<FileAsset> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<FileAsset>("POST", `${API.USERS}/${id}/attachments`, formData);
+};
+
+export const deleteUserAttachment = (
+    id: string,
+    fileId: string,
+): Promise<null> =>
+    request<null>("DELETE", `${API.USERS}/${id}/attachments/${fileId}`);
+
+export const fetchUserAuditLogs = (
+    id: string,
+    params?: { page?: number; limit?: number },
+): Promise<PaginatedData<AuditLogRecord>> =>
+    request<PaginatedData<AuditLogRecord>>(
+        "GET",
+        `${API.USERS}/${id}/audit-logs`,
+        params,
+    );
+
+export interface UserManagementScopeEntry {
+    roleKey: string;
+    scopeType: string;
+    unrestricted: boolean;
+    items: { id: string; label: string }[];
+}
+
+export const fetchUserManagementScope = (
+    id: string,
+): Promise<{ scopes: UserManagementScopeEntry[] }> =>
+    request<{ scopes: UserManagementScopeEntry[] }>(
+        "GET",
+        `${API.USERS}/${id}/management-scope`,
+    );

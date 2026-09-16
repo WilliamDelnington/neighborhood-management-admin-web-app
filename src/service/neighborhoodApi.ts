@@ -40,6 +40,10 @@ export const fetchNeighborhoods = (
 export const fetchNeighborhoodById = (id: string): Promise<Neighborhood> =>
     request<Neighborhood>("GET", `${API.NEIGHBORHOODS}/${id}`);
 
+// streetIds/alleyDescriptions ("Tuyến đường/Hẻm ngõ phụ trách") CHI quan ly
+// duoc sau khi to dan pho da ton tai (man chi tiet/sua) - KHONG nam trong
+// NeighborhoodInput (tao moi) nua, chi co o UpdateNeighborhoodInput ben duoi -
+// giong quy uoc backend (xem validators/neighborhood.ts).
 export interface NeighborhoodInput {
     name: string;
     code: string;
@@ -56,8 +60,6 @@ export interface NeighborhoodInput {
     description?: string;
     contactPhone?: string;
     notes?: string;
-    streetIds?: string[];
-    alleyDescriptions?: string[];
     boundaryType?: "NONE" | "DOCUMENT" | "GEOJSON";
 }
 
@@ -68,7 +70,10 @@ export const createNeighborhood = (
 
 // code/sequence la bat bien sau khi tao - khong nam trong kieu cap nhat.
 export type UpdateNeighborhoodInput = Partial<
-    Omit<NeighborhoodInput, "code" | "sequence">
+    Omit<NeighborhoodInput, "code" | "sequence"> & {
+        streetIds: string[];
+        alleyDescriptions: string[];
+    }
 >;
 
 export const updateNeighborhood = (

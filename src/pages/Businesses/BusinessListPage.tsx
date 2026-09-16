@@ -32,6 +32,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { usePermission } from "@store/authStore";
 import {
     VERIFICATION_STATUS_LABEL,
@@ -183,7 +184,7 @@ const BusinessListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <FilterBar>
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -244,7 +245,7 @@ const BusinessListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

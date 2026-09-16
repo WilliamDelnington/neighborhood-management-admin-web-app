@@ -42,7 +42,12 @@ import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import HouseMapPanel from "@components/admin/HouseMapPanel";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
-import { usePermission } from "@store/authStore";
+import FilterBar from "@components/admin/FilterBar";
+import {
+    useLockedNeighborhoodId,
+    useLockedWardCode,
+    usePermission,
+} from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     formatFullAddress,
@@ -107,6 +112,14 @@ const HouseListContent: React.FC = () => {
     const canBulkAssignNeighborhood = usePermission("houses.update");
     const canBulkVerify = usePermission("houses.verify");
     const canBulkDelete = usePermission("houses.delete");
+    // To truong/To pho khoa cung vao 1 to dan pho, hoac Bi thu/Can bo UBND/
+    // Cong an khu vuc khoa cung vao 1 Phuong/Xa, thi chi bao gio thay du lieu
+    // cua dung pham vi do (backend da tu loc) - bo loc tuong ung la vo nghia,
+    // an di thay vi de nguoi dung tuong minh chon duoc pham vi khac. Bo loc
+    // tinh/thanh pho cung an theo CA HAI truong hop (ward hoac neighborhood
+    // khoa cung deu ke theo 1 tinh/thanh pho co dinh duy nhat).
+    const lockedNeighborhoodId = useLockedNeighborhoodId();
+    const lockedWardCode = useLockedWardCode();
 
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState<HouseStatus | "">("");
@@ -341,27 +354,29 @@ const HouseListContent: React.FC = () => {
 
             {/* <HouseMapPanel /> */}
 
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, search, status, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm"
-                    placeholder="Tìm theo mã nhà, địa chỉ..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, status, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo mã nhà, địa chỉ..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={status || ALL_STATUSES}
                     onValueChange={v =>
                         setStatus(v === ALL_STATUSES ? "" : (v as HouseStatus))
                     }
                 >
-                    <SelectTrigger className="max-w-xs">
+                    <SelectTrigger>
                         <SelectValue placeholder="Lọc theo trạng thái" />
                     </SelectTrigger>
                     <SelectContent>
@@ -380,74 +395,80 @@ const HouseListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-                <Select
-                    value={provinceCode ? String(provinceCode) : ALL_STATUSES}
-                    onValueChange={v =>
-                        setProvinceCode(v === ALL_STATUSES ? "" : Number(v))
-                    }
-                >
-                    <SelectTrigger className="max-w-xs">
-                        <SelectValue placeholder="Lọc theo tỉnh/thành phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_STATUSES}>
-                            Tất cả tỉnh/thành phố
-                        </SelectItem>
-                        {provinces.map(p => (
-                            <SelectItem key={p.code} value={String(p.code)}>
-                                {p.name}
+                {!lockedWardCode && !lockedNeighborhoodId && (
+                    <Select
+                        value={provinceCode ? String(provinceCode) : ALL_STATUSES}
+                        onValueChange={v =>
+                            setProvinceCode(v === ALL_STATUSES ? "" : Number(v))
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Lọc theo tỉnh/thành phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_STATUSES}>
+                                Tất cả tỉnh/thành phố
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Select
-                    value={wardCode ? String(wardCode) : ALL_STATUSES}
-                    onValueChange={v =>
-                        setWardCode(v === ALL_STATUSES ? "" : Number(v))
-                    }
-                    disabled={!provinceCode}
-                >
-                    <SelectTrigger className="max-w-xs">
-                        <SelectValue
-                            placeholder={
-                                provinceCode
-                                    ? "Lọc theo phường/xã"
-                                    : "Chọn tỉnh/thành phố trước"
-                            }
-                        />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_STATUSES}>
-                            Tất cả phường/xã
-                        </SelectItem>
-                        {wards.map(w => (
-                            <SelectItem key={w.code} value={String(w.code)}>
-                                {w.name}
+                            {provinces.map(p => (
+                                <SelectItem key={p.code} value={String(p.code)}>
+                                    {p.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+                {!lockedWardCode && (
+                    <Select
+                        value={wardCode ? String(wardCode) : ALL_STATUSES}
+                        onValueChange={v =>
+                            setWardCode(v === ALL_STATUSES ? "" : Number(v))
+                        }
+                        disabled={!provinceCode}
+                    >
+                        <SelectTrigger>
+                            <SelectValue
+                                placeholder={
+                                    provinceCode
+                                        ? "Lọc theo phường/xã"
+                                        : "Chọn tỉnh/thành phố trước"
+                                }
+                            />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_STATUSES}>
+                                Tất cả phường/xã
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Select
-                    value={neighborhoodId || ALL_NEIGHBORHOODS}
-                    onValueChange={v =>
-                        setNeighborhoodId(v === ALL_NEIGHBORHOODS ? "" : v)
-                    }
-                >
-                    <SelectTrigger className="max-w-xs">
-                        <SelectValue placeholder="Lọc theo tổ dân phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_NEIGHBORHOODS}>
-                            Tất cả tổ dân phố
-                        </SelectItem>
-                        {neighborhoods.map(n => (
-                            <SelectItem key={n._id} value={n._id}>
-                                {n.name}
+                            {wards.map(w => (
+                                <SelectItem key={w.code} value={String(w.code)}>
+                                    {w.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+                {!lockedNeighborhoodId && (
+                    <Select
+                        value={neighborhoodId || ALL_NEIGHBORHOODS}
+                        onValueChange={v =>
+                            setNeighborhoodId(v === ALL_NEIGHBORHOODS ? "" : v)
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Lọc theo tổ dân phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_NEIGHBORHOODS}>
+                                Tất cả tổ dân phố
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+                            {neighborhoods.map(n => (
+                                <SelectItem key={n._id} value={n._id}>
+                                    {n.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </FilterBar>
 
             {selectedIds.length > 0 &&
                 (canBulkAssignNeighborhood || canBulkVerify || canBulkDelete) && (

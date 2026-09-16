@@ -48,7 +48,6 @@ import {
     ModulePermissionGroup,
     NeighborhoodCollaboratorScope,
     NhomPhanAnh,
-    RequestType,
     RoleRecord,
     ScopeAssignmentMechanism,
 } from "@dts";
@@ -67,7 +66,6 @@ import {
     fetchRoles,
     updateRole,
 } from "@service/roleApi";
-import { fetchRequestTypeDefinitions } from "@service/requestTypeApi";
 import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 
 const RoleListPage: React.FC = () => (
@@ -85,8 +83,6 @@ type FormState = {
     permissions: string[];
     // null = khong gioi han (xem tat ca nhom phan anh) - mac dinh cho den khi admin chot.
     allowedComplaintCategories: NhomPhanAnh[] | null;
-    // null = khong gioi han (gui duoc tat ca loai yeu cau) - cung quy uoc.
-    allowedRequestTypes: RequestType[] | null;
     // null = khong gioi han (giu nguyen bo so lieu dashboard co dinh theo
     // audience nhu truoc day) - cung quy uoc, danh muc CO DINH nen khong can
     // fetch tu API (xem DASHBOARD_METRIC_LABEL).
@@ -96,10 +92,6 @@ type FormState = {
     // tài khoản" (mac dinh an toan, xem Role.ts o backend).
     allowedCreatableRoles: string[];
     scopeType: AccessScopeTier;
-    // "1 nguoi" (gia tri 1) hoac "khong gioi han" (null) - khong cho nhap so
-    // tuy y, xem ghi chu tai UI (chua co quy uoc UI/UX cho gia tri > 1).
-    maxActivePerScope: number | null;
-    maxActiveScopesPerUser: number | null;
     subScopeKinds: NeighborhoodCollaboratorScope[];
 };
 
@@ -135,12 +127,9 @@ const EMPTY_FORM: FormState = {
     sortOrder: 0,
     permissions: [],
     allowedComplaintCategories: null,
-    allowedRequestTypes: null,
     dashboardMetrics: null,
     allowedCreatableRoles: [],
     scopeType: "ALL",
-    maxActivePerScope: null,
-    maxActiveScopesPerUser: null,
     subScopeKinds: [],
 };
 
@@ -151,9 +140,6 @@ const RoleListContent: React.FC = () => {
     const canManagePermissions = usePermission("roles.manage");
     const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
-    const [requestTypeOptions, setRequestTypeOptions] = useState<
-        Array<{ key: RequestType; name: string }>
-    >([]);
     const [complaintCategoryOptions, setComplaintCategoryOptions] = useState<
         Array<{ key: NhomPhanAnh; name: string }>
     >(
@@ -179,20 +165,13 @@ const RoleListContent: React.FC = () => {
         Promise.all([
             fetchRoles({ page: targetPage, limit: size }),
             fetchRolePermissionRegistry(),
-            fetchRequestTypeDefinitions({ active: true, limit: 200 }),
             fetchComplaintTypeDefinitions({ active: true, limit: 200 }),
         ])
-            .then(([roleList, permissionRegistry, customTypes, complaintTypes]) => {
+            .then(([roleList, permissionRegistry, complaintTypes]) => {
                 setRoles(roleList.items);
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
-                setRequestTypeOptions(
-                    customTypes.items.map(type => ({
-                        key: type.key,
-                        name: type.name,
-                    })),
-                );
                 setComplaintCategoryOptions(
                     complaintTypes.items.map(type => ({
                         key: type.key,
@@ -224,12 +203,9 @@ const RoleListContent: React.FC = () => {
             sortOrder: role.sortOrder,
             permissions: role.permissions,
             allowedComplaintCategories: role.allowedComplaintCategories ?? null,
-            allowedRequestTypes: role.allowedRequestTypes ?? null,
             dashboardMetrics: role.dashboardMetrics ?? null,
             allowedCreatableRoles: role.allowedCreatableRoles ?? [],
             scopeType: role.scopeType,
-            maxActivePerScope: role.maxActivePerScope ?? null,
-            maxActiveScopesPerUser: role.maxActiveScopesPerUser ?? null,
             subScopeKinds: role.subScopeKinds ?? [],
         });
         setSheetOpen(true);
@@ -270,25 +246,6 @@ const RoleListContent: React.FC = () => {
                 allowedComplaintCategories: current.includes(category)
                     ? current.filter(c => c !== category)
                     : [...current, category],
-            };
-        });
-    };
-
-    const toggleRequestTypeRestriction = (restricted: boolean) => {
-        setForm(prev => ({
-            ...prev,
-            allowedRequestTypes: restricted ? [] : null,
-        }));
-    };
-
-    const toggleRequestType = (type: RequestType) => {
-        setForm(prev => {
-            const current = prev.allowedRequestTypes || [];
-            return {
-                ...prev,
-                allowedRequestTypes: current.includes(type)
-                    ? current.filter(t => t !== type)
-                    : [...current, type],
             };
         });
     };
@@ -351,10 +308,6 @@ const RoleListContent: React.FC = () => {
         const scopeFields = {
             scopeType: form.scopeType,
             scopeMechanism: mechanism,
-            maxActivePerScope:
-                mechanism === "ASSIGNED" ? form.maxActivePerScope : null,
-            maxActiveScopesPerUser:
-                mechanism === "ASSIGNED" ? form.maxActiveScopesPerUser : null,
             subScopeKinds:
                 form.scopeType === "NEIGHBORHOOD"
                     ? form.subScopeKinds
@@ -372,7 +325,6 @@ const RoleListContent: React.FC = () => {
                         ? { permissions: form.permissions }
                         : {}),
                     allowedComplaintCategories: form.allowedComplaintCategories,
-                    allowedRequestTypes: form.allowedRequestTypes,
                     dashboardMetrics: form.dashboardMetrics,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
@@ -389,7 +341,6 @@ const RoleListContent: React.FC = () => {
                     permissions: form.permissions,
                     allowedComplaintCategories:
                         form.allowedComplaintCategories ?? undefined,
-                    allowedRequestTypes: form.allowedRequestTypes ?? undefined,
                     dashboardMetrics: form.dashboardMetrics ?? undefined,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
@@ -593,9 +544,7 @@ const RoleListContent: React.FC = () => {
                                 Phạm vi dữ liệu quản lý
                             </h3>
                             <p className="mb-3 text-xs text-text_2">
-                                Vai trò này quản lý dữ liệu trong phạm vi nào,
-                                và (nếu là phạm vi được gán) quy tắc số người/
-                                số phạm vi được active cùng lúc.
+                                Vai trò này quản lý dữ liệu trong phạm vi nào.
                             </p>
                             <div className="space-y-1.5">
                                 <Label>Phạm vi</Label>
@@ -607,11 +556,9 @@ const RoleListContent: React.FC = () => {
                                         setForm(prev => ({
                                             ...prev,
                                             scopeType,
-                                            // Reset cac truong con - tranh
-                                            // gia tri "con sot" tu lua chon
-                                            // pham vi truoc do.
-                                            maxActivePerScope: null,
-                                            maxActiveScopesPerUser: null,
+                                            // Reset truong con - tranh gia tri
+                                            // "con sot" tu lua chon pham vi
+                                            // truoc do.
                                             subScopeKinds: [],
                                         }));
                                     }}
@@ -632,85 +579,6 @@ const RoleListContent: React.FC = () => {
                                     </SelectContent>
                                 </Select>
                             </div>
-
-                            {deriveScopeMechanism(form.scopeType) ===
-                                "ASSIGNED" && (
-                                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="space-y-1.5">
-                                        <Label>
-                                            Số người được active tại 1 phạm vi
-                                        </Label>
-                                        <Select
-                                            value={
-                                                form.maxActivePerScope === 1
-                                                    ? "ONE"
-                                                    : "UNLIMITED"
-                                            }
-                                            disabled={!canEditCurrentRole}
-                                            onValueChange={value =>
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    maxActivePerScope:
-                                                        value === "ONE"
-                                                            ? 1
-                                                            : null,
-                                                }))
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="ONE">
-                                                    Duy nhất 1 người (VD: Bí
-                                                    thư, Tổ trưởng)
-                                                </SelectItem>
-                                                <SelectItem value="UNLIMITED">
-                                                    Không giới hạn (VD: PCO,
-                                                    Tổ phó)
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label>
-                                            Số phạm vi 1 người được active
-                                            cùng lúc
-                                        </Label>
-                                        <Select
-                                            value={
-                                                form.maxActiveScopesPerUser ===
-                                                1
-                                                    ? "ONE"
-                                                    : "UNLIMITED"
-                                            }
-                                            disabled={!canEditCurrentRole}
-                                            onValueChange={value =>
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    maxActiveScopesPerUser:
-                                                        value === "ONE"
-                                                            ? 1
-                                                            : null,
-                                                }))
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="ONE">
-                                                    Duy nhất 1 phạm vi (VD: Tổ
-                                                    phó)
-                                                </SelectItem>
-                                                <SelectItem value="UNLIMITED">
-                                                    Không giới hạn
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            )}
 
                             {form.scopeType === "NEIGHBORHOOD" && (
                                 <div className="mt-4">
@@ -858,48 +726,6 @@ const RoleListContent: React.FC = () => {
                                             />
                                             <Label className="text-sm font-normal">
                                                 {category.name}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-5 border-t border-divider_01 pt-4">
-                            <h3 className="mb-3 text-sm font-semibold">
-                                Phạm vi gửi yêu cầu công việc
-                            </h3>
-                            <div className="mb-2 flex items-center gap-2">
-                                <Checkbox
-                                    checked={form.allowedRequestTypes === null}
-                                    disabled={!canEditCurrentRole}
-                                    onCheckedChange={checked =>
-                                        toggleRequestTypeRestriction(!checked)
-                                    }
-                                />
-                                <Label>
-                                    Không giới hạn (gửi được tất cả loại yêu
-                                    cầu)
-                                </Label>
-                            </div>
-                            {form.allowedRequestTypes !== null && (
-                                <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {requestTypeOptions.map(type => (
-                                        <div
-                                            key={type.key}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Checkbox
-                                                checked={(
-                                                    form.allowedRequestTypes || []
-                                                ).includes(type.key)}
-                                                disabled={!canEditCurrentRole}
-                                                onCheckedChange={() =>
-                                                    toggleRequestType(type.key)
-                                                }
-                                            />
-                                            <Label className="text-sm font-normal">
-                                                {type.name}
                                             </Label>
                                         </div>
                                     ))}

@@ -45,6 +45,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE, resolveAssetUrl } from "@constants/common";
 import { AppError, FileAsset, FileAssetCategory, RoleRecord } from "@dts";
 import {
@@ -312,7 +313,7 @@ const FileListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <FilterBar>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -320,29 +321,28 @@ const FileListContent: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
-
-            <Select
-                value={category || ALL_CATEGORIES}
-                onValueChange={handleCategoryChange}
-            >
-                <SelectTrigger className="mb-4 max-w-xs">
-                    <SelectValue placeholder="Lọc theo loại tệp" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value={ALL_CATEGORIES}>Tất cả loại tệp</SelectItem>
-                    {(
-                        Object.entries(FILE_ASSET_CATEGORY_LABEL) as [
-                            FileAssetCategory,
-                            string,
-                        ][]
-                    ).map(([key, label]) => (
-                        <SelectItem key={key} value={key}>
-                            {label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+                <Select
+                    value={category || ALL_CATEGORIES}
+                    onValueChange={handleCategoryChange}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Lọc theo loại tệp" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={ALL_CATEGORIES}>Tất cả loại tệp</SelectItem>
+                        {(
+                            Object.entries(FILE_ASSET_CATEGORY_LABEL) as [
+                                FileAssetCategory,
+                                string,
+                            ][]
+                        ).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

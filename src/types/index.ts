@@ -46,6 +46,9 @@ export type User = {
     phone?: string;
     email?: string;
     address?: string;
+    // Da duoc mask boi backend (chi giu 4 so cuoi) - xem sanitizeUser o
+    // backend, khong bao gio tra ve gia tri that qua API.
+    idNumber?: string;
     roles: Role[];
     primaryRole: Role;
     permissions: string[];
@@ -151,8 +154,7 @@ export type RoleRecord = {
     description?: string;
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
-    allowedRequestTypes?: RequestType[];
-    // Cung quy uoc voi 2 truong tren: undefined = khong gioi han (giu nguyen
+    // Cung quy uoc voi truong tren: undefined = khong gioi han (giu nguyen
     // bo so lieu dashboard co dinh theo audience nhu truoc day). Khac 2 truong
     // tren: danh muc CO DINH (DASHBOARD_METRIC_KEYS), khong phai danh muc quan
     // tri duoc rieng.
@@ -163,15 +165,8 @@ export type RoleRecord = {
     allowedCreatableRoles: string[];
     scopeType: AccessScopeTier;
     scopeMechanism?: ScopeAssignmentMechanism;
-    // Chi co y nghia khi scopeMechanism="ASSIGNED". 1 = chi 1 nguoi duoc active
-    // tai 1 pham vi cung luc (vd Bi thu/To truong). null/undefined = khong
-    // gioi han so nguoi active tai cung 1 pham vi (vd PCO/To pho/Cong tac vien).
-    maxActivePerScope?: number | null;
-    // Truc doc lap: gioi han so pham vi MA MOT NGUOI duoc active cung luc voi
-    // vai tro nay (vd To pho: 1 nguoi chi duoc active o DUY NHAT 1 To dan pho).
-    maxActiveScopesPerUser?: number | null;
-    // Chi co y nghia voi vai tro dang "Cong tac vien" (scopeType=NEIGHBORHOOD,
-    // maxActivePerScope=null): cac kieu pham vi con duoc phep chon khi gan.
+    // Chi co y nghia voi vai tro dang "Cong tac vien" (scopeType=NEIGHBORHOOD):
+    // cac kieu pham vi con duoc phep chon khi gan.
     subScopeKinds?: NeighborhoodCollaboratorScope[];
     system: boolean;
     active: boolean;
@@ -820,6 +815,8 @@ export type ComplaintTypeDefinition = {
     // Thu tu mang the hien uu tien dieu huong nguoi nhan (xem
     // resolveComplaintTypeRecipientIds trong backend complaintService.ts).
     allowedReceiverRoles: string[];
+    // Vai tro duoc phep gui danh muc nay - khong co y nghia thu tu.
+    allowedSenderRoles?: string[];
     isBuiltIn?: boolean;
     active?: boolean;
     wardCode?: number;

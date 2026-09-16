@@ -6,7 +6,6 @@ import {
     NeighborhoodCollaboratorScope,
     NhomPhanAnh,
     PaginatedData,
-    RequestType,
     RoleRecord,
     ScopeAssignmentMechanism,
 } from "@dts";
@@ -17,8 +16,6 @@ import { request } from "./request";
 interface RoleScopeFields {
     scopeType?: AccessScopeTier;
     scopeMechanism?: ScopeAssignmentMechanism;
-    maxActivePerScope?: number | null;
-    maxActiveScopesPerUser?: number | null;
     subScopeKinds?: NeighborhoodCollaboratorScope[];
 }
 
@@ -43,7 +40,6 @@ export interface CreateRoleParams extends RoleScopeFields {
     description?: string;
     permissions: string[];
     allowedComplaintCategories?: NhomPhanAnh[];
-    allowedRequestTypes?: RequestType[];
     dashboardMetrics?: DashboardMetricKey[];
     allowedCreatableRoles?: string[];
     active?: boolean;
@@ -58,7 +54,6 @@ export interface UpdateRoleParams extends RoleScopeFields {
     description?: string;
     permissions?: string[];
     allowedComplaintCategories?: NhomPhanAnh[] | null;
-    allowedRequestTypes?: RequestType[] | null;
     dashboardMetrics?: DashboardMetricKey[] | null;
     allowedCreatableRoles?: string[];
     active?: boolean;

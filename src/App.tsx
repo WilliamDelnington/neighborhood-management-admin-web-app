@@ -194,6 +194,10 @@ const DigitalReadinessPage = React.lazy(
     () => import("@pages/DigitalReadiness/DigitalReadinessPage"),
 );
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
+const UserDetailPage = React.lazy(() => import("@pages/Users/UserDetailPage"));
+const UserHistoryPage = React.lazy(
+    () => import("@pages/Users/UserHistoryPage"),
+);
 const CreateHouseOwnerPage = React.lazy(
     () => import("@pages/Users/CreateHouseOwnerPage"),
 );
@@ -520,6 +524,14 @@ const App: React.FC = () => {
                             element={<MiniAppFeaturesPage />}
                         />
                         <Route path="/users" element={<UserListPage />} />
+                        <Route
+                            path="/users/:id"
+                            element={<UserDetailPage />}
+                        />
+                        <Route
+                            path="/users/:id/history"
+                            element={<UserHistoryPage />}
+                        />
                         <Route
                             path="/change-requests"
                             element={<ChangeRequestListPage />}

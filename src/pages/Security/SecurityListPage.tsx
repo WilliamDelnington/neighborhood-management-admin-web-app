@@ -38,6 +38,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import PageHeader from "@components/admin/PageHeader";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import RequestSubSection, {
@@ -281,7 +282,7 @@ const SecurityListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
+            <FilterBar>
                 <PageSizeSelect
                     value={pageSize}
                     onChange={size => {
@@ -289,9 +290,6 @@ const SecurityListContent: React.FC = () => {
                         load(1, size);
                     }}
                 />
-            </div>
-
-            <div className="mb-4 grid max-w-xl grid-cols-2 gap-3">
                 <Select
                     value={level || LEVEL_ALL}
                     onValueChange={v =>
@@ -344,7 +342,7 @@ const SecurityListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

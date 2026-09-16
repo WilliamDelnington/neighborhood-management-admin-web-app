@@ -39,7 +39,8 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
-import { usePermission } from "@store/authStore";
+import FilterBar from "@components/admin/FilterBar";
+import { useLockedNeighborhoodId, usePermission } from "@store/authStore";
 import { GIOI_TINH_LABEL, LOAI_CU_TRU_LABEL } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Citizen, Neighborhood } from "@dts";
@@ -117,6 +118,10 @@ const CitizenListContent: React.FC = () => {
     // /api/import/citizens), khac voi "citizens.create" - phai kiem tra rieng
     // giong HouseListPage.
     const canImport = usePermission("imports.manage");
+    // To truong/To pho khoa cung vao 1 to dan pho thi bo loc "Tổ dân phố" la
+    // vo nghia (backend da tu loc theo dung to do) - xem ghi chu o
+    // HouseListPage.tsx.
+    const lockedNeighborhoodId = useLockedNeighborhoodId();
 
     const [search, setSearch] = useState("");
     const [neighborhoodId, setNeighborhoodId] = useState("");
@@ -250,41 +255,45 @@ const CitizenListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, search, size);
-                    }}
-                />
-                <Input
-                    className="max-w-sm"
-                    placeholder="Tìm theo họ tên, CCCD, SĐT, chủ hộ, mã hộ, địa chỉ..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
-                <Select
-                    value={neighborhoodId || ALL_NEIGHBORHOOD}
-                    onValueChange={v =>
-                        setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
-                    }
-                >
-                    <SelectTrigger className="max-w-xs">
-                        <SelectValue placeholder="Tất cả tổ dân phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_NEIGHBORHOOD}>
-                            Tất cả tổ dân phố
-                        </SelectItem>
-                        {neighborhoods.map(n => (
-                            <SelectItem key={n._id} value={n._id}>
-                                {n.name}
+            <FilterBar>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, search, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo họ tên, CCCD, SĐT, chủ hộ, mã hộ, địa chỉ..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+                {!lockedNeighborhoodId && (
+                    <Select
+                        value={neighborhoodId || ALL_NEIGHBORHOOD}
+                        onValueChange={v =>
+                            setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Tất cả tổ dân phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_NEIGHBORHOOD}>
+                                Tất cả tổ dân phố
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+                            {neighborhoods.map(n => (
+                                <SelectItem key={n._id} value={n._id}>
+                                    {n.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </FilterBar>
 
             <div className="rounded-lg border border-divider_01 bg-ui_bg shadow-sm">
                 {loading && <LoadingState />}

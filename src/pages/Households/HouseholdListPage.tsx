@@ -32,6 +32,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import HousePicker from "@components/admin/HousePicker";
 import {
     HOUSEHOLD_STATE_LIST,
@@ -42,7 +43,7 @@ import {
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { cn } from "@lib/utils";
-import { usePermission } from "@store/authStore";
+import { useLockedNeighborhoodId, usePermission } from "@store/authStore";
 import { AppError, Household, Neighborhood, VerificationStatus } from "@dts";
 import { createHousehold, fetchHouseholds } from "@service/householdApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
@@ -76,6 +77,10 @@ const HouseholdListContent: React.FC = () => {
     // /api/import/households), giong CitizenListPage/HouseListPage.
     const canImport = usePermission("imports.manage");
     const [importVisible, setImportVisible] = useState(false);
+    // To truong/To pho khoa cung vao 1 to dan pho thi bo loc "Tổ dân phố" la
+    // vo nghia (backend da tu loc theo dung to do) - xem ghi chu o
+    // HouseListPage.tsx.
+    const lockedNeighborhoodId = useLockedNeighborhoodId();
 
     const canCreate = usePermission("households.create");
     const [createVisible, setCreateVisible] = useState(false);
@@ -195,7 +200,7 @@ const HouseholdListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <FilterBar>
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -254,27 +259,29 @@ const HouseholdListContent: React.FC = () => {
                         </SelectItem>
                     </SelectContent>
                 </Select>
-                <Select
-                    value={neighborhoodId || ALL_NEIGHBORHOOD}
-                    onValueChange={v =>
-                        setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Tất cả tổ dân phố" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL_NEIGHBORHOOD}>
-                            Tất cả tổ dân phố
-                        </SelectItem>
-                        {neighborhoods.map(n => (
-                            <SelectItem key={n._id} value={n._id}>
-                                {n.name}
+                {!lockedNeighborhoodId && (
+                    <Select
+                        value={neighborhoodId || ALL_NEIGHBORHOOD}
+                        onValueChange={v =>
+                            setNeighborhoodId(v === ALL_NEIGHBORHOOD ? "" : v)
+                        }
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Tất cả tổ dân phố" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL_NEIGHBORHOOD}>
+                                Tất cả tổ dân phố
                             </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+                            {neighborhoods.map(n => (
+                                <SelectItem key={n._id} value={n._id}>
+                                    {n.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </FilterBar>
 
             <div className="mb-4 flex flex-wrap gap-2">
                 {HOUSEHOLD_STATE_LIST.map(s => {
@@ -317,8 +324,9 @@ const HouseholdListContent: React.FC = () => {
                                 <TableHead>Cụm dân cư</TableHead>
                                 <TableHead>Nhà số</TableHead>
                                 <TableHead>Hình thức sở hữu</TableHead>
-                                <TableHead>Số nhân khẩu</TableHead>
-                                <TableHead>Trạng thái</TableHead>
+                                <TableHead className="whitespace-nowrap">
+                                    Trạng thái
+                                </TableHead>
                                 <TableHead>Trạng thái đặc biệt</TableHead>
                                 <TableHead className="text-right">
                                     Thao tác
@@ -344,8 +352,7 @@ const HouseholdListContent: React.FC = () => {
                                     <TableCell>
                                         {LOAI_SO_HUU_LABEL[h.ownershipType]}
                                     </TableCell>
-                                    <TableCell>{h.memberCount}</TableCell>
-                                    <TableCell>
+                                    <TableCell className="whitespace-nowrap">
                                         <Badge tone={VERIFICATION_STATUS_TONE[h.status]}>
                                             {VERIFICATION_STATUS_LABEL[h.status]}
                                         </Badge>

@@ -28,6 +28,7 @@ import NotificationBell from "./NotificationBell";
 import AppBrand from "./AppBrand";
 import ProfileDialog from "./ProfileDialog";
 import ChangePasswordDialog from "./ChangePasswordDialog";
+import AiChatWidget from "./AiChatWidget";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -194,14 +195,14 @@ const AdminLayout: React.FC = () => {
                     sidebarOpen ? "translate-x-0" : "-translate-x-full",
                 )}
             >
-                <div className="flex h-14 items-center justify-between border-b border-divider_01 px-4">
+                <div className="relative flex h-16 items-center justify-center border-b border-divider_01 px-4">
                     <AppBrand
-                        imgClassName="h-8 max-w-[160px] object-contain"
+                        imgClassName="h-11 max-w-[180px] object-contain"
                         textClassName="text-base font-semibold text-main"
                     />
                     <button
                         type="button"
-                        className="rounded-md p-1 text-text_2 hover:bg-ng_10 lg:hidden"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-md p-1 text-text_2 hover:bg-ng_10 lg:hidden"
                         onClick={() => setSidebarOpen(false)}
                     >
                         <X className="h-5 w-5" />
@@ -378,6 +379,7 @@ const AdminLayout: React.FC = () => {
                 open={changePasswordOpen}
                 onOpenChange={setChangePasswordOpen}
             />
+            <AiChatWidget />
         </div>
     );
 };

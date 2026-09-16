@@ -20,6 +20,11 @@ export const fetchComplaints = (params?: {
     search?: string;
     relatedAssetId?: string;
     neighborhoodId?: string;
+    // Chi co y nghia voi To truong/To pho - "received" (mac dinh, khong can
+    // truyen) = phan anh cua cu dan trong To, "sent" = de xuat chinh ho da
+    // gui len Phuong. Vai tro khac bo qua tham so nay (xem listComplaints o
+    // backend).
+    view?: "sent";
 }): Promise<PaginatedData<Complaint>> =>
     request<PaginatedData<Complaint>>("GET", API.COMPLAINTS, {
         page: params?.page || 1,
@@ -29,10 +34,26 @@ export const fetchComplaints = (params?: {
         search: params?.search,
         relatedAssetId: params?.relatedAssetId,
         neighborhoodId: params?.neighborhoodId,
+        view: params?.view,
     });
 
 export const fetchComplaintDetail = (id: string): Promise<ComplaintDetail> =>
     request<ComplaintDetail>("GET", `${API.COMPLAINTS}/${id}`);
+
+// Gui phan anh moi tu admin-web-app - truoc day chi thuc hien duoc tu ung
+// dung Zalo/resident-web-app (cu dan); nay mo them cho To truong/To pho gui
+// de xuat/phan anh len Phuong (xem allowedSenderRoles o backend).
+export interface CreateComplaintParams {
+    category: string;
+    title: string;
+    content: string;
+    houseId?: string;
+    area?: string;
+}
+
+export const createComplaint = (
+    input: CreateComplaintParams,
+): Promise<Complaint> => request<Complaint>("POST", API.COMPLAINTS, input);
 
 export const deleteComplaint = (id: string): Promise<null> =>
     request<null>("DELETE", `${API.COMPLAINTS}/${id}`);

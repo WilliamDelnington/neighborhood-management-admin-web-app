@@ -32,6 +32,7 @@ import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStat
 import Pagination from "@components/admin/Pagination";
 import PageHeader from "@components/admin/PageHeader";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
+import FilterBar from "@components/admin/FilterBar";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Neighborhood, NeighborhoodStatus, Street, User } from "@dts";
@@ -160,7 +161,7 @@ const NeighborhoodListContent: React.FC = () => {
                 }
             />
 
-            <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <FilterBar>
                 <div className="flex items-center gap-2">
                     <PageSizeSelect
                         value={pageSize}
@@ -217,7 +218,7 @@ const NeighborhoodListContent: React.FC = () => {
                         ))}
                     </SelectContent>
                 </Select>
-            </div>
+            </FilterBar>
 
             {total > 0 && (
                 <div className="mb-2 text-xs text-text_2">
