@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
-import { usePermission } from "@store/authStore";
+import { useAuthStore, usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Input } from "@components/ui/input";
@@ -73,6 +73,7 @@ const ComplaintDetailContent: React.FC = () => {
     const canAssign = usePermission("complaints.assign");
     const canDelete = usePermission("complaints.delete");
     const canUpdateStatus = usePermission("complaints.update_status");
+    const currentUserId = useAuthStore(state => state.user?.id);
 
     const [complaint, setComplaint] = useState<Complaint | null>(null);
     const [timeline, setTimeline] = useState<ComplaintTimelineEntry[]>([]);
@@ -332,6 +333,15 @@ const ComplaintDetailContent: React.FC = () => {
         complaint && typeof complaint.createdByUserId === "object"
             ? complaint.createdByUserId
             : undefined;
+    const creatorId = complaint
+        ? typeof complaint.createdByUserId === "object"
+            ? complaint.createdByUserId._id
+            : complaint.createdByUserId
+        : undefined;
+    // To truong/To pho gui de xuat len Phuong khong duoc tu "Tiep nhan"/phan
+    // cong/doi trang thai chinh de xuat cua ho - xem assertNotComplaintCreator
+    // o backend (nguon xac thuc that su, day chi la an bot UI cho gon).
+    const isOwnComplaint = !!currentUserId && currentUserId === creatorId;
     const targetHouse =
         complaint && typeof complaint.targetHouseId === "object"
             ? complaint.targetHouseId
@@ -379,7 +389,7 @@ const ComplaintDetailContent: React.FC = () => {
                                         Chưa xác định tổ dân phố
                                     </Badge>
                                 )}
-                                {canUpdateStatus && (
+                                {canUpdateStatus && !isOwnComplaint && (
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -478,7 +488,9 @@ const ComplaintDetailContent: React.FC = () => {
                         canManage={false}
                     />
 
-                    {canAssign && complaint.canReceiveOrChooseAssignee && (
+                    {canAssign &&
+                        !isOwnComplaint &&
+                        complaint.canReceiveOrChooseAssignee && (
                         <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                             <h2 className="mb-3 text-base font-semibold">
                                 Tiếp nhận phản ánh
@@ -516,7 +528,7 @@ const ComplaintDetailContent: React.FC = () => {
                         </div>
                     )}
 
-                    {canAssign && (
+                    {canAssign && !isOwnComplaint && (
                         <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                             <h2 className="mb-3 text-base font-semibold">
                                 Phân công xử lý
