@@ -7,7 +7,7 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
-import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
+import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import { resolveAssetUrl } from "@constants/common";
 import { MODULES, ModuleItem } from "@constants/modules";
 import { AppError } from "@dts";
@@ -31,60 +31,6 @@ const SECTION_DESCRIPTIONS_KEY = "section_descriptions";
 const APP_LOGO_KEY = "app_logo_url";
 const APP_TAB_TITLE_KEY = "app_tab_title";
 const APP_FAVICON_KEY = "app_favicon_url";
-// Cac key co man chinh sua rieng (Logo / Tab trinh duyet / section_descriptions
-// o duoi) - an khoi danh sach cau hinh chung de tranh hien trung lap.
-const HIDDEN_SETTING_KEYS = new Set([
-    SECTION_DESCRIPTIONS_KEY,
-    APP_LOGO_KEY,
-    APP_TAB_TITLE_KEY,
-    APP_FAVICON_KEY,
-]);
-
-type EditableSetting = {
-    key: string;
-    isComplex: boolean;
-    text: string;
-    originalType: "string" | "number" | "boolean" | "object";
-};
-
-const buildEditable = (key: string, value: unknown): EditableSetting => {
-    if (value !== null && typeof value === "object") {
-        return {
-            key,
-            isComplex: true,
-            text: JSON.stringify(value, null, 2),
-            originalType: "object",
-        };
-    }
-    if (typeof value === "number") {
-        return {
-            key,
-            isComplex: false,
-            text: String(value),
-            originalType: "number",
-        };
-    }
-    if (typeof value === "boolean") {
-        return {
-            key,
-            isComplex: false,
-            text: String(value),
-            originalType: "boolean",
-        };
-    }
-    return {
-        key,
-        isComplex: false,
-        text: value === undefined || value === null ? "" : String(value),
-        originalType: "string",
-    };
-};
-
-const coerceValue = (setting: EditableSetting): unknown => {
-    if (setting.originalType === "number") return Number(setting.text);
-    if (setting.originalType === "boolean") return setting.text === "true";
-    return setting.text;
-};
 
 const SettingsPage: React.FC = () => (
     <AdminGuard roles={["admin"]}>
@@ -93,18 +39,8 @@ const SettingsPage: React.FC = () => (
 );
 
 const SettingsContent: React.FC = () => {
-    const [settings, setSettings] = useState<Record<string, EditableSetting>>(
-        {},
-    );
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
-    const [savingKey, setSavingKey] = useState<string | null>(null);
-
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [newKey, setNewKey] = useState("");
-    const [newValue, setNewValue] = useState("");
-    const [newDescription, setNewDescription] = useState("");
-    const [addingNew, setAddingNew] = useState(false);
 
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -135,15 +71,6 @@ const SettingsContent: React.FC = () => {
         setError(false);
         fetchAllSettings()
             .then(data => {
-                const mapped: Record<string, EditableSetting> = {};
-                Object.entries(data || {}).forEach(([key, value]) => {
-                    // Cac key co man chinh sua rieng (xem HIDDEN_SETTING_KEYS)
-                    // - khong hien lai duoi dang JSON tho trong danh sach cau
-                    // hinh chung.
-                    if (HIDDEN_SETTING_KEYS.has(key)) return;
-                    mapped[key] = buildEditable(key, value);
-                });
-                setSettings(mapped);
                 const rawLogo = data?.[APP_LOGO_KEY];
                 setLogoUrl(typeof rawLogo === "string" ? rawLogo : null);
                 const rawFavicon = data?.[APP_FAVICON_KEY];
@@ -253,31 +180,6 @@ const SettingsContent: React.FC = () => {
         }
     };
 
-    const handleTextChange = (key: string, text: string) => {
-        setSettings(prev => ({ ...prev, [key]: { ...prev[key], text } }));
-    };
-
-    const handleSave = async (key: string) => {
-        const setting = settings[key];
-        if (!setting) return;
-        let value: unknown;
-        try {
-            value = coerceValue(setting);
-        } catch {
-            toast.error("Giá trị JSON không hợp lệ");
-            return;
-        }
-        try {
-            setSavingKey(key);
-            await upsertSetting(key, value);
-            toast.success("Đã lưu cấu hình");
-        } catch (err) {
-            toast.error((err as AppError).message || "Có lỗi xảy ra");
-        } finally {
-            setSavingKey(null);
-        }
-    };
-
     const handleSectionDescChange = (key: string, text: string) => {
         setSectionDescDrafts(prev => ({ ...prev, [key]: text }));
     };
@@ -323,45 +225,6 @@ const SettingsContent: React.FC = () => {
         }));
         saveSectionDescOverrides(module.key, next);
     };
-
-    const handleAddNew = async () => {
-        const key = newKey.trim();
-        if (!key) {
-            toast.error("Vui lòng nhập khóa cấu hình (key)");
-            return;
-        }
-        if (settings[key]?.isComplex) {
-            toast.error(
-                "Khóa này đang lưu dữ liệu dạng nâng cao, không thể sửa qua đây.",
-            );
-            return;
-        }
-        try {
-            setAddingNew(true);
-            await upsertSetting(
-                key,
-                newValue,
-                newDescription.trim() || undefined,
-            );
-            toast.success("Đã thêm cấu hình mới");
-            setShowAddForm(false);
-            setNewKey("");
-            setNewValue("");
-            setNewDescription("");
-            load();
-        } catch (err) {
-            toast.error((err as AppError).message || "Có lỗi xảy ra");
-        } finally {
-            setAddingNew(false);
-        }
-    };
-
-    // Cac key dang du lieu phuc tap (object/mang) khong hien thi de sua truc
-    // tiep o day nua - phan lon nguoi dung khong hieu cau truc JSON. Du lieu
-    // van con nguyen trong CSDL va van duoc cac app doc nhu binh thuong, chi
-    // la khong con man sua tho qua UI (can them man cau hinh rieng cho tung
-    // loai neu muon sua sau nay).
-    const entries = Object.values(settings).filter(s => !s.isComplex);
 
     return (
         <div>
@@ -587,95 +450,6 @@ const SettingsContent: React.FC = () => {
                             })}
                         </div>
                     </details>
-
-                    {entries.length === 0 && !showAddForm && (
-                        <EmptyState label="Chưa có cấu hình đơn giản nào." />
-                    )}
-
-                    {entries.map(setting => (
-                        <div
-                            key={setting.key}
-                            className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm"
-                        >
-                            <h2 className="mb-2 text-sm font-semibold">
-                                {setting.key}
-                            </h2>
-                            <Input
-                                value={setting.text}
-                                onChange={e =>
-                                    handleTextChange(setting.key, e.target.value)
-                                }
-                            />
-                            <div className="mt-2">
-                                <Button
-                                    size="sm"
-                                    loading={savingKey === setting.key}
-                                    onClick={() => handleSave(setting.key)}
-                                >
-                                    Lưu
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-
-                    {showAddForm ? (
-                        <div className="mb-3 rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
-                            <h2 className="mb-2 text-sm font-semibold">
-                                Thêm cấu hình mới
-                            </h2>
-                            <div className="mb-3">
-                                <Label>Khóa (key)</Label>
-                                <Input
-                                    className="mt-1"
-                                    placeholder="Ví dụ: hotline_ho_tro"
-                                    value={newKey}
-                                    onChange={e => setNewKey(e.target.value)}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <Label>Giá trị</Label>
-                                <Input
-                                    className="mt-1"
-                                    value={newValue}
-                                    onChange={e => setNewValue(e.target.value)}
-                                />
-                            </div>
-                            <div className="mb-3">
-                                <Label>Mô tả (nếu có)</Label>
-                                <Input
-                                    className="mt-1"
-                                    value={newDescription}
-                                    onChange={e =>
-                                        setNewDescription(e.target.value)
-                                    }
-                                />
-                            </div>
-                            <div className="mt-4 flex gap-2">
-                                <Button
-                                    variant="secondary"
-                                    className="w-full"
-                                    onClick={() => setShowAddForm(false)}
-                                >
-                                    Hủy
-                                </Button>
-                                <Button
-                                    className="w-full"
-                                    loading={addingNew}
-                                    onClick={handleAddNew}
-                                >
-                                    Thêm
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <Button
-                            variant="secondary"
-                            className="w-full"
-                            onClick={() => setShowAddForm(true)}
-                        >
-                            + Thêm cấu hình
-                        </Button>
-                    )}
                 </>
             )}
         </div>
