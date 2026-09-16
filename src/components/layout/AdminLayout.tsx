@@ -26,7 +26,6 @@ import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
 import AppBrand from "./AppBrand";
-import ProfileDialog from "./ProfileDialog";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import AiChatWidget from "./AiChatWidget";
 import {
@@ -70,7 +69,6 @@ const AdminLayout: React.FC = () => {
     const theme = useThemeStore(state => state.theme);
     const toggleTheme = useThemeStore(state => state.toggleTheme);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [profileOpen, setProfileOpen] = useState(false);
     const [changePasswordOpen, setChangePasswordOpen] = useState(false);
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
         loadExpandedGroups,
@@ -349,7 +347,7 @@ const AdminLayout: React.FC = () => {
                                     </span>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                                <DropdownMenuItem onClick={() => navigate("/profile")}>
                                     <User className="mr-2 h-4 w-4" />
                                     Hồ sơ của tôi
                                 </DropdownMenuItem>
@@ -374,7 +372,6 @@ const AdminLayout: React.FC = () => {
                 </main>
             </div>
 
-            <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
             <ChangePasswordDialog
                 open={changePasswordOpen}
                 onOpenChange={setChangePasswordOpen}

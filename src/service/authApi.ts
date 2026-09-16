@@ -1,6 +1,7 @@
 import { API } from "@constants/common";
-import { User } from "@dts";
+import { FileAsset, User } from "@dts";
 import { request } from "./request";
+import { UserManagementScopeEntry } from "./userApi";
 
 export interface LoginWithPhoneParams {
     phone: string;
@@ -32,3 +33,42 @@ export const setPassword = (
 
 export const logout = (): Promise<null> =>
     request<null>("POST", API.AUTH_LOGOUT);
+
+export interface UpdateMyProfileParams {
+    email?: string;
+    address?: string;
+    // idNumber KHONG nam trong CHANGE_REQUEST_EDITABLE_FIELDS.User (chi
+    // "displayName") nen duoc sua truc tiep o day - xem updateProfileSchema o
+    // backend. displayName KHONG duoc phep tu sua qua endpoint nay.
+    idNumber?: string;
+}
+
+export const updateMyProfile = (params: UpdateMyProfileParams): Promise<User> =>
+    request<User>("PATCH", API.AUTH_ME, params);
+
+/** Trang "Hồ sơ của tôi" (MyProfilePage.tsx) - tu tai anh dai dien cho chinh minh. */
+export const uploadMyAvatar = (file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<User>("POST", `${API.AUTH_ME}/avatar`, formData);
+};
+
+export const fetchMyAttachments = (): Promise<FileAsset[]> =>
+    request<FileAsset[]>("GET", `${API.AUTH_ME}/attachments`);
+
+export const uploadMyAttachment = (file: File): Promise<FileAsset> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<FileAsset>("POST", `${API.AUTH_ME}/attachments`, formData);
+};
+
+export const deleteMyAttachment = (fileId: string): Promise<null> =>
+    request<null>("DELETE", `${API.AUTH_ME}/attachments/${fileId}`);
+
+export const fetchMyManagementScope = (): Promise<{
+    scopes: UserManagementScopeEntry[];
+}> =>
+    request<{ scopes: UserManagementScopeEntry[] }>(
+        "GET",
+        `${API.AUTH_ME}/management-scope`,
+    );

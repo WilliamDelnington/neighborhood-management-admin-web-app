@@ -188,10 +188,12 @@ const ExportReportListPage = React.lazy(
 const ExportReportDetailPage = React.lazy(
     () => import("@pages/ExportReports/ExportReportDetailPage"),
 );
-const KpiDashboardPage = React.lazy(() => import("@pages/Kpis/KpiDashboardPage"));
 const SettingsPage = React.lazy(() => import("@pages/Settings/SettingsPage"));
 const DigitalReadinessPage = React.lazy(
     () => import("@pages/DigitalReadiness/DigitalReadinessPage"),
+);
+const MyProfilePage = React.lazy(
+    () => import("@pages/Profile/MyProfilePage"),
 );
 const UserListPage = React.lazy(() => import("@pages/Users/UserListPage"));
 const UserDetailPage = React.lazy(() => import("@pages/Users/UserDetailPage"));
@@ -232,6 +234,9 @@ const AuditLogListPage = React.lazy(
 );
 const UtilityAppListPage = React.lazy(
     () => import("@pages/UtilityApps/UtilityAppListPage"),
+);
+const AnnouncementGateSettingsPage = React.lazy(
+    () => import("@pages/AnnouncementGateSettings/AnnouncementGateSettingsPage"),
 );
 
 const PageFallback = () => (
@@ -503,6 +508,10 @@ const App: React.FC = () => {
                             path="/utility-apps"
                             element={<UtilityAppListPage />}
                         />
+                        <Route
+                            path="/announcement-gate-settings"
+                            element={<AnnouncementGateSettingsPage />}
+                        />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />
                         <Route
@@ -513,7 +522,6 @@ const App: React.FC = () => {
                             path="/export-reports/:key"
                             element={<ExportReportDetailPage />}
                         />
-                        <Route path="/kpis" element={<KpiDashboardPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                         <Route
                             path="/digital-readiness"
@@ -523,6 +531,7 @@ const App: React.FC = () => {
                             path="/mini-app-features"
                             element={<MiniAppFeaturesPage />}
                         />
+                        <Route path="/profile" element={<MyProfilePage />} />
                         <Route path="/users" element={<UserListPage />} />
                         <Route
                             path="/users/:id"

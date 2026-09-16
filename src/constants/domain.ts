@@ -814,6 +814,19 @@ export const USER_STATUS_TONE: Record<UserStatus, BadgeTone> = {
     locked: "red",
 };
 
+// Nhan hien thi Role.scopeType trong khu vuc "Phạm vi quản lý" cua ho so
+// nguoi dung - dung chung giua UserDetailPage.tsx (admin xem nguoi khac) va
+// MyProfilePage.tsx (tu xem chinh minh).
+export const SCOPE_TYPE_LABEL: Record<string, string> = {
+    ALL: "Toàn hệ thống",
+    WARD: "Phường/Xã",
+    NEIGHBORHOOD: "Tổ dân phố",
+    HOUSE: "Nhà số",
+    HOUSEHOLD: "Hộ dân",
+    BUSINESS: "Hộ kinh doanh",
+    COMPANY: "Công ty",
+};
+
 // Pham vi du lieu (Role.scopeType) - xem RoleListPage.tsx (form cau hinh vai
 // tro) va ke hoach "Config-Driven Account Scope System" o backend.
 export const ACCESS_SCOPE_TIER_LABEL: Record<AccessScopeTier, string> = {

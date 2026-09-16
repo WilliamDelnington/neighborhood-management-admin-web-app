@@ -362,14 +362,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "reports.author",
                 description: "Quản lý báo cáo định kỳ theo lịch của tổ dân phố.",
             },
-            {
-                key: "kpis",
-                label: "KPI Phường",
-                path: "/kpis",
-                icon: BarChart3,
-                permission: "reports.kpi_read",
-                description: "Theo dõi chỉ số KPI đánh giá hoạt động của phường.",
-            },
         ],
     },
     {
@@ -600,6 +592,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "utility_apps.manage",
                 description:
                     "Quản lý nhóm tiện ích/dịch vụ tích hợp cho cư dân.",
+            },
+            {
+                key: "announcement_gate_settings",
+                label: "Cổng thông tin điện tử",
+                path: "/announcement-gate-settings",
+                icon: Megaphone,
+                permission: "settings.update",
+                description:
+                    "Cấu hình ảnh banner và logo cho Cổng thông tin điện tử của phường.",
             },
         ],
     },
