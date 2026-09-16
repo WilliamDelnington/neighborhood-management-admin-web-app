@@ -235,6 +235,9 @@ const AuditLogListPage = React.lazy(
 const UtilityAppListPage = React.lazy(
     () => import("@pages/UtilityApps/UtilityAppListPage"),
 );
+const AnnouncementGateSettingsPage = React.lazy(
+    () => import("@pages/AnnouncementGateSettings/AnnouncementGateSettingsPage"),
+);
 
 const PageFallback = () => (
     <div className="flex h-64 items-center justify-center">
@@ -504,6 +507,10 @@ const App: React.FC = () => {
                         <Route
                             path="/utility-apps"
                             element={<UtilityAppListPage />}
+                        />
+                        <Route
+                            path="/announcement-gate-settings"
+                            element={<AnnouncementGateSettingsPage />}
                         />
                         <Route path="/finance" element={<FinanceListPage />} />
                         <Route path="/reports" element={<ReportsPage />} />

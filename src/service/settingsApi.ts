@@ -49,3 +49,43 @@ export const uploadAppFavicon = (file: File): Promise<AppLogoSetting> => {
 
 export const deleteAppFavicon = (): Promise<AppLogoSetting> =>
     request<AppLogoSetting>("DELETE", `${API.SETTINGS}/favicon`);
+
+// Anh banner (billboard) va logo cho trang Cong thong tin dien tu
+// (announcement-gate) - luu qua Setting key rieng
+// "announcement_gate_billboard_url"/"announcement_gate_logo_url", tuong tu
+// logo/favicon o tren nhung khong dung chung key voi app_logo_url.
+export const uploadAnnouncementGateBillboard = (
+    file: File,
+): Promise<AppLogoSetting> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<AppLogoSetting>(
+        "POST",
+        `${API.SETTINGS}/announcement-gate-billboard`,
+        formData,
+    );
+};
+
+export const deleteAnnouncementGateBillboard = (): Promise<AppLogoSetting> =>
+    request<AppLogoSetting>(
+        "DELETE",
+        `${API.SETTINGS}/announcement-gate-billboard`,
+    );
+
+export const uploadAnnouncementGateLogo = (
+    file: File,
+): Promise<AppLogoSetting> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<AppLogoSetting>(
+        "POST",
+        `${API.SETTINGS}/announcement-gate-logo`,
+        formData,
+    );
+};
+
+export const deleteAnnouncementGateLogo = (): Promise<AppLogoSetting> =>
+    request<AppLogoSetting>(
+        "DELETE",
+        `${API.SETTINGS}/announcement-gate-logo`,
+    );

@@ -81,13 +81,10 @@ const buildEditable = (key: string, value: unknown): EditableSetting => {
 };
 
 const coerceValue = (setting: EditableSetting): unknown => {
-    if (setting.isComplex) return JSON.parse(setting.text);
     if (setting.originalType === "number") return Number(setting.text);
     if (setting.originalType === "boolean") return setting.text === "true";
     return setting.text;
 };
-
-const SEED_KEY_EXAMPLES = ["app_identity", "oa_info", "emergency_contacts"];
 
 const SettingsPage: React.FC = () => (
     <AdminGuard roles={["admin"]}>
@@ -328,22 +325,22 @@ const SettingsContent: React.FC = () => {
     };
 
     const handleAddNew = async () => {
-        if (!newKey.trim()) {
+        const key = newKey.trim();
+        if (!key) {
             toast.error("Vui lòng nhập khóa cấu hình (key)");
             return;
         }
-        let value: unknown = newValue;
-        try {
-            value = JSON.parse(newValue);
-        } catch {
-            // Khong phai JSON hop le -> giu nguyen dang chuoi text
-            value = newValue;
+        if (settings[key]?.isComplex) {
+            toast.error(
+                "Khóa này đang lưu dữ liệu dạng nâng cao, không thể sửa qua đây.",
+            );
+            return;
         }
         try {
             setAddingNew(true);
             await upsertSetting(
-                newKey.trim(),
-                value,
+                key,
+                newValue,
                 newDescription.trim() || undefined,
             );
             toast.success("Đã thêm cấu hình mới");
@@ -359,7 +356,12 @@ const SettingsContent: React.FC = () => {
         }
     };
 
-    const entries = Object.values(settings);
+    // Cac key dang du lieu phuc tap (object/mang) khong hien thi de sua truc
+    // tiep o day nua - phan lon nguoi dung khong hieu cau truc JSON. Du lieu
+    // van con nguyen trong CSDL va van duoc cac app doc nhu binh thuong, chi
+    // la khong con man sua tho qua UI (can them man cau hinh rieng cho tung
+    // loai neu muon sua sau nay).
+    const entries = Object.values(settings).filter(s => !s.isComplex);
 
     return (
         <div>
@@ -587,11 +589,7 @@ const SettingsContent: React.FC = () => {
                     </details>
 
                     {entries.length === 0 && !showAddForm && (
-                        <EmptyState
-                            label={`Chưa có cấu hình nào. Có thể thêm các khóa gợi ý như: ${SEED_KEY_EXAMPLES.join(
-                                ", ",
-                            )}`}
-                        />
+                        <EmptyState label="Chưa có cấu hình đơn giản nào." />
                     )}
 
                     {entries.map(setting => (
@@ -602,28 +600,12 @@ const SettingsContent: React.FC = () => {
                             <h2 className="mb-2 text-sm font-semibold">
                                 {setting.key}
                             </h2>
-                            {setting.isComplex ? (
-                                <Textarea
-                                    rows={5}
-                                    value={setting.text}
-                                    onChange={e =>
-                                        handleTextChange(
-                                            setting.key,
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                            ) : (
-                                <Input
-                                    value={setting.text}
-                                    onChange={e =>
-                                        handleTextChange(
-                                            setting.key,
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                            )}
+                            <Input
+                                value={setting.text}
+                                onChange={e =>
+                                    handleTextChange(setting.key, e.target.value)
+                                }
+                            />
                             <div className="mt-2">
                                 <Button
                                     size="sm"
@@ -645,16 +627,15 @@ const SettingsContent: React.FC = () => {
                                 <Label>Khóa (key)</Label>
                                 <Input
                                     className="mt-1"
-                                    placeholder={`Ví dụ: ${SEED_KEY_EXAMPLES[0]}`}
+                                    placeholder="Ví dụ: hotline_ho_tro"
                                     value={newKey}
                                     onChange={e => setNewKey(e.target.value)}
                                 />
                             </div>
                             <div className="mb-3">
-                                <Label>Giá trị (chuỗi hoặc JSON)</Label>
-                                <Textarea
+                                <Label>Giá trị</Label>
+                                <Input
                                     className="mt-1"
-                                    rows={4}
                                     value={newValue}
                                     onChange={e => setNewValue(e.target.value)}
                                 />

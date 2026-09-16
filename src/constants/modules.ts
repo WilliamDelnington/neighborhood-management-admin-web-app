@@ -593,6 +593,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 description:
                     "Quản lý nhóm tiện ích/dịch vụ tích hợp cho cư dân.",
             },
+            {
+                key: "announcement_gate_settings",
+                label: "Cổng thông tin điện tử",
+                path: "/announcement-gate-settings",
+                icon: Megaphone,
+                permission: "settings.update",
+                description:
+                    "Cấu hình ảnh banner và logo cho Cổng thông tin điện tử của phường.",
+            },
         ],
     },
 ];
