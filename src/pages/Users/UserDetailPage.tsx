@@ -23,6 +23,7 @@ import { usePermission } from "@store/authStore";
 import { resolveAssetUrl } from "@constants/common";
 import {
     ROLE_LABEL,
+    SCOPE_TYPE_LABEL,
     USER_AUDIT_ACTION_LABEL,
     USER_STATUS_LABEL,
     USER_STATUS_TONE,
@@ -72,16 +73,6 @@ const WARD_SCOPED_ROLES: Role[] = [
     SECRETARY_ROLE,
     REGIONAL_POLICE_ROLE,
 ];
-
-const SCOPE_TYPE_LABEL: Record<string, string> = {
-    ALL: "Toàn hệ thống",
-    WARD: "Phường/Xã",
-    NEIGHBORHOOD: "Tổ dân phố",
-    HOUSE: "Nhà số",
-    HOUSEHOLD: "Hộ dân",
-    BUSINESS: "Hộ kinh doanh",
-    COMPANY: "Công ty",
-};
 
 const UserDetailPage: React.FC = () => (
     <AdminGuard permissions={["users.read"]}>
@@ -256,8 +247,14 @@ const UserDetailContent: React.FC = () => {
                 updated = await updateUser(user.id, {
                     displayName: displayName.trim(),
                     phone: phone.trim() || undefined,
-                    idNumber: idNumber.trim() || undefined,
                     address: address.trim() || undefined,
+                    // idNumber tu server LUON o dang da che (vd "***1234" -
+                    // xem maskIdNumber o backend), nen chi gui len khi admin
+                    // THUC SU sua truong nay (khac gia tri che ban dau) - gui
+                    // vo dieu kien se ghi de gia tri that bang chuoi da che.
+                    ...(idNumber.trim() !== (user.idNumber || "").trim()
+                        ? { idNumber: idNumber.trim() || undefined }
+                        : {}),
                     // Chi gui status/statusReason khi thuc su thay doi trang
                     // thai - tranh bat buoc nhap ly do cho cac lan chi sua
                     // thong tin khac (xem updateUserSchema o backend, yeu cau
