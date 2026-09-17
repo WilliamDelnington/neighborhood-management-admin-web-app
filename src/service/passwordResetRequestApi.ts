@@ -47,13 +47,14 @@ export const updatePasswordResetRequestStatus = (
     );
 
 // Tu sinh mat khau ngau nhien va dat lai ngay cho tai khoan khop so dien
-// thoai cua yeu cau nay - tra ve ca mat khau (chi lan nay, khong con o danh
-// sach) de nhan vien co the bao mieng/goi dien them, ben canh viec cong dan
-// tu lay qua man "Quen mat khau" (chua co SMS/Zalo OA that).
+// thoai cua yeu cau nay. KHONG tra ve mat khau (backend co chu dong loai
+// khoi response) - nguoi xu ly yeu cau khong duoc biet mat khau moi cua
+// nguoi khac, chi chinh cong dan tu lay duoc qua man "Quen mat khau" (chua
+// co SMS/Zalo OA that).
 export const resetPasswordResetRequestPassword = (
     id: string,
-): Promise<{ request: PasswordResetRequest; plainPassword: string }> =>
-    request<{ request: PasswordResetRequest; plainPassword: string }>(
+): Promise<{ request: PasswordResetRequest }> =>
+    request<{ request: PasswordResetRequest }>(
         "POST",
         `${API.PASSWORD_RESET_REQUESTS}/${id}/reset`,
     );

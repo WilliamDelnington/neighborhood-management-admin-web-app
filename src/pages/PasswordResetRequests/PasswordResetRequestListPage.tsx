@@ -13,12 +13,6 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@components/ui/dialog";
-import {
     Table,
     TableBody,
     TableCell,
@@ -71,10 +65,6 @@ const PasswordResetRequestListContent: React.FC = () => {
     const [error, setError] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [resettingId, setResettingId] = useState<string | null>(null);
-    const [revealedPassword, setRevealedPassword] = useState<{
-        phone: string;
-        password: string;
-    } | null>(null);
 
     const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
@@ -137,12 +127,15 @@ const PasswordResetRequestListContent: React.FC = () => {
     const handleResetPassword = async (item: PasswordResetRequest) => {
         try {
             setResettingId(item._id);
-            const { request, plainPassword } =
-                await resetPasswordResetRequestPassword(item._id);
+            const { request } = await resetPasswordResetRequestPassword(
+                item._id,
+            );
             setItems(prev =>
                 prev.map(i => (i._id === item._id ? request : i)),
             );
-            setRevealedPassword({ phone: item.phone, password: plainPassword });
+            toast.success(
+                "Đã đặt lại mật khẩu. Người dùng có thể tự lấy mật khẩu mới bằng cách nhập lại số điện thoại ở màn hình đăng nhập.",
+            );
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
@@ -342,29 +335,6 @@ const PasswordResetRequestListContent: React.FC = () => {
                     disabled={loading}
                 />
             )}
-
-            <Dialog
-                open={!!revealedPassword}
-                onOpenChange={open => !open && setRevealedPassword(null)}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Đã đặt lại mật khẩu</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-sm text-text_2">
-                        Mật khẩu mới cho số điện thoại{" "}
-                        <span className="font-medium text-text_1">
-                            {revealedPassword?.phone}
-                        </span>
-                        . Người dùng cũng có thể tự lấy mật khẩu này bằng cách
-                        nhập lại số điện thoại ở màn hình đăng nhập, nhưng bạn
-                        có thể báo trực tiếp cho họ nếu cần.
-                    </p>
-                    <div className="rounded-lg border border-divider_01 bg-gray-50 p-3 text-center font-mono text-lg tracking-wider">
-                        {revealedPassword?.password}
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };
