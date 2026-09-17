@@ -1,5 +1,7 @@
 import {
     LayoutDashboard,
+    Map,
+    PenTool,
     Home,
     MessageSquare,
     Flame,
@@ -113,6 +115,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "neighborhoods.read",
                 description:
                     "Quản lý các tổ dân phố và cán bộ phụ trách trong từng khu vực.",
+            },
+            {
+                key: "map",
+                label: "Bản đồ",
+                path: "/map",
+                icon: Map,
+                permission: "neighborhoods.read",
+                description:
+                    "Bản đồ ranh giới các Tổ dân phố - xem, tìm kiếm địa chỉ và vẽ/sửa ranh giới.",
             },
             {
                 key: "streets",
@@ -548,6 +559,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 icon: Settings,
                 permission: "settings.read",
                 description: "Cấu hình chung của hệ thống.",
+            },
+            {
+                key: "map_boundary",
+                label: "Ranh giới bản đồ",
+                path: "/map-boundary",
+                icon: PenTool,
+                permission: ["neighborhoods.manage", "neighborhoods.update_gis"],
+                description:
+                    "Vẽ/sửa ranh giới GeoJSON của Tổ dân phố trên bản đồ.",
             },
             {
                 key: "digital_readiness",

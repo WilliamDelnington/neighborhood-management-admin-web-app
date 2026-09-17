@@ -1,17 +1,29 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Map as MapIcon, MapPinned, Satellite, Search, X } from "lucide-react";
+import {
+    Map as MapIcon,
+    MapPinned,
+    Satellite,
+    Search,
+    Trash2,
+    X,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@lib/utils";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
 import { AppError, Neighborhood } from "@dts";
-import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import {
+    fetchNeighborhoods,
+    updateNeighborhoodGeometry,
+} from "@service/neighborhoodApi";
 import {
     GeoAutocompletePrediction,
     autocompleteNeighborhoodPlaces,
     fetchNeighborhoodPlaceDetails,
 } from "@service/neighborhoodGeoApi";
+import { useAuthStore } from "@store/authStore";
 import wardBoundary from "@assets/geo/duongNoiWardBoundary.json";
 
 const GOONG_MAPTILES_KEY = import.meta.env.VITE_GOONG_MAPTILES_KEY || "";
@@ -130,8 +142,40 @@ async function resolveMapStyle(key: MapStyleKey): Promise<string | object> {
  * Ho tro 2 kieu nen ban do (duong pho/ve tinh - "chon da map") va chon nhieu
  * To cung luc trong danh sach de zoom/noi bat dong thoi nhieu vung tren ban do.
  */
-const NeighborhoodZonesMap: React.FC = () => {
+interface NeighborhoodZonesMapProps {
+    // Mac dinh true: luon tu hien ban do ngay (khong can bam "Xem bản đồ" nua,
+    // ke ca o widget Dashboard) - khac quy uoc bam-de-tai cua HouseMapPanel.tsx
+    // (nha so) vi widget nay it duoc dat o nhieu trang cung luc hon. Truyen
+    // autoShow={false} neu can quay lai hanh vi bam-de-tai o mot noi cu the.
+    autoShow?: boolean;
+    mapHeightClassName?: string;
+    // Mac dinh AN muc "Tự vẽ ranh giới" - tinh nang nay chi bat o trang rieng
+    // "/map-boundary" (MapBoundaryPage.tsx), tach khoi trang "/map" (xem chi)
+    // va widget Dashboard de nguoi chi can XEM ban do khong bi roi voi cong cu
+    // ve chi danh cho nguoi co quyen neighborhoods.manage/update_gis.
+    showDrawTools?: boolean;
+    // Mac dinh false: widget Dashboard va trang "/map" (xem) giu nguyen bo cuc
+    // nho, nhung nhu HouseMapPanel.tsx. CHI trang "/map-boundary" truyen true -
+    // luon chiem toan man hinh (khong doi theo drawModeOn nua) de co khong
+    // gian ve du, danh sach To cung an bot cot "so nha" cho gon (xem
+    // isFullscreenLayout ben duoi).
+    alwaysFullscreen?: boolean;
+}
+
+const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
+    autoShow = true,
+    mapHeightClassName = "h-[600px]",
+    showDrawTools = false,
+    alwaysFullscreen = false,
+}) => {
     const navigate = useNavigate();
+    const user = useAuthStore(state => state.user);
+    // neighborhoods.manage la quyen rong hon, mac nhien bao gom duoc quyen
+    // hep neighborhoods.update_gis (xem PATCH /api/neighborhoods/:id/geometry).
+    const canDrawBoundary = Boolean(
+        user?.permissions?.includes("neighborhoods.manage") ||
+            user?.permissions?.includes("neighborhoods.update_gis"),
+    );
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[] | null>(null);
     const [listError, setListError] = useState(false);
     const [mapVisible, setMapVisible] = useState(false);
@@ -144,6 +188,12 @@ const NeighborhoodZonesMap: React.FC = () => {
         GeoAutocompletePrediction[]
     >([]);
     const [searching, setSearching] = useState(false);
+    const [drawModeOn, setDrawModeOn] = useState(false);
+    const [drawnFeatures, setDrawnFeatures] = useState<
+        { id: string | number; name: string; neighborhoodId?: string }[]
+    >([]);
+    const [assignSelection, setAssignSelection] = useState<Record<string, string>>({});
+    const [savingFeatureId, setSavingFeatureId] = useState<string | number | null>(null);
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     // any: @goongmaps/goong-js khong kem type (xem src/types/goong-js.d.ts).
     const mapRef = useRef<any>(null);
@@ -152,12 +202,19 @@ const NeighborhoodZonesMap: React.FC = () => {
     const searchMarkerRef = useRef<any>(null);
     const searchSessionTokenRef = useRef<string | null>(null);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // any: @mapbox/mapbox-gl-draw khong kem type (xem src/types/mapbox-gl-draw.d.ts).
+    const drawRef = useRef<any>(null);
+    const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
     useEffect(() => {
         fetchNeighborhoods({ limit: 100, active: true })
             .then(res => setNeighborhoods(res.items))
             .catch(() => setListError(true));
     }, []);
+
+    useEffect(() => {
+        if (autoShow) setMapVisible(true);
+    }, [autoShow]);
 
     const zonesWithGeometry = useMemo(
         () =>
@@ -232,7 +289,9 @@ const NeighborhoodZonesMap: React.FC = () => {
     useEffect(() => {
         if (!mapVisible || !neighborhoods) return undefined;
         if (!GOONG_MAPTILES_KEY) {
-            setMapError("Chưa cấu hình VITE_GOONG_MAPTILES_KEY");
+            // eslint-disable-next-line no-console
+            console.error("Chưa cấu hình VITE_GOONG_MAPTILES_KEY");
+            setMapError("Chưa có bản đồ");
             return undefined;
         }
         let cancelled = false;
@@ -261,6 +320,18 @@ const NeighborhoodZonesMap: React.FC = () => {
                 mapRef.current = map;
                 map.addControl(new goongjs.NavigationControl(), "top-right");
 
+                // goong-js (fork mapbox-gl-js cu) khong tu resize canvas khi
+                // container doi kich thuoc (vd chuyen giua bo cuc 2 cot/3 cot
+                // luc bat/tat che do ve, hoac container do dac tai thoi diem
+                // khoi tao ngan hon kich thuoc cuoi cung) - canvas se bi "ket"
+                // o kich thuoc luc tao, chi ve duoc mot phan nho roi de trong
+                // phan con lai. Dung ResizeObserver de tu resize() moi khi
+                // container thuc su doi kich thuoc, xu ly dut diem ca lop loi
+                // nay (khong chi mot truong hop rieng le).
+                const resizeObserver = new ResizeObserver(() => map.resize());
+                resizeObserver.observe(mapContainerRef.current);
+                resizeObserverRef.current = resizeObserver;
+
                 map.on("load", () => {
                     if (cancelled) return;
                     addOverlayLayers(map);
@@ -281,9 +352,9 @@ const NeighborhoodZonesMap: React.FC = () => {
                 });
             } catch (err) {
                 if (!cancelled) {
-                    setMapError(
-                        (err as AppError | Error).message || "Không tải được bản đồ",
-                    );
+                    // eslint-disable-next-line no-console
+                    console.error("[goong-js] không tải được bản đồ:", err);
+                    setMapError("Chưa có bản đồ");
                 }
             } finally {
                 if (!cancelled) setMapLoading(false);
@@ -292,8 +363,13 @@ const NeighborhoodZonesMap: React.FC = () => {
 
         return () => {
             cancelled = true;
+            resizeObserverRef.current?.disconnect();
+            resizeObserverRef.current = null;
             mapRef.current?.remove();
             mapRef.current = null;
+            drawRef.current = null;
+            setDrawModeOn(false);
+            setDrawnFeatures([]);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mapVisible, neighborhoods]);
@@ -365,6 +441,158 @@ const NeighborhoodZonesMap: React.FC = () => {
             prev.includes(zoneId) ? prev.filter(id => id !== zoneId) : [...prev, zoneId],
         );
     }, []);
+
+    const emitDrawnFeatures = useCallback(() => {
+        const draw = drawRef.current;
+        if (!draw) return;
+        const collection = draw.getAll();
+        setDrawnFeatures(
+            collection.features.map((f: any) => ({
+                id: f.id,
+                name: f.properties?.name || "",
+                neighborhoodId: f.properties?.neighborhoodId,
+            })),
+        );
+    }, []);
+
+    // Bat/tat che do "Tự vẽ ranh giới" (MapboxDraw + 3 mode ve tay dang duoc
+    // dung o test-map, xem lib/mapDraw/*) - nap dong (dynamic import), chi tai
+    // khi admin thuc su bam bat, tranh tang bundle/chi phi khong can thiet cho
+    // nguoi chi xem ban do. LUU Y: doi nen ban do (switchMapStyle) trong luc
+    // dang bat che do nay se lam mat hien thi cac vung dang ve (MapboxDraw tu
+    // quan ly layer rieng, khong duoc addOverlayLayers nap lai sau setStyle) -
+    // du lieu dang ve khong mat, chi can tat/bat lai che do ve la thay lai.
+    const toggleDrawMode = useCallback(async () => {
+        const map = mapRef.current;
+        const goongjs = goongRef.current;
+        if (!map || !goongjs) return;
+
+        if (drawModeOn) {
+            const draw = drawRef.current;
+            if (draw) {
+                map.off("draw.create", emitDrawnFeatures);
+                map.off("draw.update", emitDrawnFeatures);
+                map.off("draw.delete", emitDrawnFeatures);
+                map.removeControl(draw);
+                drawRef.current = null;
+            }
+            setDrawnFeatures([]);
+            setAssignSelection({});
+            setDrawModeOn(false);
+            return;
+        }
+
+        const [{ default: MapboxDraw }, [{ default: FreehandPolygonMode }, { default: FreehandLineMode }, { default: DrawRectangleMode }]] =
+            await Promise.all([
+                import("@mapbox/mapbox-gl-draw").then(async mod => {
+                    await import("@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css");
+                    return mod;
+                }),
+                Promise.all([
+                    import("@lib/mapDraw/freehandPolygonMode"),
+                    import("@lib/mapDraw/freehandLineMode"),
+                    import("@lib/mapDraw/rectangleMode"),
+                ]),
+            ]);
+
+        const draw = new MapboxDraw({
+            displayControlsDefault: false,
+            controls: { polygon: true, line_string: true, trash: true },
+            modes: {
+                ...MapboxDraw.modes,
+                draw_polygon: FreehandPolygonMode,
+                draw_line_string: FreehandLineMode,
+                draw_rectangle: DrawRectangleMode,
+            },
+        });
+        drawRef.current = draw;
+        map.addControl(draw, "bottom-right");
+        map.on("draw.create", emitDrawnFeatures);
+        map.on("draw.update", emitDrawnFeatures);
+        map.on("draw.delete", emitDrawnFeatures);
+        setDrawModeOn(true);
+    }, [drawModeOn, emitDrawnFeatures]);
+
+    const startDrawRectangle = useCallback(() => {
+        drawRef.current?.changeMode("draw_rectangle");
+    }, []);
+
+    const renameDrawnFeature = useCallback(
+        (id: string | number, name: string) => {
+            drawRef.current?.setFeatureProperty(id, "name", name);
+            emitDrawnFeatures();
+        },
+        [emitDrawnFeatures],
+    );
+
+    const deleteDrawnFeature = useCallback(
+        (id: string | number) => {
+            drawRef.current?.delete([id]);
+            emitDrawnFeatures();
+            setAssignSelection(prev => {
+                const next = { ...prev };
+                delete next[String(id)];
+                return next;
+            });
+        },
+        [emitDrawnFeatures],
+    );
+
+    // Nap ranh gioi mot To dan pho DA CO vao cong cu ve de sua lai - giong
+    // tinh nang "Sửa tổ đã có" cua test-map (DrawPanel.tsx).
+    const editZoneBoundary = useCallback(
+        (zone: Neighborhood & { geometry: NonNullable<Neighborhood["geometry"]> }) => {
+            const draw = drawRef.current;
+            if (!draw) return;
+            const existing = draw
+                .getAll()
+                .features.find((f: any) => f.properties?.neighborhoodId === zone._id);
+            let featureId = existing?.id;
+            if (!featureId) {
+                [featureId] = draw.add({
+                    type: "Feature",
+                    properties: { name: zone.name, neighborhoodId: zone._id },
+                    geometry: zone.geometry,
+                });
+            }
+            draw.changeMode("direct_select", { featureId });
+            emitDrawnFeatures();
+            setAssignSelection(prev => ({ ...prev, [String(featureId)]: zone._id }));
+        },
+        [emitDrawnFeatures],
+    );
+
+    const saveDrawnFeature = useCallback(
+        async (featureId: string | number) => {
+            const draw = drawRef.current;
+            if (!draw) return;
+            const targetId = assignSelection[String(featureId)];
+            if (!targetId) {
+                toast.error("Chọn Tổ dân phố cần gán trước khi lưu");
+                return;
+            }
+            const feature = draw.get(featureId);
+            if (!feature) return;
+
+            setSavingFeatureId(featureId);
+            try {
+                await updateNeighborhoodGeometry(targetId, {
+                    boundaryType: "GEOJSON",
+                    geometry: feature.geometry,
+                });
+                toast.success("Đã lưu ranh giới vào Tổ dân phố");
+                draw.delete([featureId]);
+                emitDrawnFeatures();
+                const res = await fetchNeighborhoods({ limit: 100, active: true });
+                setNeighborhoods(res.items);
+            } catch (err) {
+                toast.error((err as AppError).message || "Không lưu được ranh giới");
+            } finally {
+                setSavingFeatureId(null);
+            }
+        },
+        [assignSelection, emitDrawnFeatures],
+    );
 
     const getSearchSessionToken = () => {
         if (!searchSessionTokenRef.current) {
@@ -463,8 +691,25 @@ const NeighborhoodZonesMap: React.FC = () => {
         );
     }
 
+    // showDrawPanel: co panel "Vẽ ranh giới tổ" o cot thu 3 hay khong - chi khi
+    // dang thuc su bat che do ve. isFullscreenLayout: co chiem toan man hinh
+    // hay khong - "/map-boundary" luon toan man hinh (alwaysFullscreen), con
+    // widget Dashboard/trang "/map" chi toan man hinh khi dang ve (khong bao
+    // gio xay ra vi showDrawTools=false o 2 noi do).
+    const showDrawPanel = showDrawTools && drawModeOn;
+    const isFullscreenLayout = alwaysFullscreen || showDrawPanel;
+    const loadedNeighborhoodIds = new Set(
+        drawnFeatures.map(f => f.neighborhoodId).filter((id): id is string => Boolean(id)),
+    );
+
     return (
-        <section className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
+        <section
+            className={cn(
+                isFullscreenLayout
+                    ? "fixed inset-0 z-50 flex flex-col overflow-y-auto bg-ui_bg p-4"
+                    : "rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm",
+            )}
+        >
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <MapPinned className="h-4 w-4 text-main" />
@@ -483,12 +728,41 @@ const NeighborhoodZonesMap: React.FC = () => {
                             Xem bản đồ
                         </Button>
                     )}
+                    {isFullscreenLayout && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            title="Thoát"
+                            onClick={() => navigate(-1)}
+                        >
+                            <X className="mr-1 h-4 w-4" />
+                            Thoát
+                        </Button>
+                    )}
                 </div>
             </div>
 
             {mapVisible && (
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_280px]">
-                    <div className="relative h-[600px] w-full">
+                <div
+                    className={cn(
+                        "grid grid-cols-1 gap-3",
+                        isFullscreenLayout ? "min-w-0 overflow-hidden" : undefined,
+                        !isFullscreenLayout && "lg:grid-cols-[1fr_280px]",
+                        isFullscreenLayout &&
+                            !showDrawPanel &&
+                            "min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)]",
+                        showDrawPanel &&
+                            "min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)_320px]",
+                    )}
+                >
+                    <div
+                        className={cn(
+                            "relative w-full",
+                            isFullscreenLayout
+                                ? "order-2 h-[calc(100vh-140px)] min-w-0"
+                                : mapHeightClassName,
+                        )}
+                    >
                         <div ref={mapContainerRef} className="h-full w-full rounded-xl" />
                         {!mapLoading && !mapError && (
                             <div className="absolute left-3 right-14 top-3 z-20 max-w-sm">
@@ -594,7 +868,12 @@ const NeighborhoodZonesMap: React.FC = () => {
                         )}
                     </div>
                     {!mapLoading && !mapError && (
-                        <div className="flex flex-col gap-2">
+                        <div
+                            className={cn(
+                                "flex flex-col gap-2",
+                                isFullscreenLayout && "order-1",
+                            )}
+                        >
                             <div className="flex items-center justify-between text-xs text-text_2">
                                 <span>Đã chọn {selectedZoneIds.length}/{zonesWithGeometry.length}</span>
                                 {selectedZoneIds.length > 0 && (
@@ -607,7 +886,14 @@ const NeighborhoodZonesMap: React.FC = () => {
                                     </button>
                                 )}
                             </div>
-                            <div className="max-h-[560px] overflow-y-auto rounded-lg border border-divider_01">
+                            <div
+                                className={cn(
+                                    "overflow-y-auto rounded-lg border border-divider_01",
+                                    isFullscreenLayout
+                                        ? "max-h-[calc(100vh-260px)]"
+                                        : "max-h-[560px]",
+                                )}
+                            >
                                 {zonesWithGeometry.map((zone, index) => (
                                     <div
                                         key={zone._id}
@@ -629,9 +915,11 @@ const NeighborhoodZonesMap: React.FC = () => {
                                                 }}
                                             />
                                             <span className="flex-1 truncate">{zone.name}</span>
-                                            <span className="shrink-0 text-text_2">
-                                                {zone.houseCount ?? 0} nhà
-                                            </span>
+                                            {!isFullscreenLayout && (
+                                                <span className="shrink-0 text-text_2">
+                                                    {zone.houseCount ?? 0} nhà
+                                                </span>
+                                            )}
                                         </button>
                                     </div>
                                 ))}
@@ -641,19 +929,154 @@ const NeighborhoodZonesMap: React.FC = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {showDrawTools && canDrawBoundary && (
+                                <div className="rounded-lg border border-divider_01 p-2">
+                                    <p className="mb-2 text-xs font-semibold text-text_1">
+                                        Tự vẽ ranh giới
+                                    </p>
+                                    <Button
+                                        size="sm"
+                                        variant={drawModeOn ? "default" : "outline"}
+                                        className="w-full"
+                                        onClick={toggleDrawMode}
+                                    >
+                                        {drawModeOn ? "Đang vẽ — bấm để tắt" : "Bật chế độ vẽ tổ"}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {showDrawPanel && !mapLoading && !mapError && (
+                        <div className="order-3 flex h-full flex-col gap-2 overflow-hidden rounded-lg border border-divider_01 p-3">
+                            <p className="text-xs font-semibold text-text_1">
+                                Vẽ ranh giới tổ ({drawnFeatures.length})
+                            </p>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                                onClick={startDrawRectangle}
+                            >
+                                ▭ Vẽ hình chữ nhật
+                            </Button>
+                            <p className="text-[11px] leading-relaxed text-text_2">
+                                Hình chữ nhật: click 1 điểm đầu, rê chuột rồi click điểm đối
+                                diện để chốt — sau đó click vào hình để chọn, rồi kéo từng góc
+                                cho khít với tổ. Ngoài ra công cụ ở góc dưới-phải bản đồ còn 2
+                                chế độ vẽ tự do (giữ chuột + kéo): vùng và đường.
+                            </p>
+
+                            <div>
+                                <p className="mb-1 text-[11px] font-semibold text-text_1">
+                                    Sửa tổ đã có ({zonesWithGeometry.length})
+                                </p>
+                                <div className="max-h-40 space-y-1 overflow-y-auto rounded border border-divider_01 p-1.5">
+                                    {zonesWithGeometry.map((zone, index) => {
+                                        const isLoaded = loadedNeighborhoodIds.has(zone._id);
+                                        return (
+                                            <div
+                                                key={zone._id}
+                                                className="flex items-center gap-2 text-xs"
+                                            >
+                                                <span
+                                                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                                    style={{
+                                                        background:
+                                                            ZONE_PALETTE[index % ZONE_PALETTE.length],
+                                                    }}
+                                                />
+                                                <span className="flex-1 truncate">{zone.name}</span>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    disabled={isLoaded}
+                                                    onClick={() => editZoneBoundary(zone)}
+                                                >
+                                                    {isLoaded ? "Đang sửa" : "Sửa"}
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="flex-1 space-y-2 overflow-y-auto">
+                                {drawnFeatures.length === 0 && (
+                                    <p className="text-xs text-text_2">Chưa có vùng nào.</p>
+                                )}
+                                {drawnFeatures.map(feature => (
+                                    <div
+                                        key={feature.id}
+                                        className="space-y-1.5 rounded-md border border-divider_01 p-2"
+                                    >
+                                        <input
+                                            type="text"
+                                            value={feature.name}
+                                            placeholder="Tên (tùy chọn)..."
+                                            onChange={e =>
+                                                renameDrawnFeature(feature.id, e.target.value)
+                                            }
+                                            className="w-full rounded border border-divider_01 px-2 py-1 text-xs"
+                                        />
+                                        <select
+                                            value={
+                                                assignSelection[String(feature.id)] ||
+                                                feature.neighborhoodId ||
+                                                ""
+                                            }
+                                            onChange={e =>
+                                                setAssignSelection(prev => ({
+                                                    ...prev,
+                                                    [String(feature.id)]: e.target.value,
+                                                }))
+                                            }
+                                            className="w-full rounded border border-divider_01 px-2 py-1 text-xs"
+                                        >
+                                            <option value="">-- Chọn Tổ dân phố --</option>
+                                            {(neighborhoods || []).map(n => (
+                                                <option key={n._id} value={n._id}>
+                                                    {n.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="flex gap-1.5">
+                                            <Button
+                                                size="sm"
+                                                className="flex-1"
+                                                disabled={savingFeatureId === feature.id}
+                                                onClick={() => saveDrawnFeature(feature.id)}
+                                            >
+                                                {savingFeatureId === feature.id
+                                                    ? "Đang lưu..."
+                                                    : "Lưu vào Tổ"}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => deleteDrawnFeature(feature.id)}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
             )}
-            <div className="mt-2 text-right">
-                <button
-                    type="button"
-                    className="text-xs font-medium text-primary hover:underline"
-                    onClick={() => navigate("/neighborhoods")}
-                >
-                    Quản lý danh sách Tổ dân phố
-                </button>
-            </div>
+            {!showDrawPanel && (
+                <div className="mt-2 text-right">
+                    <button
+                        type="button"
+                        className="text-xs font-medium text-primary hover:underline"
+                        onClick={() => navigate("/neighborhoods")}
+                    >
+                        Quản lý danh sách Tổ dân phố
+                    </button>
+                </div>
+            )}
         </section>
     );
 };

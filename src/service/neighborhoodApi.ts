@@ -86,6 +86,22 @@ export const updateNeighborhood = (
 ): Promise<Neighborhood> =>
     request<Neighborhood>("PATCH", `${API.NEIGHBORHOODS}/${id}`, input);
 
+export interface UpdateNeighborhoodGeometryInput {
+    boundaryType: "NONE" | "DOCUMENT" | "GEOJSON";
+    geometry?: {
+        type: "Polygon" | "MultiPolygon";
+        coordinates: unknown[];
+    };
+}
+
+// Endpoint hep, chi quyen neighborhoods.update_gis (khong can neighborhoods.manage) -
+// dung cho module "Bản đồ ranh giới Tổ dân phố" o Dashboard (NeighborhoodZonesMap.tsx).
+export const updateNeighborhoodGeometry = (
+    id: string,
+    input: UpdateNeighborhoodGeometryInput,
+): Promise<Neighborhood> =>
+    request<Neighborhood>("PATCH", `${API.NEIGHBORHOODS}/${id}/geometry`, input);
+
 export const assignNeighborhoodLeader = (
     neighborhoodId: string,
     leaderUserId: string | null,

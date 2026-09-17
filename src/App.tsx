@@ -19,6 +19,10 @@ const NeighborhoodListPage = React.lazy(
 const NeighborhoodDetailPage = React.lazy(
     () => import("@pages/Neighborhoods/NeighborhoodDetailPage"),
 );
+const MapPage = React.lazy(() => import("@pages/Map/MapPage"));
+const MapBoundaryPage = React.lazy(
+    () => import("@pages/MapBoundary/MapBoundaryPage"),
+);
 const WardManagementPage = React.lazy(
     () => import("@pages/Wards/WardManagementPage"),
 );
@@ -287,6 +291,11 @@ const App: React.FC = () => {
                         <Route
                             path="/neighborhoods/:id"
                             element={<NeighborhoodDetailPage />}
+                        />
+                        <Route path="/map" element={<MapPage />} />
+                        <Route
+                            path="/map-boundary"
+                            element={<MapBoundaryPage />}
                         />
                         <Route path="/wards" element={<WardManagementPage />} />
                         <Route path="/streets" element={<StreetListPage />} />
