@@ -21,6 +21,14 @@ import {
     SheetFooter,
 } from "@components/ui/sheet";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@components/ui/dialog";
+import {
     Table,
     TableBody,
     TableCell,
@@ -36,7 +44,7 @@ import FilterBar from "@components/admin/FilterBar";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Street } from "@dts";
-import { createStreet, fetchStreets } from "@service/streetApi";
+import { createStreet, deleteStreet, fetchStreets } from "@service/streetApi";
 import StreetForm, {
     EMPTY_STREET_FORM,
     StreetFormValues,
@@ -72,6 +80,8 @@ const StreetListContent: React.FC = () => {
     const [form, setForm] = useState<StreetFormValues>(EMPTY_STREET_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
+    const [toDelete, setToDelete] = useState<Street | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -118,6 +128,21 @@ const StreetListContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!toDelete) return;
+        try {
+            setDeleting(true);
+            await deleteStreet(toDelete._id);
+            toast.success("Đã xóa đường/phố");
+            setToDelete(null);
+            load(items.length === 1 && page > 1 ? page - 1 : page, search);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -234,15 +259,27 @@ const StreetListContent: React.FC = () => {
                                         className="text-right"
                                         onClick={e => e.stopPropagation()}
                                     >
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() =>
-                                                navigate(`/streets/${s._id}`)
-                                            }
-                                        >
-                                            Chi tiết
-                                        </Button>
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    navigate(`/streets/${s._id}`)
+                                                }
+                                            >
+                                                Chi tiết
+                                            </Button>
+                                            {canCreate && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="!text-red-500"
+                                                    onClick={() => setToDelete(s)}
+                                                >
+                                                    Xóa
+                                                </Button>
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -285,6 +322,38 @@ const StreetListContent: React.FC = () => {
                 onOpenChange={setImportVisible}
                 onImported={() => load(1, search)}
             />
+
+            <Dialog
+                open={!!toDelete}
+                onOpenChange={open => !open && setToDelete(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Xóa đường/phố</DialogTitle>
+                        <DialogDescription>
+                            Bạn có chắc muốn xóa &quot;{toDelete?.name}&quot;?
+                            Thao tác này không thể hoàn tác. Đường/phố đang
+                            được sử dụng bởi nhà, hộ khẩu, doanh nghiệp hoặc
+                            tổ dân phố sẽ không thể xóa được.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setToDelete(null)}
+                        >
+                            Hủy
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            loading={deleting}
+                            onClick={handleDelete}
+                        >
+                            Xóa
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
