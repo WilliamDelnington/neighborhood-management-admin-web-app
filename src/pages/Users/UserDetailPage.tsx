@@ -36,6 +36,7 @@ import {
     Role,
     RoleRecord,
     User,
+    UserManagementHistoryEntry,
     UserStatus,
     Ward,
 } from "@dts";
@@ -45,6 +46,7 @@ import {
     fetchUserAttachments,
     fetchUserAuditLogs,
     fetchUserById,
+    fetchUserManagementHistory,
     fetchUserManagementScope,
     lockUserAccount,
     resetUserPassword,
@@ -73,6 +75,21 @@ const WARD_SCOPED_ROLES: Role[] = [
     SECRETARY_ROLE,
     REGIONAL_POLICE_ROLE,
 ];
+
+const MANAGEMENT_HISTORY_ROLE_LABEL: Record<
+    UserManagementHistoryEntry["roleKey"],
+    string
+> = {
+    neighborhood_leader: "Tổ trưởng",
+    neighborhood_coleader: "Tổ phó",
+    neighborhood_collaborator: "Cộng tác viên",
+};
+
+const formatDate = (iso?: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("vi-VN");
+};
 
 const UserDetailPage: React.FC = () => (
     <AdminGuard permissions={["users.read"]}>
@@ -120,6 +137,16 @@ const UserDetailContent: React.FC = () => {
     const [managedNeighborhoods, setManagedNeighborhoods] = useState<
         Neighborhood[]
     >([]);
+
+    // Lich su dam nhiem To truong/To pho/Cong tac vien xuyen suot moi to dan
+    // pho - hien thi bat ke vai tro hien tai (khac managedNeighborhoods, chi
+    // to dan pho DANG phu trach) vi mot nguoi co the tung giu vai tro nay o
+    // qua khu du hien khong con role do nua.
+    const [managementHistory, setManagementHistory] = useState<
+        UserManagementHistoryEntry[]
+    >([]);
+    const [managementHistoryLoading, setManagementHistoryLoading] =
+        useState(true);
 
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [wards, setWards] = useState<Ward[]>([]);
@@ -182,6 +209,12 @@ const UserDetailContent: React.FC = () => {
             .then(applyUser)
             .catch(() => setError(true))
             .finally(() => setLoading(false));
+
+        setManagementHistoryLoading(true);
+        fetchUserManagementHistory(id)
+            .then(setManagementHistory)
+            .catch(() => setManagementHistory([]))
+            .finally(() => setManagementHistoryLoading(false));
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -735,6 +768,45 @@ const UserDetailContent: React.FC = () => {
                                 trang thông tin tổ dân phố, không thực hiện ở
                                 đây.
                             </div>
+                        </div>
+                    )}
+
+                    {(managementHistoryLoading ||
+                        managementHistory.length > 0) && (
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
+                            <h3 className="mb-2 text-base font-semibold">
+                                Lịch sử quản lý Tổ dân phố
+                            </h3>
+                            {managementHistoryLoading && <LoadingState />}
+                            {!managementHistoryLoading &&
+                                managementHistory.map(entry => (
+                                    <div
+                                        key={entry._id}
+                                        className="flex items-center justify-between border-b border-divider_01 py-2 last:border-0"
+                                    >
+                                        <div>
+                                            <div className="text-sm font-medium">
+                                                {MANAGEMENT_HISTORY_ROLE_LABEL[
+                                                    entry.roleKey
+                                                ]}
+                                                {entry.neighborhood
+                                                    ? ` — ${entry.neighborhood.name}`
+                                                    : ""}
+                                            </div>
+                                            <div className="text-xs text-text_2">
+                                                {formatDate(entry.assignedAt)}{" "}
+                                                →{" "}
+                                                {entry.unassignedAt
+                                                    ? formatDate(
+                                                          entry.unassignedAt,
+                                                      )
+                                                    : entry.endAt
+                                                      ? formatDate(entry.endAt)
+                                                      : "hiện tại"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                         </div>
                     )}
 

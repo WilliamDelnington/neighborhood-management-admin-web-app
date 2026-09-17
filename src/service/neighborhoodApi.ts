@@ -138,6 +138,14 @@ export const fetchNeighborhoodColeaderHistory = (
         `${API.NEIGHBORHOODS}/${id}/coleader-history`,
     );
 
+export const fetchNeighborhoodCollaboratorHistory = (
+    id: string,
+): Promise<NeighborhoodCollaboratorAssignment[]> =>
+    request<NeighborhoodCollaboratorAssignment[]>(
+        "GET",
+        `${API.NEIGHBORHOODS}/${id}/collaborator-history`,
+    );
+
 export const fetchNeighborhoodHistory = (
     id: string,
 ): Promise<NeighborhoodHistory[]> =>

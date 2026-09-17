@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, UserRound } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
@@ -9,6 +9,12 @@ import { Label } from "@components/ui/label";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@components/ui/dialog";
 import {
     Select,
     SelectContent,
@@ -36,6 +42,7 @@ import {
     User,
 } from "@dts";
 import { COLLABORATOR_SCOPE_LABEL } from "@constants/domain";
+import { resolveAssetUrl } from "@constants/common";
 import {
     assignNeighborhoodCollaborator,
     assignNeighborhoodColeader,
@@ -44,7 +51,9 @@ import {
     deleteNeighborhoodAttachment,
     fetchNeighborhoodAttachments,
     fetchNeighborhoodById,
+    fetchNeighborhoodColeaderHistory,
     fetchNeighborhoodColeaders,
+    fetchNeighborhoodCollaboratorHistory,
     fetchNeighborhoodCollaborators,
     fetchNeighborhoodLeaderHistory,
     fetchNeighborhoodHistory,
@@ -135,6 +144,15 @@ const NeighborhoodDetailContent: React.FC = () => {
         [],
     );
     const [coleadersLoading, setColeadersLoading] = useState(true);
+    const [coleaderHistory, setColeaderHistory] = useState<
+        NeighborhoodColeaderAssignment[]
+    >([]);
+    const [coleaderHistoryLoading, setColeaderHistoryLoading] = useState(true);
+    const [collaboratorHistory, setCollaboratorHistory] = useState<
+        NeighborhoodCollaboratorAssignment[]
+    >([]);
+    const [collaboratorHistoryLoading, setCollaboratorHistoryLoading] =
+        useState(true);
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
@@ -158,6 +176,22 @@ const NeighborhoodDetailContent: React.FC = () => {
     });
     const [savingCollaborator, setSavingCollaborator] = useState(false);
     const [unassigningCollaboratorId, setUnassigningCollaboratorId] = useState<string | null>(null);
+
+    // Ho so xem nhanh (chi xem, khong sua) khi bam vao Tổ trưởng/Tổ phó/Cộng
+    // tác viên - dung lai du lieu da co san tren trang (khong goi API rieng).
+    const [profileTarget, setProfileTarget] = useState<{
+        user: {
+            _id: string;
+            displayName: string;
+            phone?: string;
+            avatarUrl?: string;
+            status?: string;
+        };
+        roleLabel: string;
+        since?: string;
+        until?: string;
+        note?: string;
+    } | null>(null);
 
     const load = () => {
         if (!id) return;
@@ -210,6 +244,24 @@ const NeighborhoodDetailContent: React.FC = () => {
             .finally(() => setColeadersLoading(false));
     };
 
+    const loadColeaderHistory = () => {
+        if (!id) return;
+        setColeaderHistoryLoading(true);
+        fetchNeighborhoodColeaderHistory(id)
+            .then(setColeaderHistory)
+            .catch(() => setColeaderHistory([]))
+            .finally(() => setColeaderHistoryLoading(false));
+    };
+
+    const loadCollaboratorHistory = () => {
+        if (!id) return;
+        setCollaboratorHistoryLoading(true);
+        fetchNeighborhoodCollaboratorHistory(id)
+            .then(setCollaboratorHistory)
+            .catch(() => setCollaboratorHistory([]))
+            .finally(() => setCollaboratorHistoryLoading(false));
+    };
+
     const loadAttachments = () => {
         if (!id) return;
         setAttachmentsLoading(true);
@@ -241,6 +293,8 @@ const NeighborhoodDetailContent: React.FC = () => {
         loadHistory();
         loadCandidateColeaders();
         loadColeaders();
+        loadColeaderHistory();
+        loadCollaboratorHistory();
         loadAttachments();
         loadOrganizationHistory();
         loadCollaborators();
@@ -328,6 +382,7 @@ const NeighborhoodDetailContent: React.FC = () => {
             await assignNeighborhoodColeader(id, selectedColeaderId);
             setSelectedColeaderId("");
             loadColeaders();
+            loadColeaderHistory();
             loadOrganizationHistory();
             toast.success("Đã phân công tổ phó");
         } catch (err) {
@@ -343,6 +398,7 @@ const NeighborhoodDetailContent: React.FC = () => {
             setUnassigningColeaderId(coleaderUserId);
             await unassignNeighborhoodColeader(id, coleaderUserId);
             loadColeaders();
+            loadColeaderHistory();
             loadOrganizationHistory();
             toast.success("Đã gỡ phân công tổ phó");
         } catch (err) {
@@ -418,6 +474,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                 note: "",
             });
             loadCollaborators();
+            loadCollaboratorHistory();
             loadOrganizationHistory();
             toast.success("Đã phân công cộng tác viên");
         } catch (err) {
@@ -433,6 +490,7 @@ const NeighborhoodDetailContent: React.FC = () => {
             setUnassigningCollaboratorId(assignmentId);
             await unassignNeighborhoodCollaborator(id, assignmentId);
             loadCollaborators();
+            loadCollaboratorHistory();
             loadOrganizationHistory();
             toast.success("Đã kết thúc phân công cộng tác viên");
         } catch (err) {
@@ -606,7 +664,19 @@ const NeighborhoodDetailContent: React.FC = () => {
                         </p>
                         {neighborhood.leaderUserId ? (
                             <div className="flex items-center justify-between text-sm">
-                                <div>
+                                <button
+                                    type="button"
+                                    className="text-left hover:underline"
+                                    onClick={() =>
+                                        setProfileTarget({
+                                            user: neighborhood.leaderUserId!,
+                                            roleLabel: "Tổ trưởng",
+                                            since: history.find(
+                                                h => !h.unassignedAt,
+                                            )?.assignedAt,
+                                        })
+                                    }
+                                >
                                     <div className="font-medium">
                                         {neighborhood.leaderUserId.displayName}
                                     </div>
@@ -615,7 +685,7 @@ const NeighborhoodDetailContent: React.FC = () => {
                                             {neighborhood.leaderUserId.phone}
                                         </div>
                                     )}
-                                </div>
+                                </button>
                                 {canManage && (
                                     <Button
                                         size="sm"
@@ -689,17 +759,33 @@ const NeighborhoodDetailContent: React.FC = () => {
                                     key={c._id}
                                     className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
                                 >
-                                    <div>
-                                        <div className="font-medium">
-                                            {c.userId?.displayName ||
-                                                "(tài khoản đã xóa)"}
-                                        </div>
-                                        {c.userId?.phone && (
-                                            <div className="text-xs text-text_2">
-                                                {c.userId.phone}
+                                    {c.userId ? (
+                                        <button
+                                            type="button"
+                                            className="text-left hover:underline"
+                                            onClick={() =>
+                                                setProfileTarget({
+                                                    user: c.userId!,
+                                                    roleLabel: "Tổ phó",
+                                                    since: c.assignedAt,
+                                                    note: c.note,
+                                                })
+                                            }
+                                        >
+                                            <div className="font-medium">
+                                                {c.userId.displayName}
                                             </div>
-                                        )}
-                                    </div>
+                                            {c.userId.phone && (
+                                                <div className="text-xs text-text_2">
+                                                    {c.userId.phone}
+                                                </div>
+                                            )}
+                                        </button>
+                                    ) : (
+                                        <div className="font-medium">
+                                            (tài khoản đã xóa)
+                                        </div>
+                                    )}
                                     {canManage && c.userId && (
                                         <Button
                                             size="sm"
@@ -762,9 +848,27 @@ const NeighborhoodDetailContent: React.FC = () => {
                         {!collaboratorsLoading && collaborators.map(assignment => (
                             <div key={assignment._id} className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0">
                                 <div>
-                                    <div className="font-medium">
-                                        {assignment.userId?.displayName || "(tài khoản đã xóa)"}
-                                    </div>
+                                    {assignment.userId ? (
+                                        <button
+                                            type="button"
+                                            className="text-left font-medium hover:underline"
+                                            onClick={() =>
+                                                setProfileTarget({
+                                                    user: assignment.userId!,
+                                                    roleLabel: "Cộng tác viên",
+                                                    since: assignment.assignedAt,
+                                                    until: assignment.endAt,
+                                                    note: assignment.note,
+                                                })
+                                            }
+                                        >
+                                            {assignment.userId.displayName}
+                                        </button>
+                                    ) : (
+                                        <div className="font-medium">
+                                            (tài khoản đã xóa)
+                                        </div>
+                                    )}
                                     <div className="text-xs text-text_2">
                                         {COLLABORATOR_SCOPE_LABEL[assignment.subScope.kind]}
                                         {assignment.subScope.streetId ? ` · ${assignment.subScope.streetId.name}` : ""}
@@ -929,6 +1033,85 @@ const NeighborhoodDetailContent: React.FC = () => {
                         </div>
                     )}
 
+                    {canManage && (
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
+                            <h2 className="mb-2 text-base font-semibold">
+                                Lịch sử tổ phó
+                            </h2>
+                            {coleaderHistoryLoading && <LoadingState />}
+                            {!coleaderHistoryLoading &&
+                                coleaderHistory.length === 0 && (
+                                    <EmptyState label="Chưa có lịch sử phân công tổ phó" />
+                                )}
+                            {!coleaderHistoryLoading &&
+                                coleaderHistory.map(h => (
+                                    <div
+                                        key={h._id}
+                                        className="border-b border-divider_01 py-2 text-sm last:border-0"
+                                    >
+                                        <div className="font-medium">
+                                            {h.userId?.displayName ||
+                                                "(tài khoản đã xóa)"}
+                                        </div>
+                                        <div className="text-xs text-text_2">
+                                            {formatDateTime(h.assignedAt)} →{" "}
+                                            {h.unassignedAt
+                                                ? formatDateTime(h.unassignedAt)
+                                                : "hiện tại"}
+                                            {h.assignedBy &&
+                                                ` · gán bởi ${h.assignedBy.displayName}`}
+                                        </div>
+                                        {h.note && (
+                                            <div className="text-xs text-text_2">
+                                                {h.note}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                        </div>
+                    )}
+
+                    {canManage && (
+                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
+                            <h2 className="mb-2 text-base font-semibold">
+                                Lịch sử cộng tác viên
+                            </h2>
+                            {collaboratorHistoryLoading && <LoadingState />}
+                            {!collaboratorHistoryLoading &&
+                                collaboratorHistory.length === 0 && (
+                                    <EmptyState label="Chưa có lịch sử phân công cộng tác viên" />
+                                )}
+                            {!collaboratorHistoryLoading &&
+                                collaboratorHistory.map(h => (
+                                    <div
+                                        key={h._id}
+                                        className="border-b border-divider_01 py-2 text-sm last:border-0"
+                                    >
+                                        <div className="font-medium">
+                                            {h.userId?.displayName ||
+                                                "(tài khoản đã xóa)"}
+                                        </div>
+                                        <div className="text-xs text-text_2">
+                                            {COLLABORATOR_SCOPE_LABEL[h.subScope.kind]}
+                                            {` · ${formatDateTime(h.assignedAt)} → `}
+                                            {h.unassignedAt
+                                                ? formatDateTime(h.unassignedAt)
+                                                : h.endAt
+                                                  ? formatDate(h.endAt)
+                                                  : "hiện tại"}
+                                            {h.assignedBy &&
+                                                ` · gán bởi ${h.assignedBy.displayName}`}
+                                        </div>
+                                        {h.note && (
+                                            <div className="text-xs text-text_2">
+                                                {h.note}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                        </div>
+                    )}
+
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">Lịch sử thay đổi Tổ</h2>
                         {organizationHistory.length === 0 && (
@@ -962,6 +1145,64 @@ const NeighborhoodDetailContent: React.FC = () => {
                     </div>
                 </>
             )}
+
+            <Dialog
+                open={!!profileTarget}
+                onOpenChange={open => !open && setProfileTarget(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Hồ sơ {profileTarget?.roleLabel}</DialogTitle>
+                    </DialogHeader>
+                    {profileTarget && (
+                        <div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-main to-primary-dark text-white ring-2 ring-blue_10">
+                                    {profileTarget.user.avatarUrl ? (
+                                        <img
+                                            src={resolveAssetUrl(profileTarget.user.avatarUrl)}
+                                            alt={profileTarget.user.displayName}
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <UserRound className="h-full w-full p-3" />
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-lg font-semibold text-text_1">
+                                        {profileTarget.user.displayName}
+                                    </div>
+                                    <Badge tone="gray">{profileTarget.roleLabel}</Badge>
+                                </div>
+                            </div>
+                            <div className="mt-4 space-y-2">
+                                <InfoRow
+                                    label="Số điện thoại"
+                                    value={profileTarget.user.phone || "Chưa có"}
+                                />
+                                <InfoRow
+                                    label="Đảm nhiệm từ"
+                                    value={formatDate(profileTarget.since)}
+                                />
+                                <InfoRow
+                                    label="Đến"
+                                    value={
+                                        profileTarget.until
+                                            ? formatDate(profileTarget.until)
+                                            : "Hiện tại"
+                                    }
+                                />
+                                {profileTarget.note && (
+                                    <InfoRow
+                                        label="Ghi chú"
+                                        value={profileTarget.note}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

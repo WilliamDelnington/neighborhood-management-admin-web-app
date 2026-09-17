@@ -7,6 +7,7 @@ import {
     ResidentSearchResult,
     Role,
     User,
+    UserManagementHistoryEntry,
 } from "@dts";
 import { request } from "./request";
 
@@ -195,6 +196,14 @@ export const uploadUserAvatar = (id: string, file: File): Promise<User> => {
     formData.append("file", file);
     return request<User>("POST", `${API.USERS}/${id}/avatar`, formData);
 };
+
+export const fetchUserManagementHistory = (
+    id: string,
+): Promise<UserManagementHistoryEntry[]> =>
+    request<UserManagementHistoryEntry[]>(
+        "GET",
+        `${API.USERS}/${id}/management-history`,
+    );
 
 export const fetchUserAttachments = (id: string): Promise<FileAsset[]> =>
     request<FileAsset[]>("GET", `${API.USERS}/${id}/attachments`);

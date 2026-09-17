@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,7 @@ import {
     Plus,
     Route,
     StickyNote,
+    Upload,
     Users,
 } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -57,6 +58,7 @@ import TransferNeighborhoodDialog from "@components/admin/TransferNeighborhoodDi
 import HouseGisPanel from "@components/admin/HouseGisPanel";
 import RequiredDocumentsPanel from "@components/admin/RequiredDocumentsPanel";
 import { useAuthStore, usePermission } from "@store/authStore";
+import { resolveAssetUrl } from "@constants/common";
 import {
     VERIFICATION_STATUS_LABEL,
     VERIFICATION_STATUS_TONE,
@@ -90,6 +92,7 @@ import {
     reviewHouseDocument,
     updateHouse,
     updateHouseStatus,
+    uploadHouseImage,
 } from "@service/houseApi";
 import { createHousehold, updateHousehold } from "@service/householdApi";
 import { fetchOrganizationById } from "@service/organizationApi";
@@ -208,6 +211,8 @@ const HouseDetailContent: React.FC = () => {
         useState<HouseStatus | null>(null);
     const [statusNote, setStatusNote] = useState("");
     const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const imageInputRef = useRef<HTMLInputElement>(null);
 
     const [households, setHouseholds] = useState<Household[]>([]);
     const [householdsLoading, setHouseholdsLoading] = useState(true);
@@ -354,6 +359,20 @@ const HouseDetailContent: React.FC = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleImageSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file || !houseId) return;
+        setUploadingImage(true);
+        uploadHouseImage(houseId, file)
+            .then(updated => {
+                setHouse(updated);
+                toast.success("Đã cập nhật ảnh nhà số");
+            })
+            .catch(err => toast.error((err as AppError).message))
+            .finally(() => setUploadingImage(false));
     };
 
     const handleDelete = async () => {
@@ -696,9 +715,36 @@ const HouseDetailContent: React.FC = () => {
                     <div className="rounded-xl border border-divider_01 bg-ui_bg p-6 shadow-sm">
                         <div className="flex flex-wrap items-start justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-main to-primary-dark text-white ring-2 ring-blue_10">
-                                    <Home className="h-6 w-6" />
-                                </div>
+                                <button
+                                    type="button"
+                                    disabled={!canUpdate}
+                                    onClick={() =>
+                                        imageInputRef.current?.click()
+                                    }
+                                    className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-main to-primary-dark ring-2 ring-blue_10 disabled:cursor-default"
+                                >
+                                    {house.imageUrl ? (
+                                        <img
+                                            src={resolveAssetUrl(house.imageUrl)}
+                                            alt={house.code}
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <Home className="h-full w-full p-3 text-white" />
+                                    )}
+                                    {canUpdate && (
+                                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+                                            <Upload className="h-5 w-5 text-white" />
+                                        </span>
+                                    )}
+                                </button>
+                                <input
+                                    ref={imageInputRef}
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={handleImageSelected}
+                                />
                                 <div>
                                     <h2 className="text-xl font-semibold text-text_1">
                                         {house.code}
@@ -708,6 +754,11 @@ const HouseDetailContent: React.FC = () => {
                                             {HOUSE_STATUS_LABEL[house.status]}
                                         </Badge>
                                     </div>
+                                    {uploadingImage && (
+                                        <p className="mt-1 text-xs text-text_2">
+                                            Đang tải lên ảnh nhà số...
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
