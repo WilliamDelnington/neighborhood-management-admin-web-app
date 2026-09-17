@@ -38,3 +38,6 @@ export const updateStreet = (
     id: string,
     input: UpdateStreetInput,
 ): Promise<Street> => request<Street>("PATCH", `${API.STREETS}/${id}`, input);
+
+export const deleteStreet = (id: string): Promise<null> =>
+    request<null>("DELETE", `${API.STREETS}/${id}`);
