@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
+import { Button } from "@components/ui/button";
 import {
     Select,
     SelectContent,
@@ -11,6 +12,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@components/ui/dialog";
 import {
     Table,
     TableBody,
@@ -33,6 +40,7 @@ import {
 } from "@constants/domain";
 import {
     fetchPasswordResetRequests,
+    resetPasswordResetRequestPassword,
     updatePasswordResetRequestStatus,
 } from "@service/passwordResetRequestApi";
 
@@ -62,6 +70,11 @@ const PasswordResetRequestListContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [resettingId, setResettingId] = useState<string | null>(null);
+    const [revealedPassword, setRevealedPassword] = useState<{
+        phone: string;
+        password: string;
+    } | null>(null);
 
     const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
@@ -121,11 +134,27 @@ const PasswordResetRequestListContent: React.FC = () => {
         }
     };
 
+    const handleResetPassword = async (item: PasswordResetRequest) => {
+        try {
+            setResettingId(item._id);
+            const { request, plainPassword } =
+                await resetPasswordResetRequestPassword(item._id);
+            setItems(prev =>
+                prev.map(i => (i._id === item._id ? request : i)),
+            );
+            setRevealedPassword({ phone: item.phone, password: plainPassword });
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setResettingId(null);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Yêu cầu đặt lại mật khẩu"
-                description="Yêu cầu hỗ trợ đặt lại mật khẩu từ người dùng không đăng nhập được (gửi từ màn hình đăng nhập, không qua tài khoản). Xác minh danh tính qua điện thoại rồi đặt lại mật khẩu tại màn Người dùng."
+                description="Yêu cầu hỗ trợ đặt lại mật khẩu từ người dùng không đăng nhập được (gửi từ màn hình đăng nhập, không qua tài khoản). Xác minh danh tính qua số điện thoại/tài khoản khớp rồi bấm Đặt lại mật khẩu - hệ thống tự sinh mật khẩu mới, người dùng có thể tự lấy lại bằng cách nhập lại số điện thoại ở màn đăng nhập."
             />
 
             <FilterBar>
@@ -184,6 +213,9 @@ const PasswordResetRequestListContent: React.FC = () => {
                                 <TableHead>Ghi chú</TableHead>
                                 <TableHead>Gửi lúc</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">
+                                    Thao tác
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -276,6 +308,25 @@ const PasswordResetRequestListContent: React.FC = () => {
                                             </Select>
                                         </div>
                                     </TableCell>
+                                    <TableCell className="text-right">
+                                        {item.status !== "dong" && (
+                                            <Button
+                                                size="sm"
+                                                disabled={
+                                                    !item.matchedUser ||
+                                                    resettingId === item._id
+                                                }
+                                                loading={
+                                                    resettingId === item._id
+                                                }
+                                                onClick={() =>
+                                                    handleResetPassword(item)
+                                                }
+                                            >
+                                                Đặt lại mật khẩu
+                                            </Button>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -291,6 +342,29 @@ const PasswordResetRequestListContent: React.FC = () => {
                     disabled={loading}
                 />
             )}
+
+            <Dialog
+                open={!!revealedPassword}
+                onOpenChange={open => !open && setRevealedPassword(null)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Đã đặt lại mật khẩu</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-text_2">
+                        Mật khẩu mới cho số điện thoại{" "}
+                        <span className="font-medium text-text_1">
+                            {revealedPassword?.phone}
+                        </span>
+                        . Người dùng cũng có thể tự lấy mật khẩu này bằng cách
+                        nhập lại số điện thoại ở màn hình đăng nhập, nhưng bạn
+                        có thể báo trực tiếp cho họ nếu cần.
+                    </p>
+                    <div className="rounded-lg border border-divider_01 bg-gray-50 p-3 text-center font-mono text-lg tracking-wider">
+                        {revealedPassword?.password}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

@@ -133,7 +133,6 @@ const AuditLogListContent: React.FC = () => {
                 <div className="space-y-1.5">
                     <Label className="text-xs">Hành động</Label>
                     <Input
-                        className="w-48"
                         placeholder="vd: role.create"
                         value={action}
                         onChange={e => setAction(e.target.value)}
@@ -145,7 +144,7 @@ const AuditLogListContent: React.FC = () => {
                         value={targetModel || "all"}
                         onValueChange={v => setTargetModel(v === "all" ? "" : v)}
                     >
-                        <SelectTrigger className="w-48">
+                        <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -162,7 +161,6 @@ const AuditLogListContent: React.FC = () => {
                     <Label className="text-xs">Từ ngày</Label>
                     <Input
                         type="date"
-                        className="w-40"
                         value={from}
                         onChange={e => setFrom(e.target.value)}
                     />
@@ -171,7 +169,6 @@ const AuditLogListContent: React.FC = () => {
                     <Label className="text-xs">Đến ngày</Label>
                     <Input
                         type="date"
-                        className="w-40"
                         value={to}
                         onChange={e => setTo(e.target.value)}
                     />
