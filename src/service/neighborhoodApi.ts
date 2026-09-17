@@ -61,6 +61,10 @@ export interface NeighborhoodInput {
     contactPhone?: string;
     notes?: string;
     boundaryType?: "NONE" | "DOCUMENT" | "GEOJSON";
+    geometry?: {
+        type: "Polygon" | "MultiPolygon";
+        coordinates: unknown[];
+    };
 }
 
 export const createNeighborhood = (

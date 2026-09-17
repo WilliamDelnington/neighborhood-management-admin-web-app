@@ -80,6 +80,7 @@ const toFormValues = (n: Neighborhood): NeighborhoodFormValues => ({
     streetIds: n.streetIds?.map(street => street._id) || [],
     alleyDescriptions: n.alleyDescriptions?.join("\n") || "",
     boundaryType: n.boundaryType || "NONE",
+    geometry: n.geometry,
 });
 
 const formatDateTime = (iso?: string) => {
