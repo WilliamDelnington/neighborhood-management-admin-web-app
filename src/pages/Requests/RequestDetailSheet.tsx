@@ -773,22 +773,26 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                     <h3 className="text-sm font-semibold">
                                         Tệp đính kèm
                                     </h3>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        loading={uploading}
-                                        onClick={handleUploadClick}
-                                    >
-                                        <Upload className="mr-1 h-3.5 w-3.5" />
-                                        Tải lên
-                                    </Button>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        className="hidden"
-                                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-                                        onChange={handleFileSelected}
-                                    />
+                                    {(canManage || isCreator) && (
+                                        <>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                loading={uploading}
+                                                onClick={handleUploadClick}
+                                            >
+                                                <Upload className="mr-1 h-3.5 w-3.5" />
+                                                Tải lên
+                                            </Button>
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                className="hidden"
+                                                accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                                onChange={handleFileSelected}
+                                            />
+                                        </>
+                                    )}
                                 </div>
                                 {attachmentsLoading && <LoadingState />}
                                 {!attachmentsLoading &&
