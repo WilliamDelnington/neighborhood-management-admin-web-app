@@ -45,6 +45,7 @@ const RELATED_MODEL_LINK: Record<string, (id: string) => string> = {
     Survey: id => `/surveys/${id}/edit`,
     Request: id => `/requests?requestId=${id}`,
     ChangeRequest: () => "/change-requests",
+    PasswordResetRequest: () => "/password-reset-requests",
     InfrastructureAsset: () => "/infrastructure-assets",
     PeriodicReport: () => "/periodic-reports",
     User: () => "/users",

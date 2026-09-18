@@ -28,6 +28,7 @@ import { cn } from "@lib/utils";
 import AdminGuard from "@components/auth/AdminGuard";
 import StatCard from "@components/admin/StatCard";
 import GisOverviewMap from "@components/admin/GisOverviewMap";
+import NeighborhoodZonesMap from "@components/admin/NeighborhoodZonesMap";
 import ReportBarChart, {
     ReportBarChartSeries,
 } from "@components/admin/ReportBarChart";
@@ -824,6 +825,11 @@ const DashboardContent: React.FC = () => {
                     )}
                 </>
             )}
+
+            {summary.capabilities.population &&
+                user?.permissions?.includes("neighborhoods.read") && (
+                    <NeighborhoodZonesMap />
+                )}
 
             {summary.audience !== "neighborhood" &&
                 !WARD_FAMILY_AUDIENCES.includes(summary.audience) && (

@@ -18,6 +18,7 @@ import { loginWithPhone } from "@service/authApi";
 import { createPasswordResetRequest } from "@service/passwordResetRequestApi";
 import { AppError } from "@dts";
 import AppBrand from "@components/layout/AppBrand";
+import neighborhoodMap from "@assets/neighborhood-map.jpg";
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -84,64 +85,80 @@ const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#eef1f4] p-6">
-            <form
-                onSubmit={handleSubmit}
-                className="w-full max-w-[28rem] rounded-xl border border-[#d7dee6] bg-[#f7f9fb] p-6 shadow-[0_2px_0_rgba(15,23,42,0.02)]"
-            >
-                <div className="flex justify-center">
-                    <AppBrand
-                        imgClassName="h-12 max-w-[240px] object-contain"
-                        textClassName="items-center text-center text-[2.1rem] font-semibold leading-[1.3] tracking-[-0.03em] text-main"
-                    />
-                </div>
-                <p className="mb-6 mt-1 text-center text-[1.05rem] text-[#4b5f73]">
-                    Đăng nhập bằng số điện thoại cán bộ
-                </p>
-
-                <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-[1.05rem] font-medium text-[#1f2b38]">
-                        Số điện thoại
-                    </Label>
-                    <Input
-                        id="phone"
-                        placeholder="0xxxxxxxxx"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        autoFocus
-                        className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
-                    />
-                </div>
-                <div className="mt-4 space-y-2">
-                    <Label htmlFor="password" className="text-[1.05rem] font-medium text-[#1f2b38]">
-                        Mật khẩu
-                    </Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
-                    />
-                </div>
-
-                <Button
-                    type="submit"
-                    className="mt-5 h-12 w-full rounded-lg bg-[#0a5a8a] text-base font-semibold text-white shadow-none hover:bg-[#0a4f7c]"
-                    loading={submitting}
+        <div className="flex h-screen overflow-hidden bg-[#eef1f4]">
+            <div className="flex w-full flex-col items-center justify-center overflow-y-auto p-6 lg:w-1/2 lg:min-w-[28rem]">
+                <form
+                    onSubmit={handleSubmit}
+                    className="w-full max-w-[28rem] rounded-xl border border-[#d7dee6] bg-[#f7f9fb] p-6 shadow-[0_2px_0_rgba(15,23,42,0.02)]"
                 >
-                    Đăng nhập
-                </Button>
+                    <div className="flex justify-center">
+                        <AppBrand
+                            imgClassName="h-12 max-w-[240px] object-contain"
+                            textClassName="items-center text-center text-[2.1rem] font-semibold leading-[1.3] tracking-[-0.03em] text-main"
+                        />
+                    </div>
+                    <p className="mb-6 mt-1 text-center text-[1.05rem] text-[#4b5f73]">
+                        Đăng nhập bằng số điện thoại cán bộ
+                    </p>
 
-                <Button
-                    type="button"
-                    variant="link"
-                    className="mt-3 h-auto w-full p-0 text-sm text-[#4b5f73]"
-                    onClick={() => setForgotOpen(true)}
-                >
-                    Quên mật khẩu?
-                </Button>
-            </form>
+                    <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-[1.05rem] font-medium text-[#1f2b38]">
+                            Số điện thoại
+                        </Label>
+                        <Input
+                            id="phone"
+                            placeholder="0xxxxxxxxx"
+                            value={phone}
+                            onChange={e => setPhone(e.target.value)}
+                            autoFocus
+                            className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
+                        />
+                    </div>
+                    <div className="mt-4 space-y-2">
+                        <Label htmlFor="password" className="text-[1.05rem] font-medium text-[#1f2b38]">
+                            Mật khẩu
+                        </Label>
+                        <Input
+                            id="password"
+                            type="password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
+                        />
+                    </div>
+
+                    <Button
+                        type="submit"
+                        className="mt-5 h-12 w-full rounded-lg bg-[#0a5a8a] text-base font-semibold text-white shadow-none hover:bg-[#0a4f7c]"
+                        loading={submitting}
+                    >
+                        Đăng nhập
+                    </Button>
+
+                    <Button
+                        type="button"
+                        variant="link"
+                        className="mt-3 h-auto w-full p-0 text-sm text-[#4b5f73]"
+                        onClick={() => setForgotOpen(true)}
+                    >
+                        Quên mật khẩu?
+                    </Button>
+                </form>
+            </div>
+
+            <div className="relative hidden overflow-hidden bg-[#0a1f33] lg:block lg:w-1/2">
+                <img
+                    src={neighborhoodMap}
+                    alt="Bản đồ tổ chức các tổ dân phố phường Dương Nội"
+                    className="h-full w-full object-cover object-top"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0a1f33]/70 to-transparent" />
+                <div className="absolute bottom-5 right-6 rounded-full bg-[#0a1f33]/70 px-4 py-1.5 backdrop-blur-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white">
+                        Phường Dương Nội · Hà Nội
+                    </p>
+                </div>
+            </div>
 
             <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
                 <DialogContent>
