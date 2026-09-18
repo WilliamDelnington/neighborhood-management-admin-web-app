@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { FileDown, Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -36,7 +36,11 @@ import FilterBar from "@components/admin/FilterBar";
 import { usePermission } from "@store/authStore";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Neighborhood, NeighborhoodStatus, Street, User } from "@dts";
-import { createNeighborhood, fetchNeighborhoods } from "@service/neighborhoodApi";
+import {
+    createNeighborhood,
+    downloadAllNeighborhoodMembers,
+    fetchNeighborhoods,
+} from "@service/neighborhoodApi";
 import { fetchStreets } from "@service/streetApi";
 import { fetchUsers } from "@service/userApi";
 import NeighborhoodForm, {
@@ -86,6 +90,7 @@ const NeighborhoodListContent: React.FC = () => {
         EMPTY_NEIGHBORHOOD_FORM,
     );
     const [submitting, setSubmitting] = useState(false);
+    const [exportingMembers, setExportingMembers] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -123,6 +128,17 @@ const NeighborhoodListContent: React.FC = () => {
             .catch(() => setLeaders([]));
     }, []);
 
+    const handleExportMembers = async () => {
+        try {
+            setExportingMembers(true);
+            await downloadAllNeighborhoodMembers();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExportingMembers(false);
+        }
+    };
+
     const openCreate = () => {
         setForm(EMPTY_NEIGHBORHOOD_FORM);
         setCreateVisible(true);
@@ -153,10 +169,20 @@ const NeighborhoodListContent: React.FC = () => {
                 description="Quản lý các tổ dân phố và cán bộ phụ trách trong từng khu vực."
                 action={
                     canCreate && (
-                        <Button onClick={openCreate}>
-                            <Plus className="mr-1 h-4 w-4" />
-                            Thêm tổ dân phố
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                loading={exportingMembers}
+                                onClick={handleExportMembers}
+                            >
+                                <FileDown className="mr-1 h-4 w-4" />
+                                Xuất Excel thành viên
+                            </Button>
+                            <Button onClick={openCreate}>
+                                <Plus className="mr-1 h-4 w-4" />
+                                Thêm tổ dân phố
+                            </Button>
+                        </div>
                     )
                 }
             />
