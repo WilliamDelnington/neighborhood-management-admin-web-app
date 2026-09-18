@@ -1,74 +1,34 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, UserRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
-import { Label } from "@components/ui/label";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@components/ui/dialog";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@components/ui/select";
 import {
     LoadingState,
     EmptyState,
     ErrorState,
 } from "@components/admin/DataStates";
 import { usePermission } from "@store/authStore";
+import { AppError, Neighborhood, NeighborhoodHistory, FileAsset } from "@dts";
 import {
-    AppError,
-    Neighborhood,
-    NeighborhoodLeaderAssignment,
-    NeighborhoodColeaderAssignment,
-    NeighborhoodHistory,
-    NeighborhoodCollaboratorAssignment,
-    NeighborhoodCollaboratorScope,
-    FileAsset,
-    House,
-    InspectionCampaign,
-    User,
-} from "@dts";
-import { COLLABORATOR_SCOPE_LABEL } from "@constants/domain";
-import { resolveAssetUrl } from "@constants/common";
-import {
-    assignNeighborhoodCollaborator,
-    assignNeighborhoodColeader,
-    assignNeighborhoodLeader,
     createNeighborhoodAttachment,
     deleteNeighborhoodAttachment,
     fetchNeighborhoodAttachments,
     fetchNeighborhoodById,
-    fetchNeighborhoodColeaderHistory,
-    fetchNeighborhoodColeaders,
-    fetchNeighborhoodCollaboratorHistory,
-    fetchNeighborhoodCollaborators,
-    fetchNeighborhoodLeaderHistory,
     fetchNeighborhoodHistory,
-    unassignNeighborhoodCollaborator,
-    unassignNeighborhoodColeader,
     updateNeighborhood,
 } from "@service/neighborhoodApi";
-import { fetchUsers } from "@service/userApi";
-import { fetchHouses } from "@service/houseApi";
-import { fetchInspectionCampaigns } from "@service/inspectionApi";
 import NeighborhoodForm, {
     NeighborhoodFormValues,
     isNeighborhoodFormValid,
     toUpdateNeighborhoodInput,
 } from "./NeighborhoodForm";
+import NeighborhoodMembersPanel from "./NeighborhoodMembersPanel";
 
 const toFormValues = (n: Neighborhood): NeighborhoodFormValues => ({
     name: n.name,
@@ -105,8 +65,6 @@ const formatDate = (iso?: string) => {
     return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString("vi-VN");
 };
 
-const NONE_LEADER_VALUE = "__none__";
-
 const NeighborhoodDetailPage: React.FC = () => (
     <AdminGuard permissions={["neighborhoods.read"]}>
         <NeighborhoodDetailContent />
@@ -125,74 +83,12 @@ const NeighborhoodDetailContent: React.FC = () => {
     const [form, setForm] = useState<NeighborhoodFormValues | null>(null);
     const [saving, setSaving] = useState(false);
 
-    // Picker "Tổ trưởng" - gan/go truc tiep, khong con qua nhiem ky.
-    const [candidateLeaders, setCandidateLeaders] = useState<User[]>([]);
-    const [selectedLeaderId, setSelectedLeaderId] = useState("");
-    const [savingLeader, setSavingLeader] = useState(false);
-    const [unassigningLeader, setUnassigningLeader] = useState(false);
-
-    const [history, setHistory] = useState<NeighborhoodLeaderAssignment[]>([]);
-    const [historyLoading, setHistoryLoading] = useState(true);
-
-    // Picker "Tổ phó" - gan/go truc tiep, khong con qua nhiem ky.
-    const [candidateColeaders, setCandidateColeaders] = useState<User[]>([]);
-    const [selectedColeaderId, setSelectedColeaderId] = useState("");
-    const [savingColeader, setSavingColeader] = useState(false);
-    const [unassigningColeaderId, setUnassigningColeaderId] = useState<
-        string | null
-    >(null);
-    const [coleaders, setColeaders] = useState<NeighborhoodColeaderAssignment[]>(
-        [],
-    );
-    const [coleadersLoading, setColeadersLoading] = useState(true);
-    const [coleaderHistory, setColeaderHistory] = useState<
-        NeighborhoodColeaderAssignment[]
-    >([]);
-    const [coleaderHistoryLoading, setColeaderHistoryLoading] = useState(true);
-    const [collaboratorHistory, setCollaboratorHistory] = useState<
-        NeighborhoodCollaboratorAssignment[]
-    >([]);
-    const [collaboratorHistoryLoading, setCollaboratorHistoryLoading] =
-        useState(true);
     const [attachments, setAttachments] = useState<FileAsset[]>([]);
     const [attachmentsLoading, setAttachmentsLoading] = useState(true);
     const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
     const [attachmentForm, setAttachmentForm] = useState({ name: "", url: "", description: "" });
     const [savingAttachment, setSavingAttachment] = useState(false);
     const [organizationHistory, setOrganizationHistory] = useState<NeighborhoodHistory[]>([]);
-    const [candidateCollaborators, setCandidateCollaborators] = useState<User[]>([]);
-    const [collaborators, setCollaborators] = useState<NeighborhoodCollaboratorAssignment[]>([]);
-    const [collaboratorsLoading, setCollaboratorsLoading] = useState(true);
-    const [scopeHouses, setScopeHouses] = useState<House[]>([]);
-    const [scopeCampaigns, setScopeCampaigns] = useState<InspectionCampaign[]>([]);
-    const [collaboratorForm, setCollaboratorForm] = useState({
-        collaboratorUserId: "",
-        scopeType: "WHOLE_NEIGHBORHOOD" as NeighborhoodCollaboratorScope,
-        streetId: "",
-        houseIds: [] as string[],
-        campaignId: "",
-        startAt: "",
-        endAt: "",
-        note: "",
-    });
-    const [savingCollaborator, setSavingCollaborator] = useState(false);
-    const [unassigningCollaboratorId, setUnassigningCollaboratorId] = useState<string | null>(null);
-
-    // Ho so xem nhanh (chi xem, khong sua) khi bam vao Tổ trưởng/Tổ phó/Cộng
-    // tác viên - dung lai du lieu da co san tren trang (khong goi API rieng).
-    const [profileTarget, setProfileTarget] = useState<{
-        user: {
-            _id: string;
-            displayName: string;
-            phone?: string;
-            avatarUrl?: string;
-            status?: string;
-        };
-        roleLabel: string;
-        since?: string;
-        until?: string;
-        note?: string;
-    } | null>(null);
 
     const load = () => {
         if (!id) return;
@@ -205,62 +101,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
-    };
-
-    const loadCandidateLeaders = () => {
-        fetchUsers(1, 50, undefined, "neighborhood_leader")
-            .then(res =>
-                setCandidateLeaders(
-                    res.items.filter(u => u.status === "active"),
-                ),
-            )
-            .catch(() => setCandidateLeaders([]));
-    };
-
-    const loadHistory = () => {
-        if (!id) return;
-        setHistoryLoading(true);
-        fetchNeighborhoodLeaderHistory(id)
-            .then(setHistory)
-            .catch(() => setHistory([]))
-            .finally(() => setHistoryLoading(false));
-    };
-
-    const loadCandidateColeaders = () => {
-        fetchUsers(1, 50, undefined, "neighborhood_coleader")
-            .then(res =>
-                setCandidateColeaders(
-                    res.items.filter(u => u.status === "active"),
-                ),
-            )
-            .catch(() => setCandidateColeaders([]));
-    };
-
-    const loadColeaders = () => {
-        if (!id) return;
-        setColeadersLoading(true);
-        fetchNeighborhoodColeaders(id)
-            .then(setColeaders)
-            .catch(() => setColeaders([]))
-            .finally(() => setColeadersLoading(false));
-    };
-
-    const loadColeaderHistory = () => {
-        if (!id) return;
-        setColeaderHistoryLoading(true);
-        fetchNeighborhoodColeaderHistory(id)
-            .then(setColeaderHistory)
-            .catch(() => setColeaderHistory([]))
-            .finally(() => setColeaderHistoryLoading(false));
-    };
-
-    const loadCollaboratorHistory = () => {
-        if (!id) return;
-        setCollaboratorHistoryLoading(true);
-        fetchNeighborhoodCollaboratorHistory(id)
-            .then(setCollaboratorHistory)
-            .catch(() => setCollaboratorHistory([]))
-            .finally(() => setCollaboratorHistoryLoading(false));
     };
 
     const loadAttachments = () => {
@@ -279,37 +119,10 @@ const NeighborhoodDetailContent: React.FC = () => {
             .catch(() => setOrganizationHistory([]));
     };
 
-    const loadCollaborators = () => {
-        if (!id) return;
-        setCollaboratorsLoading(true);
-        fetchNeighborhoodCollaborators(id)
-            .then(setCollaborators)
-            .catch(() => setCollaborators([]))
-            .finally(() => setCollaboratorsLoading(false));
-    };
-
     useEffect(() => {
         load();
-        loadCandidateLeaders();
-        loadHistory();
-        loadCandidateColeaders();
-        loadColeaders();
-        loadColeaderHistory();
-        loadCollaboratorHistory();
         loadAttachments();
         loadOrganizationHistory();
-        loadCollaborators();
-        fetchUsers(1, 100, undefined, "neighborhood_collaborator")
-            .then(result => setCandidateCollaborators(result.items.filter(user => user.status === "active")))
-            .catch(() => setCandidateCollaborators([]));
-        if (id) {
-            fetchHouses({ neighborhoodId: id, limit: 200 })
-                .then(result => setScopeHouses(result.items))
-                .catch(() => setScopeHouses([]));
-            fetchInspectionCampaigns({ page: 1, status: "ACTIVE" })
-                .then(result => setScopeCampaigns(result.items))
-                .catch(() => setScopeCampaigns([]));
-        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
@@ -334,78 +147,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setSaving(false);
-        }
-    };
-
-    const handleAssignLeader = async () => {
-        if (!id || !selectedLeaderId) {
-            toast.error("Vui lòng chọn tổ trưởng");
-            return;
-        }
-        try {
-            setSavingLeader(true);
-            await assignNeighborhoodLeader(id, selectedLeaderId);
-            setSelectedLeaderId("");
-            load();
-            loadHistory();
-            loadOrganizationHistory();
-            toast.success("Đã phân công tổ trưởng");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setSavingLeader(false);
-        }
-    };
-
-    const handleUnassignLeader = async () => {
-        if (!id) return;
-        try {
-            setUnassigningLeader(true);
-            await assignNeighborhoodLeader(id, null);
-            load();
-            loadHistory();
-            loadOrganizationHistory();
-            toast.success("Đã gỡ phân công tổ trưởng");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningLeader(false);
-        }
-    };
-
-    const handleAssignColeader = async () => {
-        if (!id || !selectedColeaderId) {
-            toast.error("Vui lòng chọn tổ phó");
-            return;
-        }
-        try {
-            setSavingColeader(true);
-            await assignNeighborhoodColeader(id, selectedColeaderId);
-            setSelectedColeaderId("");
-            loadColeaders();
-            loadColeaderHistory();
-            loadOrganizationHistory();
-            toast.success("Đã phân công tổ phó");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setSavingColeader(false);
-        }
-    };
-
-    const handleUnassignColeader = async (coleaderUserId: string) => {
-        if (!id) return;
-        try {
-            setUnassigningColeaderId(coleaderUserId);
-            await unassignNeighborhoodColeader(id, coleaderUserId);
-            loadColeaders();
-            loadColeaderHistory();
-            loadOrganizationHistory();
-            toast.success("Đã gỡ phân công tổ phó");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningColeaderId(null);
         }
     };
 
@@ -444,60 +185,6 @@ const NeighborhoodDetailContent: React.FC = () => {
             toast.error((err as AppError).message);
         } finally {
             setDeletingAttachmentId(null);
-        }
-    };
-
-    const handleAssignCollaborator = async () => {
-        if (!id || !collaboratorForm.collaboratorUserId) {
-            toast.error("Vui lòng chọn cộng tác viên");
-            return;
-        }
-        try {
-            setSavingCollaborator(true);
-            await assignNeighborhoodCollaborator(id, {
-                collaboratorUserId: collaboratorForm.collaboratorUserId,
-                scopeType: collaboratorForm.scopeType,
-                streetId: collaboratorForm.streetId || undefined,
-                houseIds: collaboratorForm.houseIds,
-                campaignId: collaboratorForm.campaignId || undefined,
-                startAt: collaboratorForm.startAt || undefined,
-                endAt: collaboratorForm.endAt || undefined,
-                note: collaboratorForm.note.trim() || undefined,
-            });
-            setCollaboratorForm({
-                collaboratorUserId: "",
-                scopeType: "WHOLE_NEIGHBORHOOD",
-                streetId: "",
-                houseIds: [],
-                campaignId: "",
-                startAt: "",
-                endAt: "",
-                note: "",
-            });
-            loadCollaborators();
-            loadCollaboratorHistory();
-            loadOrganizationHistory();
-            toast.success("Đã phân công cộng tác viên");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setSavingCollaborator(false);
-        }
-    };
-
-    const handleUnassignCollaborator = async (assignmentId: string) => {
-        if (!id) return;
-        try {
-            setUnassigningCollaboratorId(assignmentId);
-            await unassignNeighborhoodCollaborator(id, assignmentId);
-            loadCollaborators();
-            loadCollaboratorHistory();
-            loadOrganizationHistory();
-            toast.success("Đã kết thúc phân công cộng tác viên");
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setUnassigningCollaboratorId(null);
         }
     };
 
@@ -654,465 +341,10 @@ const NeighborhoodDetailContent: React.FC = () => {
                         />
                     </div>
 
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <h2 className="mb-2 text-base font-semibold">
-                            Tổ trưởng hiện tại
-                        </h2>
-                        <p className="mb-3 text-xs text-text_2">
-                            Chỉ 1 tổ trưởng active tại một thời điểm - gán
-                            người mới sẽ tự động thay thế người cũ (vẫn giữ
-                            lịch sử bên dưới), không xóa tài khoản.
-                        </p>
-                        {neighborhood.leaderUserId ? (
-                            <div className="flex items-center justify-between text-sm">
-                                <button
-                                    type="button"
-                                    className="text-left hover:underline"
-                                    onClick={() =>
-                                        setProfileTarget({
-                                            user: neighborhood.leaderUserId!,
-                                            roleLabel: "Tổ trưởng",
-                                            since: history.find(
-                                                h => !h.unassignedAt,
-                                            )?.assignedAt,
-                                        })
-                                    }
-                                >
-                                    <div className="font-medium">
-                                        {neighborhood.leaderUserId.displayName}
-                                    </div>
-                                    {neighborhood.leaderUserId.phone && (
-                                        <div className="text-xs text-text_2">
-                                            {neighborhood.leaderUserId.phone}
-                                        </div>
-                                    )}
-                                </button>
-                                {canManage && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        loading={unassigningLeader}
-                                        onClick={handleUnassignLeader}
-                                    >
-                                        Gỡ phân công
-                                    </Button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="mb-3 text-xs text-text_2">
-                                Chưa có tổ trưởng
-                            </div>
-                        )}
-                        {canManage && !neighborhood.leaderUserId && (
-                            <div className="flex gap-2">
-                                <Select
-                                    value={selectedLeaderId || NONE_LEADER_VALUE}
-                                    onValueChange={value =>
-                                        setSelectedLeaderId(
-                                            value === NONE_LEADER_VALUE ? "" : value,
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Chọn tổ trưởng" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE_LEADER_VALUE} disabled>
-                                            Chọn tổ trưởng
-                                        </SelectItem>
-                                        {candidateLeaders.map(u => (
-                                            <SelectItem key={u.id} value={u.id}>
-                                                {u.displayName}
-                                                {u.phone ? ` · ${u.phone}` : ""}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button
-                                    loading={savingLeader}
-                                    disabled={!selectedLeaderId}
-                                    onClick={handleAssignLeader}
-                                >
-                                    <Plus className="mr-1 h-4 w-4" /> Phân công
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <h2 className="mb-2 text-base font-semibold">
-                            Tổ phó
-                        </h2>
-                        <p className="mb-3 text-xs text-text_2">
-                            Một Tổ có thể có nhiều tổ phó cùng lúc, nhưng một
-                            người chỉ được là tổ phó của một Tổ tại một thời
-                            điểm.
-                        </p>
-                        {coleadersLoading && <LoadingState />}
-                        {!coleadersLoading && coleaders.length === 0 && (
-                            <div className="mb-2 text-xs text-text_2">
-                                Chưa có tổ phó
-                            </div>
-                        )}
-                        {!coleadersLoading &&
-                            coleaders.map(c => (
-                                <div
-                                    key={c._id}
-                                    className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0"
-                                >
-                                    {c.userId ? (
-                                        <button
-                                            type="button"
-                                            className="text-left hover:underline"
-                                            onClick={() =>
-                                                setProfileTarget({
-                                                    user: c.userId!,
-                                                    roleLabel: "Tổ phó",
-                                                    since: c.assignedAt,
-                                                    note: c.note,
-                                                })
-                                            }
-                                        >
-                                            <div className="font-medium">
-                                                {c.userId.displayName}
-                                            </div>
-                                            {c.userId.phone && (
-                                                <div className="text-xs text-text_2">
-                                                    {c.userId.phone}
-                                                </div>
-                                            )}
-                                        </button>
-                                    ) : (
-                                        <div className="font-medium">
-                                            (tài khoản đã xóa)
-                                        </div>
-                                    )}
-                                    {canManage && c.userId && (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            loading={unassigningColeaderId === c.userId._id}
-                                            onClick={() =>
-                                                handleUnassignColeader(c.userId!._id)
-                                            }
-                                        >
-                                            Gỡ phân công
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
-                        {canManage && (
-                            <div className="mt-3 flex gap-2">
-                                <Select
-                                    value={selectedColeaderId || NONE_LEADER_VALUE}
-                                    onValueChange={value =>
-                                        setSelectedColeaderId(
-                                            value === NONE_LEADER_VALUE ? "" : value,
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Chọn tổ phó" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value={NONE_LEADER_VALUE} disabled>
-                                            Chọn tổ phó
-                                        </SelectItem>
-                                        {candidateColeaders.map(u => (
-                                            <SelectItem key={u.id} value={u.id}>
-                                                {u.displayName}
-                                                {u.phone ? ` · ${u.phone}` : ""}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button
-                                    loading={savingColeader}
-                                    disabled={!selectedColeaderId}
-                                    onClick={handleAssignColeader}
-                                >
-                                    <Plus className="mr-1 h-4 w-4" /> Phân công
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <h2 className="mb-1 text-base font-semibold">Cộng tác viên</h2>
-                        <p className="mb-3 text-xs text-text_2">
-                            Phạm vi hẹp không tự mở quyền xem toàn Tổ; chiến dịch vẫn kiểm tra từng Nhà được giao.
-                        </p>
-                        {collaboratorsLoading && <LoadingState />}
-                        {!collaboratorsLoading && collaborators.length === 0 && (
-                            <EmptyState label="Chưa có cộng tác viên được phân công" />
-                        )}
-                        {!collaboratorsLoading && collaborators.map(assignment => (
-                            <div key={assignment._id} className="flex items-center justify-between border-b border-divider_01 py-2 text-sm last:border-0">
-                                <div>
-                                    {assignment.userId ? (
-                                        <button
-                                            type="button"
-                                            className="text-left font-medium hover:underline"
-                                            onClick={() =>
-                                                setProfileTarget({
-                                                    user: assignment.userId!,
-                                                    roleLabel: "Cộng tác viên",
-                                                    since: assignment.assignedAt,
-                                                    until: assignment.endAt,
-                                                    note: assignment.note,
-                                                })
-                                            }
-                                        >
-                                            {assignment.userId.displayName}
-                                        </button>
-                                    ) : (
-                                        <div className="font-medium">
-                                            (tài khoản đã xóa)
-                                        </div>
-                                    )}
-                                    <div className="text-xs text-text_2">
-                                        {COLLABORATOR_SCOPE_LABEL[assignment.subScope.kind]}
-                                        {assignment.subScope.streetId ? ` · ${assignment.subScope.streetId.name}` : ""}
-                                        {assignment.subScope.houseIds.length ? ` · ${assignment.subScope.houseIds.length} Nhà số` : ""}
-                                        {assignment.subScope.campaignId ? ` · ${assignment.subScope.campaignId.name}` : ""}
-                                        {` · ${formatDate(assignment.assignedAt)} → ${formatDate(assignment.endAt)}`}
-                                    </div>
-                                    {assignment.note && <div className="text-xs text-text_2">{assignment.note}</div>}
-                                </div>
-                                {canManage && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        loading={unassigningCollaboratorId === assignment._id}
-                                        onClick={() => handleUnassignCollaborator(assignment._id)}
-                                    >
-                                        Kết thúc
-                                    </Button>
-                                )}
-                            </div>
-                        ))}
-
-                        {canManage && (
-                            <div className="mt-4 grid gap-3 rounded-lg bg-bg_2 p-3 md:grid-cols-2">
-                                <div className="space-y-1.5">
-                                    <Label>Cộng tác viên</Label>
-                                    <Select
-                                        value={collaboratorForm.collaboratorUserId}
-                                        onValueChange={value => setCollaboratorForm({ ...collaboratorForm, collaboratorUserId: value })}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder="Chọn tài khoản cộng tác viên" /></SelectTrigger>
-                                        <SelectContent>
-                                            {candidateCollaborators.map(user => (
-                                                <SelectItem key={user.id} value={user.id}>{user.displayName}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Phạm vi</Label>
-                                    <Select
-                                        value={collaboratorForm.scopeType}
-                                        onValueChange={value => setCollaboratorForm({
-                                            ...collaboratorForm,
-                                            scopeType: value as NeighborhoodCollaboratorScope,
-                                            streetId: "",
-                                            houseIds: [],
-                                            campaignId: "",
-                                        })}
-                                    >
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            {Object.entries(COLLABORATOR_SCOPE_LABEL).map(([value, label]) => (
-                                                <SelectItem key={value} value={value}>{label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                {collaboratorForm.scopeType === "STREET" && (
-                                    <div className="space-y-1.5 md:col-span-2">
-                                        <Label>Tuyến đường</Label>
-                                        <Select value={collaboratorForm.streetId} onValueChange={value => setCollaboratorForm({ ...collaboratorForm, streetId: value })}>
-                                            <SelectTrigger><SelectValue placeholder="Chọn tuyến thuộc Tổ" /></SelectTrigger>
-                                            <SelectContent>
-                                                {neighborhood.streetIds?.map(street => (
-                                                    <SelectItem key={street._id} value={street._id}>{street.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                                {collaboratorForm.scopeType === "HOUSE_GROUP" && (
-                                    <div className="space-y-2 md:col-span-2">
-                                        <Label>Nhóm Nhà số</Label>
-                                        <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-divider_01 bg-ui_bg p-3">
-                                            {scopeHouses.map(house => (
-                                                <label key={house._id} className="flex items-center gap-2 text-sm">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={collaboratorForm.houseIds.includes(house._id)}
-                                                        onChange={event => setCollaboratorForm({
-                                                            ...collaboratorForm,
-                                                            houseIds: event.target.checked
-                                                                ? [...collaboratorForm.houseIds, house._id]
-                                                                : collaboratorForm.houseIds.filter(id => id !== house._id),
-                                                        })}
-                                                    />
-                                                    {house.code} · {house.address}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {collaboratorForm.scopeType === "CAMPAIGN" && (
-                                    <div className="space-y-1.5 md:col-span-2">
-                                        <Label>Chiến dịch</Label>
-                                        <Select value={collaboratorForm.campaignId} onValueChange={value => setCollaboratorForm({ ...collaboratorForm, campaignId: value })}>
-                                            <SelectTrigger><SelectValue placeholder="Chọn chiến dịch được giao cho Tổ" /></SelectTrigger>
-                                            <SelectContent>
-                                                {scopeCampaigns.map(campaign => (
-                                                    <SelectItem key={campaign._id} value={campaign._id}>{campaign.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                                <div className="space-y-1.5">
-                                    <Label>Bắt đầu</Label>
-                                    <Input type="date" value={collaboratorForm.startAt} onChange={e => setCollaboratorForm({ ...collaboratorForm, startAt: e.target.value })} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label>Kết thúc</Label>
-                                    <Input type="date" value={collaboratorForm.endAt} onChange={e => setCollaboratorForm({ ...collaboratorForm, endAt: e.target.value })} />
-                                </div>
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <Label>Ghi chú</Label>
-                                    <Input value={collaboratorForm.note} onChange={e => setCollaboratorForm({ ...collaboratorForm, note: e.target.value })} />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <Button loading={savingCollaborator} onClick={handleAssignCollaborator}>
-                                        Phân công cộng tác viên
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {canManage && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                            <h2 className="mb-2 text-base font-semibold">
-                                Lịch sử tổ trưởng
-                            </h2>
-                            {historyLoading && <LoadingState />}
-                            {!historyLoading && history.length === 0 && (
-                                <EmptyState label="Chưa có lịch sử phân công tổ trưởng" />
-                            )}
-                            {!historyLoading &&
-                                history.map(h => (
-                                    <div
-                                        key={h._id}
-                                        className="border-b border-divider_01 py-2 text-sm last:border-0"
-                                    >
-                                        <div className="font-medium">
-                                            {h.userId?.displayName ||
-                                                "(tài khoản đã xóa)"}
-                                        </div>
-                                        <div className="text-xs text-text_2">
-                                            {formatDateTime(h.assignedAt)} →{" "}
-                                            {h.unassignedAt
-                                                ? formatDateTime(h.unassignedAt)
-                                                : "hiện tại"}
-                                            {h.assignedBy &&
-                                                ` · gán bởi ${h.assignedBy.displayName}`}
-                                        </div>
-                                        {h.note && (
-                                            <div className="text-xs text-text_2">
-                                                {h.note}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                        </div>
-                    )}
-
-                    {canManage && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                            <h2 className="mb-2 text-base font-semibold">
-                                Lịch sử tổ phó
-                            </h2>
-                            {coleaderHistoryLoading && <LoadingState />}
-                            {!coleaderHistoryLoading &&
-                                coleaderHistory.length === 0 && (
-                                    <EmptyState label="Chưa có lịch sử phân công tổ phó" />
-                                )}
-                            {!coleaderHistoryLoading &&
-                                coleaderHistory.map(h => (
-                                    <div
-                                        key={h._id}
-                                        className="border-b border-divider_01 py-2 text-sm last:border-0"
-                                    >
-                                        <div className="font-medium">
-                                            {h.userId?.displayName ||
-                                                "(tài khoản đã xóa)"}
-                                        </div>
-                                        <div className="text-xs text-text_2">
-                                            {formatDateTime(h.assignedAt)} →{" "}
-                                            {h.unassignedAt
-                                                ? formatDateTime(h.unassignedAt)
-                                                : "hiện tại"}
-                                            {h.assignedBy &&
-                                                ` · gán bởi ${h.assignedBy.displayName}`}
-                                        </div>
-                                        {h.note && (
-                                            <div className="text-xs text-text_2">
-                                                {h.note}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                        </div>
-                    )}
-
-                    {canManage && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                            <h2 className="mb-2 text-base font-semibold">
-                                Lịch sử cộng tác viên
-                            </h2>
-                            {collaboratorHistoryLoading && <LoadingState />}
-                            {!collaboratorHistoryLoading &&
-                                collaboratorHistory.length === 0 && (
-                                    <EmptyState label="Chưa có lịch sử phân công cộng tác viên" />
-                                )}
-                            {!collaboratorHistoryLoading &&
-                                collaboratorHistory.map(h => (
-                                    <div
-                                        key={h._id}
-                                        className="border-b border-divider_01 py-2 text-sm last:border-0"
-                                    >
-                                        <div className="font-medium">
-                                            {h.userId?.displayName ||
-                                                "(tài khoản đã xóa)"}
-                                        </div>
-                                        <div className="text-xs text-text_2">
-                                            {COLLABORATOR_SCOPE_LABEL[h.subScope.kind]}
-                                            {` · ${formatDateTime(h.assignedAt)} → `}
-                                            {h.unassignedAt
-                                                ? formatDateTime(h.unassignedAt)
-                                                : h.endAt
-                                                  ? formatDate(h.endAt)
-                                                  : "hiện tại"}
-                                            {h.assignedBy &&
-                                                ` · gán bởi ${h.assignedBy.displayName}`}
-                                        </div>
-                                        {h.note && (
-                                            <div className="text-xs text-text_2">
-                                                {h.note}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                        </div>
-                    )}
-
+                    <NeighborhoodMembersPanel
+                        neighborhood={neighborhood}
+                        onMutated={loadOrganizationHistory}
+                    />
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
                         <h2 className="mb-2 text-base font-semibold">Lịch sử thay đổi Tổ</h2>
                         {organizationHistory.length === 0 && (
@@ -1146,64 +378,6 @@ const NeighborhoodDetailContent: React.FC = () => {
                     </div>
                 </>
             )}
-
-            <Dialog
-                open={!!profileTarget}
-                onOpenChange={open => !open && setProfileTarget(null)}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Hồ sơ {profileTarget?.roleLabel}</DialogTitle>
-                    </DialogHeader>
-                    {profileTarget && (
-                        <div>
-                            <div className="flex items-center gap-4">
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-main to-primary-dark text-white ring-2 ring-blue_10">
-                                    {profileTarget.user.avatarUrl ? (
-                                        <img
-                                            src={resolveAssetUrl(profileTarget.user.avatarUrl)}
-                                            alt={profileTarget.user.displayName}
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <UserRound className="h-full w-full p-3" />
-                                    )}
-                                </div>
-                                <div>
-                                    <div className="text-lg font-semibold text-text_1">
-                                        {profileTarget.user.displayName}
-                                    </div>
-                                    <Badge tone="gray">{profileTarget.roleLabel}</Badge>
-                                </div>
-                            </div>
-                            <div className="mt-4 space-y-2">
-                                <InfoRow
-                                    label="Số điện thoại"
-                                    value={profileTarget.user.phone || "Chưa có"}
-                                />
-                                <InfoRow
-                                    label="Đảm nhiệm từ"
-                                    value={formatDate(profileTarget.since)}
-                                />
-                                <InfoRow
-                                    label="Đến"
-                                    value={
-                                        profileTarget.until
-                                            ? formatDate(profileTarget.until)
-                                            : "Hiện tại"
-                                    }
-                                />
-                                {profileTarget.note && (
-                                    <InfoRow
-                                        label="Ghi chú"
-                                        value={profileTarget.note}
-                                    />
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };

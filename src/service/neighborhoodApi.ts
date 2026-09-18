@@ -1,4 +1,5 @@
-import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
+import { API, BASE_URL, DEFAULT_PAGE_SIZE } from "@constants/common";
+import { useAuthStore } from "@store/authStore";
 import {
     FileAsset,
     Neighborhood,
@@ -227,3 +228,30 @@ export const unassignNeighborhoodCollaborator = (
         `${API.NEIGHBORHOODS}/${id}/collaborators`,
         { assignmentId },
     );
+
+/**
+ * File .xlsx nhi phan (danh sach thanh vien cua TAT CA To dan pho) - khong
+ * theo envelope JSON chuan nen khong dung request(), mo truc tiep bang token
+ * qua fetch + tao link tai xuong tam thoi (giong downloadReportExcel o
+ * reportApi.ts/downloadImportTemplate o importApi.ts).
+ */
+export const downloadAllNeighborhoodMembers = async (): Promise<void> => {
+    const { token } = useAuthStore.getState();
+    const url = new URL(`${API.NEIGHBORHOODS}/members/export`, BASE_URL);
+
+    const res = await fetch(url.toString(), {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) {
+        throw new Error("Không thể xuất danh sách thành viên Tổ dân phố");
+    }
+    const blob = await res.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = "thanh-vien-to-dan-pho.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+};

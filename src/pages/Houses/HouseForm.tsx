@@ -484,20 +484,37 @@ const HouseForm: React.FC<HouseFormProps> = ({
                 </div>
             )}
             {canPickStreet ? (
-                <FilterableSelect
-                    label="Đường/phố"
-                    placeholder="Chọn đường/phố"
-                    searchPlaceholder="Tìm theo tên đường/phố..."
-                    items={streets}
-                    getId={s => s._id}
-                    getLabel={s => s.name}
-                    value={values.streetId}
-                    valueLabel={
-                        streets.find(s => s._id === values.streetId)?.name
-                    }
-                    onChange={id => set("streetId", id || "")}
-                    clearable={false}
-                />
+                <>
+                    <FilterableSelect
+                        label="Đường/phố"
+                        placeholder="Chọn đường/phố"
+                        searchPlaceholder="Tìm theo tên đường/phố..."
+                        items={streets}
+                        getId={s => s._id}
+                        getLabel={s => s.name}
+                        value={values.streetId}
+                        valueLabel={
+                            streets.find(s => s._id === values.streetId)?.name
+                        }
+                        onChange={id => set("streetId", id || "")}
+                        clearable={false}
+                    />
+                    <div className="space-y-1.5">
+                        <Label>Cụm dân cư</Label>
+                        <Input
+                            disabled
+                            value={
+                                streets.find(s => s._id === values.streetId)
+                                    ?.name ||
+                                values.cluster ||
+                                ""
+                            }
+                        />
+                        <p className="text-xs text-text_2">
+                            Tự động lấy theo Đường/phố đã chọn ở trên.
+                        </p>
+                    </div>
+                </>
             ) : (
                 <div className="space-y-1.5">
                     <Label>Cụm dân cư</Label>

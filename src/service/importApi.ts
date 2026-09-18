@@ -269,6 +269,27 @@ export interface CompanyColumnMapping {
     note?: string;
 }
 
+// Xem NEIGHBORHOOD_MEMBER_COLUMNS/applyNeighborhoodMemberImportMapping o
+// backend importService.ts - import KHONG tao tai khoan moi, chi gan pham vi
+// NEIGHBORHOOD cho mot tai khoan da co san (doi chieu qua so dien thoai) va
+// DA co vai tro do (roleKey/roleName). Dung boi
+// NeighborhoodMemberImportSheet.tsx, luon danh cho MOT To dan pho cu the
+// (neighborhoodId truyen luc upload, khong phai cot trong file).
+export interface NeighborhoodMemberImportPreviewRow {
+    phone: string;
+    userId: string;
+    userDisplayName: string;
+    roleKey: string;
+    roleName: string;
+    note?: string;
+}
+
+export interface NeighborhoodMemberColumnMapping {
+    phone: string;
+    roleName: string;
+    note?: string;
+}
+
 export const uploadHouseholdImportFile = (
     file: File,
     sheetName?: string,
@@ -442,6 +463,40 @@ export const commitCitizenImport = (
         `${API.IMPORT}/citizens/${jobId}/commit`,
     );
 
+export const uploadNeighborhoodMemberImportFile = (
+    neighborhoodId: string,
+    file: File,
+    sheetName?: string,
+): Promise<ImportJob<NeighborhoodMemberImportPreviewRow>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("neighborhoodId", neighborhoodId);
+    if (sheetName) formData.append("sheetName", sheetName);
+    return request<ImportJob<NeighborhoodMemberImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/neighborhood-members`,
+        formData,
+    );
+};
+
+export const applyNeighborhoodMemberImportMapping = (
+    jobId: string,
+    mapping: NeighborhoodMemberColumnMapping,
+): Promise<ImportJob<NeighborhoodMemberImportPreviewRow>> =>
+    request<ImportJob<NeighborhoodMemberImportPreviewRow>>(
+        "PUT",
+        `${API.IMPORT}/neighborhood-members/${jobId}/mapping`,
+        mapping,
+    );
+
+export const commitNeighborhoodMemberImport = (
+    jobId: string,
+): Promise<ImportJob<NeighborhoodMemberImportPreviewRow>> =>
+    request<ImportJob<NeighborhoodMemberImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/neighborhood-members/${jobId}/commit`,
+    );
+
 export const fetchImportJob = <T = StreetImportPreviewRow>(
     jobId: string,
 ): Promise<ImportJob<T>> =>
@@ -536,6 +591,12 @@ export const downloadCompanyImportTemplate = (): Promise<void> =>
     downloadImportTemplate(
         `${API.IMPORT}/companies/template`,
         "mau-nhap-cong-ty.xlsx",
+    );
+
+export const downloadNeighborhoodMemberImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/neighborhood-members/template`,
+        "mau-nhap-thanh-vien-to.xlsx",
     );
 
 /**
