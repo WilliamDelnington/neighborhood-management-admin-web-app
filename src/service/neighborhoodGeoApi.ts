@@ -40,3 +40,35 @@ export const fetchNeighborhoodPlaceDetails = (
         placeId,
         sessionToken,
     });
+
+export interface CategoryPlaceResult {
+    placeId: string;
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+}
+
+export interface LatLngBounds {
+    minLat: number;
+    minLng: number;
+    maxLat: number;
+    maxLng: number;
+}
+
+// Xap xi "bản đồ tiện ích" (UBND/Công an/Trường học/Chung cư...) - Goong khong
+// co API tim theo danh muc that (xem lib/integrations/goong.ts o backend), nen
+// chat luong/so luong ket qua bi gioi han theo Autocomplete. `bounds` (truyen
+// bbox Phuong, xem WARD_MAX_BOUNDS trong NeighborhoodZonesMap.tsx) loai bo ket
+// qua "bay ra ngoai" khu vuc quan ly - location cua Goong chi uu tien xep
+// hang, khong phai bo loc ban kinh cung.
+export const searchNeighborhoodPlacesByCategory = (
+    keyword: string,
+    center: { lat: number; lng: number },
+    bounds?: LatLngBounds,
+): Promise<CategoryPlaceResult[]> =>
+    request<CategoryPlaceResult[]>(
+        "POST",
+        `${API.NEIGHBORHOODS}/geo/category-search`,
+        { keyword, lat: center.lat, lng: center.lng, bounds },
+    );

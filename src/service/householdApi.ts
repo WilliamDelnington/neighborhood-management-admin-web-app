@@ -54,6 +54,28 @@ export const fetchHouseholds = (params?: {
 export const fetchHouseholdById = (id: string): Promise<Household> =>
     request<Household>("GET", `${API.HOUSEHOLDS}/${id}`);
 
+export interface HouseholdGisOverviewPoint {
+    householdId: string;
+    houseId: string;
+    code: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    needsSupport: boolean;
+    isNearPoor: boolean;
+    isMartyrFamilyHousehold: boolean;
+    isLonelyElderly: boolean;
+}
+
+export interface HouseholdGisOverview {
+    totalHouseholds: number;
+    householdsWithCoordinates: number;
+    points: HouseholdGisOverviewPoint[];
+}
+
+export const fetchHouseholdGisOverview = (): Promise<HouseholdGisOverview> =>
+    request<HouseholdGisOverview>("GET", `${API.HOUSEHOLDS}/gis-overview`);
+
 export const fetchHouseholdCitizens = (id: string) =>
     request("GET", `${API.HOUSEHOLDS}/${id}/citizens`);
 

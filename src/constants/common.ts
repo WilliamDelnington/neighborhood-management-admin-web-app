@@ -40,6 +40,7 @@ export const API = {
     NEIGHBORHOODS: "/api/neighborhoods",
     NEIGHBORHOODS_GEO_AUTOCOMPLETE: "/api/neighborhoods/geo/autocomplete",
     NEIGHBORHOODS_GEO_PLACE_DETAILS: "/api/neighborhoods/geo/place-details",
+    POIS: "/api/pois",
     STREETS: "/api/streets",
     INFRASTRUCTURE_ASSETS: "/api/infrastructure-assets",
     PERIODIC_REPORTS: "/api/periodic-reports",

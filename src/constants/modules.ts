@@ -1,6 +1,7 @@
 import {
     LayoutDashboard,
     Map,
+    MapPin,
     PenTool,
     Home,
     MessageSquare,
@@ -124,6 +125,15 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                 permission: "neighborhoods.read",
                 description:
                     "Bản đồ ranh giới các Tổ dân phố - xem, tìm kiếm địa chỉ và vẽ/sửa ranh giới.",
+            },
+            {
+                key: "pois",
+                label: "Điểm tiện ích",
+                path: "/pois",
+                icon: MapPin,
+                permission: "pois.read",
+                description:
+                    "Quản lý UBND/Công an/Trường học/Chợ... hiển thị trên Bản đồ tiện ích.",
             },
             {
                 key: "streets",

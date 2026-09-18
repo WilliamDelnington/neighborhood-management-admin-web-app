@@ -23,6 +23,7 @@ const MapPage = React.lazy(() => import("@pages/Map/MapPage"));
 const MapBoundaryPage = React.lazy(
     () => import("@pages/MapBoundary/MapBoundaryPage"),
 );
+const PoiListPage = React.lazy(() => import("@pages/Pois/PoiListPage"));
 const WardManagementPage = React.lazy(
     () => import("@pages/Wards/WardManagementPage"),
 );
@@ -297,6 +298,7 @@ const App: React.FC = () => {
                             path="/map-boundary"
                             element={<MapBoundaryPage />}
                         />
+                        <Route path="/pois" element={<PoiListPage />} />
                         <Route path="/wards" element={<WardManagementPage />} />
                         <Route path="/streets" element={<StreetListPage />} />
                         <Route
