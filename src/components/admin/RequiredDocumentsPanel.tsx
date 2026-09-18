@@ -71,6 +71,14 @@ export interface RequiredDocumentsPanelProps {
     className?: string;
     /** Goi lai sau khi duyet/tu choi thanh cong de trang cha lam moi trang thai. */
     onChanged?: () => void;
+    /**
+     * Thong bao khi loai hinh nay chua co yeu cau giay to nao - component
+     * nay dung chung cho Nha so/Ho dan/Ho kinh doanh/Cong ty nen PHAI truyen
+     * rieng tu trang cha, khong dung mac dinh (mac dinh la cau danh cho Ho
+     * kinh doanh, se sai neu hien tren Nha so/Ho dan/Cong ty - day chinh la
+     * loi da gap truoc do).
+     */
+    emptyLabel?: string;
 }
 
 const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
@@ -80,6 +88,7 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
     verifyPermission,
     className = "mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm",
     onChanged,
+    emptyLabel = "Loại hình kinh doanh này chưa có yêu cầu giấy tờ nào",
 }) => {
     const currentUser = useAuthStore(state => state.user);
     const canVerifyDefault = usePermission(verifyPermission);
@@ -203,7 +212,7 @@ const RequiredDocumentsPanel: React.FC<RequiredDocumentsPanelProps> = ({
                     {loading && <LoadingState />}
                     {!loading && error && <ErrorState onRetry={load} />}
                     {!loading && !error && items.length === 0 && (
-                        <EmptyState label="Loại hình kinh doanh này chưa có yêu cầu giấy tờ nào" />
+                        <EmptyState label={emptyLabel} />
                     )}
                     {!loading && !error && items.length > 0 && (
                         <div className="flex flex-col gap-3">

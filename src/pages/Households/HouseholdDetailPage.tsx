@@ -541,6 +541,7 @@ const HouseholdDetailContent: React.FC = () => {
                             onReview={reviewHouseholdDocument}
                             verifyPermission="households.verify"
                             onChanged={load}
+                            emptyLabel="Hộ dân này chưa có yêu cầu giấy tờ nào"
                         />
                     )}
 
