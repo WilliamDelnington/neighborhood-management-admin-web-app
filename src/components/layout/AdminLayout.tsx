@@ -61,6 +61,24 @@ function saveExpandedGroups(groups: Set<string>): void {
 const isModuleActive = (path: string, pathname: string) =>
     pathname === path || pathname.startsWith(`${path}/`);
 
+// Vd "/appointments" ("Lịch hẹn") va "/appointments/check-in" ("Check-in
+// lịch hẹn") la 2 muc CANH NHAU (khong phai cha-con) nhung path cua muc nay
+// lai la tien to cua path muc kia - NavLink cua react-router mac dinh khop
+// theo tien to (end=false) nen ca hai se cung duoc highlight khi dang o trang
+// check-in, gay hieu ung "highlight nham" muc "Lịch hẹn". Buoc cac muc nhu
+// vay dung end=true (khop chinh xac) de tranh dung do; cac muc khong trung
+// tien to voi muc nao khac van giu end=false nhu cu (vd van highlight dung
+// khi drill xuong trang con khong co trong menu, nhu /appointments/:id/history).
+const ALL_MODULE_PATHS = [
+    ...TOP_LEVEL_MODULES.map(m => m.path),
+    ...MODULE_GROUPS.flatMap(group => group.items.map(m => m.path)),
+];
+
+const isPrefixOfSiblingModulePath = (path: string) =>
+    ALL_MODULE_PATHS.some(
+        other => other !== path && other.startsWith(`${path}/`),
+    );
+
 const AdminLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -211,7 +229,10 @@ const AdminLayout: React.FC = () => {
                         <NavLink
                             key={m.key}
                             to={m.path}
-                            end={m.path === "/"}
+                            end={
+                                m.path === "/" ||
+                                isPrefixOfSiblingModulePath(m.path)
+                            }
                             title={descriptionOf(m)}
                             onClick={() => setSidebarOpen(false)}
                             className={({ isActive }) =>
@@ -252,6 +273,9 @@ const AdminLayout: React.FC = () => {
                                             <NavLink
                                                 key={m.key}
                                                 to={m.path}
+                                                end={isPrefixOfSiblingModulePath(
+                                                    m.path,
+                                                )}
                                                 title={descriptionOf(m)}
                                                 onClick={() =>
                                                     setSidebarOpen(false)
