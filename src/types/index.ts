@@ -2254,3 +2254,19 @@ export type UtilityApp = {
     sortOrder: number;
     createdAt: string;
 };
+
+// "Điểm tiện ích" tren "Bản đồ tiện ích" o Dashboard (NeighborhoodZonesMap.tsx)
+// va trang quan tri /pois - xem models/Poi.ts o backend.
+export type PoiCategory =
+    | "ubnd"
+    | "police"
+    | "atm"
+    | "clinic"
+    | "school"
+    | "post"
+    | "gas"
+    | "market"
+    | "restaurant"
+    | "cafe"
+    | "bus"
+    | "apartment";
