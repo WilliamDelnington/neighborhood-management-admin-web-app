@@ -11,6 +11,7 @@ import {
     SelectValue,
 } from "@components/ui/select";
 import FilterableSelect from "@components/admin/FilterableSelect";
+import GeoJsonBoundaryInput from "@components/admin/GeoJsonBoundaryInput";
 import {
     NeighborhoodInput,
     UpdateNeighborhoodInput,
@@ -21,6 +22,7 @@ import {
 } from "@service/administrativeDivisionApi";
 import { NeighborhoodStatus, Province, Street, Ward } from "@dts";
 import { fetchStreets } from "@service/streetApi";
+import { BoundaryGeometry } from "@lib/geoBoundary";
 
 export interface NeighborhoodFormValues {
     name: string;
@@ -43,6 +45,7 @@ export interface NeighborhoodFormValues {
     streetIds: string[];
     alleyDescriptions: string;
     boundaryType: "NONE" | "DOCUMENT" | "GEOJSON";
+    geometry?: BoundaryGeometry;
 }
 
 export const EMPTY_NEIGHBORHOOD_FORM: NeighborhoodFormValues = {
@@ -64,6 +67,7 @@ export const EMPTY_NEIGHBORHOOD_FORM: NeighborhoodFormValues = {
     streetIds: [],
     alleyDescriptions: "",
     boundaryType: "NONE",
+    geometry: undefined,
 };
 
 export function toNeighborhoodInput(
@@ -88,6 +92,7 @@ export function toNeighborhoodInput(
         contactPhone: values.contactPhone.trim() || undefined,
         notes: values.notes.trim() || undefined,
         boundaryType: values.boundaryType,
+        geometry: values.geometry,
     };
 }
 
@@ -118,6 +123,7 @@ export function toUpdateNeighborhoodInput(
             .map(value => value.trim())
             .filter(Boolean),
         boundaryType: values.boundaryType,
+        geometry: values.geometry,
     };
 }
 
@@ -353,27 +359,43 @@ const NeighborhoodForm: React.FC<NeighborhoodFormProps> = ({
             )}
             <div className="space-y-1.5">
                 <Label>Dữ liệu ranh giới</Label>
-                <Select
-                    value={values.boundaryType}
-                    onValueChange={value =>
-                        set(
-                            "boundaryType",
-                            value as NeighborhoodFormValues["boundaryType"],
-                        )
-                    }
-                >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="NONE">Chưa có</SelectItem>
-                        <SelectItem value="DOCUMENT">Theo hồ sơ đính kèm</SelectItem>
-                        {values.boundaryType === "GEOJSON" && (
-                            <SelectItem value="GEOJSON">Đã có dữ liệu GIS</SelectItem>
-                        )}
-                    </SelectContent>
-                </Select>
-                <p className="text-xs text-text_2">
-                    Hiện chưa cần GIS: có thể dùng danh sách tuyến, hẻm/ngõ và hồ sơ ranh giới đính kèm.
-                </p>
+                {values.geometry ? (
+                    <p className="text-xs text-text_2">
+                        Đã có dữ liệu GIS (nhập từ file GeoJSON) - xóa ranh giới bên
+                        dưới nếu muốn chuyển sang hồ sơ đính kèm hoặc bỏ trống.
+                    </p>
+                ) : (
+                    <>
+                        <Select
+                            value={values.boundaryType}
+                            onValueChange={value =>
+                                set(
+                                    "boundaryType",
+                                    value as NeighborhoodFormValues["boundaryType"],
+                                )
+                            }
+                        >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="NONE">Chưa có</SelectItem>
+                                <SelectItem value="DOCUMENT">Theo hồ sơ đính kèm</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-text_2">
+                            Hoặc nhập trực tiếp file GeoJSON ranh giới bên dưới (khuyến nghị) -
+                            hệ thống sẽ tự chuyển sang &quot;Đã có dữ liệu GIS&quot;.
+                        </p>
+                    </>
+                )}
+                <GeoJsonBoundaryInput
+                    value={values.geometry}
+                    onChange={geometry => {
+                        let { boundaryType } = values;
+                        if (geometry) boundaryType = "GEOJSON";
+                        else if (boundaryType === "GEOJSON") boundaryType = "NONE";
+                        onChange({ ...values, geometry, boundaryType });
+                    }}
+                />
             </div>
             <div className="space-y-1.5">
                 <Label>Số điện thoại liên hệ (Tùy chọn)</Label>

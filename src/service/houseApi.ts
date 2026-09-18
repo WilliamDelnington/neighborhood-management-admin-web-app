@@ -135,6 +135,12 @@ export const updateHouse = (
     input: Partial<HouseInput>,
 ): Promise<House> => request<House>("PATCH", `${API.HOUSES}/${id}`, input);
 
+export const uploadHouseImage = (id: string, file: File): Promise<House> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request<House>("POST", `${API.HOUSES}/${id}/image`, formData);
+};
+
 export const updateHouseGis = (
     id: string,
     input: {

@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
+import { Button } from "@components/ui/button";
 import {
     Select,
     SelectContent,
@@ -33,6 +34,7 @@ import {
 } from "@constants/domain";
 import {
     fetchPasswordResetRequests,
+    resetPasswordResetRequestPassword,
     updatePasswordResetRequestStatus,
 } from "@service/passwordResetRequestApi";
 
@@ -62,6 +64,7 @@ const PasswordResetRequestListContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [resettingId, setResettingId] = useState<string | null>(null);
 
     const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
@@ -121,11 +124,30 @@ const PasswordResetRequestListContent: React.FC = () => {
         }
     };
 
+    const handleResetPassword = async (item: PasswordResetRequest) => {
+        try {
+            setResettingId(item._id);
+            const { request } = await resetPasswordResetRequestPassword(
+                item._id,
+            );
+            setItems(prev =>
+                prev.map(i => (i._id === item._id ? request : i)),
+            );
+            toast.success(
+                "Đã đặt lại mật khẩu. Người dùng có thể tự lấy mật khẩu mới bằng cách nhập lại số điện thoại ở màn hình đăng nhập.",
+            );
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setResettingId(null);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Yêu cầu đặt lại mật khẩu"
-                description="Yêu cầu hỗ trợ đặt lại mật khẩu từ người dùng không đăng nhập được (gửi từ màn hình đăng nhập, không qua tài khoản). Xác minh danh tính qua điện thoại rồi đặt lại mật khẩu tại màn Người dùng."
+                description="Yêu cầu hỗ trợ đặt lại mật khẩu từ người dùng không đăng nhập được (gửi từ màn hình đăng nhập, không qua tài khoản). Xác minh danh tính qua số điện thoại/tài khoản khớp rồi bấm Đặt lại mật khẩu - hệ thống tự sinh mật khẩu mới, người dùng có thể tự lấy lại bằng cách nhập lại số điện thoại ở màn đăng nhập."
             />
 
             <FilterBar>
@@ -184,6 +206,9 @@ const PasswordResetRequestListContent: React.FC = () => {
                                 <TableHead>Ghi chú</TableHead>
                                 <TableHead>Gửi lúc</TableHead>
                                 <TableHead>Trạng thái</TableHead>
+                                <TableHead className="text-right">
+                                    Thao tác
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -275,6 +300,25 @@ const PasswordResetRequestListContent: React.FC = () => {
                                                 </SelectContent>
                                             </Select>
                                         </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {item.status !== "dong" && (
+                                            <Button
+                                                size="sm"
+                                                disabled={
+                                                    !item.matchedUser ||
+                                                    resettingId === item._id
+                                                }
+                                                loading={
+                                                    resettingId === item._id
+                                                }
+                                                onClick={() =>
+                                                    handleResetPassword(item)
+                                                }
+                                            >
+                                                Đặt lại mật khẩu
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

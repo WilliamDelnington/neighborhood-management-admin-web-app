@@ -61,6 +61,10 @@ export interface NeighborhoodInput {
     contactPhone?: string;
     notes?: string;
     boundaryType?: "NONE" | "DOCUMENT" | "GEOJSON";
+    geometry?: {
+        type: "Polygon" | "MultiPolygon";
+        coordinates: unknown[];
+    };
 }
 
 export const createNeighborhood = (
@@ -81,6 +85,22 @@ export const updateNeighborhood = (
     input: UpdateNeighborhoodInput,
 ): Promise<Neighborhood> =>
     request<Neighborhood>("PATCH", `${API.NEIGHBORHOODS}/${id}`, input);
+
+export interface UpdateNeighborhoodGeometryInput {
+    boundaryType: "NONE" | "DOCUMENT" | "GEOJSON";
+    geometry?: {
+        type: "Polygon" | "MultiPolygon";
+        coordinates: unknown[];
+    };
+}
+
+// Endpoint hep, chi quyen neighborhoods.update_gis (khong can neighborhoods.manage) -
+// dung cho module "Bản đồ ranh giới Tổ dân phố" o Dashboard (NeighborhoodZonesMap.tsx).
+export const updateNeighborhoodGeometry = (
+    id: string,
+    input: UpdateNeighborhoodGeometryInput,
+): Promise<Neighborhood> =>
+    request<Neighborhood>("PATCH", `${API.NEIGHBORHOODS}/${id}/geometry`, input);
 
 export const assignNeighborhoodLeader = (
     neighborhoodId: string,
@@ -136,6 +156,14 @@ export const fetchNeighborhoodColeaderHistory = (
     request<NeighborhoodColeaderAssignment[]>(
         "GET",
         `${API.NEIGHBORHOODS}/${id}/coleader-history`,
+    );
+
+export const fetchNeighborhoodCollaboratorHistory = (
+    id: string,
+): Promise<NeighborhoodCollaboratorAssignment[]> =>
+    request<NeighborhoodCollaboratorAssignment[]>(
+        "GET",
+        `${API.NEIGHBORHOODS}/${id}/collaborator-history`,
     );
 
 export const fetchNeighborhoodHistory = (

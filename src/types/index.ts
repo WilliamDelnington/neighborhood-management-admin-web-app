@@ -369,6 +369,7 @@ export type House = {
     gisSource: HouseGisSource;
     gisCapturedAt?: string | null;
     location?: { type: "Point"; coordinates: [number, number] };
+    imageUrl?: string;
     createdAt: string;
     updatedAt: string;
 };
@@ -458,6 +459,7 @@ export type Neighborhood = {
         displayName: string;
         phone?: string;
         status: UserStatus;
+        avatarUrl?: string;
     } | null;
     houseCount: number;
     coleaders?: Array<{
@@ -465,6 +467,7 @@ export type Neighborhood = {
         displayName: string;
         phone?: string;
         status?: UserStatus;
+        avatarUrl?: string;
     }>;
     attachmentCount?: number;
     createdAt: string;
@@ -502,6 +505,7 @@ export type NeighborhoodCollaboratorAssignment = {
         displayName: string;
         phone?: string;
         status?: UserStatus;
+        avatarUrl?: string;
     } | null;
     subScope: {
         kind: NeighborhoodCollaboratorScope;
@@ -516,7 +520,25 @@ export type NeighborhoodCollaboratorAssignment = {
     };
     assignedAt: string;
     endAt?: string;
+    unassignedAt?: string;
+    unassignedBy?: { _id: string; displayName: string } | null;
     assignedBy?: { _id: string; displayName: string } | null;
+    note?: string;
+};
+
+// Lich su dam nhiem To truong/To pho/Cong tac vien cua MOT nguoi dung, xuyen
+// suot moi to dan pho - xem neighborhoodService.getUserNeighborhoodManagementHistory
+// o backend. roleKey phan biet vai tro (khac cac type NeighborhoodXAssignment
+// o tren, von la lich su theo MOT to dan pho cu the).
+export type UserManagementHistoryEntry = {
+    _id: string;
+    roleKey: "neighborhood_leader" | "neighborhood_coleader" | "neighborhood_collaborator";
+    neighborhood?: { _id: string; name: string; code: string } | null;
+    assignedAt: string;
+    assignedBy?: { _id: string; displayName: string } | null;
+    unassignedAt?: string;
+    unassignedBy?: { _id: string; displayName: string } | null;
+    endAt?: string;
     note?: string;
 };
 
@@ -554,7 +576,12 @@ export type Ward = {
 export type NeighborhoodLeaderAssignment = {
     _id: string;
     scopeId: string;
-    userId?: { _id: string; displayName: string; phone?: string } | null;
+    userId?: {
+        _id: string;
+        displayName: string;
+        phone?: string;
+        avatarUrl?: string;
+    } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
     unassignedAt?: string;
@@ -567,7 +594,12 @@ export type NeighborhoodLeaderAssignment = {
 export type NeighborhoodColeaderAssignment = {
     _id: string;
     scopeId: string;
-    userId?: { _id: string; displayName: string; phone?: string } | null;
+    userId?: {
+        _id: string;
+        displayName: string;
+        phone?: string;
+        avatarUrl?: string;
+    } | null;
     assignedBy?: { _id: string; displayName: string } | null;
     assignedAt: string;
     unassignedAt?: string;
@@ -2222,3 +2254,19 @@ export type UtilityApp = {
     sortOrder: number;
     createdAt: string;
 };
+
+// "Điểm tiện ích" tren "Bản đồ tiện ích" o Dashboard (NeighborhoodZonesMap.tsx)
+// va trang quan tri /pois - xem models/Poi.ts o backend.
+export type PoiCategory =
+    | "ubnd"
+    | "police"
+    | "atm"
+    | "clinic"
+    | "school"
+    | "post"
+    | "gas"
+    | "market"
+    | "restaurant"
+    | "cafe"
+    | "bus"
+    | "apartment";

@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(node -e \"const i=require\\('lucide-react'\\); console.log\\(Object.keys\\(i\\).filter\\(k=>/MessageSquare|Warning/i.test\\(k\\)\\).join\\('\\\\n'\\)\\)\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4000/ --max-time 3)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4000/ --max-time 3)",
+      "Bash(node scripts/validate_palette.js \"#2a78d6,#eb6834,#1baf7a,#eda100,#e87ba4,#008300,#4a3aa7,#e34948\" --mode light)",
+      "Bash(taskkill //PID 19128 //F)"
     ]
   }
 }

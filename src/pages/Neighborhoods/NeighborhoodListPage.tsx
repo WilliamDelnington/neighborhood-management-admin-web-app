@@ -239,7 +239,6 @@ const NeighborhoodListContent: React.FC = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-12 text-center">STT</TableHead>
-                                <TableHead>Mã</TableHead>
                                 <TableHead>Tên</TableHead>
                                 <TableHead>Phường/Xã</TableHead>
                                 <TableHead>Trạng thái</TableHead>
@@ -263,9 +262,8 @@ const NeighborhoodListContent: React.FC = () => {
                                         {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
-                                        {n.code}
+                                        {n.name}
                                     </TableCell>
-                                    <TableCell>{n.name}</TableCell>
                                     <TableCell>
                                         {n.wardName || (
                                             <span className="text-text_2">
