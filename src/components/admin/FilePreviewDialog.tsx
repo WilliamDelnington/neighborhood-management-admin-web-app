@@ -18,6 +18,7 @@ const getExtension = (name: string) =>
     name.split(".").pop()?.toLowerCase() || "";
 
 const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "svg"];
+const VIDEO_EXTENSIONS = ["mp4", "mov", "webm", "m4v"];
 
 /**
  * Voi file cuc bo (chua upload len server), tao mot blob URL de trinh duyet
@@ -87,9 +88,10 @@ export const FilePreviewContent: React.FC<{
     const ext = getExtension(source.name);
     const isPdf = ext === "pdf";
     const isImage = IMAGE_EXTENSIONS.includes(ext);
+    const isVideo = VIDEO_EXTENSIONS.includes(ext);
     const isDocx = ext === "docx";
     const isLegacyDoc = ext === "doc";
-    const isPreviewable = isPdf || isImage || isDocx;
+    const isPreviewable = isPdf || isImage || isVideo || isDocx;
 
     const objectUrl = useObjectUrl(source);
     const previewUrl = source.kind === "url" ? source.url : objectUrl;
@@ -114,6 +116,18 @@ export const FilePreviewContent: React.FC<{
                         alt={source.name}
                         className="max-h-full object-contain"
                     />
+                </div>
+            )}
+
+            {isVideo && previewUrl && (
+                <div className="flex justify-center p-4">
+                    <video
+                        src={previewUrl}
+                        controls
+                        className="max-h-full max-w-full"
+                    >
+                        Trình duyệt của bạn không hỗ trợ xem video này.
+                    </video>
                 </div>
             )}
 

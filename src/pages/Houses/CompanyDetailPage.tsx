@@ -401,6 +401,7 @@ const CompanyDetailContent: React.FC = () => {
                             onReview={reviewCompanyDocument}
                             verifyPermission="companies.verify"
                             onChanged={load}
+                            emptyLabel="Loại hình doanh nghiệp này chưa có yêu cầu giấy tờ nào"
                         />
                     )}
                 </>

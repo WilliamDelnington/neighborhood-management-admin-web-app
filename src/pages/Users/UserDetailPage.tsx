@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Upload, UserRound } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
@@ -100,14 +100,23 @@ const UserDetailPage: React.FC = () => (
 const UserDetailContent: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const [searchParams] = useSearchParams();
+    // Dung khi dieu huong toi trang nay CHI de "xem cho ro" (vd tu danh sach
+    // thanh vien To dan pho - xem NeighborhoodMembersPanel.tsx), khong phai de
+    // quan tri tai khoan - ep read-only BAT KE quyen thuc te cua actor (kha
+    // ca admin), khac voi cac co chi canFullUpdate/canAssignRoles/canResetPassword
+    // von chi phan anh quyen he thong. Dat qua query string (khong phai router
+    // state) de khong bi "mo lai" quyen sua neu nguoi dung tai lai trang.
+    const forcedReadOnly = searchParams.get("readOnly") === "1";
 
     // to truong (neighborhood_leader) chi co users.lock: xem duoc (users.read,
     // da gioi han theo to dan pho o backend) nhung chi doi duoc trang thai tai
     // khoan, khong sua ten/sdt/vai tro - xem userService.listUsers/lockUserStatus
     // o backend.
-    const canFullUpdate = usePermission("users.update");
-    const canAssignRoles = usePermission("users.assign_roles");
-    const canResetPassword = usePermission("users.reset_password");
+    const canFullUpdate = usePermission("users.update") && !forcedReadOnly;
+    const canAssignRoles = usePermission("users.assign_roles") && !forcedReadOnly;
+    const canResetPassword =
+        usePermission("users.reset_password") && !forcedReadOnly;
     const canReadRoles = usePermission("roles.read");
 
     const [user, setUser] = useState<User | null>(null);
@@ -551,12 +560,19 @@ const UserDetailContent: React.FC = () => {
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        {!canFullUpdate && (
+                        {forcedReadOnly ? (
                             <p className="mb-3 rounded-lg bg-ng_10 px-3 py-2 text-xs text-text_2">
-                                Bạn chỉ có thể khóa/mở tài khoản chủ nhà thuộc
-                                tổ dân phố phụ trách, không sửa được thông tin
-                                khác.
+                                Đang xem ở chế độ chỉ đọc - hồ sơ này không thể
+                                chỉnh sửa từ đây.
                             </p>
+                        ) : (
+                            !canFullUpdate && (
+                                <p className="mb-3 rounded-lg bg-ng_10 px-3 py-2 text-xs text-text_2">
+                                    Bạn chỉ có thể khóa/mở tài khoản chủ nhà
+                                    thuộc tổ dân phố phụ trách, không sửa được
+                                    thông tin khác.
+                                </p>
+                            )
                         )}
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-1.5">
@@ -600,6 +616,7 @@ const UserDetailContent: React.FC = () => {
                             <Label>Trạng thái tài khoản</Label>
                             <Select
                                 value={status}
+                                disabled={forcedReadOnly}
                                 onValueChange={v => setStatus(v as UserStatus)}
                             >
                                 <SelectTrigger>
@@ -637,6 +654,7 @@ const UserDetailContent: React.FC = () => {
                                 <Label>Lý do đổi trạng thái tài khoản</Label>
                                 <Textarea
                                     value={statusReason}
+                                    disabled={forcedReadOnly}
                                     onChange={e =>
                                         setStatusReason(e.target.value)
                                     }
@@ -647,7 +665,10 @@ const UserDetailContent: React.FC = () => {
                         <Button
                             className="mt-4"
                             loading={saving}
-                            disabled={!canFullUpdate && !statusChanged}
+                            disabled={
+                                forcedReadOnly ||
+                                (!canFullUpdate && !statusChanged)
+                            }
                             onClick={handleSaveProfile}
                         >
                             Lưu thông tin

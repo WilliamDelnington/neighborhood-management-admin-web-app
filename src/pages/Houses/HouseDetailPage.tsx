@@ -1372,6 +1372,7 @@ const HouseDetailContent: React.FC = () => {
                             onReview={reviewHouseDocument}
                             verifyPermission="houses.verify"
                             onChanged={load}
+                            emptyLabel="Nhà số này chưa có yêu cầu giấy tờ nào"
                         />
                     )}
 

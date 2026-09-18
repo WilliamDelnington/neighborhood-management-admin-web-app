@@ -2,6 +2,18 @@ import { API } from "@constants/common";
 import { PoiCategory } from "@dts";
 import { request } from "./request";
 
+// Tom tat Household duoc backend populate san khi category = "household" (xem
+// HOUSEHOLD_POPUP_FIELDS trong poiService.ts) - vua du de hien popup, khong
+// phai goi them fetchHouseholdById.
+export interface PoiHouseholdSummary {
+    _id: string;
+    code: string;
+    headOfHousehold: string;
+    phone?: string;
+    address: string;
+    status: string;
+}
+
 export interface Poi {
     _id: string;
     name: string;
@@ -11,6 +23,8 @@ export interface Poi {
     address?: string;
     verified: boolean;
     source: "manual" | "scan";
+    // Chi co gia tri (da populate) khi category = "household".
+    householdId?: PoiHouseholdSummary | string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -27,6 +41,8 @@ export interface PoiInput {
     lng: number;
     address?: string;
     verified?: boolean;
+    // Bat buoc khi category = "household".
+    householdId?: string;
 }
 
 export const createPoi = (input: PoiInput): Promise<Poi> =>

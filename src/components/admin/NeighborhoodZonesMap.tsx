@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Award,
+    Crosshair,
     HeartHandshake,
     Map as MapIcon,
     MapPinned,
@@ -18,7 +19,7 @@ import { cn } from "@lib/utils";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
-import { AppError, Neighborhood } from "@dts";
+import { AppError, Household, Neighborhood } from "@dts";
 import { HOUSEHOLD_STATE_LIST, HouseholdStateKey } from "@constants/domain";
 import { POI_CATEGORY_LIST } from "@constants/poi";
 import {
@@ -34,8 +35,9 @@ import {
     HouseholdGisOverview,
     HouseholdGisOverviewPoint,
     fetchHouseholdGisOverview,
+    fetchHouseholds,
 } from "@service/householdApi";
-import { Poi, fetchPois } from "@service/poiApi";
+import { Poi, createPoi, fetchPois } from "@service/poiApi";
 import { useAuthStore } from "@store/authStore";
 import wardBoundary from "@assets/geo/duongNoiWardBoundary.json";
 
@@ -164,6 +166,17 @@ function computeWardMaxBounds(padding: number): [[number, number], [number, numb
 }
 const WARD_MAX_BOUNDS = computeWardMaxBounds(WARD_BOUNDS_PADDING_DEG);
 
+// Chan noi bot su kien tu marker (the DOM de len canvas) xuong
+// canvasContainer - noi goong-js/mapbox-gl-js gan listener tinh "click" cho ca
+// map (dua tren cap mousedown/mouseup, xem bindHandlers trong goong-js). Neu
+// khong chan tu mousedown/touchstart (khong chi "click"), click/cham vao
+// marker de bi tinh nham thanh click vao layer "zones-fill" ben duoi, chon
+// nham ca To dan pho thay vi mo popup cua marker.
+function preventMapClickThrough(el: HTMLElement) {
+    el.addEventListener("mousedown", e => e.stopPropagation());
+    el.addEventListener("touchstart", e => e.stopPropagation(), { passive: true });
+}
+
 function escapeHtml(value: string): string {
     return String(value)
         .replace(/&/g, "&amp;")
@@ -195,6 +208,36 @@ function buildHouseholdPopupHTML(point: HouseholdGisOverviewPoint): string {
             <strong>${escapeHtml(point.code)}</strong><br/>
             ${escapeHtml(point.address)}
             ${labels.length ? `<br/>${labels.map(escapeHtml).join(", ")}` : ""}
+        </div>
+    `;
+}
+
+// data-household-detail: doc lai o listener click marker (xem effect ve marker
+// POI) de dieu huong sang trang chi tiet ho dan - Popup cua goong-js chi nhan
+// HTML thuan, khong the gan onClick truc tiep nhu JSX duoc.
+function buildPoiPopupHTML(poi: Poi): string {
+    const household =
+        poi.category === "household" && poi.householdId && typeof poi.householdId === "object"
+            ? poi.householdId
+            : null;
+    if (!household) {
+        return `
+            <div style="font-size:13px;line-height:1.5">
+                <strong>${escapeHtml(poi.name)}</strong>
+                ${poi.address ? `<br/>${escapeHtml(poi.address)}` : ""}
+            </div>
+        `;
+    }
+    return `
+        <div style="font-size:13px;line-height:1.6">
+            <strong>${escapeHtml(household.headOfHousehold)}</strong> (${escapeHtml(household.code)})<br/>
+            ${escapeHtml(household.address)}
+            ${household.phone ? `<br/>SĐT: ${escapeHtml(household.phone)}` : ""}<br/>
+            <button
+                type="button"
+                data-household-detail="${escapeHtml(household._id)}"
+                style="margin-top:6px;padding:4px 10px;border-radius:6px;border:none;background:#0891b2;color:#fff;font-size:12px;cursor:pointer"
+            >Xem chi tiết hộ dân</button>
         </div>
     `;
 }
@@ -268,7 +311,11 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             user?.permissions?.includes("neighborhoods.update_gis"),
     );
     const canViewHouseholds = Boolean(user?.permissions?.includes("households.read"));
-    const canViewPois = Boolean(user?.permissions?.includes("pois.read"));
+    // "Bản đồ tiện ích" + "Gắn hộ dân lên bản đồ": theo yeu cau, KHONG con kiem
+    // tra quyen pois.read/pois.manage rieng nua - ai vao duoc trang ban do (da
+    // qua AdminGuard cua MapPage/MapBoundaryPage) la dung duoc luon.
+    const canViewPois = true;
+    const canPinHouseholds = true;
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[] | null>(null);
     const [listError, setListError] = useState(false);
     const [mapVisible, setMapVisible] = useState(false);
@@ -299,6 +346,15 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const [poiResults, setPoiResults] = useState<Poi[]>([]);
     const [poiLoading, setPoiLoading] = useState(false);
     const [poiError, setPoiError] = useState(false);
+    // "Gắn hộ dân lên bản đồ" - bat che do chi tren "/map-boundary"
+    // (showDrawTools=true), xem toggle button va cac effect lien quan ben duoi.
+    const [pinModeOn, setPinModeOn] = useState(false);
+    const [pendingPin, setPendingPin] = useState<{ lat: number; lng: number } | null>(null);
+    const [pinHouseholdSearch, setPinHouseholdSearch] = useState("");
+    const [pinHouseholdResults, setPinHouseholdResults] = useState<Household[]>([]);
+    const [pinHouseholdSearching, setPinHouseholdSearching] = useState(false);
+    const [pinSelectedHousehold, setPinSelectedHousehold] = useState<Household | null>(null);
+    const [pinSubmitting, setPinSubmitting] = useState(false);
     const mapContainerRef = useRef<HTMLDivElement | null>(null);
     // any: @goongmaps/goong-js khong kem type (xem src/types/goong-js.d.ts).
     const mapRef = useRef<any>(null);
@@ -311,6 +367,17 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const searchMarkerRef = useRef<any>(null);
     const searchSessionTokenRef = useRef<string | null>(null);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Doc gia tri moi nhat cua pinModeOn trong cac handler duoc bind mot lan
+    // (vd click "zones-fill" trong bindInteractions) - state thuong bi "stale"
+    // trong closure cua goong-js event handler.
+    const pinModeOnRef = useRef(false);
+    // Doc gia tri moi nhat cua mapStyleKey trong handler click "zones-fill"
+    // (bind mot lan, cung ly do can pinModeOnRef o tren) - o che do "Vệ tinh",
+    // bam vao vung To KHONG hien popup/chon To nua (chi de nhin ro nha tren
+    // anh ve tinh), chi marker Ho dan/tien ich moi phan hoi khi bam.
+    const mapStyleKeyRef = useRef<MapStyleKey>("street");
+    const pendingPinMarkerRef = useRef<any>(null);
+    const pinHouseholdDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // any: @mapbox/mapbox-gl-draw khong kem type (xem src/types/mapbox-gl-draw.d.ts).
     const drawRef = useRef<any>(null);
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -392,6 +459,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         const popup = new goongjs.Popup({ offset: 8 });
         popupRef.current = popup;
         map.on("mouseenter", "zones-fill", () => {
+            if (mapStyleKeyRef.current === "satellite") return;
             const canvas = map.getCanvas();
             canvas.style.cursor = "pointer";
         });
@@ -400,6 +468,13 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             canvas.style.cursor = "";
         });
         map.on("click", "zones-fill", (e: any) => {
+            // Dang bat che do "Gắn hộ dân lên bản đồ" - nhuong click cho
+            // handler chấm điểm (xem effect pinModeOn ben duoi), khong chon Tổ.
+            if (pinModeOnRef.current) return;
+            // Che do "Vệ tinh": khong hien popup/chon To khi bam vao vung To -
+            // chi bam dung marker Ho dan/tien ich moi co phan hoi (xem yeu cau
+            // nguoi dung), tranh popup To che mat anh ve tinh luc do tim nha.
+            if (mapStyleKeyRef.current === "satellite") return;
             const neighborhoodId = e.features?.[0]?.properties?.neighborhoodId;
             if (!neighborhoodId) return;
             setSelectedZoneIds([neighborhoodId]);
@@ -491,12 +566,16 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             householdMarkersRef.current = [];
             poiMarkersRef.current.forEach(marker => marker.remove());
             poiMarkersRef.current = [];
+            pendingPinMarkerRef.current?.remove();
+            pendingPinMarkerRef.current = null;
             mapRef.current?.remove();
             mapRef.current = null;
             drawRef.current = null;
             setMapInstanceReady(false);
             setDrawModeOn(false);
             setDrawnFeatures([]);
+            setPinModeOn(false);
+            setPendingPin(null);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [mapVisible, neighborhoods]);
@@ -610,7 +689,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 .addTo(map);
             const markerEl = marker.getElement();
             markerEl.style.cursor = "pointer";
-            markerEl.addEventListener("click", () => {
+            preventMapClickThrough(markerEl);
+            markerEl.addEventListener("click", (e: MouseEvent) => {
+                e.stopPropagation();
                 householdPopupRef.current
                     ?.setLngLat([point.longitude, point.latitude])
                     .setHTML(buildHouseholdPopupHTML(point))
@@ -664,22 +745,169 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         }
 
         poiResults.forEach(place => {
-            const marker = new goongjs.Marker({ color: POI_MARKER_COLOR })
+            const color =
+                POI_CATEGORY_LIST.find(c => c.key === place.category)?.color ||
+                POI_MARKER_COLOR;
+            const marker = new goongjs.Marker({ color })
                 .setLngLat([place.lng, place.lat])
                 .addTo(map);
             const markerEl = marker.getElement();
             markerEl.style.cursor = "pointer";
-            markerEl.addEventListener("click", () => {
+            preventMapClickThrough(markerEl);
+            markerEl.addEventListener("click", (e: MouseEvent) => {
+                e.stopPropagation();
                 poiPopupRef.current
                     ?.setLngLat([place.lng, place.lat])
-                    .setHTML(
-                        `<div style="font-size:13px;line-height:1.5"><strong>${escapeHtml(place.name)}</strong>${place.address ? `<br/>${escapeHtml(place.address)}` : ""}</div>`,
-                    )
+                    .setHTML(buildPoiPopupHTML(place))
                     .addTo(map);
+                // Popup cua goong-js chi nhan HTML thuan (xem buildPoiPopupHTML)
+                // nen phai tu gan lai su kien click cho nut "Xem chi tiết hộ
+                // dân" sau moi lan mo popup, khong the dung onClick nhu JSX.
+                const popupEl = poiPopupRef.current?.getElement?.();
+                const detailBtn = popupEl?.querySelector?.(
+                    "[data-household-detail]",
+                ) as HTMLElement | null;
+                detailBtn?.addEventListener("click", () => {
+                    const householdId = detailBtn.getAttribute("data-household-detail");
+                    if (householdId) navigate(`/households/${householdId}`);
+                });
             });
             poiMarkersRef.current.push(marker);
         });
-    }, [mapInstanceReady, poiResults]);
+    }, [mapInstanceReady, poiResults, navigate]);
+
+    // Dong bo pinModeOn/mapStyleKey vao ref de doc duoc gia tri moi nhat trong
+    // handler click "zones-fill" (bind mot lan trong bindInteractions, xem o
+    // tren).
+    useEffect(() => {
+        pinModeOnRef.current = pinModeOn;
+    }, [pinModeOn]);
+
+    useEffect(() => {
+        mapStyleKeyRef.current = mapStyleKey;
+    }, [mapStyleKey]);
+
+    const togglePinMode = useCallback(() => {
+        setPinModeOn(prev => {
+            if (prev) {
+                setPendingPin(null);
+                setPinSelectedHousehold(null);
+                setPinHouseholdSearch("");
+                setPinHouseholdResults([]);
+            }
+            return !prev;
+        });
+    }, []);
+
+    const cancelHouseholdPin = useCallback(() => {
+        setPendingPin(null);
+        setPinSelectedHousehold(null);
+        setPinHouseholdSearch("");
+        setPinHouseholdResults([]);
+    }, []);
+
+    // Bat/tat con tro crosshair + lang nghe click chung tren ban do (khac
+    // click rieng cua layer "zones-fill") khi bat/tat che do chấm điểm. Chi
+    // gan/go listener nay theo pinModeOn thay vi kiem tra ben trong mot
+    // listener duy nhat, tranh phai lo lang closure cu (giong ly do can
+    // pinModeOnRef o tren cho handler "zones-fill" da bind san tu truoc).
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !mapInstanceReady) return undefined;
+        if (!pinModeOn) {
+            map.getCanvas().style.cursor = "";
+            return undefined;
+        }
+        map.getCanvas().style.cursor = "crosshair";
+        const handleMapClick = (e: any) => {
+            setPendingPin({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+            setPinSelectedHousehold(null);
+            setPinHouseholdSearch("");
+            setPinHouseholdResults([]);
+        };
+        map.on("click", handleMapClick);
+        return () => {
+            map.off("click", handleMapClick);
+            map.getCanvas().style.cursor = "";
+        };
+    }, [pinModeOn, mapInstanceReady]);
+
+    // Ve/xoa marker cho diem VUA CHAM (chua luu) - keo duoc (draggable) de
+    // chinh lai vi tri truoc khi xac nhan gan ho dan.
+    useEffect(() => {
+        const map = mapRef.current;
+        const goongjs = goongRef.current;
+        if (!map || !goongjs) return undefined;
+
+        pendingPinMarkerRef.current?.remove();
+        pendingPinMarkerRef.current = null;
+        if (!pendingPin) return undefined;
+
+        const marker = new goongjs.Marker({ color: "#0891b2", draggable: true })
+            .setLngLat([pendingPin.lng, pendingPin.lat])
+            .addTo(map);
+        marker.on("dragend", () => {
+            const lngLat = marker.getLngLat();
+            setPendingPin({ lat: lngLat.lat, lng: lngLat.lng });
+        });
+        pendingPinMarkerRef.current = marker;
+        return () => {
+            marker.remove();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pendingPin?.lat, pendingPin?.lng]);
+
+    // Tim ho dan theo tu khoa (dung chung fetchHouseholds({ search }) voi
+    // trang /households) sau 400ms ngung go, chi khi da chấm 1 diem tren ban do.
+    useEffect(() => {
+        if (!pendingPin) return undefined;
+        if (pinHouseholdDebounceRef.current) clearTimeout(pinHouseholdDebounceRef.current);
+        const query = pinHouseholdSearch.trim();
+        if (query.length < 2) {
+            setPinHouseholdResults([]);
+            return undefined;
+        }
+        pinHouseholdDebounceRef.current = setTimeout(async () => {
+            try {
+                setPinHouseholdSearching(true);
+                const res = await fetchHouseholds({ search: query, limit: 8 });
+                setPinHouseholdResults(res.items);
+            } catch {
+                setPinHouseholdResults([]);
+            } finally {
+                setPinHouseholdSearching(false);
+            }
+        }, 400);
+        return () => {
+            if (pinHouseholdDebounceRef.current) clearTimeout(pinHouseholdDebounceRef.current);
+        };
+    }, [pinHouseholdSearch, pendingPin]);
+
+    const confirmHouseholdPin = useCallback(async () => {
+        if (!pendingPin || !pinSelectedHousehold) return;
+        setPinSubmitting(true);
+        try {
+            await createPoi({
+                name: pinSelectedHousehold.headOfHousehold || pinSelectedHousehold.code,
+                category: "household",
+                lat: pendingPin.lat,
+                lng: pendingPin.lng,
+                address: pinSelectedHousehold.address,
+                verified: true,
+                householdId: pinSelectedHousehold._id,
+            });
+            toast.success(`Đã gắn hộ ${pinSelectedHousehold.code} lên bản đồ`);
+            cancelHouseholdPin();
+            if (selectedPoiCategoryKey === "household") {
+                const results = await fetchPois({ category: "household", verified: true });
+                setPoiResults(results);
+            }
+        } catch (err) {
+            toast.error((err as AppError).message || "Không gắn được hộ dân lên bản đồ");
+        } finally {
+            setPinSubmitting(false);
+        }
+    }, [pendingPin, pinSelectedHousehold, selectedPoiCategoryKey, cancelHouseholdPin]);
 
     const emitDrawnFeatures = useCallback(() => {
         const draw = drawRef.current;
@@ -1241,6 +1469,91 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                 </p>
                             </div>
                         )}
+                        {pendingPin && !mapLoading && !mapError && (
+                            <div className="absolute bottom-3 right-3 z-20 w-80 max-w-[calc(100%-1.5rem)] space-y-2 rounded-2xl border border-divider_01 bg-ui_bg p-3 shadow-lg">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-semibold text-text_1">
+                                        Gắn hộ dân vào điểm vừa chấm
+                                    </p>
+                                    <button
+                                        type="button"
+                                        className="text-text_3 hover:text-text_1"
+                                        onClick={cancelHouseholdPin}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p className="text-[11px] text-text_2">
+                                    Toạ độ: {pendingPin.lat.toFixed(6)}, {pendingPin.lng.toFixed(6)}
+                                    {" — "}có thể kéo điểm đánh dấu trên bản đồ để chỉnh vị trí.
+                                </p>
+                                {!pinSelectedHousehold ? (
+                                    <>
+                                        <input
+                                            type="text"
+                                            value={pinHouseholdSearch}
+                                            onChange={e => setPinHouseholdSearch(e.target.value)}
+                                            placeholder="Tìm hộ dân theo mã, tên chủ hộ, địa chỉ..."
+                                            className="w-full rounded-lg border border-divider_01 px-2.5 py-1.5 text-xs outline-none"
+                                        />
+                                        {pinHouseholdSearching && (
+                                            <p className="text-[11px] text-text_3">Đang tìm...</p>
+                                        )}
+                                        {!pinHouseholdSearching && pinHouseholdResults.length > 0 && (
+                                            <div className="max-h-48 space-y-1 overflow-y-auto">
+                                                {pinHouseholdResults.map(hh => (
+                                                    <button
+                                                        key={hh._id}
+                                                        type="button"
+                                                        className="flex w-full flex-col items-start rounded-lg px-2 py-1.5 text-left text-xs hover:bg-ng_10"
+                                                        onClick={() => setPinSelectedHousehold(hh)}
+                                                    >
+                                                        <span className="font-semibold text-text_1">
+                                                            {hh.code} — {hh.headOfHousehold}
+                                                        </span>
+                                                        <span className="text-text_2">{hh.address}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {!pinHouseholdSearching &&
+                                            pinHouseholdSearch.trim().length >= 2 &&
+                                            pinHouseholdResults.length === 0 && (
+                                                <p className="text-[11px] text-text_2">
+                                                    Không tìm thấy hộ dân phù hợp
+                                                </p>
+                                            )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="rounded-lg bg-ng_10 px-2.5 py-2 text-xs">
+                                            <p className="font-semibold text-text_1">
+                                                {pinSelectedHousehold.code} —{" "}
+                                                {pinSelectedHousehold.headOfHousehold}
+                                            </p>
+                                            <p className="text-text_2">{pinSelectedHousehold.address}</p>
+                                        </div>
+                                        <div className="flex gap-1.5">
+                                            <Button
+                                                size="sm"
+                                                className="flex-1"
+                                                loading={pinSubmitting}
+                                                onClick={confirmHouseholdPin}
+                                            >
+                                                Xác nhận gắn
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => setPinSelectedHousehold(null)}
+                                            >
+                                                Chọn lại
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                         </div>
                     </div>
                     {!mapLoading && !mapError && (
@@ -1320,6 +1633,29 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                     >
                                         {drawModeOn ? "Đang vẽ — bấm để tắt" : "Bật chế độ vẽ tổ"}
                                     </Button>
+                                </div>
+                            )}
+
+                            {showDrawTools && canPinHouseholds && (
+                                <div className="rounded-lg border border-divider_01 p-2">
+                                    <p className="mb-2 text-xs font-semibold text-text_1">
+                                        Gắn hộ dân lên bản đồ
+                                    </p>
+                                    <Button
+                                        size="sm"
+                                        variant={pinModeOn ? "default" : "outline"}
+                                        className="w-full"
+                                        onClick={togglePinMode}
+                                    >
+                                        <Crosshair className="mr-1 h-4 w-4" />
+                                        {pinModeOn ? "Đang chấm điểm — bấm để tắt" : "Bật chế độ chấm điểm"}
+                                    </Button>
+                                    {pinModeOn && (
+                                        <p className="mt-1.5 text-[11px] leading-relaxed text-text_2">
+                                            Click vào vị trí ngôi nhà trên bản đồ để chấm toạ độ,
+                                            rồi chọn hộ dân cần gắn ở góc bản đồ.
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>

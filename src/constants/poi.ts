@@ -5,6 +5,7 @@ import {
     CreditCard,
     Fuel,
     GraduationCap,
+    Home,
     Landmark,
     Mail,
     ShieldCheck,
@@ -39,6 +40,9 @@ export const POI_CATEGORY_LIST: PoiCategoryMeta[] = [
     { key: "cafe", label: "Quán cafe", icon: Coffee, color: "#c2410c" },
     { key: "bus", label: "Trạm xe buýt", icon: Bus, color: "#2563eb" },
     { key: "apartment", label: "Căn hộ / Chung cư", icon: Building2, color: "#ea580c" },
+    // Diem gan voi 1 Household cu the (xem householdId trong Poi) - tao tu cong
+    // cu "Gắn hộ dân lên bản đồ" o /map-boundary, KHONG the "Quét lại" duoc.
+    { key: "household", label: "Hộ dân", icon: Home, color: "#0891b2" },
 ];
 
 export const POI_CATEGORY_LABEL: Record<PoiCategory, string> = POI_CATEGORY_LIST.reduce(

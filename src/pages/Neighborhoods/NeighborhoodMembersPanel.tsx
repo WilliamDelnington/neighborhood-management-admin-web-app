@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, UploadCloud, UserRound } from "lucide-react";
+import { Plus, UploadCloud } from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Label } from "@components/ui/label";
@@ -12,16 +13,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@components/ui/select";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from "@components/ui/dialog";
 import { LoadingState, EmptyState } from "@components/admin/DataStates";
 import { usePermission } from "@store/authStore";
 import { COLLABORATOR_SCOPE_LABEL, ROLE_LABEL } from "@constants/domain";
-import { resolveAssetUrl } from "@constants/common";
 import {
     AppError,
     House,
@@ -118,6 +112,7 @@ const NeighborhoodMembersPanel: React.FC<NeighborhoodMembersPanelProps> = ({
     neighborhood,
     onMutated,
 }) => {
+    const navigate = useNavigate();
     const canManage = usePermission("neighborhoods.manage");
     const canReadRoles = usePermission("roles.read");
     const neighborhoodId = neighborhood._id;
@@ -170,13 +165,6 @@ const NeighborhoodMembersPanel: React.FC<NeighborhoodMembersPanelProps> = ({
     );
     const [saving, setSaving] = useState(false);
     const [unassigningKey, setUnassigningKey] = useState<string | null>(null);
-
-    const [profileTarget, setProfileTarget] = useState<{
-        user: { displayName: string; phone?: string; avatarUrl?: string };
-        roleLabel: string;
-        since?: string;
-        note?: string;
-    } | null>(null);
 
     const roleLabel = (key: string) =>
         otherRoles.find(r => r.key === key)?.name ||
@@ -479,16 +467,11 @@ const NeighborhoodMembersPanel: React.FC<NeighborhoodMembersPanelProps> = ({
                             type="button"
                             className="text-left hover:underline"
                             onClick={() =>
-                                setProfileTarget({
-                                    user: {
-                                        displayName: m.displayName,
-                                        phone: m.phone,
-                                        avatarUrl: m.avatarUrl,
-                                    },
-                                    roleLabel: m.roleLabel,
-                                    since: m.assignedAt,
-                                    note: m.note,
-                                })
+                                navigate(
+                                    canManage
+                                        ? `/users/${m.userId}`
+                                        : `/users/${m.userId}?readOnly=1`,
+                                )
                             }
                         >
                             <div className="flex items-center gap-2">
@@ -755,68 +738,6 @@ const NeighborhoodMembersPanel: React.FC<NeighborhoodMembersPanelProps> = ({
                     </div>
                 )}
             </div>
-
-            <Dialog
-                open={!!profileTarget}
-                onOpenChange={open => !open && setProfileTarget(null)}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Hồ sơ {profileTarget?.roleLabel}</DialogTitle>
-                    </DialogHeader>
-                    {profileTarget && (
-                        <div>
-                            <div className="flex items-center gap-4">
-                                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-main to-primary-dark text-white ring-2 ring-blue_10">
-                                    {profileTarget.user.avatarUrl ? (
-                                        <img
-                                            src={resolveAssetUrl(
-                                                profileTarget.user.avatarUrl,
-                                            )}
-                                            alt={profileTarget.user.displayName}
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <UserRound className="h-full w-full p-3" />
-                                    )}
-                                </div>
-                                <div>
-                                    <div className="text-lg font-semibold text-text_1">
-                                        {profileTarget.user.displayName}
-                                    </div>
-                                    <Badge tone="gray">
-                                        {profileTarget.roleLabel}
-                                    </Badge>
-                                </div>
-                            </div>
-                            <div className="mt-4 space-y-2">
-                                <div className="flex justify-between border-b border-divider_01 py-2 text-sm last:border-0">
-                                    <span className="text-text_2">
-                                        Số điện thoại
-                                    </span>
-                                    <span>
-                                        {profileTarget.user.phone || "Chưa có"}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between border-b border-divider_01 py-2 text-sm last:border-0">
-                                    <span className="text-text_2">
-                                        Đảm nhiệm từ
-                                    </span>
-                                    <span>{formatDate(profileTarget.since)}</span>
-                                </div>
-                                {profileTarget.note && (
-                                    <div className="flex justify-between border-b border-divider_01 py-2 text-sm last:border-0">
-                                        <span className="text-text_2">
-                                            Ghi chú
-                                        </span>
-                                        <span>{profileTarget.note}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
 
             {canManage && (
                 <NeighborhoodMemberImportSheet

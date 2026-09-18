@@ -2269,4 +2269,5 @@ export type PoiCategory =
     | "restaurant"
     | "cafe"
     | "bus"
-    | "apartment";
+    | "apartment"
+    | "household";
