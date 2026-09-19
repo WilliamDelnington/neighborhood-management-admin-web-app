@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, RefreshCw, Trash2, UploadCloud, FileDown } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -39,10 +39,12 @@ import {
     Poi,
     createPoi,
     deletePoi,
+    downloadPoisExcel,
     fetchPois,
     scanPois,
     updatePoi,
 } from "@service/poiApi";
+import PoiImportSheet from "./PoiImportSheet";
 
 const ALL_VALUE = "__all__";
 
@@ -75,6 +77,11 @@ const PoiListPage: React.FC = () => (
 
 const PoiListContent: React.FC = () => {
     const canManage = usePermission("pois.manage");
+    // Rieng cho nut "Nhập Excel"/"Xuất Excel" - backend gate qua
+    // "imports.manage"/"exports.export" (xem /api/import/pois, /api/export/pois),
+    // giong HouseholdListPage.
+    const canImport = usePermission("imports.manage");
+    const canExport = usePermission("exports.export");
 
     const [categoryFilter, setCategoryFilter] = useState<PoiCategory | "">("");
     const [verifiedFilter, setVerifiedFilter] = useState<"" | "true" | "false">("");
@@ -82,6 +89,8 @@ const PoiListContent: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [scanning, setScanning] = useState(false);
+    const [importVisible, setImportVisible] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const [sheetOpen, setSheetOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -140,6 +149,17 @@ const PoiListContent: React.FC = () => {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            setExporting(true);
+            await downloadPoisExcel();
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     const handleSubmit = async () => {
         const lat = Number(form.lat);
         const lng = Number(form.lng);
@@ -194,18 +214,39 @@ const PoiListContent: React.FC = () => {
                 title="Điểm tiện ích"
                 description="UBND/Công an/Trường học/Chợ... hiển thị trên Bản đồ tiện ích ở Dashboard."
                 action={
-                    canManage && (
-                        <div className="flex gap-2">
-                            <Button variant="outline" loading={scanning} onClick={handleScan}>
-                                <RefreshCw className="mr-1 h-4 w-4" />
-                                Quét lại
+                    <div className="flex flex-wrap gap-2">
+                        {canExport && (
+                            <Button
+                                variant="outline"
+                                loading={exporting}
+                                onClick={handleExport}
+                            >
+                                <FileDown className="mr-1 h-4 w-4" />
+                                Xuất Excel
                             </Button>
-                            <Button onClick={openCreate}>
-                                <Plus className="mr-1 h-4 w-4" />
-                                Thêm điểm
+                        )}
+                        {canImport && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setImportVisible(true)}
+                            >
+                                <UploadCloud className="mr-1 h-4 w-4" />
+                                Nhập Excel
                             </Button>
-                        </div>
-                    )
+                        )}
+                        {canManage && (
+                            <>
+                                <Button variant="outline" loading={scanning} onClick={handleScan}>
+                                    <RefreshCw className="mr-1 h-4 w-4" />
+                                    Quét lại
+                                </Button>
+                                <Button onClick={openCreate}>
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    Thêm điểm
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 }
             />
 
@@ -352,7 +393,11 @@ const PoiListContent: React.FC = () => {
                                     <SelectValue placeholder="Chọn danh mục" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {POI_CATEGORY_LIST.map(c => (
+                                    {POI_CATEGORY_LIST.filter(
+                                        c =>
+                                            c.key !== "household" ||
+                                            form.category === "household",
+                                    ).map(c => (
                                         <SelectItem key={c.key} value={c.key}>
                                             {c.label}
                                         </SelectItem>
@@ -424,6 +469,12 @@ const PoiListContent: React.FC = () => {
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
+
+            <PoiImportSheet
+                open={importVisible}
+                onOpenChange={setImportVisible}
+                onImported={load}
+            />
         </div>
     );
 };

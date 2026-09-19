@@ -25,6 +25,8 @@ export interface AttachmentsPanelProps {
     title?: string;
     attachments: FileAsset[];
     loading: boolean;
+    // Quyen XOA hien co - giu nguyen y nghia cu (khong doi hanh vi cac man
+    // dang dung, vd Nha so/Ho kinh doanh chi truyen canManage de gate nut xoa).
     canManage: boolean;
     deletingId?: string | null;
     onDelete?: (fileId: string) => void;
@@ -35,6 +37,14 @@ export interface AttachmentsPanelProps {
     onUpload?: (file: File) => void;
     uploading?: boolean;
     uploadAccept?: string;
+    /**
+     * Quyen RIENG cho nut TAI LEN, tach khoi canManage (van chi gate nut xoa) -
+     * mac dinh = canManage neu khong truyen, giu nguyen hanh vi cu. Can tach
+     * rieng vi UserDetailPage.tsx chi cho phep CHINH CHU tai khoan tai len ho
+     * so cua minh (khong phai bat ky ai co quyen users.update), nhung admin
+     * (canManage) van xoa duoc de kiem duyet neu can.
+     */
+    canUpload?: boolean;
 }
 
 /**
@@ -55,6 +65,7 @@ const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({
     onUpload,
     uploading = false,
     uploadAccept = ".jpg,.jpeg,.png,.pdf,.doc,.docx",
+    canUpload = canManage,
 }) => {
     const [previewSource, setPreviewSource] = useState<PreviewSource | null>(
         null,
@@ -71,7 +82,7 @@ const AttachmentsPanel: React.FC<AttachmentsPanelProps> = ({
         <div className={className}>
             <div className="mb-2 flex items-center justify-between">
                 <h2 className="text-base font-semibold">{title}</h2>
-                {canManage && onUpload && (
+                {canUpload && onUpload && (
                     <>
                         <input
                             ref={fileInputRef}

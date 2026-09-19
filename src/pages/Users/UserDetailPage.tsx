@@ -19,7 +19,7 @@ import { LoadingState, ErrorState } from "@components/admin/DataStates";
 import FilterableSelect from "@components/admin/FilterableSelect";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
-import { usePermission } from "@store/authStore";
+import { useAuthStore, usePermission } from "@store/authStore";
 import { resolveAssetUrl } from "@constants/common";
 import {
     ROLE_LABEL,
@@ -108,6 +108,14 @@ const UserDetailContent: React.FC = () => {
     // von chi phan anh quyen he thong. Dat qua query string (khong phai router
     // state) de khong bi "mo lai" quyen sua neu nguoi dung tai lai trang.
     const forcedReadOnly = searchParams.get("readOnly") === "1";
+    // Ho so giay to (Tai lieu dinh kem) chi duoc CHINH CHU tai khoan tai len -
+    // khac cac truong khac cua trang nay (ten/sdt/vai tro...), von quan tri
+    // theo quyen he thong (canFullUpdate) vi day la giay to CA NHAN cua nguoi
+    // dung, khong phai du lieu nghiep vu admin duoc phep thay ho. canFullUpdate
+    // (vd admin xem ho so nguoi khac) KHONG con duoc dung de bat nut tai len o
+    // day nua, chi con dung cho xoa/kiem duyet (xem AttachmentsPanel.canManage).
+    const currentUser = useAuthStore(state => state.user);
+    const isSelf = !!currentUser && currentUser.id === id;
 
     // to truong (neighborhood_leader) chi co users.lock: xem duoc (users.read,
     // da gioi han theo to dan pho o backend) nhung chi doi duoc trang thai tai
@@ -931,6 +939,7 @@ const UserDetailContent: React.FC = () => {
                         attachments={attachments}
                         loading={attachmentsLoading}
                         canManage={canFullUpdate}
+                        canUpload={isSelf && !forcedReadOnly}
                         deletingId={deletingAttachmentId}
                         onDelete={handleAttachmentDelete}
                         onUpload={handleAttachmentUpload}

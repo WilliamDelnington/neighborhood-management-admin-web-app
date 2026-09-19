@@ -1,5 +1,6 @@
 import { API, BASE_URL } from "@constants/common";
 import { useAuthStore } from "@store/authStore";
+import { PoiCategory } from "@dts";
 import { request } from "./request";
 
 export interface ImportRowError {
@@ -27,6 +28,19 @@ export interface HouseholdImportPreviewRow {
     ownershipType: string;
     needsSupport: boolean;
     note?: string;
+}
+
+// Xem POI_COLUMNS/previewPoiImport o backend importService.ts - giong
+// Household import, CHUA co buoc "chon cot": ten cot trong file phai khop
+// voi POI_COLUMNS (xem downloadPoiImportTemplate). Danh muc "Hộ dân" khong
+// duoc ho tro qua luong nay (xem POI_CATEGORY_LABEL_TO_KEY o backend).
+export interface PoiImportPreviewRow {
+    name: string;
+    category: PoiCategory;
+    lat: number;
+    lng: number;
+    address?: string;
+    verified: boolean;
 }
 
 // Xem HOUSE_COLUMNS/applyHouseImportMapping o backend importService.ts -
@@ -312,6 +326,28 @@ export const commitHouseholdImport = (
         `${API.IMPORT}/households/${jobId}/commit`,
     );
 
+export const uploadPoiImportFile = (
+    file: File,
+    sheetName?: string,
+): Promise<ImportJob<PoiImportPreviewRow>> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (sheetName) formData.append("sheetName", sheetName);
+    return request<ImportJob<PoiImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/pois`,
+        formData,
+    );
+};
+
+export const commitPoiImport = (
+    jobId: string,
+): Promise<ImportJob<PoiImportPreviewRow>> =>
+    request<ImportJob<PoiImportPreviewRow>>(
+        "POST",
+        `${API.IMPORT}/pois/${jobId}/commit`,
+    );
+
 export const uploadStreetImportFile = (
     file: File,
     sheetName?: string,
@@ -591,6 +627,12 @@ export const downloadCompanyImportTemplate = (): Promise<void> =>
     downloadImportTemplate(
         `${API.IMPORT}/companies/template`,
         "mau-nhap-cong-ty.xlsx",
+    );
+
+export const downloadPoiImportTemplate = (): Promise<void> =>
+    downloadImportTemplate(
+        `${API.IMPORT}/pois/template`,
+        "mau-nhap-diem-tien-ich.xlsx",
     );
 
 export const downloadNeighborhoodMemberImportTemplate = (): Promise<void> =>

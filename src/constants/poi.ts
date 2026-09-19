@@ -42,7 +42,10 @@ export const POI_CATEGORY_LIST: PoiCategoryMeta[] = [
     { key: "apartment", label: "Căn hộ / Chung cư", icon: Building2, color: "#ea580c" },
     // Diem gan voi 1 Household cu the (xem householdId trong Poi) - tao tu cong
     // cu "Gắn hộ dân lên bản đồ" o /map-boundary, KHONG the "Quét lại" duoc.
-    { key: "household", label: "Hộ dân", icon: Home, color: "#0891b2" },
+    // Nhan hien thi dung chung "Căn hộ / Chung cư" voi danh muc "apartment"
+    // (theo yeu cau) - CO THE trung ten voi "apartment" tren legend/bo loc,
+    // day la danh doi nguoi dung da chap nhan, khong phai loi.
+    { key: "household", label: "Căn hộ / Chung cư", icon: Home, color: "#0891b2" },
 ];
 
 export const POI_CATEGORY_LABEL: Record<PoiCategory, string> = POI_CATEGORY_LIST.reduce(
