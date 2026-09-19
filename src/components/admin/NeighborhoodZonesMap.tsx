@@ -4,6 +4,7 @@ import {
     Award,
     Crosshair,
     HeartHandshake,
+    Home,
     Map as MapIcon,
     MapPinned,
     Satellite,
@@ -373,6 +374,12 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const [selectedHouseholdStates, setSelectedHouseholdStates] = useState<
         HouseholdStateKey[]
     >([]);
+    // "Tất cả hộ dân" - che do rieng hien TAT CA ho dan da co toa do (tu GIS
+    // cua nha lien ket, xem HouseholdGisOverviewPoint) len ban do, KHONG can
+    // loc theo trang thai dac biet nao (khac 4 the loc ben tren, chi hien khi
+    // co chon). Doc lap voi selectedHouseholdStates - co the bat ca hai cung
+    // luc (xem effect ve marker o duoi).
+    const [showAllHouseholds, setShowAllHouseholds] = useState(false);
     const [selectedPoiCategoryKey, setSelectedPoiCategoryKey] = useState<string | null>(null);
     const [poiResults, setPoiResults] = useState<Poi[]>([]);
     const [poiLoading, setPoiLoading] = useState(false);
@@ -728,7 +735,11 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         householdMarkersRef.current.forEach(marker => marker.remove());
         householdMarkersRef.current = [];
 
-        if (selectedHouseholdStates.length === 0 || !householdOverview) return;
+        if (
+            (selectedHouseholdStates.length === 0 && !showAllHouseholds) ||
+            !householdOverview
+        )
+            return;
         if (!householdPopupRef.current) {
             householdPopupRef.current = new goongjs.Popup({ offset: 8 });
         }
@@ -737,12 +748,16 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             const matched = HOUSEHOLD_STATUS_FILTERS.filter(
                 state => selectedHouseholdStates.includes(state.key) && point[state.key],
             );
-            if (matched.length === 0) return;
+            // "Tất cả hộ dân" dang bat: van hien ho khong khop trang thai nao
+            // (mau trung tinh) - chi bo qua khi ca hai deu tat.
+            if (matched.length === 0 && !showAllHouseholds) return;
 
-            const color =
-                matched.length > 1
-                    ? HOUSEHOLD_MULTI_MATCH_COLOR
-                    : HOUSEHOLD_TONE_COLOR[matched[0].tone] || HOUSEHOLD_NEUTRAL_COLOR;
+            let color = HOUSEHOLD_NEUTRAL_COLOR;
+            if (matched.length > 1) {
+                color = HOUSEHOLD_MULTI_MATCH_COLOR;
+            } else if (matched.length === 1) {
+                color = HOUSEHOLD_TONE_COLOR[matched[0].tone] || HOUSEHOLD_NEUTRAL_COLOR;
+            }
 
             const marker = new goongjs.Marker({ color })
                 .setLngLat([point.longitude, point.latitude])
@@ -759,7 +774,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             });
             householdMarkersRef.current.push(marker);
         });
-    }, [mapInstanceReady, householdOverview, selectedHouseholdStates]);
+    }, [mapInstanceReady, householdOverview, selectedHouseholdStates, showAllHouseholds]);
 
     // "Bản đồ tiện ích" - doc tu database (bang Poi, chi lay verified=true) -
     // chi 1 danh muc tai 1 thoi diem (bam lai chinh danh muc dang chon se tat
@@ -1294,6 +1309,61 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                     >
                         {canViewHouseholds && (
                             <div className="flex flex-wrap gap-2 rounded-lg border border-divider_01 bg-ui_bg p-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAllHouseholds(prev => !prev)}
+                                    className={cn(
+                                        "flex min-w-[150px] flex-1 items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition",
+                                        showAllHouseholds
+                                            ? "border-transparent"
+                                            : "border-divider_01 bg-ui_bg hover:bg-ng_10",
+                                    )}
+                                    style={
+                                        showAllHouseholds
+                                            ? { background: HOUSEHOLD_NEUTRAL_COLOR }
+                                            : undefined
+                                    }
+                                >
+                                    <span
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                        style={{
+                                            background: showAllHouseholds
+                                                ? "rgba(255,255,255,0.2)"
+                                                : `${HOUSEHOLD_NEUTRAL_COLOR}1A`,
+                                        }}
+                                    >
+                                        <Home
+                                            className="h-[18px] w-[18px]"
+                                            style={{
+                                                color: showAllHouseholds
+                                                    ? "#fff"
+                                                    : HOUSEHOLD_NEUTRAL_COLOR,
+                                            }}
+                                        />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span
+                                            className={cn(
+                                                "block truncate text-sm font-semibold",
+                                                showAllHouseholds ? "text-white" : "text-text_1",
+                                            )}
+                                        >
+                                            Tất cả hộ dân
+                                        </span>
+                                        <span
+                                            className={cn(
+                                                "block text-xs",
+                                                showAllHouseholds
+                                                    ? "text-white/80"
+                                                    : "text-text_2",
+                                            )}
+                                        >
+                                            {householdOverview === null
+                                                ? "Đang tải..."
+                                                : `${householdOverview.householdsWithCoordinates}/${householdOverview.totalHouseholds} hộ có toạ độ`}
+                                        </span>
+                                    </span>
+                                </button>
                                 {HOUSEHOLD_STATUS_FILTERS.map(state => {
                                     const active = selectedHouseholdStates.includes(state.key);
                                     const color =
@@ -1349,11 +1419,14 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                         </button>
                                     );
                                 })}
-                                {selectedHouseholdStates.length > 0 && (
+                                {(selectedHouseholdStates.length > 0 || showAllHouseholds) && (
                                     <button
                                         type="button"
                                         className="shrink-0 self-center px-2 text-xs font-medium text-primary hover:underline"
-                                        onClick={() => setSelectedHouseholdStates([])}
+                                        onClick={() => {
+                                            setSelectedHouseholdStates([]);
+                                            setShowAllHouseholds(false);
+                                        }}
                                     >
                                         Bỏ lọc
                                     </button>

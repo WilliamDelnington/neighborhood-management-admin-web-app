@@ -393,7 +393,11 @@ const PoiListContent: React.FC = () => {
                                     <SelectValue placeholder="Chọn danh mục" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {POI_CATEGORY_LIST.map(c => (
+                                    {POI_CATEGORY_LIST.filter(
+                                        c =>
+                                            c.key !== "household" ||
+                                            form.category === "household",
+                                    ).map(c => (
                                         <SelectItem key={c.key} value={c.key}>
                                             {c.label}
                                         </SelectItem>
