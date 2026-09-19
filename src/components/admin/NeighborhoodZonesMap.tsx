@@ -7,6 +7,8 @@ import {
     Home,
     Map as MapIcon,
     MapPinned,
+    Maximize2,
+    Minimize2,
     Satellite,
     Search,
     Trash2,
@@ -354,6 +356,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const [mapLoading, setMapLoading] = useState(false);
     const [mapError, setMapError] = useState<string | null>(null);
     const [mapStyleKey, setMapStyleKey] = useState<MapStyleKey>("street");
+    // Che do "phóng to" ban do - CSS position:fixed thuan (khong dung native
+    // Fullscreen API, xem ghi chu o cho khoi tao goongjs.Map ben duoi).
+    const [isMapExpanded, setIsMapExpanded] = useState(false);
     const [selectedZoneIds, setSelectedZoneIds] = useState<string[]>([]);
     const [searchText, setSearchText] = useState("");
     const [searchSuggestions, setSearchSuggestions] = useState<
@@ -419,7 +424,6 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     // any: @mapbox/mapbox-gl-draw khong kem type (xem src/types/mapbox-gl-draw.d.ts).
     const drawRef = useRef<any>(null);
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
-    const fullscreenChangeCleanupRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
         fetchNeighborhoods({ limit: 100, active: true })
@@ -554,9 +558,14 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 });
                 mapRef.current = map;
                 map.addControl(new goongjs.NavigationControl(), "top-right");
-                // Nut phong to toan man hinh (che do "phóng to") - dung native
-                // Fullscreen API cua trinh duyet, khong can tu quan ly layout.
-                map.addControl(new goongjs.FullscreenControl(), "top-right");
+                // KHONG dung goongjs.FullscreenControl/native Fullscreen API o
+                // day - da thu va bi loi vo layout dai dai (container bi ket o
+                // kich thuoc fullscreen cu sau khi thoat, gay tran ngang ca
+                // trang) trong moi truong nhung trang nay chay (vd webview),
+                // Fullscreen API khong hoat dong dang tin cay. Thay bang che do
+                // "phóng to" tu lam (CSS position:fixed thuan, xem
+                // isMapExpanded/nut Maximize2 ben duoi) - khong phu thuoc trinh
+                // duyet nen luon resize dung.
 
                 // goong-js (fork mapbox-gl-js cu) khong tu resize canvas khi
                 // container doi kich thuoc (vd chuyen giua bo cuc 2 cot/3 cot
@@ -569,29 +578,6 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 const resizeObserver = new ResizeObserver(() => map.resize());
                 resizeObserver.observe(mapContainerRef.current);
                 resizeObserverRef.current = resizeObserver;
-
-                // Rieng luc thoat Fullscreen (nut vua them o tren): ResizeObserver
-                // đôi khi bắn ra NGAY luc trinh duyet con dang chuyen tiep layout
-                // (kich thuoc container luc do van la kich thuoc fullscreen cu),
-                // khien map.resize() doc nham kich thuoc va canvas bi "kẹt" sai
-                // ty le sau khi thu ve (vo layout) - cho 1 frame (requestAnimationFrame)
-                // de trinh duyet hoan tat reflow roi moi resize() lai cho chac.
-                const handleFullscreenChange = () => {
-                    requestAnimationFrame(() => map.resize());
-                    // Du phong them 1 lan nua sau khi reflow chac chan da xong -
-                    // vai truong hop reflow cham hon 1 frame (lich su da gap loi
-                    // nay), rAF don le doi khi van chua du.
-                    setTimeout(() => map.resize(), 150);
-                };
-                document.addEventListener(
-                    "fullscreenchange",
-                    handleFullscreenChange,
-                );
-                fullscreenChangeCleanupRef.current = () =>
-                    document.removeEventListener(
-                        "fullscreenchange",
-                        handleFullscreenChange,
-                    );
 
                 map.on("load", () => {
                     if (cancelled) return;
@@ -627,8 +613,6 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             cancelled = true;
             resizeObserverRef.current?.disconnect();
             resizeObserverRef.current = null;
-            fullscreenChangeCleanupRef.current?.();
-            fullscreenChangeCleanupRef.current = null;
             householdMarkersRef.current.forEach(marker => marker.remove());
             householdMarkersRef.current = [];
             poiMarkersRef.current.forEach(marker => marker.remove());
@@ -863,6 +847,29 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     useEffect(() => {
         mapStyleKeyRef.current = mapStyleKey;
     }, [mapStyleKey]);
+
+    // Che do "phóng to": container doi kich thuoc dot ngot (position:fixed
+    // phu toan man hinh) - phai tu goi map.resize() vi ResizeObserver quan sat
+    // mapContainerRef (con cua wrapper vua doi vi tri/kich thuoc), doi khi bat
+    // kip ngay lan render dau nhung can 1 frame de chac chan CSS da ap dung
+    // xong (giong cach tung xu ly Fullscreen API truoc day, nhung o day KHONG
+    // con phu thuoc trinh duyet nen luon dang tin cay hon). Phim Esc de thoat
+    // nhanh, giong quy uoc fullscreen thong thuong.
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return undefined;
+        const raf = requestAnimationFrame(() => map.resize());
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setIsMapExpanded(false);
+        };
+        if (isMapExpanded) document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            cancelAnimationFrame(raf);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [isMapExpanded]);
 
     const togglePinMode = useCallback(() => {
         setPinModeOn(prev => {
@@ -1500,8 +1507,27 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                     )}
                         </div>
                         )}
-                        <div className="relative min-h-0 w-full flex-1">
+                        <div
+                            className={cn(
+                                "relative min-h-0 w-full flex-1",
+                                isMapExpanded && "fixed inset-0 z-[100] bg-ui_bg p-2",
+                            )}
+                        >
                         <div ref={mapContainerRef} className="h-full w-full rounded-xl" />
+                        {!mapLoading && !mapError && (
+                            <button
+                                type="button"
+                                title={isMapExpanded ? "Thu nhỏ bản đồ" : "Phóng to bản đồ"}
+                                onClick={() => setIsMapExpanded(prev => !prev)}
+                                className="absolute right-3 top-[92px] z-20 flex h-8 w-8 items-center justify-center rounded-md border border-divider_01 bg-ui_bg shadow-sm hover:bg-ng_10"
+                            >
+                                {isMapExpanded ? (
+                                    <Minimize2 className="h-4 w-4 text-text_1" />
+                                ) : (
+                                    <Maximize2 className="h-4 w-4 text-text_1" />
+                                )}
+                            </button>
+                        )}
                         {!mapLoading && !mapError && (
                             <div className="absolute left-3 right-14 top-3 z-20 max-w-sm">
                                 <div className="flex items-center gap-2 rounded-2xl bg-ui_bg px-4 py-2.5 shadow-lg">
