@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
     Award,
     Crosshair,
@@ -21,7 +22,7 @@ import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
 import { AppError, Household, Neighborhood } from "@dts";
 import { HOUSEHOLD_STATE_LIST, HouseholdStateKey } from "@constants/domain";
-import { POI_CATEGORY_LIST } from "@constants/poi";
+import { POI_CATEGORY_LIST, PoiCategoryMeta } from "@constants/poi";
 import {
     fetchNeighborhoods,
     updateNeighborhoodGeometry,
@@ -75,6 +76,36 @@ const HOUSEHOLD_STATE_ICON: Record<string, typeof Users> = {
 // co the sai/thieu (khong phai tim theo danh muc that), nen phai qua buoc
 // admin duyet (verified=true) truoc khi hien cho moi nguoi xem.
 const POI_MARKER_COLOR = "#dc2626";
+
+/**
+ * Tao phan tu marker rieng (icon lucide tren nen tron mau danh muc) thay vi
+ * pin mac dinh cua goong-js (chi doi mau, khong doi hinh dang) - giong kieu
+ * hien thi tren Google Maps, giup phan biet nhanh danh muc nao voi danh muc
+ * nao chi bang mat thuong. Dung renderToStaticMarkup vi day la Icon component
+ * cua lucide-react (React), can chuyen thanh chuoi SVG truoc khi gan vao
+ * innerHTML cua phan tu DOM thuan (goong-js Marker nhan mot HTMLElement, khong
+ * nhan JSX).
+ */
+function buildPoiMarkerElement(category?: PoiCategoryMeta): HTMLDivElement {
+    const color = category?.color || POI_MARKER_COLOR;
+    const el = document.createElement("div");
+    el.style.width = "28px";
+    el.style.height = "28px";
+    el.style.borderRadius = "50%";
+    el.style.background = color;
+    el.style.border = "2px solid #fff";
+    el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.45)";
+    el.style.display = "flex";
+    el.style.alignItems = "center";
+    el.style.justifyContent = "center";
+    if (category) {
+        const Icon = category.icon;
+        el.innerHTML = renderToStaticMarkup(
+            <Icon size={15} color="#fff" strokeWidth={2.5} />,
+        );
+    }
+    return el;
+}
 
 type MapStyleKey = "street" | "satellite";
 type MapStyleGroup = "Mặc định" | "Vệ tinh";
@@ -381,6 +412,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     // any: @mapbox/mapbox-gl-draw khong kem type (xem src/types/mapbox-gl-draw.d.ts).
     const drawRef = useRef<any>(null);
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
+    const fullscreenChangeCleanupRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
         fetchNeighborhoods({ limit: 100, active: true })
@@ -515,6 +547,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 });
                 mapRef.current = map;
                 map.addControl(new goongjs.NavigationControl(), "top-right");
+                // Nut phong to toan man hinh (che do "phóng to") - dung native
+                // Fullscreen API cua trinh duyet, khong can tu quan ly layout.
+                map.addControl(new goongjs.FullscreenControl(), "top-right");
 
                 // goong-js (fork mapbox-gl-js cu) khong tu resize canvas khi
                 // container doi kich thuoc (vd chuyen giua bo cuc 2 cot/3 cot
@@ -527,6 +562,29 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 const resizeObserver = new ResizeObserver(() => map.resize());
                 resizeObserver.observe(mapContainerRef.current);
                 resizeObserverRef.current = resizeObserver;
+
+                // Rieng luc thoat Fullscreen (nut vua them o tren): ResizeObserver
+                // đôi khi bắn ra NGAY luc trinh duyet con dang chuyen tiep layout
+                // (kich thuoc container luc do van la kich thuoc fullscreen cu),
+                // khien map.resize() doc nham kich thuoc va canvas bi "kẹt" sai
+                // ty le sau khi thu ve (vo layout) - cho 1 frame (requestAnimationFrame)
+                // de trinh duyet hoan tat reflow roi moi resize() lai cho chac.
+                const handleFullscreenChange = () => {
+                    requestAnimationFrame(() => map.resize());
+                    // Du phong them 1 lan nua sau khi reflow chac chan da xong -
+                    // vai truong hop reflow cham hon 1 frame (lich su da gap loi
+                    // nay), rAF don le doi khi van chua du.
+                    setTimeout(() => map.resize(), 150);
+                };
+                document.addEventListener(
+                    "fullscreenchange",
+                    handleFullscreenChange,
+                );
+                fullscreenChangeCleanupRef.current = () =>
+                    document.removeEventListener(
+                        "fullscreenchange",
+                        handleFullscreenChange,
+                    );
 
                 map.on("load", () => {
                     if (cancelled) return;
@@ -562,6 +620,8 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             cancelled = true;
             resizeObserverRef.current?.disconnect();
             resizeObserverRef.current = null;
+            fullscreenChangeCleanupRef.current?.();
+            fullscreenChangeCleanupRef.current = null;
             householdMarkersRef.current.forEach(marker => marker.remove());
             householdMarkersRef.current = [];
             poiMarkersRef.current.forEach(marker => marker.remove());
@@ -745,10 +805,12 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         }
 
         poiResults.forEach(place => {
-            const color =
-                POI_CATEGORY_LIST.find(c => c.key === place.category)?.color ||
-                POI_MARKER_COLOR;
-            const marker = new goongjs.Marker({ color })
+            const categoryMeta = POI_CATEGORY_LIST.find(
+                c => c.key === place.category,
+            );
+            const marker = new goongjs.Marker({
+                element: buildPoiMarkerElement(categoryMeta),
+            })
                 .setLngLat([place.lng, place.lat])
                 .addTo(map);
             const markerEl = marker.getElement();

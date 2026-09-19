@@ -1,5 +1,6 @@
-import { API } from "@constants/common";
+import { API, BASE_URL } from "@constants/common";
 import { PoiCategory } from "@dts";
+import { useAuthStore } from "@store/authStore";
 import { request } from "./request";
 
 // Tom tat Household duoc backend populate san khi category = "household" (xem
@@ -63,3 +64,29 @@ export interface ScanPoisResult {
 
 export const scanPois = (): Promise<ScanPoisResult[]> =>
     request<ScanPoisResult[]>("POST", `${API.POIS}/scan`);
+
+/**
+ * File .xlsx nhi phan, khong theo envelope JSON chuan - khong dung request(),
+ * mo truc tiep bang token qua fetch + tao link tai xuong tam thoi (giong
+ * downloadImportTemplate o importApi.ts).
+ */
+export const downloadPoisExcel = async (): Promise<void> => {
+    const { token } = useAuthStore.getState();
+    const url = new URL(`${API.EXPORT}/pois`, BASE_URL);
+
+    const res = await fetch(url.toString(), {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    if (!res.ok) {
+        throw new Error("Không thể xuất file Excel");
+    }
+    const blob = await res.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = "danh-sach-diem-tien-ich.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+};

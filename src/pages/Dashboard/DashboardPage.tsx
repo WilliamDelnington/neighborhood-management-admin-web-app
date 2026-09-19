@@ -828,7 +828,7 @@ const DashboardContent: React.FC = () => {
 
             {summary.capabilities.population &&
                 user?.permissions?.includes("neighborhoods.read") && (
-                    <NeighborhoodZonesMap />
+                    <NeighborhoodZonesMap mapHeightClassName="h-[750px]" />
                 )}
 
             {summary.audience !== "neighborhood" &&
