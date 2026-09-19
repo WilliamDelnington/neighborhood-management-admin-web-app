@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
     Award,
     Crosshair,
     HeartHandshake,
+    Home,
     Map as MapIcon,
     MapPinned,
     Satellite,
@@ -21,7 +23,7 @@ import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
 import { AppError, Household, Neighborhood } from "@dts";
 import { HOUSEHOLD_STATE_LIST, HouseholdStateKey } from "@constants/domain";
-import { POI_CATEGORY_LIST } from "@constants/poi";
+import { POI_CATEGORY_LIST, PoiCategoryMeta } from "@constants/poi";
 import {
     fetchNeighborhoods,
     updateNeighborhoodGeometry,
@@ -75,6 +77,36 @@ const HOUSEHOLD_STATE_ICON: Record<string, typeof Users> = {
 // co the sai/thieu (khong phai tim theo danh muc that), nen phai qua buoc
 // admin duyet (verified=true) truoc khi hien cho moi nguoi xem.
 const POI_MARKER_COLOR = "#dc2626";
+
+/**
+ * Tao phan tu marker rieng (icon lucide tren nen tron mau danh muc) thay vi
+ * pin mac dinh cua goong-js (chi doi mau, khong doi hinh dang) - giong kieu
+ * hien thi tren Google Maps, giup phan biet nhanh danh muc nao voi danh muc
+ * nao chi bang mat thuong. Dung renderToStaticMarkup vi day la Icon component
+ * cua lucide-react (React), can chuyen thanh chuoi SVG truoc khi gan vao
+ * innerHTML cua phan tu DOM thuan (goong-js Marker nhan mot HTMLElement, khong
+ * nhan JSX).
+ */
+function buildPoiMarkerElement(category?: PoiCategoryMeta): HTMLDivElement {
+    const color = category?.color || POI_MARKER_COLOR;
+    const el = document.createElement("div");
+    el.style.width = "28px";
+    el.style.height = "28px";
+    el.style.borderRadius = "50%";
+    el.style.background = color;
+    el.style.border = "2px solid #fff";
+    el.style.boxShadow = "0 1px 4px rgba(0,0,0,0.45)";
+    el.style.display = "flex";
+    el.style.alignItems = "center";
+    el.style.justifyContent = "center";
+    if (category) {
+        const Icon = category.icon;
+        el.innerHTML = renderToStaticMarkup(
+            <Icon size={15} color="#fff" strokeWidth={2.5} />,
+        );
+    }
+    return el;
+}
 
 type MapStyleKey = "street" | "satellite";
 type MapStyleGroup = "Mặc định" | "Vệ tinh";
@@ -342,6 +374,12 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const [selectedHouseholdStates, setSelectedHouseholdStates] = useState<
         HouseholdStateKey[]
     >([]);
+    // "Tất cả hộ dân" - che do rieng hien TAT CA ho dan da co toa do (tu GIS
+    // cua nha lien ket, xem HouseholdGisOverviewPoint) len ban do, KHONG can
+    // loc theo trang thai dac biet nao (khac 4 the loc ben tren, chi hien khi
+    // co chon). Doc lap voi selectedHouseholdStates - co the bat ca hai cung
+    // luc (xem effect ve marker o duoi).
+    const [showAllHouseholds, setShowAllHouseholds] = useState(false);
     const [selectedPoiCategoryKey, setSelectedPoiCategoryKey] = useState<string | null>(null);
     const [poiResults, setPoiResults] = useState<Poi[]>([]);
     const [poiLoading, setPoiLoading] = useState(false);
@@ -381,6 +419,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     // any: @mapbox/mapbox-gl-draw khong kem type (xem src/types/mapbox-gl-draw.d.ts).
     const drawRef = useRef<any>(null);
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
+    const fullscreenChangeCleanupRef = useRef<(() => void) | null>(null);
 
     useEffect(() => {
         fetchNeighborhoods({ limit: 100, active: true })
@@ -515,6 +554,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 });
                 mapRef.current = map;
                 map.addControl(new goongjs.NavigationControl(), "top-right");
+                // Nut phong to toan man hinh (che do "phóng to") - dung native
+                // Fullscreen API cua trinh duyet, khong can tu quan ly layout.
+                map.addControl(new goongjs.FullscreenControl(), "top-right");
 
                 // goong-js (fork mapbox-gl-js cu) khong tu resize canvas khi
                 // container doi kich thuoc (vd chuyen giua bo cuc 2 cot/3 cot
@@ -527,6 +569,29 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 const resizeObserver = new ResizeObserver(() => map.resize());
                 resizeObserver.observe(mapContainerRef.current);
                 resizeObserverRef.current = resizeObserver;
+
+                // Rieng luc thoat Fullscreen (nut vua them o tren): ResizeObserver
+                // đôi khi bắn ra NGAY luc trinh duyet con dang chuyen tiep layout
+                // (kich thuoc container luc do van la kich thuoc fullscreen cu),
+                // khien map.resize() doc nham kich thuoc va canvas bi "kẹt" sai
+                // ty le sau khi thu ve (vo layout) - cho 1 frame (requestAnimationFrame)
+                // de trinh duyet hoan tat reflow roi moi resize() lai cho chac.
+                const handleFullscreenChange = () => {
+                    requestAnimationFrame(() => map.resize());
+                    // Du phong them 1 lan nua sau khi reflow chac chan da xong -
+                    // vai truong hop reflow cham hon 1 frame (lich su da gap loi
+                    // nay), rAF don le doi khi van chua du.
+                    setTimeout(() => map.resize(), 150);
+                };
+                document.addEventListener(
+                    "fullscreenchange",
+                    handleFullscreenChange,
+                );
+                fullscreenChangeCleanupRef.current = () =>
+                    document.removeEventListener(
+                        "fullscreenchange",
+                        handleFullscreenChange,
+                    );
 
                 map.on("load", () => {
                     if (cancelled) return;
@@ -562,6 +627,8 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             cancelled = true;
             resizeObserverRef.current?.disconnect();
             resizeObserverRef.current = null;
+            fullscreenChangeCleanupRef.current?.();
+            fullscreenChangeCleanupRef.current = null;
             householdMarkersRef.current.forEach(marker => marker.remove());
             householdMarkersRef.current = [];
             poiMarkersRef.current.forEach(marker => marker.remove());
@@ -668,7 +735,11 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         householdMarkersRef.current.forEach(marker => marker.remove());
         householdMarkersRef.current = [];
 
-        if (selectedHouseholdStates.length === 0 || !householdOverview) return;
+        if (
+            (selectedHouseholdStates.length === 0 && !showAllHouseholds) ||
+            !householdOverview
+        )
+            return;
         if (!householdPopupRef.current) {
             householdPopupRef.current = new goongjs.Popup({ offset: 8 });
         }
@@ -677,12 +748,16 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             const matched = HOUSEHOLD_STATUS_FILTERS.filter(
                 state => selectedHouseholdStates.includes(state.key) && point[state.key],
             );
-            if (matched.length === 0) return;
+            // "Tất cả hộ dân" dang bat: van hien ho khong khop trang thai nao
+            // (mau trung tinh) - chi bo qua khi ca hai deu tat.
+            if (matched.length === 0 && !showAllHouseholds) return;
 
-            const color =
-                matched.length > 1
-                    ? HOUSEHOLD_MULTI_MATCH_COLOR
-                    : HOUSEHOLD_TONE_COLOR[matched[0].tone] || HOUSEHOLD_NEUTRAL_COLOR;
+            let color = HOUSEHOLD_NEUTRAL_COLOR;
+            if (matched.length > 1) {
+                color = HOUSEHOLD_MULTI_MATCH_COLOR;
+            } else if (matched.length === 1) {
+                color = HOUSEHOLD_TONE_COLOR[matched[0].tone] || HOUSEHOLD_NEUTRAL_COLOR;
+            }
 
             const marker = new goongjs.Marker({ color })
                 .setLngLat([point.longitude, point.latitude])
@@ -699,7 +774,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             });
             householdMarkersRef.current.push(marker);
         });
-    }, [mapInstanceReady, householdOverview, selectedHouseholdStates]);
+    }, [mapInstanceReady, householdOverview, selectedHouseholdStates, showAllHouseholds]);
 
     // "Bản đồ tiện ích" - doc tu database (bang Poi, chi lay verified=true) -
     // chi 1 danh muc tai 1 thoi diem (bam lai chinh danh muc dang chon se tat
@@ -745,10 +820,12 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         }
 
         poiResults.forEach(place => {
-            const color =
-                POI_CATEGORY_LIST.find(c => c.key === place.category)?.color ||
-                POI_MARKER_COLOR;
-            const marker = new goongjs.Marker({ color })
+            const categoryMeta = POI_CATEGORY_LIST.find(
+                c => c.key === place.category,
+            );
+            const marker = new goongjs.Marker({
+                element: buildPoiMarkerElement(categoryMeta),
+            })
                 .setLngLat([place.lng, place.lat])
                 .addTo(map);
             const markerEl = marker.getElement();
@@ -1232,6 +1309,61 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                     >
                         {canViewHouseholds && (
                             <div className="flex flex-wrap gap-2 rounded-lg border border-divider_01 bg-ui_bg p-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAllHouseholds(prev => !prev)}
+                                    className={cn(
+                                        "flex min-w-[150px] flex-1 items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition",
+                                        showAllHouseholds
+                                            ? "border-transparent"
+                                            : "border-divider_01 bg-ui_bg hover:bg-ng_10",
+                                    )}
+                                    style={
+                                        showAllHouseholds
+                                            ? { background: HOUSEHOLD_NEUTRAL_COLOR }
+                                            : undefined
+                                    }
+                                >
+                                    <span
+                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                        style={{
+                                            background: showAllHouseholds
+                                                ? "rgba(255,255,255,0.2)"
+                                                : `${HOUSEHOLD_NEUTRAL_COLOR}1A`,
+                                        }}
+                                    >
+                                        <Home
+                                            className="h-[18px] w-[18px]"
+                                            style={{
+                                                color: showAllHouseholds
+                                                    ? "#fff"
+                                                    : HOUSEHOLD_NEUTRAL_COLOR,
+                                            }}
+                                        />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span
+                                            className={cn(
+                                                "block truncate text-sm font-semibold",
+                                                showAllHouseholds ? "text-white" : "text-text_1",
+                                            )}
+                                        >
+                                            Tất cả hộ dân
+                                        </span>
+                                        <span
+                                            className={cn(
+                                                "block text-xs",
+                                                showAllHouseholds
+                                                    ? "text-white/80"
+                                                    : "text-text_2",
+                                            )}
+                                        >
+                                            {householdOverview === null
+                                                ? "Đang tải..."
+                                                : `${householdOverview.householdsWithCoordinates}/${householdOverview.totalHouseholds} hộ có toạ độ`}
+                                        </span>
+                                    </span>
+                                </button>
                                 {HOUSEHOLD_STATUS_FILTERS.map(state => {
                                     const active = selectedHouseholdStates.includes(state.key);
                                     const color =
@@ -1287,11 +1419,14 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                         </button>
                                     );
                                 })}
-                                {selectedHouseholdStates.length > 0 && (
+                                {(selectedHouseholdStates.length > 0 || showAllHouseholds) && (
                                     <button
                                         type="button"
                                         className="shrink-0 self-center px-2 text-xs font-medium text-primary hover:underline"
-                                        onClick={() => setSelectedHouseholdStates([])}
+                                        onClick={() => {
+                                            setSelectedHouseholdStates([]);
+                                            setShowAllHouseholds(false);
+                                        }}
                                     >
                                         Bỏ lọc
                                     </button>
