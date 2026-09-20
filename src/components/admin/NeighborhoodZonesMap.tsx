@@ -1612,8 +1612,23 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                             </div>
                         )}
                         {canViewPois && (
-                        <div className="flex flex-wrap gap-2 rounded-lg border border-divider_01 bg-ui_bg p-2">
-                            {POI_CATEGORY_LIST.map(category => {
+                        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 rounded-lg border border-divider_01 bg-ui_bg p-2">
+                            {/* An bot vai danh muc theo yeu cau (chi o thanh loc tren ban
+                                do nay, KHONG dung POI_CATEGORY_LIST) - "household" trung
+                                nhan hien thi voi "apartment" (2 nut giong het nhau, gay
+                                roi) va khong the "quet" duoc (chi tao qua cong cu Gắn hộ
+                                dân o /map-boundary, xem PoiListPage.tsx da an tuong tu o
+                                Select danh muc); "restaurant"/"cafe" (Quán ăn ngon/Quán
+                                cafe) khong can hien tren ban do nay.
+
+                                Dung CSS grid (thay vi flex-wrap + flex-1 truoc day) de cac
+                                nut o HANG CUOI (khi so luong danh muc khong chia het cho so
+                                nut/hang) van rong DUNG BANG cac nut o hang tren - flex-wrap
+                                truoc day khien vai nut cuoi tu gian ra chiem het phan con
+                                trong cua hang, to nho khong deu nhau. */}
+                            {POI_CATEGORY_LIST.filter(
+                                category => !["household", "restaurant", "cafe"].includes(category.key),
+                            ).map(category => {
                                     const active = selectedPoiCategoryKey === category.key;
                                     const Icon = category.icon;
                                     return (
@@ -1622,7 +1637,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                             type="button"
                                             onClick={() => selectPoiCategory(category)}
                                             className={cn(
-                                                "flex min-w-[140px] flex-1 items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition",
+                                                "flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition",
                                                 active
                                                     ? "border-transparent"
                                                     : "border-divider_01 bg-ui_bg hover:bg-ng_10",
@@ -1630,7 +1645,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                             style={active ? { background: category.color } : undefined}
                                         >
                                             <span
-                                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+                                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                                                 style={{
                                                     background: active
                                                         ? "rgba(255,255,255,0.2)"
@@ -1638,13 +1653,13 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                                 }}
                                             >
                                                 <Icon
-                                                    className="h-3.5 w-3.5"
+                                                    className="h-[18px] w-[18px]"
                                                     style={{ color: active ? "#fff" : category.color }}
                                                 />
                                             </span>
                                             <span
                                                 className={cn(
-                                                    "truncate text-xs font-semibold",
+                                                    "truncate text-sm font-semibold",
                                                     active ? "text-white" : "text-text_1",
                                                 )}
                                             >
@@ -1654,12 +1669,12 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                     );
                                 })}
                                 {poiLoading && (
-                                    <p className="w-full text-xs text-text_2">
+                                    <p className="col-span-full text-xs text-text_2">
                                         Đang tải điểm tiện ích...
                                     </p>
                                 )}
                                 {poiError && (
-                                    <p className="w-full text-xs text-red-500">
+                                    <p className="col-span-full text-xs text-red-500">
                                         Không tải được điểm tiện ích cho danh mục này
                                     </p>
                                 )}
@@ -1667,7 +1682,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                     !poiLoading &&
                                     !poiError &&
                                     poiResults.length === 0 && (
-                                        <p className="w-full text-xs text-text_2">
+                                        <p className="col-span-full text-xs text-text_2">
                                             Chưa có điểm tiện ích nào được duyệt cho danh mục này
                                         </p>
                                     )}
@@ -1890,10 +1905,10 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                             </div>
                             <div
                                 className={cn(
-                                    "overflow-y-auto rounded-lg border border-divider_01",
+                                    "min-h-0 overflow-y-auto rounded-lg border border-divider_01",
                                     isFullscreenLayout
                                         ? "max-h-[calc(100vh-260px)]"
-                                        : "max-h-[560px]",
+                                        : "flex-1",
                                 )}
                             >
                                 {zonesWithGeometry.map((zone, index) => (
