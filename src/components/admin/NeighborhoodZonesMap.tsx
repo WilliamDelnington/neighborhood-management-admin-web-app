@@ -148,6 +148,76 @@ const ZONE_PALETTE = [
     "#7f8c8d",
 ];
 
+/**
+ * Nut "phóng to/thu nhỏ" duoi dang IControl cua goong-js (them qua
+ * map.addControl, giong NavigationControl) thay vi mot button React dinh vi
+ * absolute voi offset px doan chung (truoc day la top-[92px], doan theo chieu
+ * cao NavigationControl) - cach lam cu bi lech/xau vi offset doan khong khop
+ * chinh xac chieu cao thuc te cua nhom nut zoom/compass. Them vao cung vi tri
+ * "top-right" ngay sau NavigationControl, goong-js se tu xep vao chung mot
+ * cot va dung san class CSS mapboxgl-ctrl-group nen luon thang hang, dong bo
+ * kieu dang (bo vien, do rong, khoang cach) voi cac nut zoom co san.
+ */
+class ExpandMapControl {
+    private container: HTMLDivElement | null = null;
+
+    private button: HTMLButtonElement | null = null;
+
+    private expanded = false;
+
+    private onToggle: () => void;
+
+    constructor(onToggle: () => void) {
+        this.onToggle = onToggle;
+    }
+
+    onAdd() {
+        this.container = document.createElement("div");
+        this.container.className = "mapboxgl-ctrl mapboxgl-ctrl-group";
+        this.button = document.createElement("button");
+        this.button.type = "button";
+        this.button.className = "mapboxgl-ctrl-icon";
+        this.button.style.display = "flex";
+        this.button.style.alignItems = "center";
+        this.button.style.justifyContent = "center";
+        this.button.addEventListener("click", e => {
+            e.stopPropagation();
+            this.onToggle();
+            // Bo focus ngay - nut nay la phan tu DOM ON DINH (goong-js
+            // khong tao lai control luc resize), khi ancestor cua no nhay tu
+            // fixed inset-0 (phu toan man hinh) ve lai vi tri binh thuong
+            // (thap hon nhieu, sau cac the thong ke/bo loc), mot so trinh
+            // duyet se tu dong cuon trang de "giu" phan tu dang focus trong
+            // khung nhin - khien trang bi cuon lech xuong duoi, trong nhu
+            // "vỡ layout" ngay sau khi thu nho ban do lai.
+            this.button?.blur();
+        });
+        this.renderIcon();
+        this.container.appendChild(this.button);
+        return this.container;
+    }
+
+    onRemove() {
+        this.container?.parentNode?.removeChild(this.container);
+        this.container = null;
+        this.button = null;
+    }
+
+    setExpanded(expanded: boolean) {
+        this.expanded = expanded;
+        this.renderIcon();
+    }
+
+    private renderIcon() {
+        if (!this.button) return;
+        this.button.title = this.expanded ? "Thu nhỏ bản đồ" : "Phóng to bản đồ";
+        const Icon = this.expanded ? Minimize2 : Maximize2;
+        this.button.innerHTML = renderToStaticMarkup(
+            <Icon size={16} strokeWidth={2.25} />,
+        );
+    }
+}
+
 type LngLatBounds = {
     extend: (coord: [number, number]) => LngLatBounds;
     getCenter: () => { lng: number; lat: number };
@@ -199,6 +269,25 @@ function computeWardMaxBounds(padding: number): [[number, number], [number, numb
     ];
 }
 const WARD_MAX_BOUNDS = computeWardMaxBounds(WARD_BOUNDS_PADDING_DEG);
+
+// Tim ancestor thuc su cuon trang (vd <main class="overflow-y-auto"> cua
+// AdminLayout.tsx, KHONG phai luon la window/body) - dung de luu/phuc hoi lai
+// vi tri cuon truoc/sau che do "phóng to" ban do (xem toggleMapExpanded), vi
+// che do nay dat mot phan tu con position:fixed inset-0 - khi thu nho lai,
+// mot so trinh duyet tu dong cuon ancestor nay de "giu" nut bam (dang
+// focus, xem ExpandMapControl) trong khung nhin, khien trang bi giat/cuon
+// lech xuong duoi so voi truoc khi phong to.
+function findScrollParent(el: HTMLElement | null): HTMLElement | null {
+    let node = el?.parentElement || null;
+    while (node && node !== document.body) {
+        const style = getComputedStyle(node);
+        if (/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) {
+            return node;
+        }
+        node = node.parentElement;
+    }
+    return null;
+}
 
 // Chan noi bot su kien tu marker (the DOM de len canvas) xuong
 // canvasContainer - noi goong-js/mapbox-gl-js gan listener tinh "click" cho ca
@@ -424,6 +513,25 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     // any: @mapbox/mapbox-gl-draw khong kem type (xem src/types/mapbox-gl-draw.d.ts).
     const drawRef = useRef<any>(null);
     const resizeObserverRef = useRef<ResizeObserver | null>(null);
+    const expandControlRef = useRef<ExpandMapControl | null>(null);
+    // Luu lai center/zoom NGAY TRUOC luc bam "phóng to" (xem toggleMapExpanded)
+    // de phuc hoi chinh xac sau khi thu nho lai - goong-js/mapbox-gl tu dieu
+    // chinh (clamp) zoom theo maxBounds moi khi container doi kich thuoc dot
+    // ngot (o day la tu box nho len toan man hinh roi nguoc lai), neu khong
+    // luu/phuc hoi thi luc thu nho lai ban do co the bi nhay lech
+    // center/zoom so voi truoc khi phong to - dung "vỡ layout" ma nguoi dung
+    // gap phai.
+    const preExpandCameraRef = useRef<{ center: [number, number]; zoom: number } | null>(
+        null,
+    );
+    // Luu lai ancestor cuon trang thuc su + vi tri cuon cua no NGAY TRUOC luc
+    // phong to (xem toggleMapExpanded/findScrollParent) - phong ngua truong
+    // hop trinh duyet tu cuon trang de giu nut ExpandMapControl (dang focus)
+    // trong khung nhin luc thu nho lai (da chan bang button.blur(), nhung giu
+    // them lop nay de phuc hoi dut diem neu van co le lech nao khac).
+    const preExpandScrollRef = useRef<{ parent: HTMLElement | null; top: number } | null>(
+        null,
+    );
 
     useEffect(() => {
         fetchNeighborhoods({ limit: 100, active: true })
@@ -558,6 +666,14 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 });
                 mapRef.current = map;
                 map.addControl(new goongjs.NavigationControl(), "top-right");
+                // Them ngay sau NavigationControl, cung vi tri "top-right" -
+                // goong-js tu xep vao chung mot cot voi nut zoom/compass (xem
+                // ExpandMapControl o tren), tranh phai tu doan offset px nhu
+                // cach lam cu (button React rieng, de bi lech/xau).
+                const expandControl = new ExpandMapControl(() => toggleMapExpanded());
+                expandControl.setExpanded(isMapExpanded);
+                expandControlRef.current = expandControl;
+                map.addControl(expandControl, "top-right");
                 // KHONG dung goongjs.FullscreenControl/native Fullscreen API o
                 // day - da thu va bi loi vo layout dai dai (container bi ket o
                 // kich thuoc fullscreen cu sau khi thoat, gay tran ngang ca
@@ -622,6 +738,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             mapRef.current?.remove();
             mapRef.current = null;
             drawRef.current = null;
+            expandControlRef.current = null;
+            preExpandCameraRef.current = null;
+            preExpandScrollRef.current = null;
             setMapInstanceReady(false);
             setDrawModeOn(false);
             setDrawnFeatures([]);
@@ -855,10 +974,33 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     // xong (giong cach tung xu ly Fullscreen API truoc day, nhung o day KHONG
     // con phu thuoc trinh duyet nen luon dang tin cay hon). Phim Esc de thoat
     // nhanh, giong quy uoc fullscreen thong thuong.
+    //
+    // Luc thu nho lai (isMapExpanded false), ngoai resize() con phai jumpTo()
+    // lai dung center/zoom da luu truoc khi phong to (preExpandCameraRef):
+    // goong-js/mapbox-gl tu clamp lai zoom theo maxBounds moi khi container
+    // resize (o day tu box nho -> toan man hinh -> box nho), nen neu khong
+    // phuc hoi thu cong thi ban do co the dung lai o mot center/zoom khac so
+    // voi truoc khi phong to (trong nhu bi "nhay"/vỡ bo cuc).
     useEffect(() => {
         const map = mapRef.current;
+        expandControlRef.current?.setExpanded(isMapExpanded);
         if (!map) return undefined;
-        const raf = requestAnimationFrame(() => map.resize());
+        const raf = requestAnimationFrame(() => {
+            map.resize();
+            if (!isMapExpanded && preExpandCameraRef.current) {
+                map.jumpTo({
+                    center: preExpandCameraRef.current.center,
+                    zoom: preExpandCameraRef.current.zoom,
+                });
+                preExpandCameraRef.current = null;
+            }
+            if (!isMapExpanded && preExpandScrollRef.current) {
+                const { parent, top } = preExpandScrollRef.current;
+                if (parent) parent.scrollTop = top;
+                else window.scrollTo({ top });
+                preExpandScrollRef.current = null;
+            }
+        });
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") setIsMapExpanded(false);
@@ -870,6 +1012,30 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             document.removeEventListener("keydown", handleKeyDown);
         };
     }, [isMapExpanded]);
+
+    // Ham bam duy nhat cho nut "phóng to" (dung chung cho ca ExpandMapControl
+    // tren ban do va co the goi lai o noi khac) - luu lai center/zoom hien tai
+    // truoc khi chuyen sang che do phong to, de effect ve isMapExpanded ben
+    // duoi phuc hoi lai dung vi tri sau khi thu nho (xem preExpandCameraRef).
+    const toggleMapExpanded = useCallback(() => {
+        setIsMapExpanded(prev => {
+            const next = !prev;
+            const map = mapRef.current;
+            if (!prev && map) {
+                const center = map.getCenter();
+                preExpandCameraRef.current = {
+                    center: [center.lng, center.lat],
+                    zoom: map.getZoom(),
+                };
+                const scrollParent = findScrollParent(mapContainerRef.current);
+                preExpandScrollRef.current = {
+                    parent: scrollParent,
+                    top: scrollParent ? scrollParent.scrollTop : window.scrollY,
+                };
+            }
+            return next;
+        });
+    }, []);
 
     const togglePinMode = useCallback(() => {
         setPinModeOn(prev => {
@@ -1308,9 +1474,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 >
                     <div
                         className={cn(
-                            "flex min-h-0 w-full flex-col gap-2",
+                            "flex min-h-0 w-full min-w-0 flex-col gap-2",
                             isFullscreenLayout
-                                ? "order-2 h-[calc(100vh-140px)] min-w-0"
+                                ? "order-2 h-[calc(100vh-140px)]"
                                 : mapHeightClassName,
                         )}
                     >
@@ -1514,20 +1680,6 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                             )}
                         >
                         <div ref={mapContainerRef} className="h-full w-full rounded-xl" />
-                        {!mapLoading && !mapError && (
-                            <button
-                                type="button"
-                                title={isMapExpanded ? "Thu nhỏ bản đồ" : "Phóng to bản đồ"}
-                                onClick={() => setIsMapExpanded(prev => !prev)}
-                                className="absolute right-3 top-[92px] z-20 flex h-8 w-8 items-center justify-center rounded-md border border-divider_01 bg-ui_bg shadow-sm hover:bg-ng_10"
-                            >
-                                {isMapExpanded ? (
-                                    <Minimize2 className="h-4 w-4 text-text_1" />
-                                ) : (
-                                    <Maximize2 className="h-4 w-4 text-text_1" />
-                                )}
-                            </button>
-                        )}
                         {!mapLoading && !mapError && (
                             <div className="absolute left-3 right-14 top-3 z-20 max-w-sm">
                                 <div className="flex items-center gap-2 rounded-2xl bg-ui_bg px-4 py-2.5 shadow-lg">
