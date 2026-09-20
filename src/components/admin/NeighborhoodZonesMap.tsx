@@ -6,9 +6,11 @@ import {
     HeartHandshake,
     Home,
     Map as MapIcon,
+    MapPin,
     MapPinned,
     Maximize2,
     Minimize2,
+    Phone,
     Satellite,
     Search,
     Trash2,
@@ -81,19 +83,23 @@ const HOUSEHOLD_STATE_ICON: Record<string, typeof Users> = {
 const POI_MARKER_COLOR = "#dc2626";
 
 /**
- * Tao phan tu marker rieng (icon lucide tren nen tron mau danh muc) thay vi
- * pin mac dinh cua goong-js (chi doi mau, khong doi hinh dang) - giong kieu
- * hien thi tren Google Maps, giup phan biet nhanh danh muc nao voi danh muc
- * nao chi bang mat thuong. Dung renderToStaticMarkup vi day la Icon component
- * cua lucide-react (React), can chuyen thanh chuoi SVG truoc khi gan vao
- * innerHTML cua phan tu DOM thuan (goong-js Marker nhan mot HTMLElement, khong
- * nhan JSX).
+ * Tao phan tu marker rieng (icon lucide tren nen tron mau) thay vi pin mac
+ * dinh cua goong-js (chi doi mau, khong doi hinh dang) - giong kieu hien thi
+ * tren Google Maps, giup phan biet nhanh danh muc/trang thai nao voi danh
+ * muc/trang thai nao chi bang mat thuong (dung chung cho marker Poi va marker
+ * Ho dan - xem buildPoiMarkerElement/buildHouseholdMarkerElement ben duoi).
+ * Dung renderToStaticMarkup vi day la Icon component cua lucide-react (React),
+ * can chuyen thanh chuoi SVG truoc khi gan vao innerHTML cua phan tu DOM thuan
+ * (goong-js Marker nhan mot HTMLElement, khong nhan JSX).
  */
-function buildPoiMarkerElement(category?: PoiCategoryMeta): HTMLDivElement {
-    const color = category?.color || POI_MARKER_COLOR;
+function buildIconMarkerElement(
+    icon: typeof Users | undefined,
+    color: string,
+    size = 28,
+): HTMLDivElement {
     const el = document.createElement("div");
-    el.style.width = "28px";
-    el.style.height = "28px";
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
     el.style.borderRadius = "50%";
     el.style.background = color;
     el.style.border = "2px solid #fff";
@@ -101,13 +107,29 @@ function buildPoiMarkerElement(category?: PoiCategoryMeta): HTMLDivElement {
     el.style.display = "flex";
     el.style.alignItems = "center";
     el.style.justifyContent = "center";
-    if (category) {
-        const Icon = category.icon;
+    if (icon) {
+        const Icon = icon;
         el.innerHTML = renderToStaticMarkup(
-            <Icon size={15} color="#fff" strokeWidth={2.5} />,
+            <Icon size={Math.round(size * 0.54)} color="#fff" strokeWidth={2.5} />,
         );
     }
     return el;
+}
+
+function buildPoiMarkerElement(category?: PoiCategoryMeta): HTMLDivElement {
+    return buildIconMarkerElement(category?.icon, category?.color || POI_MARKER_COLOR);
+}
+
+// "Nha" mac dinh (khong khop trang thai nao, hoac khop nhieu hon 1 trang thai
+// - xem HOUSEHOLD_MULTI_MATCH_COLOR) - dung icon rieng cua trang thai do khi
+// CHI khop dung 1, giong cach cac the loc trang thai ben duoi ban do da hien
+// icon rieng cho tung trang thai (xem HOUSEHOLD_STATE_ICON).
+function buildHouseholdMarkerElement(
+    matched: (typeof HOUSEHOLD_STATUS_FILTERS)[number][],
+    color: string,
+): HTMLDivElement {
+    const icon = matched.length === 1 ? HOUSEHOLD_STATE_ICON[matched[0].key] : Home;
+    return buildIconMarkerElement(icon || Home, color, 26);
 }
 
 type MapStyleKey = "street" | "satellite";
@@ -307,6 +329,39 @@ function escapeHtml(value: string): string {
         .replace(/>/g, "&gt;");
 }
 
+// Mot dong thong tin trong popup ban do (icon xam nho + text) - dung chung
+// cho dia chi/SDT o ca popup Poi va popup Ho dan, thay vi chi la text tron
+// (xem buildPoiPopupHTML/buildHouseholdPopupHTML) de de phan biet tung dong
+// bang mat thuong hon la doc chu.
+function popupInfoRow(icon: typeof Users, text: string): string {
+    const Icon = icon;
+    const svg = renderToStaticMarkup(
+        <Icon size={13} color="#94a3b8" strokeWidth={2} />,
+    );
+    return `
+        <div style="display:flex;align-items:flex-start;gap:6px;margin-top:4px;color:#64748b;line-height:1.45">
+            <span style="flex-shrink:0;margin-top:2px">${svg}</span>
+            <span>${text}</span>
+        </div>
+    `;
+}
+
+// Nhan danh muc dang "badge" (icon + chu tren nen mau nhat cua danh muc) -
+// dung o dau popup Poi de nhan biet nhanh loai dia diem, dong bo voi mau cua
+// marker tren ban do (xem buildIconMarkerElement).
+function popupCategoryBadge(icon: typeof Users, label: string, color: string): string {
+    const Icon = icon;
+    const svg = renderToStaticMarkup(
+        <Icon size={11} color={color} strokeWidth={2.5} />,
+    );
+    return `
+        <div style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 7px;border-radius:999px;background:${color}17;margin-bottom:7px">
+            ${svg}
+            <span style="font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:${color}">${escapeHtml(label)}</span>
+        </div>
+    `;
+}
+
 function buildZonePopupHTML(zone: Neighborhood): string {
     return `
         <div style="font-size:13px;line-height:1.5">
@@ -318,19 +373,39 @@ function buildZonePopupHTML(zone: Neighborhood): string {
     `;
 }
 
-function matchedHouseholdStateLabels(point: HouseholdGisOverviewPoint): string[] {
-    return HOUSEHOLD_STATUS_FILTERS.filter(state => point[state.key]).map(
-        state => state.label,
-    );
+function matchedHouseholdStates(point: HouseholdGisOverviewPoint) {
+    return HOUSEHOLD_STATUS_FILTERS.filter(state => point[state.key]);
 }
 
+// data-household-detail: doc lai o listener click marker (xem effect ve
+// marker Ho dan) de dieu huong sang trang chi tiet ho dan - giong cach lam
+// voi popup Poi (buildPoiPopupHTML), Popup cua goong-js chi nhan HTML thuan.
 function buildHouseholdPopupHTML(point: HouseholdGisOverviewPoint): string {
-    const labels = matchedHouseholdStateLabels(point);
+    const matched = matchedHouseholdStates(point);
+    const stateTags = matched.length
+        ? `
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+                ${matched
+                    .map(state => {
+                        const color =
+                            HOUSEHOLD_TONE_COLOR[state.tone] || HOUSEHOLD_NEUTRAL_COLOR;
+                        return `<span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:${color}1A;color:${color};font-size:11px;font-weight:500">${escapeHtml(state.label)}</span>`;
+                    })
+                    .join("")}
+            </div>
+        `
+        : "";
     return `
-        <div style="font-size:13px;line-height:1.5">
-            <strong>${escapeHtml(point.code)}</strong><br/>
-            ${escapeHtml(point.address)}
-            ${labels.length ? `<br/>${labels.map(escapeHtml).join(", ")}` : ""}
+        <div style="min-width:190px;max-width:250px;font-size:13px">
+            <div style="font-weight:600;color:#0f172a;line-height:1.4">${escapeHtml(point.headOfHousehold)} <span style="font-weight:400;color:#94a3b8">(${escapeHtml(point.code)})</span></div>
+            ${popupInfoRow(MapPin, escapeHtml(point.address))}
+            ${point.phone ? popupInfoRow(Phone, escapeHtml(point.phone)) : ""}
+            ${stateTags}
+            <button
+                type="button"
+                data-household-detail="${escapeHtml(point.householdId)}"
+                style="margin-top:10px;width:100%;padding:6px 12px;border-radius:7px;border:none;background:#0891b2;color:#fff;font-size:12px;font-weight:600;cursor:pointer"
+            >Xem chi tiết hộ dân</button>
         </div>
     `;
 }
@@ -339,27 +414,34 @@ function buildHouseholdPopupHTML(point: HouseholdGisOverviewPoint): string {
 // POI) de dieu huong sang trang chi tiet ho dan - Popup cua goong-js chi nhan
 // HTML thuan, khong the gan onClick truc tiep nhu JSX duoc.
 function buildPoiPopupHTML(poi: Poi): string {
+    const categoryMeta = POI_CATEGORY_LIST.find(c => c.key === poi.category);
+    const categoryTag = categoryMeta
+        ? popupCategoryBadge(categoryMeta.icon, categoryMeta.label, categoryMeta.color)
+        : "";
+
     const household =
         poi.category === "household" && poi.householdId && typeof poi.householdId === "object"
             ? poi.householdId
             : null;
     if (!household) {
         return `
-            <div style="font-size:13px;line-height:1.5">
-                <strong>${escapeHtml(poi.name)}</strong>
-                ${poi.address ? `<br/>${escapeHtml(poi.address)}` : ""}
+            <div style="min-width:190px;max-width:250px;font-size:13px">
+                ${categoryTag}
+                <div style="font-weight:600;color:#0f172a;line-height:1.4">${escapeHtml(poi.name)}</div>
+                ${poi.address ? popupInfoRow(MapPin, escapeHtml(poi.address)) : ""}
             </div>
         `;
     }
     return `
-        <div style="font-size:13px;line-height:1.6">
-            <strong>${escapeHtml(household.headOfHousehold)}</strong> (${escapeHtml(household.code)})<br/>
-            ${escapeHtml(household.address)}
-            ${household.phone ? `<br/>SĐT: ${escapeHtml(household.phone)}` : ""}<br/>
+        <div style="min-width:190px;max-width:250px;font-size:13px">
+            ${categoryTag}
+            <div style="font-weight:600;color:#0f172a;line-height:1.4">${escapeHtml(household.headOfHousehold)} <span style="font-weight:400;color:#94a3b8">(${escapeHtml(household.code)})</span></div>
+            ${popupInfoRow(MapPin, escapeHtml(household.address))}
+            ${household.phone ? popupInfoRow(Phone, escapeHtml(household.phone)) : ""}
             <button
                 type="button"
                 data-household-detail="${escapeHtml(household._id)}"
-                style="margin-top:6px;padding:4px 10px;border-radius:6px;border:none;background:#0891b2;color:#fff;font-size:12px;cursor:pointer"
+                style="margin-top:10px;width:100%;padding:6px 12px;border-radius:7px;border:none;background:#0891b2;color:#fff;font-size:12px;font-weight:600;cursor:pointer"
             >Xem chi tiết hộ dân</button>
         </div>
     `;
@@ -862,7 +944,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                 color = HOUSEHOLD_TONE_COLOR[matched[0].tone] || HOUSEHOLD_NEUTRAL_COLOR;
             }
 
-            const marker = new goongjs.Marker({ color })
+            const marker = new goongjs.Marker({
+                element: buildHouseholdMarkerElement(matched, color),
+            })
                 .setLngLat([point.longitude, point.latitude])
                 .addTo(map);
             const markerEl = marker.getElement();
@@ -874,10 +958,22 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                     ?.setLngLat([point.longitude, point.latitude])
                     .setHTML(buildHouseholdPopupHTML(point))
                     .addTo(map);
+                // Popup cua goong-js chi nhan HTML thuan (xem
+                // buildHouseholdPopupHTML) nen phai tu gan lai su kien click cho
+                // nut "Xem chi tiết hộ dân" sau moi lan mo popup, giong cach lam
+                // voi popup Poi ben duoi.
+                const popupEl = householdPopupRef.current?.getElement?.();
+                const detailBtn = popupEl?.querySelector?.(
+                    "[data-household-detail]",
+                ) as HTMLElement | null;
+                detailBtn?.addEventListener("click", () => {
+                    const householdId = detailBtn.getAttribute("data-household-detail");
+                    if (householdId) navigate(`/households/${householdId}`);
+                });
             });
             householdMarkersRef.current.push(marker);
         });
-    }, [mapInstanceReady, householdOverview, selectedHouseholdStates, showAllHouseholds]);
+    }, [mapInstanceReady, householdOverview, selectedHouseholdStates, showAllHouseholds, navigate]);
 
     // "Bản đồ tiện ích" - doc tu database (bang Poi, chi lay verified=true) -
     // chi 1 danh muc tai 1 thoi diem (bam lai chinh danh muc dang chon se tat
