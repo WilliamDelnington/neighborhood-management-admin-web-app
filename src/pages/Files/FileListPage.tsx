@@ -107,6 +107,7 @@ const FileListContent: React.FC = () => {
     const [category, setCategory] = useState<FileAssetCategory | "">(
         (searchParams.get("category") as FileAssetCategory | null) || "",
     );
+    const [search, setSearch] = useState("");
 
     const [items, setItems] = useState<FileAsset[]>([]);
     const [page, setPage] = useState(1);
@@ -136,7 +137,12 @@ const FileListContent: React.FC = () => {
     const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
-        fetchFileAssets({ page: targetPage, limit: size, category: category || undefined })
+        fetchFileAssets({
+            page: targetPage,
+            limit: size,
+            category: category || undefined,
+            search: search || undefined,
+        })
             .then(res => {
                 setItems(res.items);
                 setPage(res.page);
@@ -147,9 +153,10 @@ const FileListContent: React.FC = () => {
     };
 
     useEffect(() => {
-        load(1);
+        const timer = setTimeout(() => load(1), 300);
+        return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [category]);
+    }, [category, search]);
 
     useEffect(() => {
         fetchRoles({ active: true, limit: 100 })
@@ -314,13 +321,21 @@ const FileListContent: React.FC = () => {
             />
 
             <FilterBar>
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, size);
-                    }}
-                />
+                <div className="flex items-center gap-2 sm:col-span-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
+                    <Input
+                        className="flex-1"
+                        placeholder="Tìm theo tên tệp..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
                 <Select
                     value={category || ALL_CATEGORIES}
                     onValueChange={handleCategoryChange}

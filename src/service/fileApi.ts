@@ -4,6 +4,7 @@ import { request } from "./request";
 
 export const fetchFileAssets = (params?: {
     category?: FileAssetCategory;
+    search?: string;
     page?: number;
     limit?: number;
 }): Promise<PaginatedData<FileAsset>> =>
