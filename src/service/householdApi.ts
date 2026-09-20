@@ -59,6 +59,8 @@ export interface HouseholdGisOverviewPoint {
     houseId: string;
     code: string;
     address: string;
+    headOfHousehold: string;
+    phone?: string;
     latitude: number;
     longitude: number;
     needsSupport: boolean;

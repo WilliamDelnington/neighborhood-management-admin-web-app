@@ -3,7 +3,6 @@ import AdminGuard from "@components/auth/AdminGuard";
 import PageHeader from "@components/admin/PageHeader";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
-import { Label } from "@components/ui/label";
 import {
     Select,
     SelectContent,
@@ -123,50 +122,47 @@ const AuditLogListContent: React.FC = () => {
             />
 
             <FilterBar>
-                <PageSizeSelect
-                    value={pageSize}
-                    onChange={size => {
-                        setPageSize(size);
-                        load(1, size);
-                    }}
-                />
-                <div className="space-y-1.5">
-                    <Label className="text-xs">Hành động</Label>
+                <div className="flex items-center gap-2">
+                    <PageSizeSelect
+                        value={pageSize}
+                        onChange={size => {
+                            setPageSize(size);
+                            load(1, size);
+                        }}
+                    />
                     <Input
-                        placeholder="vd: role.create"
+                        className="flex-1"
+                        placeholder="Tìm theo hành động, vd: role.create"
                         value={action}
                         onChange={e => setAction(e.target.value)}
                     />
                 </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs">Đối tượng</Label>
-                    <Select
-                        value={targetModel || "all"}
-                        onValueChange={v => setTargetModel(v === "all" ? "" : v)}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Tất cả</SelectItem>
-                            {TARGET_MODELS.map(m => (
-                                <SelectItem key={m} value={m}>
-                                    {m}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs">Từ ngày</Label>
+                <Select
+                    value={targetModel || "all"}
+                    onValueChange={v => setTargetModel(v === "all" ? "" : v)}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Tất cả đối tượng" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Tất cả đối tượng</SelectItem>
+                        {TARGET_MODELS.map(m => (
+                            <SelectItem key={m} value={m}>
+                                {m}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <div className="flex items-center gap-2 text-sm text-text_2">
+                    <span className="whitespace-nowrap">Từ ngày</span>
                     <Input
                         type="date"
                         value={from}
                         onChange={e => setFrom(e.target.value)}
                     />
                 </div>
-                <div className="space-y-1.5">
-                    <Label className="text-xs">Đến ngày</Label>
+                <div className="flex items-center gap-2 text-sm text-text_2">
+                    <span className="whitespace-nowrap">Đến ngày</span>
                     <Input
                         type="date"
                         value={to}
