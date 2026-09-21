@@ -6,6 +6,7 @@ import {
     LogOut,
     Menu,
     Moon,
+    Star,
     Sun,
     User,
     X,
@@ -15,6 +16,7 @@ import { useThemeStore } from "@store/themeStore";
 import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
 import { useSurveyBadgeStore } from "@store/surveyBadgeStore";
 import { useCorrespondenceBadgeStore } from "@store/correspondenceBadgeStore";
+import { usePinnedModulesStore } from "@store/pinnedModulesStore";
 import { ROLE_LABEL } from "@constants/domain";
 import {
     hasModulePermission,
@@ -80,6 +82,64 @@ const isPrefixOfSiblingModulePath = (path: string) =>
         other => other !== path && other.startsWith(`${path}/`),
     );
 
+const computeModuleNavEnd = (path: string) =>
+    path === "/" || isPrefixOfSiblingModulePath(path);
+
+/**
+ * Mot dong module trong sidebar (dung chung cho muc "Da ghim", muc cap cao
+ * nhat va muc trong nhom) - gom NavLink dieu huong VA mot nut ghim/bo ghim
+ * rieng, khong long button vao trong the <a> (khong hop le ve HTML) ma dat
+ * canh nhau trong cung 1 the bao ngoai voi nut ghim dinh vi tuyet doi.
+ */
+const SidebarModuleLink: React.FC<{
+    module: ModuleItem;
+    title?: string;
+    badgeCount: number;
+    pinned: boolean;
+    onNavigate: () => void;
+    onTogglePin: () => void;
+}> = ({ module, title, badgeCount, pinned, onNavigate, onTogglePin }) => (
+    <div className="group/item relative">
+        <NavLink
+            to={module.path}
+            end={computeModuleNavEnd(module.path)}
+            title={title}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+                cn(
+                    "flex items-center gap-3 rounded-md py-2 pl-3 pr-8 text-sm font-medium text-text_1 transition-colors hover:bg-ng_10",
+                    isActive && "bg-blue_10 text-main",
+                )
+            }
+        >
+            <module.icon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{module.label}</span>
+            {badgeCount > 0 && (
+                <span className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+            )}
+        </NavLink>
+        <button
+            type="button"
+            onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                onTogglePin();
+            }}
+            title={pinned ? "Bỏ ghim" : "Ghim vào đầu menu"}
+            className={cn(
+                "absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 transition-opacity hover:text-amber-500",
+                pinned
+                    ? "text-amber-500 opacity-100"
+                    : "text-text_3 opacity-0 group-hover/item:opacity-100",
+            )}
+        >
+            <Star className={cn("h-3.5 w-3.5", pinned && "fill-current")} />
+        </button>
+    </div>
+);
+
 const AdminLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -92,6 +152,8 @@ const AdminLayout: React.FC = () => {
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
         loadExpandedGroups,
     );
+    const pinnedKeys = usePinnedModulesStore(state => state.pinnedKeys);
+    const togglePin = usePinnedModulesStore(state => state.toggle);
     // Mo ta tuy chinh cho tung muc menu (xem SettingsPage.tsx) - dung chung
     // cache voi PageHeader.tsx (xem store/sectionDescriptionsStore.ts) thay vi
     // tu fetchPublicSettings rieng, tranh goi lai nhieu lan khong can thiet.
@@ -154,6 +216,18 @@ const AdminLayout: React.FC = () => {
         ...group,
         items: group.items.filter(hasPermission),
     })).filter(group => group.items.length > 0);
+
+    // Danh sach module da ghim, theo dung THU TU ghim (khong sap xep lai) va
+    // chi lay tu cac module dang hien thi (co quyen xem) - phong truong hop
+    // quyen bi thu hoi sau khi da ghim, muc do se tu an thay vi bao loi.
+    const allVisibleModules = [
+        ...visibleTopLevel,
+        ...visibleGroups.flatMap(group => group.items),
+    ];
+    const pinnedModules = pinnedKeys
+        .map(key => allVisibleModules.find(m => m.key === key))
+        .filter((m): m is ModuleItem => !!m);
+    const isPinned = (key: string) => pinnedKeys.includes(key);
 
     // Tu dong mo rong nhom chua route dang active - vd bam link tu Bang dieu
     // khien vao thang mot trang con trong nhom dang thu gon thi nhom do phai
@@ -226,26 +300,35 @@ const AdminLayout: React.FC = () => {
                     </button>
                 </div>
                 <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+                    {pinnedModules.length > 0 && (
+                        <div className="mb-2 space-y-1 border-b border-divider_01 pb-2">
+                            <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-text_3">
+                                Đã ghim
+                            </div>
+                            {pinnedModules.map(m => (
+                                <SidebarModuleLink
+                                    key={`pinned-${m.key}`}
+                                    module={m}
+                                    title={descriptionOf(m)}
+                                    badgeCount={menuBadgeCount(m.key)}
+                                    pinned
+                                    onNavigate={() => setSidebarOpen(false)}
+                                    onTogglePin={() => togglePin(m.key)}
+                                />
+                            ))}
+                        </div>
+                    )}
+
                     {visibleTopLevel.map(m => (
-                        <NavLink
+                        <SidebarModuleLink
                             key={m.key}
-                            to={m.path}
-                            end={
-                                m.path === "/" ||
-                                isPrefixOfSiblingModulePath(m.path)
-                            }
+                            module={m}
                             title={descriptionOf(m)}
-                            onClick={() => setSidebarOpen(false)}
-                            className={({ isActive }) =>
-                                cn(
-                                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text_1 transition-colors hover:bg-ng_10",
-                                    isActive && "bg-blue_10 text-main",
-                                )
-                            }
-                        >
-                            <m.icon className="h-4 w-4" />
-                            {m.label}
-                        </NavLink>
+                            badgeCount={menuBadgeCount(m.key)}
+                            pinned={isPinned(m.key)}
+                            onNavigate={() => setSidebarOpen(false)}
+                            onTogglePin={() => togglePin(m.key)}
+                        />
                     ))}
 
                     {visibleGroups.map(group => {
@@ -271,37 +354,21 @@ const AdminLayout: React.FC = () => {
                                 {expanded && (
                                     <div className="ml-3 space-y-1 border-l border-divider_01 pl-3">
                                         {group.items.map(m => (
-                                            <NavLink
+                                            <SidebarModuleLink
                                                 key={m.key}
-                                                to={m.path}
-                                                end={isPrefixOfSiblingModulePath(
-                                                    m.path,
-                                                )}
+                                                module={m}
                                                 title={descriptionOf(m)}
-                                                onClick={() =>
+                                                badgeCount={menuBadgeCount(
+                                                    m.key,
+                                                )}
+                                                pinned={isPinned(m.key)}
+                                                onNavigate={() =>
                                                     setSidebarOpen(false)
                                                 }
-                                                className={({ isActive }) =>
-                                                    cn(
-                                                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text_1 transition-colors hover:bg-ng_10",
-                                                        isActive &&
-                                                            "bg-blue_10 text-main",
-                                                    )
+                                                onTogglePin={() =>
+                                                    togglePin(m.key)
                                                 }
-                                            >
-                                                <m.icon className="h-4 w-4" />
-                                                {m.label}
-                                                {menuBadgeCount(m.key) > 0 && (
-                                                    <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-                                                        {menuBadgeCount(m.key) >
-                                                        99
-                                                            ? "99+"
-                                                            : menuBadgeCount(
-                                                                  m.key,
-                                                              )}
-                                                    </span>
-                                                )}
-                                            </NavLink>
+                                            />
                                         ))}
                                     </div>
                                 )}

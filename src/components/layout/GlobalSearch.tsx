@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     Building2,
+    Compass,
     Home,
     Loader2,
     Search,
@@ -12,13 +13,34 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent } from "@components/ui/dialog";
 import { cn } from "@lib/utils";
+import { useAuthStore } from "@store/authStore";
+import {
+    hasModulePermission,
+    ModuleItem,
+    MODULE_GROUPS,
+    TOP_LEVEL_MODULES,
+} from "@constants/modules";
 import {
     globalSearch,
     GlobalSearchResultItem,
     GlobalSearchResultType,
 } from "@service/searchApi";
 
-const TYPE_LABEL: Record<GlobalSearchResultType, string> = {
+// Them loai ket qua "page" (trang/chuc nang trong menu) ben canh cac loai du
+// lieu tra ve tu API - tim theo TEN MODULE (vd go "báo cáo" nhay thang toi
+// trang Báo cáo) thay vi phai do tim trong menu 9 nhom/~45 muc.
+type LocalResultType = GlobalSearchResultType | "page";
+
+interface LocalResultItem {
+    type: LocalResultType;
+    id: string;
+    title: string;
+    subtitle?: string;
+    href: string;
+}
+
+const TYPE_LABEL: Record<LocalResultType, string> = {
+    page: "Trang / chức năng",
     house: "Nhà số",
     household: "Hộ dân",
     business: "Hộ kinh doanh",
@@ -28,9 +50,10 @@ const TYPE_LABEL: Record<GlobalSearchResultType, string> = {
 };
 
 const TYPE_ICON: Record<
-    GlobalSearchResultType,
+    LocalResultType,
     React.ComponentType<{ className?: string }>
 > = {
+    page: Compass,
     house: Home,
     household: Users,
     business: Store,
@@ -39,6 +62,17 @@ const TYPE_ICON: Record<
     user: User,
 };
 
+// Danh sach phang moi module kem nhan nhom cua no (khong nhom nao voi
+// TOP_LEVEL_MODULES) - tinh mot lan o module-scope vi du lieu tinh, dung de
+// loc client-side khi go tim kiem (khong can goi API, phan hoi tuc thi).
+const PAGE_ENTRIES: { module: ModuleItem; groupLabel?: string }[] = [
+    ...TOP_LEVEL_MODULES.map(module => ({ module, groupLabel: undefined })),
+    ...MODULE_GROUPS.flatMap(group =>
+        group.items.map(module => ({ module, groupLabel: group.label })),
+    ),
+];
+
+const MAX_PAGE_MATCHES = 5;
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 300;
 
@@ -51,6 +85,7 @@ const DEBOUNCE_MS = 300;
  */
 const GlobalSearch: React.FC = () => {
     const navigate = useNavigate();
+    const user = useAuthStore(state => state.user);
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<GlobalSearchResultItem[]>([]);
@@ -84,6 +119,7 @@ const GlobalSearch: React.FC = () => {
     }, [open]);
 
     useEffect(() => {
+        setActiveIndex(0);
         const trimmed = query.trim();
         if (trimmed.length < MIN_QUERY_LENGTH) {
             setResults([]);
@@ -112,32 +148,63 @@ const GlobalSearch: React.FC = () => {
         return () => clearTimeout(timer);
     }, [query]);
 
+    // Khop tuc thi (khong debounce, khong goi API) tren TEN TRANG/CHUC NANG
+    // trong menu - PAGE_ENTRIES la du lieu tinh nen loc client-side re va
+    // nhanh, giup nguoi dung go "báo cáo" la nhay thang toi trang Báo cáo
+    // thay vi phai do tim trong menu 9 nhom.
+    const pageMatches = useMemo((): LocalResultItem[] => {
+        const trimmed = query.trim().toLowerCase();
+        if (trimmed.length < MIN_QUERY_LENGTH) return [];
+        return PAGE_ENTRIES.filter(
+            ({ module }) =>
+                hasModulePermission(user?.permissions, module) &&
+                module.label.toLowerCase().includes(trimmed),
+        )
+            .slice(0, MAX_PAGE_MATCHES)
+            .map(({ module, groupLabel }) => ({
+                type: "page" as const,
+                id: module.key,
+                title: module.label,
+                subtitle: groupLabel,
+                href: module.path,
+            }));
+    }, [query, user?.permissions]);
+
+    const combinedResults = useMemo<LocalResultItem[]>(
+        () => [...pageMatches, ...results],
+        [pageMatches, results],
+    );
+
     const grouped = useMemo(() => {
-        const groups = new Map<GlobalSearchResultType, GlobalSearchResultItem[]>();
-        results.forEach(item => {
+        const groups = new Map<LocalResultType, LocalResultItem[]>();
+        combinedResults.forEach(item => {
             const list = groups.get(item.type) || [];
             list.push(item);
             groups.set(item.type, list);
         });
         return [...groups.entries()];
-    }, [results]);
+    }, [combinedResults]);
 
-    const goTo = (item: GlobalSearchResultItem) => {
+    const goTo = (item: LocalResultItem) => {
         setOpen(false);
         navigate(item.href);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (results.length === 0) return;
+        if (combinedResults.length === 0) return;
         if (e.key === "ArrowDown") {
             e.preventDefault();
-            setActiveIndex(prev => (prev + 1) % results.length);
+            setActiveIndex(prev => (prev + 1) % combinedResults.length);
         } else if (e.key === "ArrowUp") {
             e.preventDefault();
-            setActiveIndex(prev => (prev - 1 + results.length) % results.length);
+            setActiveIndex(
+                prev =>
+                    (prev - 1 + combinedResults.length) %
+                    combinedResults.length,
+            );
         } else if (e.key === "Enter") {
             e.preventDefault();
-            const item = results[activeIndex];
+            const item = combinedResults[activeIndex];
             if (item) goTo(item);
         }
     };
@@ -192,7 +259,7 @@ const GlobalSearch: React.FC = () => {
                         )}
                         {query.trim().length >= MIN_QUERY_LENGTH &&
                             !loading &&
-                            results.length === 0 && (
+                            combinedResults.length === 0 && (
                                 <p className="px-2 py-6 text-center text-sm text-text_2">
                                     Không tìm thấy kết quả phù hợp.
                                 </p>
@@ -206,7 +273,7 @@ const GlobalSearch: React.FC = () => {
                                     </div>
                                     {items.map(item => {
                                         const globalIndex =
-                                            results.indexOf(item);
+                                            combinedResults.indexOf(item);
                                         const active =
                                             globalIndex === activeIndex;
                                         return (
