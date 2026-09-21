@@ -5,7 +5,7 @@ import {
     KeyRound,
     LogOut,
     Menu,
-    Moon,
+    MoonStar,
     Star,
     Sun,
     User,
@@ -20,6 +20,7 @@ import { usePinnedModulesStore } from "@store/pinnedModulesStore";
 import { ROLE_LABEL } from "@constants/domain";
 import {
     hasModulePermission,
+    ModuleIconTone,
     ModuleItem,
     MODULE_GROUPS,
     TOP_LEVEL_MODULES,
@@ -86,20 +87,40 @@ const isPrefixOfSiblingModulePath = (path: string) =>
 const computeModuleNavEnd = (path: string) =>
     path === "/" || isPrefixOfSiblingModulePath(path);
 
+// Mau icon theo tong mau cua tung nhom (ModuleGroup.color) - dam bao doc
+// duoc ca hai theme (dark: rieng cho nen toi) thay vi mot mau xam trung tinh
+// duy nhat nhu truoc, giup cac nhom de phan biet bang mat thuong khi luot
+// sidebar dai ~45 muc.
+const ICON_TONE_CLASS: Record<ModuleIconTone, string> = {
+    blue: "text-blue-600 dark:text-blue-400",
+    teal: "text-teal-600 dark:text-teal-400",
+    amber: "text-amber-600 dark:text-amber-400",
+    rose: "text-rose-600 dark:text-rose-400",
+    cyan: "text-cyan-600 dark:text-cyan-400",
+    slate: "text-slate-500 dark:text-slate-400",
+    purple: "text-purple-600 dark:text-purple-400",
+    emerald: "text-emerald-600 dark:text-emerald-400",
+    indigo: "text-indigo-600 dark:text-indigo-400",
+    fuchsia: "text-fuchsia-600 dark:text-fuchsia-400",
+};
+
 /**
  * Mot dong module trong sidebar (dung chung cho muc "Da ghim", muc cap cao
  * nhat va muc trong nhom) - gom NavLink dieu huong VA mot nut ghim/bo ghim
  * rieng, khong long button vao trong the <a> (khong hop le ve HTML) ma dat
- * canh nhau trong cung 1 the bao ngoai voi nut ghim dinh vi tuyet doi.
+ * canh nhau trong cung 1 the bao ngoai voi nut ghim dinh vi tuyet doi. Icon
+ * LUON giu mau tong cua nhom (kha ca khi dang active) de de nhan dien - chi
+ * nhan/nen cua dong doi mau khi duoc chon, khong "nuot" mau icon.
  */
 const SidebarModuleLink: React.FC<{
     module: ModuleItem;
+    color?: ModuleIconTone;
     title?: string;
     badgeCount: number;
     pinned: boolean;
     onNavigate: () => void;
     onTogglePin: () => void;
-}> = ({ module, title, badgeCount, pinned, onNavigate, onTogglePin }) => (
+}> = ({ module, color, title, badgeCount, pinned, onNavigate, onTogglePin }) => (
     <div className="group/item relative">
         <NavLink
             to={module.path}
@@ -113,7 +134,12 @@ const SidebarModuleLink: React.FC<{
                 )
             }
         >
-            <module.icon className="h-4 w-4 shrink-0" />
+            <module.icon
+                className={cn(
+                    "h-4 w-4 shrink-0",
+                    color && ICON_TONE_CLASS[color],
+                )}
+            />
             <span className="truncate">{module.label}</span>
             {badgeCount > 0 && (
                 <span className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
@@ -222,6 +248,20 @@ const AdminLayout: React.FC = () => {
         items: group.items.filter(hasPermission),
     })).filter(group => group.items.length > 0);
 
+    // Tra mau icon theo module key - muc cap cao nhat lay mau rieng cua no
+    // (Dashboard), muc trong nhom luon lay mau cua NHOM CHA (khong tu khai
+    // bao rieng) de ca nhom dong bo mau voi nhau. Dung 1 bang tra chung cho
+    // ca 3 cho render (cap cao nhat/trong nhom/da ghim) thay vi tinh lai.
+    const moduleColorByKey: Partial<Record<string, ModuleIconTone>> = {};
+    visibleTopLevel.forEach(m => {
+        if (m.color) moduleColorByKey[m.key] = m.color;
+    });
+    visibleGroups.forEach(group => {
+        group.items.forEach(m => {
+            moduleColorByKey[m.key] = group.color;
+        });
+    });
+
     // Danh sach module da ghim, theo dung THU TU ghim (khong sap xep lai) va
     // chi lay tu cac module dang hien thi (co quyen xem) - phong truong hop
     // quyen bi thu hoi sau khi da ghim, muc do se tu an thay vi bao loi.
@@ -314,6 +354,7 @@ const AdminLayout: React.FC = () => {
                                 <SidebarModuleLink
                                     key={`pinned-${m.key}`}
                                     module={m}
+                                    color={moduleColorByKey[m.key]}
                                     title={descriptionOf(m)}
                                     badgeCount={menuBadgeCount(m.key)}
                                     pinned
@@ -328,6 +369,7 @@ const AdminLayout: React.FC = () => {
                         <SidebarModuleLink
                             key={m.key}
                             module={m}
+                            color={moduleColorByKey[m.key]}
                             title={descriptionOf(m)}
                             badgeCount={menuBadgeCount(m.key)}
                             pinned={isPinned(m.key)}
@@ -346,7 +388,12 @@ const AdminLayout: React.FC = () => {
                                     className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-text_2 transition-colors hover:bg-ng_10"
                                 >
                                     <span className="flex items-center gap-3">
-                                        <group.icon className="h-4 w-4" />
+                                        <group.icon
+                                            className={cn(
+                                                "h-4 w-4",
+                                                ICON_TONE_CLASS[group.color],
+                                            )}
+                                        />
                                         {group.label}
                                     </span>
                                     <ChevronDown
@@ -362,6 +409,7 @@ const AdminLayout: React.FC = () => {
                                             <SidebarModuleLink
                                                 key={m.key}
                                                 module={m}
+                                                color={group.color}
                                                 title={descriptionOf(m)}
                                                 badgeCount={menuBadgeCount(
                                                     m.key,
@@ -395,7 +443,7 @@ const AdminLayout: React.FC = () => {
 
                     <GlobalSearch />
 
-                    <div className="ml-auto flex items-center gap-3">
+                    <div className="ml-auto flex items-center gap-4">
                         <button
                             type="button"
                             onClick={toggleTheme}
@@ -404,12 +452,12 @@ const AdminLayout: React.FC = () => {
                                     ? "Chuyển sang chế độ sáng"
                                     : "Chuyển sang chế độ tối"
                             }
-                            className="flex h-9 w-9 items-center justify-center rounded-full bg-ng_10 text-text_2 transition-colors hover:bg-blue_10 hover:text-main"
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-ng_10 transition-colors hover:bg-blue_10"
                         >
                             {theme === "dark" ? (
-                                <Sun className="h-[18px] w-[18px]" />
+                                <Sun className="h-[18px] w-[18px] text-amber-500" />
                             ) : (
-                                <Moon className="h-[18px] w-[18px]" />
+                                <MoonStar className="h-[18px] w-[18px] text-indigo-500 dark:text-indigo-400" />
                             )}
                         </button>
 

@@ -44,6 +44,22 @@ import {
     FileDown,
 } from "lucide-react";
 
+// Bang mau icon sidebar (AdminLayout.tsx) - moi ModuleGroup mang 1 tong mau
+// rieng de cac muc trong cung nhom de nhan biet chung nhau bang mat thuong
+// (thay vi tat ca deu mot mau xam trung tinh nhu truoc), ma van gon (khong
+// loe loet vi gioi han trong 1 bang mau co dinh).
+export type ModuleIconTone =
+    | "blue"
+    | "teal"
+    | "amber"
+    | "rose"
+    | "cyan"
+    | "slate"
+    | "purple"
+    | "emerald"
+    | "indigo"
+    | "fuchsia";
+
 export type ModuleItem = {
     key: string;
     label: string;
@@ -55,12 +71,17 @@ export type ModuleItem = {
     // quyen chung duy nhat de doi chieu.
     permission: string | string[];
     description?: string;
+    // Mau icon rieng - chi dung cho muc DUNG DOC LAP, khong thuoc ModuleGroup
+    // nao (hien tai chi Dashboard). Muc nam trong mot ModuleGroup luon lay
+    // mau cua nhom cha (xem ModuleGroup.color), khong tu khai bao o day.
+    color?: ModuleIconTone;
 };
 
 export type ModuleGroup = {
     key: string;
     label: string;
     icon: typeof Home;
+    color: ModuleIconTone;
     items: ModuleItem[];
 };
 
@@ -87,6 +108,7 @@ export const TOP_LEVEL_MODULES: ModuleItem[] = [
         icon: LayoutDashboard,
         permission: "dashboard.read",
         description: "Tổng quan số liệu và hoạt động của tổ dân phố.",
+        color: "blue",
     },
 ];
 
@@ -98,6 +120,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "location",
         label: "Quản lý khu vực",
         icon: MapPinned,
+        color: "teal",
         items: [
             {
                 key: "wards",
@@ -195,6 +218,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "business",
         label: "Quản lý kinh doanh",
         icon: Store,
+        color: "amber",
         items: [
             {
                 key: "businesses",
@@ -238,6 +262,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "requests",
         label: "Quản lý yêu cầu",
         icon: Send,
+        color: "rose",
         items: [
             {
                 key: "complaints",
@@ -380,6 +405,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "appointments",
         label: "Đặt lịch hẹn",
         icon: CalendarClock,
+        color: "cyan",
         items: [
             {
                 key: "appointments",
@@ -430,6 +456,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "documents",
         label: "Quản lý tài liệu",
         icon: FileText,
+        color: "slate",
         items: [
             {
                 key: "document_types",
@@ -471,6 +498,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "communication",
         label: "Truyền thông",
         icon: Megaphone,
+        color: "purple",
         items: [
             {
                 key: "meetings",
@@ -519,6 +547,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "finance",
         label: "Tài chính",
         icon: Wallet,
+        color: "emerald",
         items: [
             {
                 key: "finance",
@@ -535,6 +564,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "administration",
         label: "Quản trị hệ thống",
         icon: ShieldCheck,
+        color: "indigo",
         items: [
             {
                 key: "users",
@@ -613,6 +643,7 @@ export const MODULE_GROUPS: ModuleGroup[] = [
         key: "services",
         label: "Quản lý dịch vụ",
         icon: LayoutGrid,
+        color: "fuchsia",
         items: [
             {
                 key: "utility_apps",

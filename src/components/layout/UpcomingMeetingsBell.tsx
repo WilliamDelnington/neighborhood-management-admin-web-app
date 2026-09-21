@@ -73,7 +73,10 @@ const UpcomingMeetingsBell: React.FC = () => {
                 title="Cuộc họp sắp tới"
                 className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ng_10 transition-colors hover:bg-blue_10"
             >
-                <CalendarClock className="h-5 w-5 text-text_1" />
+                {/* Tim purple - dong bo voi mau nhom "Truyền thông" chua
+                muc "Cuộc họp" trong sidebar (xem MODULE_GROUPS o
+                constants/modules.ts) de cung mot noi dung luon dung 1 mau. */}
+                <CalendarClock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 {total > 0 && (
                     <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
                         {total > 99 ? "99+" : total}
