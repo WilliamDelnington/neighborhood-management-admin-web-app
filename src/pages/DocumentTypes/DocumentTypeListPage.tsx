@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { FileUp, Upload, X } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
@@ -112,6 +113,7 @@ const DocumentTypeListContent: React.FC = () => {
 
     const [toDelete, setToDelete] = useState<DocumentType | null>(null);
     const [deleting, setDeleting] = useState(false);
+    const sampleFileInputRef = useRef<HTMLInputElement>(null);
 
     const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
@@ -460,35 +462,90 @@ const DocumentTypeListContent: React.FC = () => {
                                     duyệt hình dung rõ hơn giấy tờ này, ngoài
                                     tên và mô tả.
                                 </p>
-                                {form.existingSampleFileUrl &&
-                                    !form.removeSampleFile &&
-                                    !form.sampleFile && (
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <a
-                                                href={resolveAssetUrl(
-                                                    form.existingSampleFileUrl,
-                                                )}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-primary hover:underline"
-                                            >
+
+                                <input
+                                    ref={sampleFileInputRef}
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                                    className="hidden"
+                                    onChange={e => {
+                                        const file =
+                                            e.target.files?.[0] || null;
+                                        e.target.value = "";
+                                        if (!file) return;
+                                        setForm(prev => ({
+                                            ...prev,
+                                            sampleFile: file,
+                                            removeSampleFile: false,
+                                        }));
+                                    }}
+                                />
+
+                                {form.sampleFile ? (
+                                    <div className="flex items-center justify-between gap-2 rounded-md border border-divider_01 bg-ng_10 px-3 py-2 text-sm">
+                                        <span className="flex min-w-0 items-center gap-2">
+                                            <FileUp className="h-4 w-4 shrink-0 text-primary" />
+                                            <span className="truncate">
+                                                {form.sampleFile.name}
+                                            </span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="shrink-0 text-text_2 hover:text-red-500"
+                                            onClick={() =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    sampleFile: null,
+                                                }))
+                                            }
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : form.existingSampleFileUrl &&
+                                  !form.removeSampleFile ? (
+                                    <div className="flex items-center justify-between gap-2 rounded-md border border-divider_01 bg-ng_10 px-3 py-2 text-sm">
+                                        <a
+                                            href={resolveAssetUrl(
+                                                form.existingSampleFileUrl,
+                                            )}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex min-w-0 items-center gap-2 text-primary hover:underline"
+                                        >
+                                            <FileUp className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">
                                                 {form.existingSampleFileName ||
                                                     "Xem tệp mẫu hiện tại"}
-                                            </a>
-                                            <button
-                                                type="button"
-                                                className="text-xs text-red-500 hover:underline"
-                                                onClick={() =>
-                                                    setForm(prev => ({
-                                                        ...prev,
-                                                        removeSampleFile: true,
-                                                    }))
-                                                }
-                                            >
-                                                Xóa
-                                            </button>
-                                        </div>
-                                    )}
+                                            </span>
+                                        </a>
+                                        <button
+                                            type="button"
+                                            className="shrink-0 text-text_2 hover:text-red-500"
+                                            onClick={() =>
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    removeSampleFile: true,
+                                                }))
+                                            }
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() =>
+                                            sampleFileInputRef.current?.click()
+                                        }
+                                    >
+                                        <Upload className="mr-2 h-4 w-4" />
+                                        Chọn tệp mẫu
+                                    </Button>
+                                )}
+
                                 {form.removeSampleFile && (
                                     <div className="flex items-center gap-2 text-xs text-text_2">
                                         Sẽ xóa tệp mẫu hiện tại khi lưu.
@@ -506,63 +563,45 @@ const DocumentTypeListContent: React.FC = () => {
                                         </button>
                                     </div>
                                 )}
-                                <Input
-                                    type="file"
-                                    accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
-                                    onChange={e => {
-                                        const file =
-                                            e.target.files?.[0] || null;
-                                        setForm(prev => ({
-                                            ...prev,
-                                            sampleFile: file,
-                                            removeSampleFile: file
-                                                ? false
-                                                : prev.removeSampleFile,
-                                        }));
-                                    }}
-                                />
-                                {form.sampleFile && (
-                                    <p className="text-xs text-text_2">
-                                        Đã chọn: {form.sampleFile.name}
-                                    </p>
-                                )}
                             </div>
-                            <label className="flex items-center gap-2 text-sm">
-                                <Checkbox
-                                    checked={form.hasIssueDate}
-                                    onCheckedChange={checked =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            hasIssueDate: !!checked,
-                                        }))
-                                    }
-                                />
-                                Có ngày cấp
-                            </label>
-                            <label className="flex items-center gap-2 text-sm">
-                                <Checkbox
-                                    checked={form.hasExpiryDate}
-                                    onCheckedChange={checked =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            hasExpiryDate: !!checked,
-                                        }))
-                                    }
-                                />
-                                Có hạn dùng
-                            </label>
-                            <label className="flex items-center gap-2 text-sm">
-                                <Checkbox
-                                    checked={form.active}
-                                    onCheckedChange={checked =>
-                                        setForm(prev => ({
-                                            ...prev,
-                                            active: !!checked,
-                                        }))
-                                    }
-                                />
-                                Đang hoạt động
-                            </label>
+                            <div className="space-y-2 rounded-md border border-divider_01 p-3">
+                                <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={form.hasIssueDate}
+                                        onCheckedChange={checked =>
+                                            setForm(prev => ({
+                                                ...prev,
+                                                hasIssueDate: !!checked,
+                                            }))
+                                        }
+                                    />
+                                    Có ngày cấp
+                                </label>
+                                <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={form.hasExpiryDate}
+                                        onCheckedChange={checked =>
+                                            setForm(prev => ({
+                                                ...prev,
+                                                hasExpiryDate: !!checked,
+                                            }))
+                                        }
+                                    />
+                                    Có hạn dùng
+                                </label>
+                                <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox
+                                        checked={form.active}
+                                        onCheckedChange={checked =>
+                                            setForm(prev => ({
+                                                ...prev,
+                                                active: !!checked,
+                                            }))
+                                        }
+                                    />
+                                    Đang hoạt động
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <SheetFooter>
