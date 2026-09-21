@@ -25,6 +25,7 @@ import {
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
+import GlobalSearch from "./GlobalSearch";
 import AppBrand from "./AppBrand";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import AiChatWidget from "./AiChatWidget";
@@ -319,6 +320,8 @@ const AdminLayout: React.FC = () => {
                     >
                         <Menu className="h-5 w-5" />
                     </button>
+
+                    <GlobalSearch />
 
                     <div className="ml-auto flex items-center gap-1.5">
                         <button

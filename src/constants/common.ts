@@ -10,6 +10,8 @@ export function resolveAssetUrl(url: string): string {
 }
 
 export const API = {
+    SEARCH: "/api/search",
+
     AUTH_LOGIN: "/api/auth/login",
     AUTH_ME: "/api/auth/me",
     AUTH_LOGOUT: "/api/auth/logout",
