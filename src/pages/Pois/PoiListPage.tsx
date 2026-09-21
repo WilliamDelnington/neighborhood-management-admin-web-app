@@ -270,7 +270,16 @@ const PoiListContent: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value={ALL_VALUE}>Tất cả danh mục</SelectItem>
-                        {POI_CATEGORY_LIST.map(c => (
+                        {/* "restaurant"/"cafe" (Quán ăn ngon/Quán cafe) da bo khoi luoc
+                            do danh muc tren "Bản đồ tiện ích" (xem NeighborhoodZonesMap.tsx)
+                            - bo luon o bo loc nay de dong bo, tranh loc theo danh muc
+                            khong con hien thi o dau ca. "household" cung bo vi trung nhan
+                            "Căn hộ / Chung cư" voi "apartment" (xem constants/poi.ts) - giu
+                            lai "apartment" la du, tranh 2 dong giong het nhau trong danh
+                            sach loc. */}
+                        {POI_CATEGORY_LIST.filter(
+                            c => !["restaurant", "cafe", "household"].includes(c.key),
+                        ).map(c => (
                             <SelectItem key={c.key} value={c.key}>
                                 {c.label}
                             </SelectItem>
@@ -393,11 +402,20 @@ const PoiListContent: React.FC = () => {
                                     <SelectValue placeholder="Chọn danh mục" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {POI_CATEGORY_LIST.filter(
-                                        c =>
-                                            c.key !== "household" ||
-                                            form.category === "household",
-                                    ).map(c => (
+                                    {POI_CATEGORY_LIST.filter(c => {
+                                        if (["restaurant", "cafe"].includes(c.key)) return false;
+                                        if (c.key === "household") {
+                                            return form.category === "household";
+                                        }
+                                        // "apartment" trung nhan "Căn hộ / Chung cư" voi
+                                        // "household" (xem constants/poi.ts) - dang sua mot
+                                        // diem household thi an "apartment" di, tranh hien 2
+                                        // dong giong het nhau trong danh sach chon.
+                                        if (c.key === "apartment" && form.category === "household") {
+                                            return false;
+                                        }
+                                        return true;
+                                    }).map(c => (
                                         <SelectItem key={c.key} value={c.key}>
                                             {c.label}
                                         </SelectItem>
