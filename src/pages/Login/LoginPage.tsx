@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { KeyRound, Phone } from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -85,51 +86,71 @@ const LoginPage: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#eef1f4]">
-            <div className="flex w-full flex-col items-center justify-center overflow-y-auto p-6 lg:w-1/2 lg:min-w-[28rem]">
+        <div className="flex h-screen overflow-hidden bg-app-bg">
+            <div className="relative flex w-full flex-col items-center justify-center overflow-y-auto p-6 lg:w-1/2 lg:min-w-[28rem]">
+                {/* Vong sang mo phia sau the dang nhap - tao chieu sau/diem
+                nhan thi giac cho khoang trang lon ben trai, thay vi 1 the
+                phang giua nen trong khong. */}
+                <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 overflow-hidden"
+                >
+                    <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-main/10 blur-3xl" />
+                    <div className="absolute -bottom-24 -right-10 h-80 w-80 rounded-full bg-primary-dark/10 blur-3xl" />
+                </div>
+
                 <form
                     onSubmit={handleSubmit}
-                    className="w-full max-w-[28rem] rounded-xl border border-[#d7dee6] bg-[#f7f9fb] p-6 shadow-[0_2px_0_rgba(15,23,42,0.02)]"
+                    className="relative z-10 w-full max-w-[26rem] rounded-2xl border border-divider_01 bg-ui_bg p-8 shadow-xl"
                 >
                     <div className="flex justify-center">
                         <AppBrand
-                            imgClassName="h-12 max-w-[240px] object-contain"
+                            imgClassName="h-14 max-w-[240px] object-contain"
                             textClassName="items-center text-center text-[2.1rem] font-semibold leading-[1.3] tracking-[-0.03em] text-main"
                         />
                     </div>
-                    <p className="mb-6 mt-1 text-center text-[1.05rem] text-[#4b5f73]">
+                    <h1 className="mt-4 text-center text-lg font-semibold text-text_1">
+                        Chào mừng trở lại
+                    </h1>
+                    <p className="mb-6 mt-1 text-center text-sm text-text_2">
                         Đăng nhập bằng số điện thoại cán bộ
                     </p>
 
                     <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-[1.05rem] font-medium text-[#1f2b38]">
+                        <Label htmlFor="phone" className="font-medium text-text_1">
                             Số điện thoại
                         </Label>
-                        <Input
-                            id="phone"
-                            placeholder="0xxxxxxxxx"
-                            value={phone}
-                            onChange={e => setPhone(e.target.value)}
-                            autoFocus
-                            className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
-                        />
+                        <div className="relative">
+                            <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_3" />
+                            <Input
+                                id="phone"
+                                placeholder="0xxxxxxxxx"
+                                value={phone}
+                                onChange={e => setPhone(e.target.value)}
+                                autoFocus
+                                className="h-11 pl-9"
+                            />
+                        </div>
                     </div>
                     <div className="mt-4 space-y-2">
-                        <Label htmlFor="password" className="text-[1.05rem] font-medium text-[#1f2b38]">
+                        <Label htmlFor="password" className="font-medium text-text_1">
                             Mật khẩu
                         </Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            className="h-12 rounded-lg border border-[#c9d5df] bg-[#edf4fa] px-3 text-base text-[#1f2b38] shadow-none placeholder:text-[#8aa0b2] focus-visible:ring-[#7ca8d6]"
-                        />
+                        <div className="relative">
+                            <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_3" />
+                            <Input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="h-11 pl-9"
+                            />
+                        </div>
                     </div>
 
                     <Button
                         type="submit"
-                        className="mt-5 h-12 w-full rounded-lg bg-[#0a5a8a] text-base font-semibold text-white shadow-none hover:bg-[#0a4f7c]"
+                        className="mt-6 h-11 w-full text-base font-semibold"
                         loading={submitting}
                     >
                         Đăng nhập
@@ -138,7 +159,7 @@ const LoginPage: React.FC = () => {
                     <Button
                         type="button"
                         variant="link"
-                        className="mt-3 h-auto w-full p-0 text-sm text-[#4b5f73]"
+                        className="mt-3 h-auto w-full p-0 text-sm text-text_2"
                         onClick={() => setForgotOpen(true)}
                     >
                         Quên mật khẩu?

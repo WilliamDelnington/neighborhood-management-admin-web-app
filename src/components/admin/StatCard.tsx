@@ -44,6 +44,15 @@ const TONE_STYLES: Record<
     },
 };
 
+// So lon (vd tong nhan khau ca phuong) de tran, kho doc neu khong co dau
+// phan cach hang nghin - chi dinh dang khi value la number "tho"; chuoi
+// truyen san (vd formatMoney da dinh dang tien te) giu nguyen, khong dinh
+// dang chong.
+const formatStatValue = (value: string | number): string =>
+    typeof value === "number"
+        ? new Intl.NumberFormat("vi-VN").format(value)
+        : value;
+
 const StatCard: React.FC<StatCardProps> = ({
     label,
     value,
@@ -57,11 +66,19 @@ const StatCard: React.FC<StatCardProps> = ({
         <>
             <span
                 className={cn(
-                    "absolute inset-y-0 left-0 w-1 rounded-l-lg",
+                    "absolute inset-y-0 left-0 w-1 rounded-l-xl",
                     style.accent,
                 )}
             />
-            <div className="flex items-start justify-between gap-3 pl-2">
+            {Icon && (
+                <Icon
+                    className={cn(
+                        "pointer-events-none absolute -bottom-3 -right-3 h-16 w-16 opacity-[0.07]",
+                        style.iconColor,
+                    )}
+                />
+            )}
+            <div className="relative flex items-start justify-between gap-3 pl-2">
                 <div className="min-w-0">
                     <div className="truncate text-xs font-medium text-text_2">
                         {label}
@@ -72,13 +89,13 @@ const StatCard: React.FC<StatCardProps> = ({
                             style.text,
                         )}
                     >
-                        {value}
+                        {formatStatValue(value)}
                     </div>
                 </div>
                 {Icon && (
                     <div
                         className={cn(
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 ring-inset ring-black/5",
                             style.iconBg,
                         )}
                     >
@@ -94,7 +111,7 @@ const StatCard: React.FC<StatCardProps> = ({
             <button
                 type="button"
                 className={cn(
-                    "relative overflow-hidden rounded-lg border border-divider_01 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+                    "relative overflow-hidden rounded-xl border border-divider_01 p-4 text-left shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg",
                     style.cardBg,
                 )}
                 onClick={onClick}
@@ -107,7 +124,7 @@ const StatCard: React.FC<StatCardProps> = ({
     return (
         <div
             className={cn(
-                "relative overflow-hidden rounded-lg border border-divider_01 p-4 shadow-sm",
+                "relative overflow-hidden rounded-xl border border-divider_01 p-4 shadow-sm",
                 style.cardBg,
             )}
         >
