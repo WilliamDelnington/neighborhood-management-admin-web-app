@@ -392,7 +392,9 @@ const AdminLayout: React.FC = () => {
                 </header>
 
                 <main className="flex-1 overflow-y-auto p-6">
-                    <Outlet />
+                    <div key={location.pathname} className="page-transition">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
 

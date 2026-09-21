@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, UserRound } from "lucide-react";
+import {
+    Calendar,
+    CreditCard,
+    Mail,
+    MapPin,
+    Phone,
+    Shield,
+    Upload,
+    User as UserIcon,
+    UserRound,
+} from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -222,23 +232,38 @@ const MyProfilePage: React.FC = () => {
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
+                        <h3 className="mb-4 text-base font-semibold">
+                            Thông tin cá nhân
+                        </h3>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-1.5">
-                                <Label>Họ tên</Label>
+                                <Label className="flex items-center gap-1.5">
+                                    <UserIcon className="h-3.5 w-3.5 text-text_2" />
+                                    Họ tên
+                                </Label>
                                 <Input value={user.displayName} disabled />
                             </div>
                             <div className="space-y-1.5">
-                                <Label>Số điện thoại</Label>
+                                <Label className="flex items-center gap-1.5">
+                                    <Phone className="h-3.5 w-3.5 text-text_2" />
+                                    Số điện thoại
+                                </Label>
                                 <Input value={user.phone || "Chưa có"} disabled />
                             </div>
                             {user.email && (
                                 <div className="space-y-1.5">
-                                    <Label>Email</Label>
+                                    <Label className="flex items-center gap-1.5">
+                                        <Mail className="h-3.5 w-3.5 text-text_2" />
+                                        Email
+                                    </Label>
                                     <Input value={user.email} disabled />
                                 </div>
                             )}
                             <div className="space-y-1.5">
-                                <Label>Số CMND/CCCD</Label>
+                                <Label className="flex items-center gap-1.5">
+                                    <CreditCard className="h-3.5 w-3.5 text-text_2" />
+                                    Số CMND/CCCD
+                                </Label>
                                 <Input
                                     value={idNumber}
                                     placeholder="Chưa cập nhật"
@@ -246,7 +271,10 @@ const MyProfilePage: React.FC = () => {
                                 />
                             </div>
                             <div className="space-y-1.5 sm:col-span-2">
-                                <Label>Địa chỉ</Label>
+                                <Label className="flex items-center gap-1.5">
+                                    <MapPin className="h-3.5 w-3.5 text-text_2" />
+                                    Địa chỉ
+                                </Label>
                                 <Input
                                     value={address}
                                     placeholder="Chưa cập nhật"
@@ -254,21 +282,28 @@ const MyProfilePage: React.FC = () => {
                                 />
                             </div>
                         </div>
-                        {user.createdAt && (
-                            <p className="mt-3 text-xs text-text_2">
-                                Ngày tạo tài khoản:{" "}
-                                {new Date(user.createdAt).toLocaleDateString(
-                                    "vi-VN",
-                                )}
-                            </p>
-                        )}
-                        <Button className="mt-4" loading={saving} onClick={handleSave}>
-                            Lưu thông tin
-                        </Button>
+
+                        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-divider_01 pt-4">
+                            {user.createdAt ? (
+                                <p className="flex items-center gap-1.5 text-xs text-text_2">
+                                    <Calendar className="h-3.5 w-3.5" />
+                                    Ngày tạo tài khoản:{" "}
+                                    {new Date(
+                                        user.createdAt,
+                                    ).toLocaleDateString("vi-VN")}
+                                </p>
+                            ) : (
+                                <span />
+                            )}
+                            <Button loading={saving} onClick={handleSave}>
+                                Lưu thông tin
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <h3 className="mb-2 text-base font-semibold">
+                        <h3 className="mb-3 flex items-center gap-1.5 text-base font-semibold">
+                            <Shield className="h-4 w-4 text-text_2" />
                             Phạm vi quản lý
                         </h3>
                         {scopeLoading && <LoadingState />}
