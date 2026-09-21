@@ -73,7 +73,6 @@ export type User = {
     wardRoleKey?: string;
     notificationPermission: boolean;
     createdAt?: string;
-    allowedComplaintCategories: NhomPhanAnh[] | null;
 };
 
 export type AssignableStaff = {
@@ -153,14 +152,12 @@ export type RoleRecord = {
     name: string;
     description?: string;
     permissions: string[];
-    allowedComplaintCategories?: NhomPhanAnh[];
-    // Cung quy uoc voi truong tren: undefined = khong gioi han (giu nguyen
-    // bo so lieu dashboard co dinh theo audience nhu truoc day). Khac 2 truong
-    // tren: danh muc CO DINH (DASHBOARD_METRIC_KEYS), khong phai danh muc quan
-    // tri duoc rieng.
+    // undefined = khong gioi han (giu nguyen bo so lieu dashboard co dinh theo
+    // audience nhu truoc day). Danh muc CO DINH (DASHBOARD_METRIC_KEYS), khong
+    // phai danh muc quan tri duoc rieng.
     dashboardMetrics?: DashboardMetricKey[];
-    // Vai tro duoc phep chon khi "Tạo tài khoản" (POST /api/users) - KHAC 2
-    // truong tren, khong dung quy uoc undefined = khong gioi han (mac dinh
+    // Vai tro duoc phep chon khi "Tạo tài khoản" (POST /api/users) - KHAC truong
+    // tren, khong dung quy uoc undefined = khong gioi han (mac dinh
     // rong la an toan vi day la quyen nhay cam) - xem Role.ts o backend.
     allowedCreatableRoles: string[];
     scopeType: AccessScopeTier;

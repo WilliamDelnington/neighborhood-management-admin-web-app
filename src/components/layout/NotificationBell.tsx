@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -139,8 +139,15 @@ const NotificationBell: React.FC = () => {
 
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
-            <DropdownMenuTrigger className="relative flex h-9 w-9 items-center justify-center rounded-md hover:bg-ng_10">
-                <Bell className="h-5 w-5 text-text_1" />
+            <DropdownMenuTrigger className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ng_10 transition-colors hover:bg-blue_10">
+                {/* Chi "rung" (BellRing) khi co thong bao chua doc - chuong
+                tinh (Bell) khi hop thu rong, tranh cam giac "bao dong gia"
+                lien tuc du khong co gi moi. */}
+                {unreadCount > 0 ? (
+                    <BellRing className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                ) : (
+                    <Bell className="h-5 w-5 text-text_2" />
+                )}
                 {unreadCount > 0 && (
                     <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
                         {unreadCount > 99 ? "99+" : unreadCount}

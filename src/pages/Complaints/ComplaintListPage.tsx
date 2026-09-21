@@ -72,9 +72,6 @@ const ComplaintListPage: React.FC = () => (
 const ComplaintListContent: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const allowedCategories = useAuthStore(
-        state => state.user?.allowedComplaintCategories,
-    );
     const currentUserRoles = useAuthStore(state => state.user?.roles) || [];
     const canCreateComplaint = usePermission("complaints.create");
     // To truong/To pho co 2 goc nhin rieng biet - xem ghi chu o
@@ -130,7 +127,6 @@ const ComplaintListContent: React.FC = () => {
               .filter(t => t.active !== false)
               .map(t => t.key)
         : BOOTSTRAP_NHOM_PHAN_ANH;
-    const visibleCategories = allowedCategories ?? activeCategoryOptions;
 
     const [status, setStatus] = useState<TrangThaiPhanAnh | "">(
         (searchParams.get("status") as TrangThaiPhanAnh | null) || "",
@@ -228,8 +224,7 @@ const ComplaintListContent: React.FC = () => {
 
     // Danh muc actor DANG DANG NHAP duoc phep gui (vd To truong/To pho chi
     // thay danh muc "to_de_xuat_len_phuong") - loc theo allowedSenderRoles,
-    // KHONG dung chung voi bo loc danh sach o tren (allowedCategories la bo
-    // loc XEM, khac quyen GUI).
+    // KHONG dung chung voi bo loc danh sach o tren (bo loc XEM, khac quyen GUI).
     const sendableCategories = complaintTypes.filter(
         t =>
             t.active !== false &&
@@ -364,7 +359,7 @@ const ComplaintListContent: React.FC = () => {
                         <SelectItem value={ALL_CATEGORY}>
                             Tất cả nhóm
                         </SelectItem>
-                        {visibleCategories.map(key => (
+                        {activeCategoryOptions.map(key => (
                             <SelectItem key={key} value={key}>
                                 {labelByCategory(key)}
                             </SelectItem>

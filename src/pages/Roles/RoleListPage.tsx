@@ -47,7 +47,6 @@ import {
     DashboardMetricKey,
     ModulePermissionGroup,
     NeighborhoodCollaboratorScope,
-    NhomPhanAnh,
     RoleRecord,
     ScopeAssignmentMechanism,
 } from "@dts";
@@ -56,7 +55,6 @@ import {
     ACCOUNT_CREATION_RESERVED_ROLE_KEYS,
     COLLABORATOR_SCOPE_LABEL,
     DASHBOARD_METRIC_LABEL,
-    NHOM_PHAN_ANH_LABEL,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
@@ -66,7 +64,6 @@ import {
     fetchRoles,
     updateRole,
 } from "@service/roleApi";
-import { fetchComplaintTypeDefinitions } from "@service/complaintTypeApi";
 
 const RoleListPage: React.FC = () => (
     <AdminGuard permissions={["roles.read"]}>
@@ -81,8 +78,6 @@ type FormState = {
     active: boolean;
     sortOrder: number;
     permissions: string[];
-    // null = khong gioi han (xem tat ca nhom phan anh) - mac dinh cho den khi admin chot.
-    allowedComplaintCategories: NhomPhanAnh[] | null;
     // null = khong gioi han (giu nguyen bo so lieu dashboard co dinh theo
     // audience nhu truoc day) - cung quy uoc, danh muc CO DINH nen khong can
     // fetch tu API (xem DASHBOARD_METRIC_LABEL).
@@ -126,7 +121,6 @@ const EMPTY_FORM: FormState = {
     active: true,
     sortOrder: 0,
     permissions: [],
-    allowedComplaintCategories: null,
     dashboardMetrics: null,
     allowedCreatableRoles: [],
     scopeType: "ALL",
@@ -140,11 +134,6 @@ const RoleListContent: React.FC = () => {
     const canManagePermissions = usePermission("roles.manage");
     const [roles, setRoles] = useState<RoleRecord[]>([]);
     const [registry, setRegistry] = useState<ModulePermissionGroup[]>([]);
-    const [complaintCategoryOptions, setComplaintCategoryOptions] = useState<
-        Array<{ key: NhomPhanAnh; name: string }>
-    >(
-        Object.entries(NHOM_PHAN_ANH_LABEL).map(([key, name]) => ({ key, name })),
-    );
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -165,19 +154,12 @@ const RoleListContent: React.FC = () => {
         Promise.all([
             fetchRoles({ page: targetPage, limit: size }),
             fetchRolePermissionRegistry(),
-            fetchComplaintTypeDefinitions({ active: true, limit: 200 }),
         ])
-            .then(([roleList, permissionRegistry, complaintTypes]) => {
+            .then(([roleList, permissionRegistry]) => {
                 setRoles(roleList.items);
                 setPage(roleList.page);
                 setTotalPages(roleList.totalPages);
                 setRegistry(permissionRegistry);
-                setComplaintCategoryOptions(
-                    complaintTypes.items.map(type => ({
-                        key: type.key,
-                        name: type.name,
-                    })),
-                );
             })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
@@ -202,7 +184,6 @@ const RoleListContent: React.FC = () => {
             active: role.active,
             sortOrder: role.sortOrder,
             permissions: role.permissions,
-            allowedComplaintCategories: role.allowedComplaintCategories ?? null,
             dashboardMetrics: role.dashboardMetrics ?? null,
             allowedCreatableRoles: role.allowedCreatableRoles ?? [],
             scopeType: role.scopeType,
@@ -229,25 +210,6 @@ const RoleListContent: React.FC = () => {
                 ? prev.allowedCreatableRoles.filter(k => k !== key)
                 : [...prev.allowedCreatableRoles, key],
         }));
-    };
-
-    const toggleComplaintCategoryRestriction = (restricted: boolean) => {
-        setForm(prev => ({
-            ...prev,
-            allowedComplaintCategories: restricted ? [] : null,
-        }));
-    };
-
-    const toggleComplaintCategory = (category: NhomPhanAnh) => {
-        setForm(prev => {
-            const current = prev.allowedComplaintCategories || [];
-            return {
-                ...prev,
-                allowedComplaintCategories: current.includes(category)
-                    ? current.filter(c => c !== category)
-                    : [...current, category],
-            };
-        });
     };
 
     const toggleDashboardMetricsRestriction = (restricted: boolean) => {
@@ -324,7 +286,6 @@ const RoleListContent: React.FC = () => {
                     ...(canManagePermissions
                         ? { permissions: form.permissions }
                         : {}),
-                    allowedComplaintCategories: form.allowedComplaintCategories,
                     dashboardMetrics: form.dashboardMetrics,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
@@ -339,8 +300,6 @@ const RoleListContent: React.FC = () => {
                     active: form.active,
                     sortOrder: form.sortOrder,
                     permissions: form.permissions,
-                    allowedComplaintCategories:
-                        form.allowedComplaintCategories ?? undefined,
                     dashboardMetrics: form.dashboardMetrics ?? undefined,
                     allowedCreatableRoles: form.allowedCreatableRoles,
                     ...scopeFields,
@@ -682,55 +641,6 @@ const RoleListContent: React.FC = () => {
                                     );
                                 })}
                             </div>
-                        </div>
-
-                        <div className="mt-5 border-t border-divider_01 pt-4">
-                            <h3 className="mb-3 text-sm font-semibold">
-                                Phạm vi xem phản ánh / kiến nghị
-                            </h3>
-                            <div className="mb-2 flex items-center gap-2">
-                                <Checkbox
-                                    checked={
-                                        form.allowedComplaintCategories === null
-                                    }
-                                    disabled={!canEditCurrentRole}
-                                    onCheckedChange={checked =>
-                                        toggleComplaintCategoryRestriction(
-                                            !checked,
-                                        )
-                                    }
-                                />
-                                <Label>
-                                    Không giới hạn (xem tất cả các nhóm phản
-                                    ánh)
-                                </Label>
-                            </div>
-                            {form.allowedComplaintCategories !== null && (
-                                <div className="grid grid-cols-1 gap-1.5 rounded-lg border border-divider_01 p-3 pl-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                    {complaintCategoryOptions.map(category => (
-                                        <div
-                                            key={category.key}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Checkbox
-                                                checked={(
-                                                    form.allowedComplaintCategories ||
-                                                    []
-                                                ).includes(category.key)}
-                                                disabled={!canEditCurrentRole}
-                                                onCheckedChange={() =>
-                                                    toggleComplaintCategory(
-                                                        category.key,
-                                                    )
-                                                }
-                                            />
-                                            <Label className="text-sm font-normal">
-                                                {category.name}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
                         </div>
 
                         <div className="mt-5 border-t border-divider_01 pt-4">

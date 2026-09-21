@@ -1,7 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import {
+    AlertCircle,
+    ArrowLeft,
+    Briefcase,
+    Building2,
+    FileText,
+    Landmark,
+    MapPin,
+    Phone,
+    StickyNote,
+    User,
+    UserCheck,
+    Users,
+} from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
@@ -227,95 +240,41 @@ const CompanyDetailContent: React.FC = () => {
 
             {!loading && !error && company && form && (
                 <>
-                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">
-                                {company.name}
-                            </h2>
-                            <Badge tone={VERIFICATION_STATUS_TONE[company.status]}>
-                                {VERIFICATION_STATUS_LABEL[company.status]}
-                            </Badge>
-                        </div>
-
-                        {editing ? (
-                            <>
-                                <CompanyForm values={form} onChange={setForm} />
-                                <div className="mt-4 flex gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setForm(toFormValues(company));
-                                            setEditing(false);
-                                        }}
-                                    >
-                                        Hủy
-                                    </Button>
-                                    <Button loading={saving} onClick={handleSave}>
-                                        Lưu
-                                    </Button>
+                    <div className="rounded-xl border border-divider_01 bg-ui_bg p-6 shadow-sm">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-main to-primary-dark ring-2 ring-blue_10">
+                                    <Building2 className="h-7 w-7 text-white" />
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                {house && (
-                                    <InfoRow
-                                        label="Nhà số"
-                                        value={`${house.code} — ${house.address}`}
-                                    />
-                                )}
-                                <InfoRow
-                                    label="Người đại diện"
-                                    value={company.ownerName || "Không có"}
-                                />
-                                <InfoRow
-                                    label="Tổ chức liên kết"
-                                    value={
-                                        company.organizationId &&
-                                        typeof company.organizationId === "object"
-                                            ? company.organizationId.name
-                                            : "Không có"
-                                    }
-                                />
-                                <InfoRow
-                                    label="Loại hình kinh doanh"
-                                    value={
-                                        (company.businessTypeIds || [])
-                                            .map(bt =>
-                                                typeof bt === "object"
-                                                    ? bt.name
-                                                    : null,
-                                            )
-                                            .filter(Boolean)
-                                            .join(", ") || "Chưa phân loại"
-                                    }
-                                />
-                                <InfoRow
-                                    label="Loại hình doanh nghiệp"
-                                    value={
-                                        company.companyTypeId &&
-                                        typeof company.companyTypeId === "object"
-                                            ? company.companyTypeId.name
-                                            : "Chưa chọn"
-                                    }
-                                />
-                                <InfoRow
-                                    label="Số điện thoại"
-                                    value={company.phone || "Không có"}
-                                />
-                                <InfoRow
-                                    label="Trạng thái hoạt động"
-                                    value={
-                                        company.active
-                                            ? "Đang hoạt động"
-                                            : "Ngừng hoạt động"
-                                    }
-                                />
-                                <InfoRow
-                                    label="Ghi chú"
-                                    value={company.note || "Không có"}
-                                />
+                                <div>
+                                    <h2 className="text-xl font-semibold text-text_1">
+                                        {company.name}
+                                    </h2>
+                                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                                        <Badge
+                                            tone={
+                                                VERIFICATION_STATUS_TONE[
+                                                    company.status
+                                                ]
+                                            }
+                                        >
+                                            {
+                                                VERIFICATION_STATUS_LABEL[
+                                                    company.status
+                                                ]
+                                            }
+                                        </Badge>
+                                        {!company.active && (
+                                            <Badge tone="gray">
+                                                Ngừng hoạt động
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div className="mt-4 flex flex-wrap gap-2">
+                            {!editing && (
+                                <div className="flex flex-wrap gap-2">
                                     {canUpdate &&
                                         ["unverified", "pending"].includes(
                                             company.status,
@@ -346,9 +305,138 @@ const CompanyDetailContent: React.FC = () => {
                                         </Button>
                                     )}
                                 </div>
+                            )}
+                        </div>
+
+                        <div className="my-5 border-t border-divider_01" />
+
+                        {editing ? (
+                            <>
+                                <CompanyForm values={form} onChange={setForm} />
+                                <div className="mt-4 flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setForm(toFormValues(company));
+                                            setEditing(false);
+                                        }}
+                                    >
+                                        Hủy
+                                    </Button>
+                                    <Button loading={saving} onClick={handleSave}>
+                                        Lưu
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+                                    {house && (
+                                        <Field
+                                            icon={<MapPin className="h-4 w-4" />}
+                                            label="Nhà số"
+                                            value={`${house.code} — ${house.address}`}
+                                        />
+                                    )}
+                                    <Field
+                                        icon={<FileText className="h-4 w-4" />}
+                                        label="Mã số thuế"
+                                        value={company.taxCode || "Chưa cập nhật"}
+                                    />
+                                    <Field
+                                        icon={<User className="h-4 w-4" />}
+                                        label="Người đại diện"
+                                        value={company.ownerName || "Không có"}
+                                    />
+                                    <Field
+                                        icon={<UserCheck className="h-4 w-4" />}
+                                        label="Tài khoản đại diện"
+                                        value={
+                                            company.representativeUserId &&
+                                            typeof company.representativeUserId ===
+                                                "object"
+                                                ? `${company.representativeUserId.displayName}${
+                                                      company.representativeUserId
+                                                          .phone
+                                                          ? ` · ${company.representativeUserId.phone}`
+                                                          : ""
+                                                  }`
+                                                : "Chưa liên kết"
+                                        }
+                                    />
+                                    <Field
+                                        icon={<Users className="h-4 w-4" />}
+                                        label="Tổ chức liên kết"
+                                        value={
+                                            company.organizationId &&
+                                            typeof company.organizationId ===
+                                                "object"
+                                                ? company.organizationId.name
+                                                : "Không có"
+                                        }
+                                    />
+                                    <Field
+                                        icon={<Briefcase className="h-4 w-4" />}
+                                        label="Loại hình kinh doanh"
+                                        value={
+                                            (company.businessTypeIds || [])
+                                                .map(bt =>
+                                                    typeof bt === "object"
+                                                        ? bt.name
+                                                        : null,
+                                                )
+                                                .filter(Boolean)
+                                                .join(", ") || "Chưa phân loại"
+                                        }
+                                    />
+                                    <Field
+                                        icon={<Landmark className="h-4 w-4" />}
+                                        label="Loại hình doanh nghiệp"
+                                        value={
+                                            company.companyTypeId &&
+                                            typeof company.companyTypeId ===
+                                                "object"
+                                                ? company.companyTypeId.name
+                                                : "Chưa chọn"
+                                        }
+                                    />
+                                    <Field
+                                        icon={<Phone className="h-4 w-4" />}
+                                        label="Số điện thoại"
+                                        value={company.phone || "Không có"}
+                                    />
+                                    <Field
+                                        icon={<StickyNote className="h-4 w-4" />}
+                                        label="Ghi chú"
+                                        value={company.note || "Không có"}
+                                        className="sm:col-span-2"
+                                    />
+                                    {company.status === "verified" &&
+                                        company.approvalNote && (
+                                            <Field
+                                                icon={
+                                                    <AlertCircle className="h-4 w-4" />
+                                                }
+                                                label="Ghi chú duyệt"
+                                                value={company.approvalNote}
+                                                className="sm:col-span-2"
+                                            />
+                                        )}
+                                    {company.status === "denied" &&
+                                        company.denialReason && (
+                                            <Field
+                                                icon={
+                                                    <AlertCircle className="h-4 w-4" />
+                                                }
+                                                label="Lý do từ chối"
+                                                value={company.denialReason}
+                                                className="sm:col-span-2"
+                                            />
+                                        )}
+                                </div>
 
                                 {isAdmin && (
-                                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-divider_01 pt-4">
+                                    <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-divider_01 pt-4">
                                         <span className="text-sm text-text_2">
                                             Ghi đè trạng thái (Admin):
                                         </span>
@@ -437,13 +525,22 @@ const CompanyDetailContent: React.FC = () => {
     );
 };
 
-const InfoRow: React.FC<{ label: string; value: string }> = ({
-    label,
-    value,
-}) => (
-    <div className="flex justify-between border-b border-divider_01 py-2 text-sm last:border-0">
-        <span className="text-text_2">{label}</span>
-        <span>{value}</span>
+const Field: React.FC<{
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+    className?: string;
+}> = ({ icon, label, value, className }) => (
+    <div className={`flex items-start gap-3 ${className || ""}`}>
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-icon_bg text-primary">
+            {icon}
+        </div>
+        <div className="min-w-0">
+            <div className="text-xs text-text_2">{label}</div>
+            <div className="break-words text-sm font-medium text-text_1">
+                {value}
+            </div>
+        </div>
     </div>
 );
 
