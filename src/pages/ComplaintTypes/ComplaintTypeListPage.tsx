@@ -225,6 +225,7 @@ const ComplaintTypeListContent: React.FC = () => {
                                 <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Mã</TableHead>
                                 <TableHead>Tên loại phản ánh</TableHead>
+                                <TableHead>Vai trò gửi</TableHead>
                                 <TableHead>Vai trò nhận (theo thứ tự ưu tiên)</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 {canManage && <TableHead />}
@@ -261,6 +262,15 @@ const ComplaintTypeListContent: React.FC = () => {
                                                 {item.name}
                                             </span>
                                         )}
+                                    </TableCell>
+                                    <TableCell className="text-sm text-text_2">
+                                        {(item.allowedSenderRoles || [])
+                                            .map(
+                                                key =>
+                                                    roles.find(role => role.key === key)
+                                                        ?.name || key,
+                                            )
+                                            .join(", ")}
                                     </TableCell>
                                     <TableCell className="text-sm text-text_2">
                                         {(item.allowedReceiverRoles || [])

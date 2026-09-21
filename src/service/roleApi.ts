@@ -4,7 +4,6 @@ import {
     DashboardMetricKey,
     ModulePermissionGroup,
     NeighborhoodCollaboratorScope,
-    NhomPhanAnh,
     PaginatedData,
     RoleRecord,
     ScopeAssignmentMechanism,
@@ -39,7 +38,6 @@ export interface CreateRoleParams extends RoleScopeFields {
     name: string;
     description?: string;
     permissions: string[];
-    allowedComplaintCategories?: NhomPhanAnh[];
     dashboardMetrics?: DashboardMetricKey[];
     allowedCreatableRoles?: string[];
     active?: boolean;
@@ -53,7 +51,6 @@ export interface UpdateRoleParams extends RoleScopeFields {
     name?: string;
     description?: string;
     permissions?: string[];
-    allowedComplaintCategories?: NhomPhanAnh[] | null;
     dashboardMetrics?: DashboardMetricKey[] | null;
     allowedCreatableRoles?: string[];
     active?: boolean;
