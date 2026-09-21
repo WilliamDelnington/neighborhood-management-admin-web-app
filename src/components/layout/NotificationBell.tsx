@@ -139,7 +139,7 @@ const NotificationBell: React.FC = () => {
 
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
-            <DropdownMenuTrigger className="relative flex h-9 w-9 items-center justify-center rounded-md hover:bg-ng_10">
+            <DropdownMenuTrigger className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ng_10 transition-colors hover:bg-blue_10">
                 <Bell className="h-5 w-5 text-text_1" />
                 {unreadCount > 0 && (
                     <span className="absolute right-1 top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">

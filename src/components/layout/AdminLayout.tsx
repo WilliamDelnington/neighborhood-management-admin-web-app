@@ -27,6 +27,7 @@ import {
 import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
+import UpcomingMeetingsBell from "./UpcomingMeetingsBell";
 import GlobalSearch from "./GlobalSearch";
 import AppBrand from "./AppBrand";
 import ChangePasswordDialog from "./ChangePasswordDialog";
@@ -197,6 +198,10 @@ const AdminLayout: React.FC = () => {
         const interval = setInterval(refreshCorrespondenceBadge, 60_000);
         return () => clearInterval(interval);
     }, [canReadCorrespondences, refreshCorrespondenceBadge]);
+
+    // Icon "Cuộc họp sắp tới" tren header - chi hien voi vai tro co quyen xem
+    // lich hop (xem UpcomingMeetingsBell.tsx).
+    const canReadMeetings = usePermission("meetings.read");
 
     const descriptionOf = (m: ModuleItem) => descOverrides[m.key] ?? m.description;
 
@@ -390,7 +395,7 @@ const AdminLayout: React.FC = () => {
 
                     <GlobalSearch />
 
-                    <div className="ml-auto flex items-center gap-1.5">
+                    <div className="ml-auto flex items-center gap-3">
                         <button
                             type="button"
                             onClick={toggleTheme}
@@ -399,7 +404,7 @@ const AdminLayout: React.FC = () => {
                                     ? "Chuyển sang chế độ sáng"
                                     : "Chuyển sang chế độ tối"
                             }
-                            className="flex h-9 w-9 items-center justify-center rounded-full text-text_2 transition-colors hover:bg-ng_10 hover:text-main"
+                            className="flex h-9 w-9 items-center justify-center rounded-full bg-ng_10 text-text_2 transition-colors hover:bg-blue_10 hover:text-main"
                         >
                             {theme === "dark" ? (
                                 <Sun className="h-[18px] w-[18px]" />
@@ -408,9 +413,11 @@ const AdminLayout: React.FC = () => {
                             )}
                         </button>
 
+                        {canReadMeetings && <UpcomingMeetingsBell />}
+
                         <NotificationBell />
 
-                        <span className="mx-1 h-6 w-px bg-divider_01" />
+                        <span className="h-6 w-px bg-divider_01" />
 
                         <DropdownMenu>
                             <DropdownMenuTrigger className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm transition-colors hover:bg-ng_10">

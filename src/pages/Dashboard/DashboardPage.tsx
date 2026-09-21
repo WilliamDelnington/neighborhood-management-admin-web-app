@@ -13,6 +13,8 @@ import {
     Flame,
     Heart,
     Home,
+    KeyRound,
+    LucideIcon,
     ListChecks,
     MapPin,
     MessageSquare,
@@ -392,6 +394,43 @@ const DashboardChartCard: React.FC<{
         </div>
         {renderDashboardChart(chart)}
     </section>
+);
+
+/**
+ * Tieu de section dung chung cho toan bo Dashboard - thay cho kieu
+ * <h2 className="flex items-center gap-1.5 text-sm font-semibold ..."> lap
+ * lai ~8 lan truoc day (khong nhat quan ve kich thuoc icon/khoang cach). Icon
+ * dat trong khoi vuong bo mau nhat (giong Field o cac trang chi tiet Nha so/
+ * Cong ty) de tao phan cap thi giac ro hon so voi icon tran truoc do.
+ */
+const SectionHeading: React.FC<{
+    icon: LucideIcon;
+    title: string;
+    description?: string;
+    action?: React.ReactNode;
+    tone?: "default" | "danger";
+}> = ({ icon: Icon, title, description, action, tone = "default" }) => (
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+            <span
+                className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                    tone === "danger"
+                        ? "bg-danger-soft text-danger"
+                        : "bg-icon_bg text-primary",
+                )}
+            >
+                <Icon className="h-4 w-4" />
+            </span>
+            <div>
+                <h2 className="text-sm font-semibold text-text_1">{title}</h2>
+                {description && (
+                    <p className="text-xs text-text_2">{description}</p>
+                )}
+            </div>
+        </div>
+        {action}
+    </div>
 );
 
 const DashboardPage: React.FC = () => (
@@ -836,18 +875,19 @@ const DashboardContent: React.FC = () => {
                     <>
                         {attentionItems.length > 0 && (
                 <section>
-                    <div className="mb-2 flex items-center justify-between">
-                        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                            <AlertTriangle className="h-4 w-4 text-danger" />
-                            Cần xử lý ngay
-                        </h2>
-                        {attentionItems.every(item => item.value === 0) && (
-                            <span className="flex items-center gap-1 text-xs font-medium text-success">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Không có việc tồn khẩn cấp
-                            </span>
-                        )}
-                    </div>
+                    <SectionHeading
+                        icon={AlertTriangle}
+                        title="Cần xử lý ngay"
+                        tone="danger"
+                        action={
+                            attentionItems.every(item => item.value === 0) && (
+                                <span className="flex items-center gap-1 text-xs font-medium text-success">
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Không có việc tồn khẩn cấp
+                                </span>
+                            )
+                        }
+                    />
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                         {attentionItems.map(item => (
                             <StatCard
@@ -865,16 +905,11 @@ const DashboardContent: React.FC = () => {
 
             {hasChartCapability && (
                 <section>
-                    <div className="mb-2">
-                        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                            <BarChart3 className="h-4 w-4 text-main" />
-                            Theo dõi điều hành
-                        </h2>
-                        <p className="mt-0.5 text-xs text-text_2">
-                            Biểu đồ được chọn theo vai trò và phạm vi dữ liệu
-                            được phân công.
-                        </p>
-                    </div>
+                    <SectionHeading
+                        icon={BarChart3}
+                        title="Theo dõi điều hành"
+                        description="Biểu đồ được chọn theo vai trò và phạm vi dữ liệu được phân công."
+                    />
                     {chartSpecs.length > 0 ? (
                         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
                             {primaryCharts.length > 0 && (
@@ -917,10 +952,7 @@ const DashboardContent: React.FC = () => {
 
             {summary.capabilities.population && (
                 <section>
-                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                        <Home className="h-4 w-4 text-main" />
-                        Quy mô địa bàn
-                    </h2>
+                    <SectionHeading icon={Home} title="Quy mô địa bàn" />
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                         <StatCard
                             label="Hộ dân"
@@ -943,7 +975,7 @@ const DashboardContent: React.FC = () => {
                         <StatCard
                             label="Hộ thuê nhà"
                             value={summary.rentalHouseholds}
-                            icon={ClipboardList}
+                            icon={KeyRound}
                         />
                         <StatCard
                             label="Hộ cần hỗ trợ"
@@ -963,10 +995,7 @@ const DashboardContent: React.FC = () => {
                 summary.capabilities.surveys ||
                 summary.capabilities.finance) && (
                 <section>
-                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                        <Activity className="h-4 w-4 text-main" />
-                        Nhịp hoạt động
-                    </h2>
+                    <SectionHeading icon={Activity} title="Nhịp hoạt động" />
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                         {summary.capabilities.inspections && (
                             <StatCard
@@ -1019,10 +1048,7 @@ const DashboardContent: React.FC = () => {
 
             {hasPersonalWork && (
                 <section>
-                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                        <ClipboardList className="h-4 w-4 text-main" />
-                        Việc của tôi
-                    </h2>
+                    <SectionHeading icon={ClipboardList} title="Việc của tôi" />
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
                         <StatCard
                             label="Yêu cầu đang xử lý"
@@ -1079,22 +1105,21 @@ const DashboardContent: React.FC = () => {
                 )}
             */}
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {summary.myRequests.length > 0 && (
-                    <section className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
-                        <div className="mb-2 flex items-center justify-between">
-                            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                                <CalendarClock className="h-4 w-4 text-main" />
-                                Yêu cầu gần hạn cần xử lý
-                            </h2>
-                            <button
-                                type="button"
-                                className="text-xs font-medium text-primary hover:underline"
-                                onClick={() => navigate("/requests/my")}
-                            >
-                                Xem tất cả
-                            </button>
-                        </div>
+            {summary.myRequests.length > 0 && (
+                    <section className="rounded-xl border border-divider_01 bg-ui_bg p-4 shadow-sm">
+                        <SectionHeading
+                            icon={CalendarClock}
+                            title="Yêu cầu gần hạn cần xử lý"
+                            action={
+                                <button
+                                    type="button"
+                                    className="text-xs font-medium text-primary hover:underline"
+                                    onClick={() => navigate("/requests/my")}
+                                >
+                                    Xem tất cả
+                                </button>
+                            }
+                        />
                         {summary.myRequests.map(request => (
                             <button
                                 key={request._id}
@@ -1144,58 +1169,18 @@ const DashboardContent: React.FC = () => {
                         ))}
                     </section>
                 )}
-
-                {summary.upcomingMeetings.length > 0 && (
-                    <section className="rounded-lg border border-divider_01 bg-ui_bg p-4 shadow-sm">
-                        <div className="mb-2 flex items-center justify-between">
-                            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                                <CalendarClock className="h-4 w-4 text-main" />
-                                Cuộc họp sắp tới
-                            </h2>
-                            <button
-                                type="button"
-                                className="text-xs font-medium text-primary hover:underline"
-                                onClick={() => navigate("/meetings")}
-                            >
-                                Xem lịch họp
-                            </button>
-                        </div>
-                        {summary.upcomingMeetings.map(meeting => (
-                            <button
-                                key={meeting.id}
-                                type="button"
-                                className="block w-full rounded-lg border-b border-divider_01 px-2 py-2 text-left transition last:border-0 hover:bg-ng_10"
-                                onClick={() =>
-                                    navigate(`/meetings/${meeting.id}/edit`)
-                                }
-                            >
-                                <div className="text-sm font-medium">
-                                    {meeting.title}
-                                </div>
-                                <div className="text-xs text-text_2">
-                                    {formatDateTime(meeting.startTime)} ·{" "}
-                                    {meeting.location}
-                                </div>
-                            </button>
-                        ))}
-                    </section>
-                )}
-                    </div>
                     </>
                 )}
 
             {quickModules.length > 0 && (
                 <section>
-                    <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text_1">
-                        <Zap className="h-4 w-4 text-main" />
-                        Truy cập nhanh
-                    </h2>
+                    <SectionHeading icon={Zap} title="Truy cập nhanh" />
                     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                         {quickModules.map(module => (
                             <button
                                 key={module.key}
                                 type="button"
-                                className="flex items-center gap-3 rounded-lg border border-divider_01 bg-ui_bg p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                className="flex items-center gap-3 rounded-xl border border-divider_01 bg-ui_bg p-4 text-left shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg"
                                 onClick={() => navigate(module.path)}
                             >
                                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue_10">
