@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Lock, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
@@ -240,25 +240,13 @@ const ComplaintTypeListContent: React.FC = () => {
                                         {canManage ? (
                                             <button
                                                 type="button"
-                                                className="flex items-center gap-1.5 text-left font-medium text-main hover:underline"
+                                                className="text-left font-medium text-main hover:underline"
                                                 onClick={() => openEdit(item)}
                                             >
-                                                {item.isBuiltIn && (
-                                                    <Lock
-                                                        className="h-3.5 w-3.5 text-text_2"
-                                                        aria-label="Loại phản ánh hệ thống"
-                                                    />
-                                                )}
                                                 {item.name}
                                             </button>
                                         ) : (
-                                            <span className="flex items-center gap-1.5 font-medium">
-                                                {item.isBuiltIn && (
-                                                    <Lock
-                                                        className="h-3.5 w-3.5 text-text_2"
-                                                        aria-label="Loại phản ánh hệ thống"
-                                                    />
-                                                )}
+                                            <span className="font-medium">
                                                 {item.name}
                                             </span>
                                         )}
@@ -337,10 +325,9 @@ const ComplaintTypeListContent: React.FC = () => {
                                         }))
                                     }
                                 />
-                                {editing?.isBuiltIn && (
-                                    <p className="mt-1 flex items-center gap-1 text-xs text-text_2">
-                                        <Lock className="h-3 w-3" /> Loại phản ánh hệ thống -
-                                        không đổi được mã
+                                {editing && (
+                                    <p className="mt-1 text-xs text-text_2">
+                                        Không đổi được mã sau khi đã tạo
                                     </p>
                                 )}
                             </div>
