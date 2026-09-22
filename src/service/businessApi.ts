@@ -31,6 +31,25 @@ export const fetchBusinesses = (params?: {
 }): Promise<PaginatedData<Business>> =>
     request<PaginatedData<Business>>("GET", API.BUSINESSES, params);
 
+// Dung cho nut "Xuất Excel" o BusinessListPage - xem ghi chu tuong tu o
+// fetchAllHouses (houseApi.ts)/fetchAllCitizens (citizenApi.ts).
+export const fetchAllBusinesses = async (params?: {
+    search?: string;
+    status?: VerificationStatus;
+    businessType?: string;
+}): Promise<Business[]> => {
+    const limit = 500;
+    let page = 1;
+    const all: Business[] = [];
+    for (;;) {
+        const res = await fetchBusinesses({ ...params, page, limit });
+        all.push(...res.items);
+        if (page >= res.totalPages || res.items.length === 0) break;
+        page += 1;
+    }
+    return all;
+};
+
 export const fetchBusinessById = (id: string): Promise<Business> =>
     request<Business>("GET", `${API.BUSINESSES}/${id}`);
 

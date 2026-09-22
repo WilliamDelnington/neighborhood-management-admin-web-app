@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, UploadCloud } from "lucide-react";
+import { Download, Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -61,8 +61,10 @@ import {
     bulkDeleteHouses,
     bulkUpdateHouseStatus,
     createHouse,
+    fetchAllHouses,
     fetchHouses,
 } from "@service/houseApi";
+import { exportFileTimestamp, exportRowsToExcel } from "@lib/exportExcel";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import { fetchProvinces, fetchWardsByProvince } from "@service/administrativeDivisionApi";
 import HouseForm, {
@@ -141,6 +143,7 @@ const HouseListContent: React.FC = () => {
     const [form, setForm] = useState<HouseFormValues>(EMPTY_HOUSE_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     // Chon nhieu dong de thao tac hang loat (vd gan to dan pho cho cac nha
     // nhap tu Excel con thieu, duyet nhanh cac nha dang cho duyet).
@@ -309,31 +312,97 @@ const HouseListContent: React.FC = () => {
         }
     };
 
+    // Xuat TOAN BO nha so khop bo loc hien tai (khong chi trang dang xem) ra
+    // file .xlsx - dung fetchAllHouses (duyet qua tung trang) roi anh xa
+    // dung cac cot dang hien tren bang de nguoi dung mo file thay quen mat.
+    const handleExportExcel = async () => {
+        try {
+            setExporting(true);
+            const rows = await fetchAllHouses({
+                search: search || undefined,
+                status: status || undefined,
+                neighborhoodId: neighborhoodId || undefined,
+                provinceCode: provinceCode || undefined,
+                wardCode: wardCode || undefined,
+            });
+            if (rows.length === 0) {
+                toast.error("Không có nhà số nào khớp bộ lọc để xuất");
+                return;
+            }
+            await exportRowsToExcel(
+                rows,
+                `nha-so_${exportFileTimestamp()}.xlsx`,
+                "Nhà số",
+                [
+                    { label: "Mã nhà", width: 16, value: h => h.code },
+                    {
+                        label: "Địa chỉ",
+                        width: 40,
+                        value: h => formatFullAddress(h),
+                    },
+                    {
+                        label: "Tổ dân phố",
+                        width: 22,
+                        value: h =>
+                            h.neighborhoodId &&
+                            typeof h.neighborhoodId !== "string"
+                                ? h.neighborhoodId.name
+                                : "Chưa gán",
+                    },
+                    {
+                        label: "GIS",
+                        width: 12,
+                        value: h =>
+                            h.gisLatitude && h.gisLongitude
+                                ? "Đã gắn"
+                                : "Chưa có",
+                    },
+                    {
+                        label: "Trạng thái",
+                        width: 16,
+                        value: h => HOUSE_STATUS_LABEL[h.status],
+                    },
+                ],
+            );
+            toast.success(`Đã xuất ${rows.length} nhà số`);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Quản lý nhà số"
                 description="Quản lý thông tin nhà số, chủ nhà và trạng thái xác minh."
                 action={
-                    (canCreate || canImport) && (
-                        <div className="flex gap-2">
-                            {canImport && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setImportVisible(true)}
-                                >
-                                    <UploadCloud className="mr-1 h-4 w-4" />
-                                    Nhập từ Excel
-                                </Button>
-                            )}
-                            {canCreate && (
-                                <Button onClick={openCreate}>
-                                    <Plus className="mr-1 h-4 w-4" />
-                                    Thêm nhà số
-                                </Button>
-                            )}
-                        </div>
-                    )
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            loading={exporting}
+                            onClick={handleExportExcel}
+                        >
+                            <Download className="mr-1 h-4 w-4" />
+                            Xuất Excel
+                        </Button>
+                        {canImport && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setImportVisible(true)}
+                            >
+                                <UploadCloud className="mr-1 h-4 w-4" />
+                                Nhập từ Excel
+                            </Button>
+                        )}
+                        {canCreate && (
+                            <Button onClick={openCreate}>
+                                <Plus className="mr-1 h-4 w-4" />
+                                Thêm nhà số
+                            </Button>
+                        )}
+                    </div>
                 }
             />
             {neighborhoodId && (

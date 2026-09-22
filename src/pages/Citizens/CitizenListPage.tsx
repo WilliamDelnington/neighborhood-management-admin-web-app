@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, UploadCloud } from "lucide-react";
+import { Download, Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -47,10 +47,12 @@ import { AppError, Citizen, Neighborhood } from "@dts";
 import {
     createCitizen,
     deleteCitizen,
+    fetchAllCitizens,
     fetchCitizens,
     updateCitizen,
 } from "@service/citizenApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import { exportFileTimestamp, exportRowsToExcel } from "@lib/exportExcel";
 import CitizenForm, {
     EMPTY_CITIZEN_FORM,
     CitizenFormValues,
@@ -144,6 +146,7 @@ const CitizenListContent: React.FC = () => {
         null,
     );
     const [deleting, setDeleting] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -227,31 +230,88 @@ const CitizenListContent: React.FC = () => {
         }
     };
 
+    // Xuat TOAN BO nhan khau khop bo loc hien tai ra file .xlsx - xem ghi chu
+    // tuong tu o HouseListPage.tsx.
+    const handleExportExcel = async () => {
+        try {
+            setExporting(true);
+            const rows = await fetchAllCitizens({
+                search: search || undefined,
+                neighborhoodId: neighborhoodId || undefined,
+            });
+            if (rows.length === 0) {
+                toast.error("Không có nhân khẩu nào khớp bộ lọc để xuất");
+                return;
+            }
+            await exportRowsToExcel(
+                rows,
+                `nhan-khau_${exportFileTimestamp()}.xlsx`,
+                "Nhân khẩu",
+                [
+                    { label: "Họ tên", width: 26, value: c => c.fullName },
+                    { label: "SĐT", width: 14, value: c => c.phone || "" },
+                    { label: "CCCD", width: 16, value: c => c.cccd || "" },
+                    {
+                        label: "Giới tính",
+                        width: 10,
+                        value: c => GIOI_TINH_LABEL[c.gender],
+                    },
+                    {
+                        label: "Hộ dân",
+                        width: 34,
+                        value: c => householdLabelOf(c.householdId),
+                    },
+                    {
+                        label: "Quan hệ với chủ hộ",
+                        width: 18,
+                        value: c => c.relationToHead || "",
+                    },
+                    {
+                        label: "Loại cư trú",
+                        width: 16,
+                        value: c => LOAI_CU_TRU_LABEL[c.residenceType],
+                    },
+                ],
+            );
+            toast.success(`Đã xuất ${rows.length} nhân khẩu`);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Nhân khẩu"
                 description="Xem danh sách nhân khẩu thuộc các hộ dân trên địa bàn."
                 action={
-                    (canCreate || canImport) && (
-                        <div className="flex gap-2">
-                            {canImport && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setImportVisible(true)}
-                                >
-                                    <UploadCloud className="mr-1 h-4 w-4" />
-                                    Nhập từ Excel
-                                </Button>
-                            )}
-                            {canCreate && (
-                                <Button onClick={openCreate}>
-                                    <Plus className="mr-1 h-4 w-4" />
-                                    Thêm nhân khẩu
-                                </Button>
-                            )}
-                        </div>
-                    )
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            loading={exporting}
+                            onClick={handleExportExcel}
+                        >
+                            <Download className="mr-1 h-4 w-4" />
+                            Xuất Excel
+                        </Button>
+                        {canImport && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setImportVisible(true)}
+                            >
+                                <UploadCloud className="mr-1 h-4 w-4" />
+                                Nhập từ Excel
+                            </Button>
+                        )}
+                        {canCreate && (
+                            <Button onClick={openCreate}>
+                                <Plus className="mr-1 h-4 w-4" />
+                                Thêm nhân khẩu
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 
