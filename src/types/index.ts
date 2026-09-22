@@ -834,6 +834,11 @@ export type Complaint = {
     // chi tinh cho staff - xem canReceiveOrChooseAssignee o backend
     // complaintService.ts. False/undefined o cac response khac (vd list).
     canReceiveOrChooseAssignee?: boolean;
+    // _id cua Request/Cong viec noi bo lien ket GAN NHAT (neu co) - cung dieu
+    // kien voi canReceiveOrChooseAssignee o tren (chi staff, chi response chi
+    // tiet). Dung de hien nut "Xem yêu cầu công việc" dieu huong sang trang
+    // Yeu cau - xem getLatestLinkedRequestId o backend.
+    linkedRequestId?: string | null;
 };
 
 export type ComplaintTypeDefinition = {

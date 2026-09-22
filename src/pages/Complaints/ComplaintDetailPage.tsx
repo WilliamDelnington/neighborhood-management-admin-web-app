@@ -389,6 +389,20 @@ const ComplaintDetailContent: React.FC = () => {
                                         Chưa xác định tổ dân phố
                                     </Badge>
                                 )}
+                                {complaint.linkedRequestId &&
+                                    !isOwnComplaint && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            navigate(
+                                                `/requests/my?requestId=${complaint.linkedRequestId}`,
+                                            )
+                                        }
+                                    >
+                                        Xem yêu cầu công việc
+                                    </Button>
+                                )}
                                 {canUpdateStatus && !isOwnComplaint && (
                                     <Button
                                         variant="outline"
