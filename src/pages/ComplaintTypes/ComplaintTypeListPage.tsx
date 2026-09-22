@@ -288,7 +288,7 @@ const ComplaintTypeListContent: React.FC = () => {
                                     </TableCell>
                                     {canManage && (
                                         <TableCell className="text-right">
-                                            {!item.isBuiltIn && item.active !== false && (
+                                            {item.active !== false && (
                                                 <Button
                                                     size="icon"
                                                     variant="ghost"
