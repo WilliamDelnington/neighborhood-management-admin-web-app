@@ -2,6 +2,7 @@ import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     Complaint,
     ComplaintDetail,
+    EmergencyComplaintGisOverview,
     FileAsset,
     NhomPhanAnh,
     PaginatedData,
@@ -39,6 +40,14 @@ export const fetchComplaints = (params?: {
 
 export const fetchComplaintDetail = (id: string): Promise<ComplaintDetail> =>
     request<ComplaintDetail>("GET", `${API.COMPLAINTS}/${id}`);
+
+// Marker "khan cap" tren trang Ban do - xem EmergencyComplaintGisPoint (@dts).
+export const fetchEmergencyComplaintGisOverview =
+    (): Promise<EmergencyComplaintGisOverview> =>
+        request<EmergencyComplaintGisOverview>(
+            "GET",
+            `${API.COMPLAINTS}/emergency-gis`,
+        );
 
 // Gui phan anh moi tu admin-web-app - truoc day chi thuc hien duoc tu ung
 // dung Zalo/resident-web-app (cu dan); nay mo them cho To truong/To pho gui
