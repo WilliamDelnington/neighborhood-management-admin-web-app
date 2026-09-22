@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, UploadCloud } from "lucide-react";
+import { Download, Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -40,8 +40,13 @@ import {
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Business, BusinessType, House, VerificationStatus } from "@dts";
-import { createBusiness, fetchBusinesses } from "@service/businessApi";
+import {
+    createBusiness,
+    fetchAllBusinesses,
+    fetchBusinesses,
+} from "@service/businessApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
+import { exportFileTimestamp, exportRowsToExcel } from "@lib/exportExcel";
 import BusinessForm, {
     EMPTY_BUSINESS_FORM,
     BusinessFormValues,
@@ -95,6 +100,7 @@ const BusinessListContent: React.FC = () => {
     const [createHouseLabel, setCreateHouseLabel] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -156,31 +162,79 @@ const BusinessListContent: React.FC = () => {
         }
     };
 
+    // Xuat TOAN BO ho kinh doanh khop bo loc hien tai ra file .xlsx - xem
+    // ghi chu tuong tu o HouseListPage.tsx.
+    const handleExportExcel = async () => {
+        try {
+            setExporting(true);
+            const rows = await fetchAllBusinesses({
+                search: search || undefined,
+                status: status || undefined,
+                businessType: businessType || undefined,
+            });
+            if (rows.length === 0) {
+                toast.error("Không có hộ kinh doanh nào khớp bộ lọc để xuất");
+                return;
+            }
+            await exportRowsToExcel(
+                rows,
+                `ho-kinh-doanh_${exportFileTimestamp()}.xlsx`,
+                "Hộ kinh doanh",
+                [
+                    { label: "Tên hộ kinh doanh", width: 30, value: b => b.name },
+                    { label: "Nhà số", width: 34, value: b => houseLabelOf(b) },
+                    { label: "Cụm", width: 16, value: b => b.cluster },
+                    {
+                        label: "Loại hình",
+                        width: 20,
+                        value: b => b.businessType?.name || "Chưa phân loại",
+                    },
+                    {
+                        label: "Trạng thái",
+                        width: 16,
+                        value: b => VERIFICATION_STATUS_LABEL[b.status],
+                    },
+                ],
+            );
+            toast.success(`Đã xuất ${rows.length} hộ kinh doanh`);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Hộ kinh doanh"
                 description="Quản lý hộ kinh doanh đăng ký hoạt động trên địa bàn."
                 action={
-                    (canCreate || canImport) && (
-                        <div className="flex gap-2">
-                            {canImport && (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setImportVisible(true)}
-                                >
-                                    <UploadCloud className="mr-1 h-4 w-4" />
-                                    Nhập từ Excel
-                                </Button>
-                            )}
-                            {canCreate && (
-                                <Button onClick={openCreate}>
-                                    <Plus className="mr-1 h-4 w-4" />
-                                    Thêm hộ kinh doanh
-                                </Button>
-                            )}
-                        </div>
-                    )
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            loading={exporting}
+                            onClick={handleExportExcel}
+                        >
+                            <Download className="mr-1 h-4 w-4" />
+                            Xuất Excel
+                        </Button>
+                        {canImport && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setImportVisible(true)}
+                            >
+                                <UploadCloud className="mr-1 h-4 w-4" />
+                                Nhập từ Excel
+                            </Button>
+                        )}
+                        {canCreate && (
+                            <Button onClick={openCreate}>
+                                <Plus className="mr-1 h-4 w-4" />
+                                Thêm hộ kinh doanh
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 

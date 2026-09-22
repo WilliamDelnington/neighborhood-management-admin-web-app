@@ -43,6 +43,7 @@ type FormState = {
     name: string;
     description: string;
     active: boolean;
+    isUrgent: boolean;
     // Thu tu trong mang the hien uu tien dieu huong nguoi nhan - vai tro
     // duoc chon TRUOC se duoc uu tien thu nguoi phu trach truoc (xem
     // resolveComplaintTypeRecipientIds o backend). Toggle chi them vao CUOI
@@ -59,6 +60,7 @@ const EMPTY_FORM: FormState = {
     name: "",
     description: "",
     active: true,
+    isUrgent: false,
     allowedReceiverRoles: [],
     allowedSenderRoles: [],
 };
@@ -118,6 +120,7 @@ const ComplaintTypeListContent: React.FC = () => {
             name: item.name,
             description: item.description || "",
             active: item.active !== false,
+            isUrgent: item.isUrgent === true,
             allowedReceiverRoles: item.allowedReceiverRoles || [],
             allowedSenderRoles: item.allowedSenderRoles || [],
         });
@@ -153,6 +156,7 @@ const ComplaintTypeListContent: React.FC = () => {
             name: form.name.trim(),
             description: form.description.trim() || undefined,
             active: form.active,
+            isUrgent: form.isUrgent,
             allowedReceiverRoles: form.allowedReceiverRoles,
             allowedSenderRoles: form.allowedSenderRoles,
         };
@@ -244,10 +248,16 @@ const ComplaintTypeListContent: React.FC = () => {
                                                 onClick={() => openEdit(item)}
                                             >
                                                 {item.name}
+                                                {item.isUrgent && (
+                                                    <Badge tone="red">Khẩn cấp</Badge>
+                                                )}
                                             </button>
                                         ) : (
                                             <span className="font-medium">
                                                 {item.name}
+                                                {item.isUrgent && (
+                                                    <Badge tone="red">Khẩn cấp</Badge>
+                                                )}
                                             </span>
                                         )}
                                     </TableCell>
@@ -355,6 +365,18 @@ const ComplaintTypeListContent: React.FC = () => {
                                 }
                             />
                         </div>
+                        <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                                checked={form.isUrgent}
+                                onCheckedChange={checked =>
+                                    setForm(current => ({
+                                        ...current,
+                                        isUrgent: checked === true,
+                                    }))
+                                }
+                            />
+                            Loại phản ánh khẩn cấp
+                        </label>
                         <div>
                             <Label>Vai trò được gửi phản ánh</Label>
                             <p className="mt-1 text-xs text-muted-foreground">

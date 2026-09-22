@@ -51,6 +51,29 @@ export const fetchHouseholds = (params?: {
 }): Promise<PaginatedData<Household>> =>
     request<PaginatedData<Household>>("GET", API.HOUSEHOLDS, params);
 
+// Dung cho nut "Xuất Excel" o HouseholdListPage - xem ghi chu tuong tu o
+// fetchAllHouses (houseApi.ts)/fetchAllCitizens (citizenApi.ts).
+export const fetchAllHouseholds = async (params?: {
+    search?: string;
+    cluster?: string;
+    houseId?: string;
+    neighborhoodId?: string;
+    unassigned?: boolean;
+    status?: VerificationStatus;
+    states?: HouseholdStateKey[];
+}): Promise<Household[]> => {
+    const limit = 500;
+    let page = 1;
+    const all: Household[] = [];
+    for (;;) {
+        const res = await fetchHouseholds({ ...params, page, limit });
+        all.push(...res.items);
+        if (page >= res.totalPages || res.items.length === 0) break;
+        page += 1;
+    }
+    return all;
+};
+
 export const fetchHouseholdById = (id: string): Promise<Household> =>
     request<Household>("GET", `${API.HOUSEHOLDS}/${id}`);
 

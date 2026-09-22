@@ -852,6 +852,7 @@ export type ComplaintTypeDefinition = {
     // Vai tro duoc phep gui danh muc nay - khong co y nghia thu tu.
     allowedSenderRoles?: string[];
     isBuiltIn?: boolean;
+    isUrgent?: boolean;
     active?: boolean;
     wardCode?: number;
     wardName?: string;

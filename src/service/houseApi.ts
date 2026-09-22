@@ -109,6 +109,30 @@ export const fetchHouses = (params?: {
 }): Promise<PaginatedData<House>> =>
     request<PaginatedData<House>>("GET", API.HOUSES, params);
 
+// Dung cho nut "Xuất Excel" o HouseListPage - can TOAN BO nha so khop bo loc
+// hien tai (khong chi trang dang xem), nen phai duyet qua tung trang voi
+// limit lon roi gop lai - cung mot mau voi fetchAllCitizens (citizenApi.ts).
+export const fetchAllHouses = async (params?: {
+    search?: string;
+    cluster?: string;
+    streetId?: string;
+    neighborhoodId?: string;
+    provinceCode?: number;
+    wardCode?: number;
+    status?: string;
+}): Promise<House[]> => {
+    const limit = 500;
+    let page = 1;
+    const all: House[] = [];
+    for (;;) {
+        const res = await fetchHouses({ ...params, page, limit });
+        all.push(...res.items);
+        if (page >= res.totalPages || res.items.length === 0) break;
+        page += 1;
+    }
+    return all;
+};
+
 export const fetchHouseById = (id: string): Promise<House> =>
     request<House>("GET", `${API.HOUSES}/${id}`);
 

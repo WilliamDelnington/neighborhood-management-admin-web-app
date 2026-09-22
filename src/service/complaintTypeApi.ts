@@ -8,6 +8,7 @@ export type ComplaintTypeDefinitionInput = {
     description?: string;
     allowedReceiverRoles: string[];
     allowedSenderRoles: string[];
+    isUrgent: boolean;
     active: boolean;
 };
 
