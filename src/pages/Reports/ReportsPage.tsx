@@ -526,6 +526,14 @@ const ReportsContent: React.FC = () => {
 
     const [activeKey, setActiveKey] = useState<ReportTabKey>("population");
     const [data, setData] = useState<unknown>(undefined);
+    // Tab ma `data` hien dang thuoc ve - hoi bang activeKey ngay sau khi bam
+    // tab (setActiveKey cap nhat dong bo), trong khi `data`/`loading` chi
+    // duoc cap nhat sau trong useEffect. Neu chi dua vao "activeKey ===
+    // tab.key" se co 1 frame render voi activeKey moi nhung data cu (sai
+    // dang), gay crash khi doi tab (vd tu bao cao dang { byX } sang bao cao
+    // Lich hen dang { overall, byService }). Theo doi rieng dataKey de biet
+    // chinh xac data hien co thuoc tab nao.
+    const [dataKey, setDataKey] = useState<ReportTabKey | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [exporting, setExporting] = useState(false);
@@ -576,7 +584,10 @@ const ReportsContent: React.FC = () => {
         setError(false);
         const { fromDate, toDate } = computeRange();
         tab.fetch(fromDate, toDate)
-            .then(res => setData(res))
+            .then(res => {
+                setData(res);
+                setDataKey(tab.key);
+            })
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     };
@@ -935,7 +946,7 @@ const ReportsContent: React.FC = () => {
                             {!loading &&
                             !error &&
                             data &&
-                            tab.key === activeKey &&
+                            tab.key === dataKey &&
                             tab.key === "appointments"
                                 ? renderAppointmentReport(
                                       data as AppointmentReportSummary,
@@ -944,14 +955,14 @@ const ReportsContent: React.FC = () => {
                             {!loading &&
                             !error &&
                             data &&
-                            tab.key === activeKey &&
+                            tab.key === dataKey &&
                             tab.key !== "appointments"
                                 ? renderCharts(tab)
                                 : null}
                             {!loading &&
                             !error &&
                             data &&
-                            tab.key === activeKey &&
+                            tab.key === dataKey &&
                             tab.key !== "appointments"
                                 ? renderValue(data)
                                 : null}
