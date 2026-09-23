@@ -127,9 +127,6 @@ const AppointmentHistoryPage = React.lazy(
 const AppointmentCheckInPage = React.lazy(
     () => import("@pages/Appointments/AppointmentCheckInPage"),
 );
-const AppointmentReportPage = React.lazy(
-    () => import("@pages/Appointments/AppointmentReportPage"),
-);
 const InspectionCampaignListPage = React.lazy(
     () => import("@pages/Inspections/InspectionCampaignListPage"),
 );
@@ -423,9 +420,11 @@ const App: React.FC = () => {
                             path="/appointments/:id/history"
                             element={<AppointmentHistoryPage />}
                         />
+                        {/* Bao cao lich hen da gop vao tab "Lich hen" cua trang Bao cao chung
+                            (/reports) - giu redirect cho link/bookmark cu tro ve /appointment-reports. */}
                         <Route
                             path="/appointment-reports"
-                            element={<AppointmentReportPage />}
+                            element={<Navigate to="/reports" replace />}
                         />
                         <Route
                             path="/inspections"

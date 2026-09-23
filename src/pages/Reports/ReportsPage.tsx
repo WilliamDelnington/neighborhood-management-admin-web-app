@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { CalendarClock, CheckCircle2, UserX, XCircle } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -14,10 +15,12 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@components/ui/tabs";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
 import PageHeader from "@components/admin/PageHeader";
+import StatCard from "@components/admin/StatCard";
 import ReportBarChart, {
     ReportBarChartSeries,
 } from "@components/admin/ReportBarChart";
 import { usePermission } from "@store/authStore";
+import { AppointmentReportSummary, AppointmentService } from "@dts";
 import {
     fetchPopulationReport,
     fetchComplaintReport,
@@ -31,6 +34,8 @@ import {
     downloadReportExcel,
     downloadReportPdf,
 } from "@service/reportApi";
+import { fetchAppointmentReportSummary } from "@service/appointmentApi";
+import { fetchAppointmentServices } from "@service/appointmentServiceApi";
 
 /**
  * Bao cao theo cuoc hop / khao sat can id cu the (fetchMeetingReport, fetchSurveyReport)
@@ -46,7 +51,8 @@ type ReportTabKey =
     | "houses"
     | "business"
     | "households"
-    | "requests";
+    | "requests"
+    | "appointments";
 
 type ReportTab = {
     key: ReportTabKey;
@@ -310,6 +316,10 @@ const CHART_SPECS: Partial<Record<ReportTabKey, ChartSpec[]>> = {
 // hien thi thay the).
 const HIDDEN_KEYS = new Set(["houseId"]);
 
+// Gia tri dai dien cho "tat ca dich vu" trong bo loc dich vu cua tab Lich
+// hen - Select khong nhan value rong "".
+const ALL_SERVICES = "all";
+
 const humanizeKey = (key: string) =>
     KEY_LABEL[key] ??
     key
@@ -388,10 +398,16 @@ const renderValue = (value: unknown): React.ReactNode => {
 };
 
 const ReportsPage: React.FC = () => (
-    <AdminGuard permissions={["reports.read", "finance.read"]}>
+    <AdminGuard permissions={["reports.read", "finance.read", "appointments.read"]}>
         <ReportsContent />
     </AdminGuard>
 );
+
+// formatPercent: onTimeRate tra ve tu backend co the la 0-1 hoac 0-100 tuy
+// cach tinh - tu nhan biet va chuan hoa ve % de hien thi nhat quan (gop tu
+// AppointmentReportPage.tsx cu).
+const formatPercent = (value: number) =>
+    `${Math.round(value * (value <= 1 ? 100 : 1))}%`;
 
 const ReportsContent: React.FC = () => {
     // Tat ca cac loai bao cao chi duoc gate boi mot quyen chung "reports.read"
@@ -402,7 +418,23 @@ const ReportsContent: React.FC = () => {
     // (usePermission) de nhat quan voi cach backend gate.
     const canReadReports = usePermission("reports.read");
     const canReadFinance = usePermission("finance.read");
+    const canReadAppointments = usePermission("appointments.read");
     const canExport = usePermission("reports.export");
+
+    // Bo loc "Dich vu" rieng cho tab Lich hen (gop tu AppointmentReportPage.tsx
+    // cu) - khong dung chung voi bo loc khoang thoi gian ap dung cho cac tab
+    // con lai vi day la 1 truc loc khac (theo dich vu, khong phai theo ngay).
+    const [appointmentServiceId, setAppointmentServiceId] = useState("");
+    const [appointmentServices, setAppointmentServices] = useState<
+        AppointmentService[]
+    >([]);
+
+    useEffect(() => {
+        if (!canReadAppointments) return;
+        fetchAppointmentServices()
+            .then(setAppointmentServices)
+            .catch(() => setAppointmentServices([]));
+    }, [canReadAppointments]);
 
     const tabs: ReportTab[] = [
         ...(canReadReports
@@ -464,6 +496,29 @@ const ReportsContent: React.FC = () => {
                       label: "Tài chính",
                       fetch: fetchFinanceReport,
                       excelFileName: "bao-cao-tai-chinh.xlsx",
+                  },
+              ]
+            : []),
+        ...(canReadAppointments
+            ? [
+                  {
+                      key: "appointments" as ReportTabKey,
+                      label: "Lịch hẹn",
+                      // AppointmentReportSummary co cau truc rieng (overall +
+                      // byService), khong phai dang { byX: [...] } phang nhu
+                      // cac bao cao khac - duoc render rieng trong
+                      // renderAppointmentReport thay vi renderValue chung.
+                      fetch: (fromDate?: string, toDate?: string) =>
+                          fetchAppointmentReportSummary({
+                              serviceId: appointmentServiceId || undefined,
+                              from: fromDate,
+                              to: toDate,
+                          }),
+                      // Backend /reports/** chua ho tro xuat Excel/PDF cho bao
+                      // cao lich hen (day la endpoint /appointments/reports/summary
+                      // rieng) - de fileName rong va an nut xuat cho tab nay
+                      // trong renderCharts/JSX ben duoi thay vi goi API khong ton tai.
+                      excelFileName: "",
                   },
               ]
             : []),
@@ -531,6 +586,14 @@ const ReportsContent: React.FC = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeKey]);
 
+    // Bo loc dich vu chi ap dung cho tab Lich hen - tu tai lai khi doi dich
+    // vu (giu nguyen hanh vi cu cua AppointmentReportPage), khong can bam
+    // "Tao bao cao" nhu bo loc khoang thoi gian dung chung.
+    useEffect(() => {
+        if (activeTab?.key === "appointments") load(activeTab);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appointmentServiceId]);
+
     const handleCreateReport = () => {
         if (activeTab) load(activeTab);
     };
@@ -575,8 +638,116 @@ const ReportsContent: React.FC = () => {
         );
     };
 
+    // AppointmentReportSummary co cau truc rieng (overall + byService) khac
+    // han cac bao cao dang { byX: [...] } phang, nen khong dua duoc vao
+    // renderValue/renderCharts chung - gop nguyen giao dien StatCard + bieu
+    // do tu AppointmentReportPage.tsx cu.
+    const renderAppointmentReport = (summary: AppointmentReportSummary) => {
+        const rateChartData = (summary.byService || []).map(row => ({
+            serviceName: row.serviceName,
+            onTimeRatePercent: Math.round(
+                row.onTimeRate * (row.onTimeRate <= 1 ? 100 : 1),
+            ),
+            noShowRatePercent:
+                row.total > 0 ? Math.round((row.noShow / row.total) * 100) : 0,
+        }));
+
+        const ratingChartData = (summary.byService || [])
+            .filter(row => row.avgRating !== null)
+            .map(row => ({
+                serviceName: row.serviceName,
+                avgRating: row.avgRating ?? 0,
+            }));
+
+        return (
+            <>
+                <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+                    <StatCard
+                        label="Tổng số lịch hẹn"
+                        value={summary.overall.total}
+                        icon={CalendarClock}
+                    />
+                    <StatCard
+                        label="Đã hoàn thành"
+                        value={summary.overall.completed}
+                        icon={CheckCircle2}
+                        tone="success"
+                    />
+                    <StatCard
+                        label="Vắng mặt"
+                        value={summary.overall.noShow}
+                        icon={UserX}
+                        tone={summary.overall.noShow > 0 ? "danger" : "default"}
+                    />
+                    <StatCard
+                        label="Đã hủy"
+                        value={summary.overall.cancelled}
+                        icon={XCircle}
+                    />
+                    <StatCard
+                        label="Tỷ lệ đúng giờ"
+                        value={formatPercent(summary.overall.onTimeRate)}
+                        tone="success"
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div className="rounded-lg border border-divider_01 p-3">
+                        <h3 className="mb-2 text-sm font-medium text-text_2">
+                            Tỷ lệ đúng giờ / vắng mặt theo dịch vụ
+                        </h3>
+                        {rateChartData.length === 0 ? (
+                            <EmptyState label="Chưa có dữ liệu" />
+                        ) : (
+                            <ReportBarChart
+                                data={rateChartData}
+                                labelKey="serviceName"
+                                series={[
+                                    {
+                                        key: "onTimeRatePercent",
+                                        name: "Tỷ lệ đúng giờ (%)",
+                                        color: CHART_COLOR_1,
+                                    },
+                                    {
+                                        key: "noShowRatePercent",
+                                        name: "Tỷ lệ vắng mặt (%)",
+                                        color: CHART_COLOR_2,
+                                    },
+                                ]}
+                            />
+                        )}
+                    </div>
+                    <div className="rounded-lg border border-divider_01 p-3">
+                        <h3 className="mb-2 text-sm font-medium text-text_2">
+                            Đánh giá trung bình theo dịch vụ
+                        </h3>
+                        {ratingChartData.length === 0 ? (
+                            <EmptyState label="Chưa có đánh giá nào" />
+                        ) : (
+                            <ReportBarChart
+                                data={ratingChartData}
+                                labelKey="serviceName"
+                                series={[
+                                    {
+                                        key: "avgRating",
+                                        name: "Điểm đánh giá trung bình",
+                                        color: CHART_COLOR_1,
+                                    },
+                                ]}
+                            />
+                        )}
+                    </div>
+                </div>
+            </>
+        );
+    };
+
     const handleExport = async (format: "excel" | "pdf") => {
-        if (!activeTab) return;
+        // Bao cao lich hen chua co endpoint xuat Excel/PDF o backend (xem
+        // ghi chu o khai bao tab "appointments" phia tren) - nut xuat da an
+        // cho tab nay trong JSX, chan them o day de tranh loi kieu du lieu
+        // khi truyen activeTab.key cho downloadReportExcel/downloadReportPdf.
+        if (!activeTab || activeTab.key === "appointments") return;
         try {
             setExporting(true);
             const { fromDate, toDate } = computeRange();
@@ -680,6 +851,34 @@ const ReportsContent: React.FC = () => {
                     </div>
                 )}
 
+                {activeKey === "appointments" && (
+                    <div>
+                        <Label>Dịch vụ</Label>
+                        <Select
+                            value={appointmentServiceId || ALL_SERVICES}
+                            onValueChange={v =>
+                                setAppointmentServiceId(
+                                    v === ALL_SERVICES ? "" : v,
+                                )
+                            }
+                        >
+                            <SelectTrigger className="mt-1.5 w-56">
+                                <SelectValue placeholder="Tất cả dịch vụ" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL_SERVICES}>
+                                    Tất cả dịch vụ
+                                </SelectItem>
+                                {appointmentServices.map(s => (
+                                    <SelectItem key={s._id} value={s._id}>
+                                        {s.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
                 <Button loading={loading} onClick={handleCreateReport}>
                     Tạo báo cáo
                 </Button>
@@ -704,7 +903,7 @@ const ReportsContent: React.FC = () => {
                                 <h2 className="text-base font-semibold">
                                     {tab.label}
                                 </h2>
-                                {canExport && (
+                                {canExport && tab.key !== "appointments" && (
                                     <div className="flex gap-2">
                                         <Button
                                             size="sm"
@@ -733,10 +932,15 @@ const ReportsContent: React.FC = () => {
                             {!loading && !error && !data && (
                                 <EmptyState label="Chưa có dữ liệu báo cáo" />
                             )}
-                            {!loading && !error && data
+                            {!loading && !error && data && tab.key === "appointments"
+                                ? renderAppointmentReport(
+                                      data as AppointmentReportSummary,
+                                  )
+                                : null}
+                            {!loading && !error && data && tab.key !== "appointments"
                                 ? renderCharts(tab)
                                 : null}
-                            {!loading && !error && data
+                            {!loading && !error && data && tab.key !== "appointments"
                                 ? renderValue(data)
                                 : null}
                         </div>

@@ -37,8 +37,8 @@ export const fetchAppointmentServices = (params?: {
 
 // Dung rieng cho man quan tri AppointmentServiceListPage - khac
 // fetchAppointmentServices (tra ve mang day du, dung cho dropdown chon dich
-// vu o AppointmentListPage/AppointmentReportPage). Truyen page/limit khien
-// route tra ve dang phan trang thay vi mang day du.
+// vu o AppointmentListPage / tab "Lich hen" trong ReportsPage). Truyen
+// page/limit khien route tra ve dang phan trang thay vi mang day du.
 export const fetchAppointmentServicesPaged = (params: {
     page?: number;
     limit?: number;
