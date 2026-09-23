@@ -1,11 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import {
+    ArrowLeft,
+    CalendarCheck2,
+    CalendarClock,
+    History,
+    Home,
+    Inbox,
+    MapPin,
+    Star,
+    StickyNote,
+    Tag,
+    Trash2,
+    User,
+    UserCog,
+    UserPlus,
+} from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
+import { cn } from "@lib/utils";
 import { useAuthStore, usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@components/ui/card";
 import { Input } from "@components/ui/input";
 import { Textarea } from "@components/ui/textarea";
 import { Label } from "@components/ui/label";
@@ -65,6 +89,28 @@ const ComplaintDetailPage: React.FC = () => (
     <AdminGuard permissions={["complaints.read"]}>
         <ComplaintDetailContent />
     </AdminGuard>
+);
+
+// Header dung chung cho tung khoi (Card) - dong bo bo cuc voi
+// CorrespondenceDetailPage.tsx (icon tron + tieu de + mo ta ngan).
+const SectionHeader: React.FC<{
+    icon: React.ReactNode;
+    title: string;
+    description?: string;
+}> = ({ icon, title, description }) => (
+    <CardHeader className="flex-row items-start gap-3 space-y-0">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue_10 text-primary">
+            {icon}
+        </div>
+        <div>
+            <CardTitle className="text-sm">{title}</CardTitle>
+            {description && (
+                <CardDescription className="mt-0.5">
+                    {description}
+                </CardDescription>
+            )}
+        </div>
+    </CardHeader>
 );
 
 const ComplaintDetailContent: React.FC = () => {
@@ -360,269 +406,352 @@ const ComplaintDetailContent: React.FC = () => {
                 <h1 className="text-lg font-semibold">Phản ánh</h1>
             </div>
 
-            {loading && <LoadingState />}
-            {!loading && error && <ErrorState onRetry={load} />}
+            {loading && (
+                <Card className="p-6">
+                    <LoadingState />
+                </Card>
+            )}
+            {!loading && error && (
+                <Card className="p-6">
+                    <ErrorState onRetry={load} />
+                </Card>
+            )}
 
             {!loading && !error && complaint && (
-                <>
-                    <div className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <div className="mb-2 flex items-center justify-between">
-                            <h2 className="text-lg font-semibold">
-                                {complaint.code}
-                            </h2>
-                            <div className="flex items-center gap-2">
-                                <Badge
-                                    tone={
-                                        TRANG_THAI_PHAN_ANH_TONE[
-                                            complaint.status
-                                        ]
-                                    }
-                                >
-                                    {
-                                        TRANG_THAI_PHAN_ANH_LABEL[
-                                            complaint.status
-                                        ]
-                                    }
-                                </Badge>
-                                {!complaint.neighborhoodId && (
-                                    <Badge tone="red">
-                                        Chưa xác định tổ dân phố
-                                    </Badge>
-                                )}
-                                {complaint.linkedRequestId &&
-                                    !isOwnComplaint && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() =>
-                                            navigate(
-                                                `/requests/my?requestId=${complaint.linkedRequestId}`,
-                                            )
-                                        }
-                                    >
-                                        Xem yêu cầu công việc
-                                    </Button>
-                                )}
-                                {canUpdateStatus && !isOwnComplaint && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={openStatusDialog}
-                                    >
-                                        Cập nhật trạng thái
-                                    </Button>
-                                )}
-                                {canDelete && (
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() =>
-                                            setDeleteDialogOpen(true)
-                                        }
-                                    >
-                                        Xóa
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                        <div className="text-sm font-medium">
-                            {complaint.title}
-                        </div>
-                        <div className="mt-1 text-xs text-text_2">
-                            {categoryLabel(complaint.category)}
-                            {complaint.area ? ` • ${complaint.area}` : ""}
-                        </div>
-                        <p className="mt-3 text-sm">{complaint.content}</p>
-
-                        <div className="mt-3 border-t border-divider_01 pt-3">
-                            {creator && (
-                                <InfoRow
-                                    label="Người gửi"
-                                    value={`${creator.displayName}${
-                                        creator.phone
-                                            ? ` (${creator.phone})`
-                                            : ""
-                                    }`}
-                                />
-                            )}
-                            {targetHouse && (
-                                <InfoRow
-                                    label="Nhà số liên quan"
-                                    value={`${targetHouse.code}${
-                                        targetHouse.address
-                                            ? ` — ${targetHouse.address}`
-                                            : ""
-                                    }`}
-                                />
-                            )}
-                            <InfoRow
-                                label="Người phụ trách"
-                                value={assigneeName || "Chưa phân công"}
-                            />
-                            {complaint.rating !== undefined && (
-                                <InfoRow
-                                    label="Đánh giá của người gửi"
-                                    value={`${"★".repeat(
-                                        complaint.rating,
-                                    )}${"☆".repeat(5 - complaint.rating)}${
-                                        complaint.ratingNote
-                                            ? ` — ${complaint.ratingNote}`
-                                            : ""
-                                    }`}
-                                />
-                            )}
-                            {complaint.expectedCompletionDate && (
-                                <InfoRow
-                                    label="Dự kiến hoàn thành"
-                                    value={formatDate(
-                                        complaint.expectedCompletionDate,
-                                    )}
-                                />
-                            )}
-                            {complaint.actualCompletionDate && (
-                                <InfoRow
-                                    label="Ngày hoàn thành"
-                                    value={formatDate(
-                                        complaint.actualCompletionDate,
-                                    )}
-                                />
-                            )}
-                            {complaint.internalNotes && (
-                                <InfoRow
-                                    label="Ghi chú nội bộ"
-                                    value={complaint.internalNotes}
-                                />
-                            )}
-                        </div>
-                    </div>
-
-                    <AttachmentsPanel
-                        attachments={attachments}
-                        loading={attachmentsLoading}
-                        canManage={false}
-                    />
-
-                    {canAssign &&
-                        !isOwnComplaint &&
-                        complaint.canReceiveOrChooseAssignee && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                            <h2 className="mb-3 text-base font-semibold">
-                                Tiếp nhận phản ánh
-                            </h2>
-                            <div className="flex flex-wrap gap-3">
-                                <Button
-                                    loading={receiving}
-                                    onClick={handleReceive}
-                                >
-                                    Tiếp nhận
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setChooseDialogOpen(true)}
-                                >
-                                    Chọn người phụ trách
-                                </Button>
-                                {/* Yeu cau bo sung thong tin: chi con dung
-                                duoc khi phan anh CON dang "moi_tiep_nhan"
-                                (backend requestComplaintInfo van gioi han
-                                nhu vay) - khac Tiep nhan/Chon nguoi phu
-                                trach, co the lap lai qua nhieu vong doi cua
-                                phan anh (xem canReceiveOrChooseAssignee). */}
-                                {complaint.status === "moi_tiep_nhan" && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() =>
-                                            setInfoDialogOpen(true)
-                                        }
-                                    >
-                                        Yêu cầu bổ sung thông tin
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {canAssign && !isOwnComplaint && (
-                        <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                            <h2 className="mb-3 text-base font-semibold">
-                                Phân công xử lý
-                            </h2>
-                            <label
-                                htmlFor="expectedCompletionDate"
-                                className="mb-1 block text-sm text-text_2"
-                            >
-                                Dự kiến hoàn thành (tùy chọn)
-                            </label>
-                            <Input
-                                id="expectedCompletionDate"
-                                type="date"
-                                value={expectedCompletionDate}
-                                onChange={e =>
-                                    setExpectedCompletionDate(e.target.value)
-                                }
-                            />
-                            <div className="mt-3">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setAssigneeDialogOpen(true)}
-                                >
-                                    {assigneeName
-                                        ? `Đang giao: ${assigneeName} — Đổi người`
-                                        : "Chọn người phụ trách"}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="mt-4 rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm">
-                        <h2 className="mb-3 text-base font-semibold">
-                            Lịch sử xử lý
-                        </h2>
-                        {timeline.length === 0 && (
-                            <EmptyState label="Chưa có lịch sử xử lý" />
-                        )}
-                        {timeline.map(t => (
-                            <div
-                                key={t._id}
-                                className="border-b border-divider_01 py-2 last:border-0"
-                            >
-                                <div className="flex items-center justify-between">
-                                    {renderTimelineBadge(t)}
-                                    <span className="text-xs text-text_2">
-                                        {formatDateTime(t.createdAt)}
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    {/* Cot trai: thong tin tong quan + tai lieu - sticky de
+                    luon thay duoc khi cuon cot phai (hanh dong/lich su) */}
+                    <div className="flex flex-col gap-4 lg:sticky lg:top-4 lg:h-fit">
+                        <Card>
+                            <CardContent className="p-5">
+                                <div className="flex items-start justify-between gap-2">
+                                    <span className="font-mono text-xs text-text_2">
+                                        {complaint.code}
                                     </span>
-                                </div>
-                                {t.note && (
-                                    <p className="mt-1 text-sm">{t.note}</p>
-                                )}
-                                {t.action === "edited" &&
-                                    t.patch &&
-                                    Object.entries(t.patch).map(
-                                        ([field, value]) => (
-                                            <p
-                                                key={field}
-                                                className="mt-1 text-xs text-text_2"
-                                            >
-                                                {field}:{" "}
-                                                {String(
-                                                    t.previousSnapshot?.[
-                                                        field
-                                                    ] ?? "",
-                                                )}
-                                                {" → "}
-                                                {String(value)}
-                                            </p>
-                                        ),
+                                    {canDelete && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            title="Xóa phản ánh"
+                                            className="!h-7 !w-7 !text-red-500 hover:!bg-red-50"
+                                            onClick={() =>
+                                                setDeleteDialogOpen(true)
+                                            }
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     )}
-                                {!t.isPublic && (
-                                    <p className="mt-1 text-xs text-text_3">
-                                        (Ghi chú nội bộ)
-                                    </p>
-                                )}
-                            </div>
-                        ))}
+                                </div>
+
+                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                    <Badge
+                                        tone={
+                                            TRANG_THAI_PHAN_ANH_TONE[
+                                                complaint.status
+                                            ]
+                                        }
+                                    >
+                                        {
+                                            TRANG_THAI_PHAN_ANH_LABEL[
+                                                complaint.status
+                                            ]
+                                        }
+                                    </Badge>
+                                    <Badge tone="blue" className="gap-1">
+                                        <Tag className="h-3 w-3" />
+                                        {categoryLabel(complaint.category)}
+                                    </Badge>
+                                    {!complaint.neighborhoodId && (
+                                        <Badge tone="red">
+                                            Chưa xác định tổ dân phố
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                <h2 className="mt-3 text-base font-semibold">
+                                    {complaint.title}
+                                </h2>
+                                <p className="mt-2 whitespace-pre-wrap text-sm text-text_1">
+                                    {complaint.content}
+                                </p>
+
+                                <div className="mt-4 flex flex-col gap-2 border-t border-divider_01 pt-3">
+                                    {complaint.area && (
+                                        <MetaRow
+                                            icon={MapPin}
+                                            label="Khu vực"
+                                            value={complaint.area}
+                                        />
+                                    )}
+                                    {creator && (
+                                        <MetaRow
+                                            icon={User}
+                                            label="Người gửi"
+                                            value={`${creator.displayName}${
+                                                creator.phone
+                                                    ? ` (${creator.phone})`
+                                                    : ""
+                                            }`}
+                                        />
+                                    )}
+                                    {targetHouse && (
+                                        <MetaRow
+                                            icon={Home}
+                                            label="Nhà số liên quan"
+                                            value={`${targetHouse.code}${
+                                                targetHouse.address
+                                                    ? ` — ${targetHouse.address}`
+                                                    : ""
+                                            }`}
+                                        />
+                                    )}
+                                    <MetaRow
+                                        icon={UserCog}
+                                        label="Người phụ trách"
+                                        value={
+                                            assigneeName || "Chưa phân công"
+                                        }
+                                    />
+                                    {complaint.rating !== undefined && (
+                                        <MetaRow
+                                            icon={Star}
+                                            label="Đánh giá của người gửi"
+                                            value={`${"★".repeat(
+                                                complaint.rating,
+                                            )}${"☆".repeat(
+                                                5 - complaint.rating,
+                                            )}${
+                                                complaint.ratingNote
+                                                    ? ` — ${complaint.ratingNote}`
+                                                    : ""
+                                            }`}
+                                        />
+                                    )}
+                                    {complaint.expectedCompletionDate && (
+                                        <MetaRow
+                                            icon={CalendarClock}
+                                            label="Dự kiến hoàn thành"
+                                            value={formatDate(
+                                                complaint.expectedCompletionDate,
+                                            )}
+                                        />
+                                    )}
+                                    {complaint.actualCompletionDate && (
+                                        <MetaRow
+                                            icon={CalendarCheck2}
+                                            label="Ngày hoàn thành"
+                                            value={formatDate(
+                                                complaint.actualCompletionDate,
+                                            )}
+                                        />
+                                    )}
+                                    {complaint.internalNotes && (
+                                        <MetaRow
+                                            icon={StickyNote}
+                                            label="Ghi chú nội bộ"
+                                            value={complaint.internalNotes}
+                                        />
+                                    )}
+                                </div>
+                            </CardContent>
+
+                            {((complaint.linkedRequestId &&
+                                !isOwnComplaint) ||
+                                (canUpdateStatus && !isOwnComplaint)) && (
+                                <CardFooter className="flex flex-wrap gap-2 border-t border-divider_01 pt-4">
+                                    {complaint.linkedRequestId &&
+                                        !isOwnComplaint && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                navigate(
+                                                    `/requests/my?requestId=${complaint.linkedRequestId}`,
+                                                )
+                                            }
+                                        >
+                                            Xem yêu cầu công việc
+                                        </Button>
+                                    )}
+                                    {canUpdateStatus && !isOwnComplaint && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={openStatusDialog}
+                                        >
+                                            Cập nhật trạng thái
+                                        </Button>
+                                    )}
+                                </CardFooter>
+                            )}
+                        </Card>
+
+                        <Card>
+                            <AttachmentsPanel
+                                className="p-5"
+                                attachments={attachments}
+                                loading={attachmentsLoading}
+                                canManage={false}
+                            />
+                        </Card>
                     </div>
-                </>
+
+                    {/* Cot phai: hanh dong xu ly + lich su */}
+                    <div className="flex flex-col gap-4 lg:col-span-2">
+                        {canAssign &&
+                            !isOwnComplaint &&
+                            complaint.canReceiveOrChooseAssignee && (
+                            <Card>
+                                <SectionHeader
+                                    icon={<Inbox className="h-4 w-4" />}
+                                    title="Tiếp nhận phản ánh"
+                                    description="Xác nhận đã nhận được phản ánh này để bắt đầu xử lý."
+                                />
+                                <CardContent className="flex flex-wrap gap-3">
+                                    <Button
+                                        loading={receiving}
+                                        onClick={handleReceive}
+                                    >
+                                        Tiếp nhận
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            setChooseDialogOpen(true)
+                                        }
+                                    >
+                                        Chọn người phụ trách
+                                    </Button>
+                                    {/* Yeu cau bo sung thong tin: chi con
+                                    dung duoc khi phan anh CON dang
+                                    "moi_tiep_nhan" (backend
+                                    requestComplaintInfo van gioi han nhu
+                                    vay) - khac Tiep nhan/Chon nguoi phu
+                                    trach, co the lap lai qua nhieu vong doi
+                                    cua phan anh (xem
+                                    canReceiveOrChooseAssignee). */}
+                                    {complaint.status === "moi_tiep_nhan" && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                                setInfoDialogOpen(true)
+                                            }
+                                        >
+                                            Yêu cầu bổ sung thông tin
+                                        </Button>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {canAssign && !isOwnComplaint && (
+                            <Card>
+                                <SectionHeader
+                                    icon={<UserPlus className="h-4 w-4" />}
+                                    title="Phân công xử lý"
+                                    description="Giao người phụ trách và thời hạn hoàn thành dự kiến."
+                                />
+                                <CardContent className="flex flex-wrap items-end gap-3">
+                                    <div className="min-w-[200px] flex-1">
+                                        <Label
+                                            htmlFor="expectedCompletionDate"
+                                            className="mb-1 block text-text_2"
+                                        >
+                                            Dự kiến hoàn thành (tùy chọn)
+                                        </Label>
+                                        <Input
+                                            id="expectedCompletionDate"
+                                            type="date"
+                                            value={expectedCompletionDate}
+                                            onChange={e =>
+                                                setExpectedCompletionDate(
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() =>
+                                            setAssigneeDialogOpen(true)
+                                        }
+                                    >
+                                        {assigneeName
+                                            ? `Đang giao: ${assigneeName} — Đổi người`
+                                            : "Chọn người phụ trách"}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        <Card>
+                            <SectionHeader
+                                icon={<History className="h-4 w-4" />}
+                                title="Lịch sử xử lý"
+                            />
+                            <CardContent>
+                                {timeline.length === 0 && (
+                                    <EmptyState label="Chưa có lịch sử xử lý" />
+                                )}
+                                {timeline.length > 0 && (
+                                    <div className="relative ml-1.5 border-l border-divider_01 pl-5">
+                                        {timeline.map((t, index) => (
+                                            <div
+                                                key={t._id}
+                                                className={cn(
+                                                    "relative pb-5",
+                                                    index ===
+                                                        timeline.length - 1 &&
+                                                        "pb-0",
+                                                )}
+                                            >
+                                                <span className="absolute -left-[25px] top-1 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary" />
+                                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                                    {renderTimelineBadge(t)}
+                                                    <span className="text-xs text-text_2">
+                                                        {formatDateTime(
+                                                            t.createdAt,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                {t.note && (
+                                                    <p className="mt-1 text-sm">
+                                                        {t.note}
+                                                    </p>
+                                                )}
+                                                {t.action === "edited" &&
+                                                    t.patch &&
+                                                    Object.entries(
+                                                        t.patch,
+                                                    ).map(([field, value]) => (
+                                                        <p
+                                                            key={field}
+                                                            className="mt-1 text-xs text-text_2"
+                                                        >
+                                                            {field}:{" "}
+                                                            {String(
+                                                                t
+                                                                    .previousSnapshot?.[
+                                                                    field
+                                                                ] ?? "",
+                                                            )}
+                                                            {" → "}
+                                                            {String(value)}
+                                                        </p>
+                                                    ))}
+                                                {!t.isPublic && (
+                                                    <p className="mt-1 text-xs text-text_3">
+                                                        (Ghi chú nội bộ)
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
             )}
 
             <Dialog open={assigneeDialogOpen} onOpenChange={setAssigneeDialogOpen}>
@@ -860,13 +989,15 @@ const renderTimelineBadge = (t: ComplaintTimelineEntry) => {
     );
 };
 
-const InfoRow: React.FC<{ label: string; value: string }> = ({
-    label,
-    value,
-}) => (
-    <div className="flex justify-between py-1 text-sm">
-        <span className="text-text_2">{label}</span>
-        <span className="max-w-[70%] text-right">{value}</span>
+const MetaRow: React.FC<{
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string;
+}> = ({ icon: Icon, label, value }) => (
+    <div className="flex items-start gap-2 text-sm">
+        <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text_2" />
+        <span className="w-[130px] shrink-0 text-text_2">{label}</span>
+        <span className="min-w-0 flex-1 break-words">{value}</span>
     </div>
 );
 
