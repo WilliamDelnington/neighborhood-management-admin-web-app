@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import {
     Award,
     Crosshair,
+    Flame,
     HeartHandshake,
     Home,
     Map as MapIcon,
@@ -25,8 +26,13 @@ import { cn } from "@lib/utils";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
 import { Checkbox } from "@components/ui/checkbox";
-import { AppError, Household, Neighborhood } from "@dts";
-import { HOUSEHOLD_STATE_LIST, HouseholdStateKey } from "@constants/domain";
+import { AppError, EmergencyComplaintGisPoint, Household, Neighborhood } from "@dts";
+import {
+    HOUSEHOLD_STATE_LIST,
+    HouseholdStateKey,
+    TRANG_THAI_PHAN_ANH_LABEL,
+    TRANG_THAI_PHAN_ANH_TONE,
+} from "@constants/domain";
 import { POI_CATEGORY_LIST, PoiCategoryMeta } from "@constants/poi";
 import {
     fetchNeighborhoods,
@@ -44,6 +50,7 @@ import {
     fetchHouseholds,
 } from "@service/householdApi";
 import { Poi, createPoi, fetchPois } from "@service/poiApi";
+import { fetchEmergencyComplaintGisOverview } from "@service/complaintApi";
 import { useAuthStore } from "@store/authStore";
 import wardBoundary from "@assets/geo/duongNoiWardBoundary.json";
 
@@ -53,7 +60,16 @@ const DEFAULT_ZOOM = 14;
 // Bien phuong Duong Noi (tu wardBoundary) mo rong them mot bien do, dung lam
 // maxBounds cho ban do - "chỉ khoanh vùng trong phường thôi", tranh nguoi dung
 // keo/zoom ra qua xa khoi khu vuc quan ly.
-const WARD_BOUNDS_PADDING_DEG = 0.02;
+//
+// 0.08 (khong phai 0.02) - ranh gioi phuong la mot khoi CHEO DAI (~3.5km
+// ngang x ~4.6km doc), trong khi khung ban do tren Dashboard rat DET NGANG
+// (vd ~2.7:1). maxBounds luon uu tien khong cho lo ra ngoai CA HAI chieu, nen
+// zoom-ra-xa-nhat bi CHIEU NGANG khong che truoc (vi khung det ngang can
+// nhieu do-kinh-do hon do-vi-do o cung 1 muc zoom) - luc do chieu doc chi con
+// hien duoc mot phan nho cua bien, cat mat phan tren/duoi cac To (da xay ra
+// voi 0.02: chi hien ~30% chieu cao bien). Tang dem len 0.08 de khi zoom ra
+// het co theo maxBounds, chieu doc van con du cho hien TRON VEN bien phuong.
+const WARD_BOUNDS_PADDING_DEG = 0.08;
 
 // Chi lay 4 trang thai NGUOI DUNG TU BAT/TAT (auto=false) - "Có trẻ em/người
 // khuyết tật" la tu tinh (xem HOUSEHOLD_STATE_LIST trong constants/domain.ts),
@@ -447,6 +463,68 @@ function buildPoiPopupHTML(poi: Poi): string {
     `;
 }
 
+const EMERGENCY_MARKER_COLOR = "#dc2626";
+
+// Marker "khan cap" tren Ban do - pattern "animate-ping": 2 vong tron lan toa
+// so le mo dan LIEN TUC (xem .complaint-pulse-marker__ring trong index.css)
+// phia sau icon tron dac dung yen, de nhan ra giua cac marker Ho dan/Poi khac.
+function buildEmergencyMarkerElement(size = 30): HTMLDivElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "complaint-pulse-marker";
+    wrapper.style.width = `${size}px`;
+    wrapper.style.height = `${size}px`;
+    wrapper.style.display = "flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.justifyContent = "center";
+
+    const ring1 = document.createElement("div");
+    ring1.className = "complaint-pulse-marker__ring";
+    wrapper.appendChild(ring1);
+
+    const ring2 = document.createElement("div");
+    ring2.className = "complaint-pulse-marker__ring complaint-pulse-marker__ring--delay";
+    wrapper.appendChild(ring2);
+
+    const dot = buildIconMarkerElement(Flame, EMERGENCY_MARKER_COLOR, size);
+    dot.classList.add("complaint-pulse-marker__dot");
+    wrapper.appendChild(dot);
+
+    return wrapper;
+}
+
+function relativeTimeFromNow(iso: string): string {
+    const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+    if (minutes < 1) return "Vừa xong";
+    if (minutes < 60) return `${minutes} phút trước`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours} giờ trước`;
+    return `${Math.round(hours / 24)} ngày trước`;
+}
+
+// data-complaint-detail: doc lai o listener click marker (xem effect ve
+// marker phan anh khan cap) de dieu huong sang trang chi tiet phan anh -
+// Popup cua goong-js chi nhan HTML thuan, khong the gan onClick truc tiep nhu
+// JSX duoc (cung quy uoc voi buildHouseholdPopupHTML/buildPoiPopupHTML).
+function buildEmergencyComplaintPopupHTML(point: EmergencyComplaintGisPoint): string {
+    const statusColor =
+        HOUSEHOLD_TONE_COLOR[TRANG_THAI_PHAN_ANH_TONE[point.status]] ||
+        HOUSEHOLD_NEUTRAL_COLOR;
+    return `
+        <div style="min-width:200px;max-width:260px;font-size:13px">
+            <div style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:${statusColor}1A;color:${statusColor};font-size:11px;font-weight:600;margin-bottom:6px">${escapeHtml(TRANG_THAI_PHAN_ANH_LABEL[point.status])}</div>
+            <div style="font-weight:600;color:#0f172a;line-height:1.4">${escapeHtml(point.title)}</div>
+            <div style="color:#64748b;font-size:11px;margin-top:2px">${escapeHtml(point.categoryLabel)} · ${escapeHtml(point.code)}</div>
+            ${point.area ? popupInfoRow(MapPin, escapeHtml(point.area)) : ""}
+            <div style="color:#94a3b8;font-size:11px;margin-top:4px">${escapeHtml(relativeTimeFromNow(point.createdAt))}</div>
+            <button
+                type="button"
+                data-complaint-detail="${escapeHtml(point._id)}"
+                style="margin-top:10px;width:100%;padding:6px 12px;border-radius:7px;border:none;background:${EMERGENCY_MARKER_COLOR};color:#fff;font-size:12px;font-weight:600;cursor:pointer"
+            >Xem chi tiết phản ánh</button>
+        </div>
+    `;
+}
+
 /**
  * Goong-js xu ly source "satellite" trong style goong_satellite.json sai (ep
  * ve host tiles.goong.io + doi sang .webp), phai tu fetch style roi thay the
@@ -516,6 +594,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             user?.permissions?.includes("neighborhoods.update_gis"),
     );
     const canViewHouseholds = Boolean(user?.permissions?.includes("households.read"));
+    const canViewComplaints = Boolean(user?.permissions?.includes("complaints.read"));
     // "Bản đồ tiện ích" + "Gắn hộ dân lên bản đồ": theo yeu cau, KHONG con kiem
     // tra quyen pois.read/pois.manage rieng nua - ai vao duoc trang ban do (da
     // qua AdminGuard cua MapPage/MapBoundaryPage) la dung duoc luon.
@@ -560,6 +639,14 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const [poiResults, setPoiResults] = useState<Poi[]>([]);
     const [poiLoading, setPoiLoading] = useState(false);
     const [poiError, setPoiError] = useState(false);
+    // Marker "khan cap" (phan anh danh muc isUrgent, dang moi_tiep_nhan/dang_xu_ly)
+    // - LUON hien khi co du lieu, khong co nut bat/tat rieng (da bo nut "Khẩn
+    // cấp" de do choi giao dien) vi day la thong tin can duoc chu y ngay khi
+    // mo trang Ban do.
+    const [emergencyComplaints, setEmergencyComplaints] = useState<
+        EmergencyComplaintGisPoint[]
+    >([]);
+    const [emergencyComplaintsError, setEmergencyComplaintsError] = useState(false);
     // "Gắn hộ dân lên bản đồ" - bat che do chi tren "/map-boundary"
     // (showDrawTools=true), xem toggle button va cac effect lien quan ben duoi.
     const [pinModeOn, setPinModeOn] = useState(false);
@@ -578,6 +665,8 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const householdMarkersRef = useRef<any[]>([]);
     const poiPopupRef = useRef<any>(null);
     const poiMarkersRef = useRef<any[]>([]);
+    const emergencyPopupRef = useRef<any>(null);
+    const emergencyMarkersRef = useRef<any[]>([]);
     const searchMarkerRef = useRef<any>(null);
     const searchSessionTokenRef = useRef<string | null>(null);
     const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -631,6 +720,29 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             .catch(() => setHouseholdOverviewError(true));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canViewHouseholds]);
+
+    // Marker "khan cap" - tai ngay luc mount (khong doi bam gi, khac Ho dan/Poi)
+    // roi lam moi dinh ky 30s, de trang thai phan anh doi o noi khac (vd nhan
+    // vien khac tiep nhan/dong) phan anh len ban do ma khong can F5 thu cong.
+    useEffect(() => {
+        if (!canViewComplaints) return undefined;
+        let cancelled = false;
+        const load = () => {
+            fetchEmergencyComplaintGisOverview()
+                .then(res => {
+                    if (!cancelled) setEmergencyComplaints(res.points);
+                })
+                .catch(() => {
+                    if (!cancelled) setEmergencyComplaintsError(true);
+                });
+        };
+        load();
+        const interval = setInterval(load, 30000);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, [canViewComplaints]);
 
     useEffect(() => {
         if (autoShow) setMapVisible(true);
@@ -815,6 +927,8 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             householdMarkersRef.current = [];
             poiMarkersRef.current.forEach(marker => marker.remove());
             poiMarkersRef.current = [];
+            emergencyMarkersRef.current.forEach(marker => marker.remove());
+            emergencyMarkersRef.current = [];
             pendingPinMarkerRef.current?.remove();
             pendingPinMarkerRef.current = null;
             mapRef.current?.remove();
@@ -1051,6 +1165,54 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             poiMarkersRef.current.push(marker);
         });
     }, [mapInstanceReady, poiResults, navigate]);
+
+    // Ve lai marker "khan cap" moi khi ban do san sang hoac du lieu tai xong -
+    // cung quy uoc "clear roi ve lai" voi marker Ho dan/Poi o tren (marker
+    // khong bi mat khi doi nen ban do nen khong can phu thuoc mapStyleKey).
+    useEffect(() => {
+        const map = mapRef.current;
+        const goongjs = goongRef.current;
+        if (!map || !goongjs || !mapInstanceReady) return;
+
+        emergencyMarkersRef.current.forEach(marker => marker.remove());
+        emergencyMarkersRef.current = [];
+
+        if (emergencyComplaints.length === 0) return;
+        if (!emergencyPopupRef.current) {
+            emergencyPopupRef.current = new goongjs.Popup({ offset: 8 });
+        }
+
+        emergencyComplaints.forEach(point => {
+            const marker = new goongjs.Marker({
+                element: buildEmergencyMarkerElement(),
+            })
+                .setLngLat([point.gisLongitude, point.gisLatitude])
+                .addTo(map);
+            const markerEl = marker.getElement();
+            markerEl.style.cursor = "pointer";
+            preventMapClickThrough(markerEl);
+            markerEl.addEventListener("click", (e: MouseEvent) => {
+                e.stopPropagation();
+                emergencyPopupRef.current
+                    ?.setLngLat([point.gisLongitude, point.gisLatitude])
+                    .setHTML(buildEmergencyComplaintPopupHTML(point))
+                    .addTo(map);
+                // Popup cua goong-js chi nhan HTML thuan (xem
+                // buildEmergencyComplaintPopupHTML) nen phai tu gan lai su kien
+                // click cho nut "Xem chi tiết phản ánh" sau moi lan mo popup,
+                // cung quy uoc voi marker Ho dan/Poi o tren.
+                const popupEl = emergencyPopupRef.current?.getElement?.();
+                const detailBtn = popupEl?.querySelector?.(
+                    "[data-complaint-detail]",
+                ) as HTMLElement | null;
+                detailBtn?.addEventListener("click", () => {
+                    const complaintId = detailBtn.getAttribute("data-complaint-detail");
+                    if (complaintId) navigate(`/complaints/${complaintId}`);
+                });
+            });
+            emergencyMarkersRef.current.push(marker);
+        });
+    }, [mapInstanceReady, emergencyComplaints, navigate]);
 
     // Dong bo pinModeOn/mapStyleKey vao ref de doc duoc gia tri moi nhat trong
     // handler click "zones-fill" (bind mot lan trong bindInteractions, xem o
@@ -1706,6 +1868,11 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                     </p>
                                 )}
                             </div>
+                        )}
+                        {canViewComplaints && emergencyComplaintsError && (
+                            <p className="text-xs text-red-500">
+                                Không tải được phản ánh khẩn cấp
+                            </p>
                         )}
                         {canViewPois && (
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 rounded-lg border border-divider_01 bg-ui_bg p-2">

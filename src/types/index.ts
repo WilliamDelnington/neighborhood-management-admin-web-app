@@ -860,6 +860,28 @@ export type ComplaintTypeDefinition = {
     updatedAt?: string;
 };
 
+// Diem marker "khan cap" tren trang Ban do (GET /api/complaints/emergency-gis) -
+// chi gom phan anh thuoc danh muc isUrgent, con dang moi_tiep_nhan/dang_xu_ly
+// VA da co toa do GPS (backend da loc san, xem getEmergencyComplaintGisOverview).
+export type EmergencyComplaintGisPoint = {
+    _id: string;
+    code: string;
+    title: string;
+    category: NhomPhanAnh;
+    categoryLabel: string;
+    status: TrangThaiPhanAnh;
+    area?: string;
+    gisLatitude: number;
+    gisLongitude: number;
+    gisAccuracyMeters?: number | null;
+    createdAt: string;
+    neighborhoodName?: string;
+};
+
+export type EmergencyComplaintGisOverview = {
+    points: EmergencyComplaintGisPoint[];
+};
+
 export type ComplaintTimelineEntry = {
     _id: string;
     complaintId: string;

@@ -191,6 +191,51 @@
     }
 }
 
+/* Canh bao "khan cap" nhap nhay LIEN TUC cho marker phan anh tren trang Ban do
+ * (xem buildEmergencyMarkerElement trong NeighborhoodZonesMap.tsx) - DUNG
+ * pattern "animate-ping" cua Tailwind (span phong to + mo dan lien tuc, icon
+ * dung yen o giua), CHI gom 2 vong tron lan toa so le phia sau.
+ *
+ * KHONG duoc khai bao "position" cho .complaint-pulse-marker (phan tu goc
+ * duoc truyen thang lam Marker element) - goong-js tu gan class
+ * ".mapboxgl-marker" (position:absolute;top:0;left:0) len CHINH phan tu nay
+ * luc addTo(map) va dung inline transform de dat dung toa do pixel tren ban
+ * do; ep position:relative (ke ca !important) o day se PHA co che do, khien
+ * marker roi ve vi tri theo dong chay HTML binh thuong thay vi dung kinh do/vi
+ * do (da gap loi nay mot lan - marker "nhay" sai vi tri tren ban do). Vong
+ * tron con (.complaint-pulse-marker__ring) van dinh vi dung binh thuong vi
+ * position:absolute cua chinh goong-js DA la mot containing block hop le. */
+@keyframes complaint-pulse-ring {
+    0% {
+        transform: scale(0.5);
+        opacity: 0.85;
+    }
+    100% {
+        transform: scale(2.6);
+        opacity: 0;
+    }
+}
+.complaint-pulse-marker__ring {
+    position: absolute !important;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.65);
+    animation: complaint-pulse-ring 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+    pointer-events: none;
+}
+.complaint-pulse-marker__ring--delay {
+    animation-delay: 0.7s !important;
+}
+.complaint-pulse-marker__dot {
+    position: relative !important;
+    z-index: 1;
+}
+/* KHONG tat animation theo prefers-reduced-motion o day - dung quy uoc voi
+ * nut chatbot (xem span "animate-ping" trong AiChatWidget.tsx), la class goc
+ * cua Tailwind va KHONG bi tat boi media query nay, nen luon nhap nhay bat ke
+ * cai dat he thong. Giu dong nhat de canh bao khan cap khong bi "cam lang"
+ * tren cac may da tat hieu ung chuyen dong he thong (vd qua RDP/may ao). */
+
 /* Kieu dang cho noi dung tin tuc dang HTML (RichTextEditor va noi dung da
  * luu) - dung chung cho ca vung soan thao va cac noi dung xem lai. */
 .rich-content p {
