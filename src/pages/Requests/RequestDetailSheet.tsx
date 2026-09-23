@@ -1,9 +1,28 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Maximize2, Paperclip, Trash2, Upload } from "lucide-react";
+import {
+    CalendarClock,
+    ClipboardList,
+    Home,
+    Maximize2,
+    MessageSquare,
+    Paperclip,
+    StickyNote,
+    Trash2,
+    Upload,
+    User,
+    Users,
+} from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Badge } from "@components/ui/badge";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@components/ui/card";
 import { Label } from "@components/ui/label";
 import { Textarea } from "@components/ui/textarea";
 import { Input } from "@components/ui/input";
@@ -79,6 +98,45 @@ const creatorText = (c: RequestItem["createdBy"]) => {
 
 const formatDate = (value?: string) =>
     value ? new Date(value).toLocaleDateString("vi-VN") : "";
+
+// Header dung chung cho tung khoi (Card) - dong bo bo cuc voi
+// CorrespondenceDetailPage.tsx/ComplaintDetailPage.tsx (icon tron + tieu de +
+// mo ta ngan, action tuy chon o goc phai).
+const SectionHeader: React.FC<{
+    icon: React.ReactNode;
+    title: string;
+    description?: string;
+    action?: React.ReactNode;
+}> = ({ icon, title, description, action }) => (
+    <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+        <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue_10 text-primary">
+                {icon}
+            </div>
+            <div>
+                <CardTitle className="text-sm">{title}</CardTitle>
+                {description && (
+                    <CardDescription className="mt-0.5">
+                        {description}
+                    </CardDescription>
+                )}
+            </div>
+        </div>
+        {action}
+    </CardHeader>
+);
+
+const MetaRow: React.FC<{
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string;
+}> = ({ icon: Icon, label, value }) => (
+    <div className="flex items-start gap-2 text-sm">
+        <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text_2" />
+        <span className="w-[110px] shrink-0 text-text_2">{label}</span>
+        <span className="min-w-0 flex-1 break-words">{value}</span>
+    </div>
+);
 
 const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
     requestId,
@@ -372,73 +430,92 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                     )}
                     {!loading && request && (
                         <>
-                            <div>
-                                <div className="mb-1 flex items-center gap-2">
-                                    <h2 className="text-base font-semibold">
-                                        {request.title}
-                                    </h2>
-                                    <Badge tone="blue">
-                                        {request.formDefinitionSnapshot?.name ||
-                                            REQUEST_TYPE_LABEL[request.type] ||
-                                            request.type}
-                                    </Badge>
-                                    <Badge
-                                        tone={
-                                            REQUEST_PRIORITY_TONE[
-                                                request.priority
-                                            ]
-                                        }
-                                    >
-                                        {
-                                            REQUEST_PRIORITY_LABEL[
-                                                request.priority
-                                            ]
-                                        }
-                                    </Badge>
-                                </div>
-                                {request.description && (
-                                    <p className="text-sm text-text_2">
-                                        {request.description}
-                                    </p>
-                                )}
-                                <div className="mt-2 text-sm text-text_2">
-                                    {houseText(request.houseId) && (
-                                        <div>
-                                            Nhà liên quan:{" "}
-                                            {houseText(request.houseId)}
-                                        </div>
-                                    )}
-                                    <div>
-                                        Hạn xử lý:{" "}
-                                        {formatDate(request.dueDate) ||
-                                            "Chưa đặt"}
-                                    </div>
-                                    <div>
-                                        Người gửi:{" "}
-                                        {creatorText(request.createdBy)}
-                                    </div>
-                                </div>
-                                {request.relatedModel === "Complaint" &&
-                                    request.relatedId && (
-                                        <Link
-                                            to={`/complaints/${request.relatedId}`}
-                                            className="mt-1 block text-sm text-primary hover:underline"
+                            <Card>
+                                <CardContent className="p-4">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <h2 className="text-base font-semibold">
+                                            {request.title}
+                                        </h2>
+                                        <Badge tone="blue">
+                                            {request.formDefinitionSnapshot
+                                                ?.name ||
+                                                REQUEST_TYPE_LABEL[
+                                                    request.type
+                                                ] ||
+                                                request.type}
+                                        </Badge>
+                                        <Badge
+                                            tone={
+                                                REQUEST_PRIORITY_TONE[
+                                                    request.priority
+                                                ]
+                                            }
                                         >
-                                            Xem phản ánh liên quan
-                                        </Link>
+                                            {
+                                                REQUEST_PRIORITY_LABEL[
+                                                    request.priority
+                                                ]
+                                            }
+                                        </Badge>
+                                    </div>
+                                    {request.description && (
+                                        <p className="mt-2 whitespace-pre-wrap text-sm text-text_1">
+                                            {request.description}
+                                        </p>
                                     )}
-                                <Link
-                                    to={`/requests/${request._id}/history`}
-                                    className="mt-1 inline-block text-sm text-primary hover:underline"
-                                >
-                                    Xem lịch sử chỉnh sửa
-                                </Link>
-                            </div>
+                                    <div className="mt-3 flex flex-col gap-2 border-t border-divider_01 pt-3">
+                                        {houseText(request.houseId) && (
+                                            <MetaRow
+                                                icon={Home}
+                                                label="Nhà liên quan"
+                                                value={houseText(
+                                                    request.houseId,
+                                                )}
+                                            />
+                                        )}
+                                        <MetaRow
+                                            icon={CalendarClock}
+                                            label="Hạn xử lý"
+                                            value={
+                                                formatDate(request.dueDate) ||
+                                                "Chưa đặt"
+                                            }
+                                        />
+                                        <MetaRow
+                                            icon={User}
+                                            label="Người gửi"
+                                            value={creatorText(
+                                                request.createdBy,
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                        {request.relatedModel ===
+                                            "Complaint" &&
+                                            request.relatedId && (
+                                            <Link
+                                                to={`/complaints/${request.relatedId}`}
+                                                className="text-primary hover:underline"
+                                            >
+                                                Xem phản ánh liên quan
+                                            </Link>
+                                        )}
+                                        <Link
+                                            to={`/requests/${request._id}/history`}
+                                            className="text-primary hover:underline"
+                                        >
+                                            Xem lịch sử chỉnh sửa
+                                        </Link>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                            <div>
-                                <h3 className="mb-2 text-sm font-semibold">
-                                    Người nhận
-                                </h3>
+                            <Card>
+                                <SectionHeader
+                                    icon={<Users className="h-4 w-4" />}
+                                    title="Người nhận"
+                                />
+                                <CardContent>
                                 <div className="flex flex-col gap-2">
                                     {request.recipients.map(rec => (
                                         <div key={rec._id} className="text-sm">
@@ -610,19 +687,19 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                         </Button>
                                     </div>
                                 )}
-                            </div>
+                                </CardContent>
+                            </Card>
 
                             {formDefinition && formDefinition.fields.length > 0 && (
-                                <div className="rounded-lg border border-divider_01 p-3">
-                                    <div className="mb-3">
-                                        <h3 className="text-sm font-semibold">
-                                            Dữ liệu nghiệp vụ · v{request.formSchemaVersion || 1}
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground">
-                                            Dữ liệu được mã hóa khi lưu. Phân loại dữ liệu hiển thị
-                                            theo cấu hình tại thời điểm giao việc.
-                                        </p>
-                                    </div>
+                                <Card>
+                                    <SectionHeader
+                                        icon={
+                                            <ClipboardList className="h-4 w-4" />
+                                        }
+                                        title={`Dữ liệu nghiệp vụ · v${request.formSchemaVersion || 1}`}
+                                        description="Dữ liệu được mã hóa khi lưu. Phân loại dữ liệu hiển thị theo cấu hình tại thời điểm giao việc."
+                                    />
+                                    <CardContent>
                                     <div className="space-y-3">
                                         {formDefinition.fields.map(field => (
                                             <div key={field.key}>
@@ -743,13 +820,17 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                             Lưu dữ liệu nghiệp vụ
                                         </Button>
                                     )}
-                                </div>
+                                    </CardContent>
+                                </Card>
                             )}
 
-                            <div>
-                                <Label>Ghi chú</Label>
+                            <Card>
+                                <SectionHeader
+                                    icon={<StickyNote className="h-4 w-4" />}
+                                    title="Ghi chú"
+                                />
+                                <CardContent>
                                 <Textarea
-                                    className="mt-1.5"
                                     placeholder="Ghi chú thêm (nếu có)"
                                     value={note}
                                     disabled={!canManage}
@@ -766,15 +847,16 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                         Lưu ghi chú
                                     </Button>
                                 )}
-                            </div>
+                                </CardContent>
+                            </Card>
 
-                            <div className="border-t border-divider_01 pt-4">
-                                <div className="mb-3 flex items-center justify-between">
-                                    <h3 className="text-sm font-semibold">
-                                        Tệp đính kèm
-                                    </h3>
-                                    {(canManage || isCreator) && (
-                                        <>
+                            <Card>
+                                <SectionHeader
+                                    icon={<Paperclip className="h-4 w-4" />}
+                                    title="Tệp đính kèm"
+                                    action={
+                                        (canManage || isCreator) && (
+                                            <>
                                             <Button
                                                 size="sm"
                                                 variant="outline"
@@ -792,8 +874,10 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                                 onChange={handleFileSelected}
                                             />
                                         </>
-                                    )}
-                                </div>
+                                        )
+                                    }
+                                />
+                                <CardContent>
                                 {attachmentsLoading && <LoadingState />}
                                 {!attachmentsLoading &&
                                     attachments.length === 0 && (
@@ -865,12 +949,17 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                             </div>
                                         ))}
                                 </div>
-                            </div>
+                                </CardContent>
+                            </Card>
 
-                            <div className="border-t border-divider_01 pt-4">
-                                <h3 className="mb-3 text-sm font-semibold">
-                                    Trao đổi
-                                </h3>
+                            <Card>
+                                <SectionHeader
+                                    icon={
+                                        <MessageSquare className="h-4 w-4" />
+                                    }
+                                    title="Trao đổi"
+                                />
+                                <CardContent>
                                 {commentsLoading && <LoadingState />}
                                 {!commentsLoading && comments.length === 0 && (
                                     <EmptyState label="Chưa có trao đổi nào" />
@@ -914,7 +1003,8 @@ const RequestDetailSheet: React.FC<RequestDetailSheetProps> = ({
                                         Gửi
                                     </Button>
                                 </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         </>
                     )}
                 </div>

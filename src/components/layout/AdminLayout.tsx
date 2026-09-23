@@ -16,6 +16,8 @@ import { useThemeStore } from "@store/themeStore";
 import { useSectionDescriptionsStore } from "@store/sectionDescriptionsStore";
 import { useSurveyBadgeStore } from "@store/surveyBadgeStore";
 import { useCorrespondenceBadgeStore } from "@store/correspondenceBadgeStore";
+import { useRequestBadgeStore } from "@store/requestBadgeStore";
+import { useComplaintBadgeStore } from "@store/complaintBadgeStore";
 import { usePinnedModulesStore } from "@store/pinnedModulesStore";
 import { ROLE_LABEL } from "@constants/domain";
 import {
@@ -226,6 +228,20 @@ const AdminLayout: React.FC = () => {
         return () => clearInterval(interval);
     }, [canReadCorrespondences, refreshCorrespondenceBadge]);
 
+    // So yeu cau cong viec dang duoc giao ma chua hoan thanh - hien badge do
+    // canh muc "Yêu cầu công việc". Khong gate theo permission rieng (giong
+    // tab "Được giao" trong RequestListPage.tsx, mo cho MOI nhan vien dang
+    // nhap, khong rieng nguoi co quyen "requests.read").
+    const pendingRequestCount = useRequestBadgeStore(
+        state => state.pendingCount,
+    );
+    const refreshRequestBadge = useRequestBadgeStore(state => state.refresh);
+    useEffect(() => {
+        refreshRequestBadge();
+        const interval = setInterval(refreshRequestBadge, 60_000);
+        return () => clearInterval(interval);
+    }, [refreshRequestBadge]);
+
     // Icon "Cuộc họp sắp tới" tren header - chi hien voi vai tro co quyen xem
     // lich hop (xem UpcomingMeetingsBell.tsx).
     const canReadMeetings = usePermission("meetings.read");
@@ -234,6 +250,22 @@ const AdminLayout: React.FC = () => {
     // phan anh (xem EmergencyComplaintsBell.tsx).
     const canReadComplaints = usePermission("complaints.read");
 
+    // So phan anh dang cho xu ly - hien badge do canh muc "Phản ánh". Gate
+    // theo canReadComplaints (khac requests o tren) vi endpoint pending-count
+    // yeu cau quyen "complaints.read", khong mo cho moi nhan vien dang nhap.
+    const pendingComplaintCount = useComplaintBadgeStore(
+        state => state.pendingCount,
+    );
+    const refreshComplaintBadge = useComplaintBadgeStore(
+        state => state.refresh,
+    );
+    useEffect(() => {
+        if (!canReadComplaints) return;
+        refreshComplaintBadge();
+        const interval = setInterval(refreshComplaintBadge, 60_000);
+        return () => clearInterval(interval);
+    }, [canReadComplaints, refreshComplaintBadge]);
+
     const descriptionOf = (m: ModuleItem) => descOverrides[m.key] ?? m.description;
 
     // So dem hien thanh badge do canh ten muc menu (vd "Khảo sát", "Văn bản") -
@@ -241,6 +273,8 @@ const AdminLayout: React.FC = () => {
     const menuBadgeCount = (key: string): number => {
         if (key === "surveys") return unansweredSurveyCount;
         if (key === "correspondences") return unreadCorrespondenceCount;
+        if (key === "requests") return pendingRequestCount;
+        if (key === "complaints") return pendingComplaintCount;
         return 0;
     };
 

@@ -56,6 +56,11 @@ export const fetchRequests = (params?: {
 export const fetchRequestById = (id: string): Promise<RequestItem> =>
     request<RequestItem>("GET", `${API.REQUESTS}/${id}`);
 
+// So yeu cau cong viec dang duoc GIAO cho minh ma CHUA hoan thanh - dung cho
+// badge so luong canh muc "Yêu cầu công việc" tren menu (xem requestBadgeStore.ts).
+export const fetchMyPendingRequestCount = (): Promise<{ count: number }> =>
+    request<{ count: number }>("GET", `${API.REQUESTS_MY}/pending-count`);
+
 export const createRequest = (
     input: CreateRequestInput,
 ): Promise<RequestItem> => request<RequestItem>("POST", API.REQUESTS, input);

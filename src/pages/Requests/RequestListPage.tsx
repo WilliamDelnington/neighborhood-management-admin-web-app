@@ -38,6 +38,7 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterBar from "@components/admin/FilterBar";
 import SendRequestSheet from "@components/admin/SendRequestSheet";
 import { usePermission } from "@store/authStore";
+import { useRequestBadgeStore } from "@store/requestBadgeStore";
 import { AppError, MyRequestItem, RequestItem, RequestStatus, RequestType } from "@dts";
 import {
     REQUEST_PRIORITY_LABEL,
@@ -101,6 +102,11 @@ const RequestListContent: React.FC = () => {
     const canReadAll = usePermission("requests.read_all");
     const canCreateRequest = usePermission("requests.create");
     const canViewAll = canUpdateAll || canReadAll;
+    // AdminLayout.tsx da tu poll/refresh store nay (badge tren menu) - o day
+    // chi doc lai de hien cung con so ngay tren tab "Được giao".
+    const pendingRequestCount = useRequestBadgeStore(
+        state => state.pendingCount,
+    );
     const [view, setView] = useState<RequestView>(
         location.pathname === "/requests/my" ? "assigned" : "sent",
     );
@@ -129,9 +135,24 @@ const RequestListContent: React.FC = () => {
                 value={view}
                 onValueChange={value => setView(value as RequestView)}
             >
+                {/* "Được giao" dat TRUOC "Đã gửi" - day la viec CAN LAM (co
+                the dang cho xu ly), nen uu tien de nguoi dung thay ngay, gio
+                cung dong bo voi badge so luong tren menu (xem
+                requestBadgeStore.ts). Khong doi TAB MAC DINH (van theo
+                location.pathname o tren) vi "/requests?requestId=" tu
+                NotificationBell.tsx dang gia dinh mo dung tab "Đã gửi". */}
                 <TabsList>
+                    <TabsTrigger value="assigned">
+                        Được giao
+                        {pendingRequestCount > 0 && (
+                            <Badge tone="red" className="ml-1.5 px-1.5">
+                                {pendingRequestCount > 99
+                                    ? "99+"
+                                    : pendingRequestCount}
+                            </Badge>
+                        )}
+                    </TabsTrigger>
                     <TabsTrigger value="sent">Đã gửi</TabsTrigger>
-                    <TabsTrigger value="assigned">Được giao</TabsTrigger>
                     {canViewAll && (
                         <TabsTrigger value="all">Tất cả</TabsTrigger>
                     )}

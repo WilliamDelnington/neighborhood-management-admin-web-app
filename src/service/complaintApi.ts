@@ -13,6 +13,11 @@ import { request } from "./request";
 export const fetchComplaintAttachments = (id: string): Promise<FileAsset[]> =>
     request<FileAsset[]>("GET", `${API.COMPLAINTS}/${id}/attachments`);
 
+// So phan anh dang cho xu ly (pham vi "Nhận từ cư dân") - dung cho badge so
+// luong canh muc "Phản ánh" tren menu (xem complaintBadgeStore.ts).
+export const fetchPendingComplaintCount = (): Promise<{ count: number }> =>
+    request<{ count: number }>("GET", `${API.COMPLAINTS}/pending-count`);
+
 export const fetchComplaints = (params?: {
     page?: number;
     limit?: number;
