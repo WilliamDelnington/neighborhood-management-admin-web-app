@@ -834,6 +834,11 @@ export type Complaint = {
     // chi tinh cho staff - xem canReceiveOrChooseAssignee o backend
     // complaintService.ts. False/undefined o cac response khac (vd list).
     canReceiveOrChooseAssignee?: boolean;
+    // _id cua Request/Cong viec noi bo lien ket GAN NHAT (neu co) - cung dieu
+    // kien voi canReceiveOrChooseAssignee o tren (chi staff, chi response chi
+    // tiet). Dung de hien nut "Xem yêu cầu công việc" dieu huong sang trang
+    // Yeu cau - xem getLatestLinkedRequestId o backend.
+    linkedRequestId?: string | null;
 };
 
 export type ComplaintTypeDefinition = {
@@ -847,11 +852,34 @@ export type ComplaintTypeDefinition = {
     // Vai tro duoc phep gui danh muc nay - khong co y nghia thu tu.
     allowedSenderRoles?: string[];
     isBuiltIn?: boolean;
+    isUrgent?: boolean;
     active?: boolean;
     wardCode?: number;
     wardName?: string;
     createdAt?: string;
     updatedAt?: string;
+};
+
+// Diem marker "khan cap" tren trang Ban do (GET /api/complaints/emergency-gis) -
+// chi gom phan anh thuoc danh muc isUrgent, con dang moi_tiep_nhan/dang_xu_ly
+// VA da co toa do GPS (backend da loc san, xem getEmergencyComplaintGisOverview).
+export type EmergencyComplaintGisPoint = {
+    _id: string;
+    code: string;
+    title: string;
+    category: NhomPhanAnh;
+    categoryLabel: string;
+    status: TrangThaiPhanAnh;
+    area?: string;
+    gisLatitude: number;
+    gisLongitude: number;
+    gisAccuracyMeters?: number | null;
+    createdAt: string;
+    neighborhoodName?: string;
+};
+
+export type EmergencyComplaintGisOverview = {
+    points: EmergencyComplaintGisPoint[];
 };
 
 export type ComplaintTimelineEntry = {

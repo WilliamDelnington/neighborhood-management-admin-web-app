@@ -852,6 +852,18 @@ const DashboardContent: React.FC = () => {
                 </div>
             </header>
 
+            {/* Ban do luon dat NGAY SAU header, TRUOC moi noi dung khac cua
+            Dashboard (CustomMetricsSection/NeighborhoodDashboardView/
+            WardDashboardView...) - ap dung cho MOI audience co quyen xem
+            (khong rieng gi admin), thay vi truoc day chi audience KHONG
+            thuoc "neighborhood"/WARD_FAMILY_AUDIENCES (vd admin) moi thay
+            ban do gan dau trang do cac view rieng cua Nhom/Phuong chen truoc
+            no. */}
+            {summary.capabilities.population &&
+                user?.permissions?.includes("neighborhoods.read") && (
+                    <NeighborhoodZonesMap mapHeightClassName="h-[750px]" />
+                )}
+
             {summary.allowedDashboardMetrics ? (
                 <CustomMetricsSection summary={summary} />
             ) : (
@@ -864,11 +876,6 @@ const DashboardContent: React.FC = () => {
                     )}
                 </>
             )}
-
-            {summary.capabilities.population &&
-                user?.permissions?.includes("neighborhoods.read") && (
-                    <NeighborhoodZonesMap mapHeightClassName="h-[750px]" />
-                )}
 
             {summary.audience !== "neighborhood" &&
                 !WARD_FAMILY_AUDIENCES.includes(summary.audience) && (

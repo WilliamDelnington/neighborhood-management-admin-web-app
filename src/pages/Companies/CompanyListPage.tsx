@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UploadCloud } from "lucide-react";
+import { toast } from "sonner";
+import { Download, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
@@ -30,11 +31,12 @@ import {
     VERIFICATION_STATUS_TONE,
 } from "@constants/domain";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { BusinessType, Company, CompanyType, VerificationStatus } from "@dts";
-import { fetchCompanies } from "@service/companyApi";
+import { AppError, BusinessType, Company, CompanyType, VerificationStatus } from "@dts";
+import { fetchAllCompanies, fetchCompanies } from "@service/companyApi";
 import { fetchBusinessTypes } from "@service/businessTypeApi";
 import { fetchCompanyTypes } from "@service/companyTypeApi";
 import { usePermission } from "@store/authStore";
+import { exportFileTimestamp, exportRowsToExcel } from "@lib/exportExcel";
 import CompanyImportSheet from "./CompanyImportSheet";
 
 const ALL_STATUS = "all";
@@ -80,6 +82,7 @@ const CompanyListContent: React.FC = () => {
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -116,21 +119,88 @@ const CompanyListContent: React.FC = () => {
             .catch(() => setCompanyTypes([]));
     }, []);
 
+    // Xuat TOAN BO cong ty khop bo loc hien tai ra file .xlsx - xem ghi chu
+    // tuong tu o HouseListPage.tsx.
+    const handleExportExcel = async () => {
+        try {
+            setExporting(true);
+            const rows = await fetchAllCompanies({
+                search: search || undefined,
+                status: status || undefined,
+                businessType: businessType || undefined,
+                companyType: companyType || undefined,
+            });
+            if (rows.length === 0) {
+                toast.error("Không có công ty nào khớp bộ lọc để xuất");
+                return;
+            }
+            await exportRowsToExcel(
+                rows,
+                `cong-ty_${exportFileTimestamp()}.xlsx`,
+                "Công ty",
+                [
+                    { label: "Tên công ty", width: 30, value: c => c.name },
+                    { label: "Nhà số", width: 34, value: c => houseLabelOf(c) },
+                    {
+                        label: "Loại hình kinh doanh",
+                        width: 26,
+                        value: c =>
+                            (c.businessTypeIds || [])
+                                .map(bt =>
+                                    typeof bt === "object" ? bt.name : null,
+                                )
+                                .filter(Boolean)
+                                .join(", ") || "Chưa phân loại",
+                    },
+                    {
+                        label: "Loại hình DN",
+                        width: 20,
+                        value: c =>
+                            c.companyTypeId &&
+                            typeof c.companyTypeId === "object"
+                                ? c.companyTypeId.name
+                                : "Chưa chọn",
+                    },
+                    {
+                        label: "Trạng thái",
+                        width: 16,
+                        value: c => VERIFICATION_STATUS_LABEL[c.status],
+                    },
+                ],
+            );
+            toast.success(`Đã xuất ${rows.length} công ty`);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
                 title="Công ty"
                 description="Quản lý công ty/doanh nghiệp đăng ký hoạt động trên địa bàn."
                 action={
-                    canImport && (
+                    <div className="flex gap-2">
                         <Button
                             variant="outline"
-                            onClick={() => setImportVisible(true)}
+                            loading={exporting}
+                            onClick={handleExportExcel}
                         >
-                            <UploadCloud className="mr-1 h-4 w-4" />
-                            Nhập từ Excel
+                            <Download className="mr-1 h-4 w-4" />
+                            Xuất Excel
                         </Button>
-                    )
+                        {canImport && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setImportVisible(true)}
+                            >
+                                <UploadCloud className="mr-1 h-4 w-4" />
+                                Nhập từ Excel
+                            </Button>
+                        )}
+                    </div>
                 }
             />
 

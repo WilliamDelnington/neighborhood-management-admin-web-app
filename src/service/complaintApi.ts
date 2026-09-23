@@ -2,6 +2,7 @@ import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     Complaint,
     ComplaintDetail,
+    EmergencyComplaintGisOverview,
     FileAsset,
     NhomPhanAnh,
     PaginatedData,
@@ -11,6 +12,11 @@ import { request } from "./request";
 
 export const fetchComplaintAttachments = (id: string): Promise<FileAsset[]> =>
     request<FileAsset[]>("GET", `${API.COMPLAINTS}/${id}/attachments`);
+
+// So phan anh dang cho xu ly (pham vi "Nhận từ cư dân") - dung cho badge so
+// luong canh muc "Phản ánh" tren menu (xem complaintBadgeStore.ts).
+export const fetchPendingComplaintCount = (): Promise<{ count: number }> =>
+    request<{ count: number }>("GET", `${API.COMPLAINTS}/pending-count`);
 
 export const fetchComplaints = (params?: {
     page?: number;
@@ -39,6 +45,14 @@ export const fetchComplaints = (params?: {
 
 export const fetchComplaintDetail = (id: string): Promise<ComplaintDetail> =>
     request<ComplaintDetail>("GET", `${API.COMPLAINTS}/${id}`);
+
+// Marker "khan cap" tren trang Ban do - xem EmergencyComplaintGisPoint (@dts).
+export const fetchEmergencyComplaintGisOverview =
+    (): Promise<EmergencyComplaintGisOverview> =>
+        request<EmergencyComplaintGisOverview>(
+            "GET",
+            `${API.COMPLAINTS}/emergency-gis`,
+        );
 
 // Gui phan anh moi tu admin-web-app - truoc day chi thuc hien duoc tu ung
 // dung Zalo/resident-web-app (cu dan); nay mo them cho To truong/To pho gui

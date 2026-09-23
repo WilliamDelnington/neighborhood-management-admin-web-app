@@ -47,6 +47,7 @@ import {
 } from "@dts";
 import {
     NHOM_PHAN_ANH_LABEL,
+    ROLE_LABEL,
     TRANG_THAI_PHAN_ANH_LABEL,
     TRANG_THAI_PHAN_ANH_TONE,
 } from "@constants/domain";
@@ -110,6 +111,21 @@ const ComplaintListContent: React.FC = () => {
                 /* Khong co quyen neighborhoods.read - an bo loc, khong chan trang */
             });
     }, []);
+
+    // "Gửi đến": nguoi phu trach cu the (assigneeId) neu da tiep nhan, neu
+    // chua thi roi ve danh sach vai tro nguoi nhan cua danh muc
+    // (ComplaintTypeDefinition.allowedReceiverRoles) - cho biet phan anh se
+    // toi tay ai ke ca khi chua co ai bam "Tiếp nhận".
+    const sentToOf = (c: Complaint): string => {
+        if (c.assigneeId && typeof c.assigneeId !== "string") {
+            return c.assigneeId.displayName;
+        }
+        const roles =
+            complaintTypes.find(t => t.key === c.category)
+                ?.allowedReceiverRoles || [];
+        if (roles.length === 0) return "Chưa xác định";
+        return roles.map(role => ROLE_LABEL[role] || role).join(", ");
+    };
 
     const neighborhoodNameOf = (
         neighborhoodId: Complaint["neighborhoodId"],
@@ -401,6 +417,7 @@ const ComplaintListContent: React.FC = () => {
                                 <TableHead>Tiêu đề</TableHead>
                                 <TableHead>Thời gian gửi</TableHead>
                                 <TableHead>Nhóm</TableHead>
+                                <TableHead>Gửi đến</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
@@ -426,6 +443,9 @@ const ComplaintListContent: React.FC = () => {
                                     </TableCell>
                                     <TableCell>
                                         {labelByCategory(c.category)}
+                                    </TableCell>
+                                    <TableCell className="text-text_2">
+                                        {sentToOf(c)}
                                     </TableCell>
                                     <TableCell>
                                         {c.neighborhoodId ? (

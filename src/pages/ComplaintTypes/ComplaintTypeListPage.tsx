@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Lock, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminGuard from "@components/auth/AdminGuard";
 import { LoadingState, EmptyState, ErrorState } from "@components/admin/DataStates";
@@ -43,6 +43,7 @@ type FormState = {
     name: string;
     description: string;
     active: boolean;
+    isUrgent: boolean;
     // Thu tu trong mang the hien uu tien dieu huong nguoi nhan - vai tro
     // duoc chon TRUOC se duoc uu tien thu nguoi phu trach truoc (xem
     // resolveComplaintTypeRecipientIds o backend). Toggle chi them vao CUOI
@@ -59,6 +60,7 @@ const EMPTY_FORM: FormState = {
     name: "",
     description: "",
     active: true,
+    isUrgent: false,
     allowedReceiverRoles: [],
     allowedSenderRoles: [],
 };
@@ -118,6 +120,7 @@ const ComplaintTypeListContent: React.FC = () => {
             name: item.name,
             description: item.description || "",
             active: item.active !== false,
+            isUrgent: item.isUrgent === true,
             allowedReceiverRoles: item.allowedReceiverRoles || [],
             allowedSenderRoles: item.allowedSenderRoles || [],
         });
@@ -153,6 +156,7 @@ const ComplaintTypeListContent: React.FC = () => {
             name: form.name.trim(),
             description: form.description.trim() || undefined,
             active: form.active,
+            isUrgent: form.isUrgent,
             allowedReceiverRoles: form.allowedReceiverRoles,
             allowedSenderRoles: form.allowedSenderRoles,
         };
@@ -240,26 +244,20 @@ const ComplaintTypeListContent: React.FC = () => {
                                         {canManage ? (
                                             <button
                                                 type="button"
-                                                className="flex items-center gap-1.5 text-left font-medium text-main hover:underline"
+                                                className="text-left font-medium text-main hover:underline"
                                                 onClick={() => openEdit(item)}
                                             >
-                                                {item.isBuiltIn && (
-                                                    <Lock
-                                                        className="h-3.5 w-3.5 text-text_2"
-                                                        aria-label="Loại phản ánh hệ thống"
-                                                    />
-                                                )}
                                                 {item.name}
+                                                {item.isUrgent && (
+                                                    <Badge tone="red">Khẩn cấp</Badge>
+                                                )}
                                             </button>
                                         ) : (
-                                            <span className="flex items-center gap-1.5 font-medium">
-                                                {item.isBuiltIn && (
-                                                    <Lock
-                                                        className="h-3.5 w-3.5 text-text_2"
-                                                        aria-label="Loại phản ánh hệ thống"
-                                                    />
-                                                )}
+                                            <span className="font-medium">
                                                 {item.name}
+                                                {item.isUrgent && (
+                                                    <Badge tone="red">Khẩn cấp</Badge>
+                                                )}
                                             </span>
                                         )}
                                     </TableCell>
@@ -288,7 +286,7 @@ const ComplaintTypeListContent: React.FC = () => {
                                     </TableCell>
                                     {canManage && (
                                         <TableCell className="text-right">
-                                            {!item.isBuiltIn && item.active !== false && (
+                                            {item.active !== false && (
                                                 <Button
                                                     size="icon"
                                                     variant="ghost"
@@ -337,10 +335,9 @@ const ComplaintTypeListContent: React.FC = () => {
                                         }))
                                     }
                                 />
-                                {editing?.isBuiltIn && (
-                                    <p className="mt-1 flex items-center gap-1 text-xs text-text_2">
-                                        <Lock className="h-3 w-3" /> Loại phản ánh hệ thống -
-                                        không đổi được mã
+                                {editing && (
+                                    <p className="mt-1 text-xs text-text_2">
+                                        Không đổi được mã sau khi đã tạo
                                     </p>
                                 )}
                             </div>
@@ -368,6 +365,18 @@ const ComplaintTypeListContent: React.FC = () => {
                                 }
                             />
                         </div>
+                        <label className="flex items-center gap-2 text-sm">
+                            <Checkbox
+                                checked={form.isUrgent}
+                                onCheckedChange={checked =>
+                                    setForm(current => ({
+                                        ...current,
+                                        isUrgent: checked === true,
+                                    }))
+                                }
+                            />
+                            Loại phản ánh khẩn cấp
+                        </label>
                         <div>
                             <Label>Vai trò được gửi phản ánh</Label>
                             <p className="mt-1 text-xs text-muted-foreground">

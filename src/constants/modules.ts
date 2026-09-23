@@ -426,14 +426,6 @@ export const MODULE_GROUPS: ModuleGroup[] = [
                     "Check-in cư dân đã đặt lịch hẹn khi đến làm việc.",
             },
             {
-                key: "appointment_reports",
-                label: "Báo cáo lịch hẹn",
-                path: "/appointment-reports",
-                icon: BarChart3,
-                permission: "appointments.read",
-                description: "Xem báo cáo thống kê về lịch hẹn.",
-            },
-            {
                 key: "appointment_services",
                 label: "Dịch vụ hẹn lịch",
                 path: "/appointment-services",

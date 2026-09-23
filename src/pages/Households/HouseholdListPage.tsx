@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, UploadCloud } from "lucide-react";
+import { Download, Plus, UploadCloud } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
@@ -45,8 +45,13 @@ import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { cn } from "@lib/utils";
 import { useLockedNeighborhoodId, usePermission } from "@store/authStore";
 import { AppError, Household, Neighborhood, VerificationStatus } from "@dts";
-import { createHousehold, fetchHouseholds } from "@service/householdApi";
+import {
+    createHousehold,
+    fetchAllHouseholds,
+    fetchHouseholds,
+} from "@service/householdApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import { exportFileTimestamp, exportRowsToExcel } from "@lib/exportExcel";
 import HouseholdImportSheet from "./HouseholdImportSheet";
 import HouseholdForm, {
     EMPTY_HOUSEHOLD_FORM,
@@ -105,6 +110,7 @@ const HouseholdListContent: React.FC = () => {
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
         setLoading(true);
@@ -174,6 +180,63 @@ const HouseholdListContent: React.FC = () => {
         }
     };
 
+    // Xuat TOAN BO ho dan khop bo loc hien tai ra file .xlsx - xem ghi chu
+    // tuong tu o HouseListPage.tsx.
+    const handleExportExcel = async () => {
+        try {
+            setExporting(true);
+            const rows = await fetchAllHouseholds({
+                search: search || undefined,
+                unassigned: assignment === UNASSIGNED ? true : undefined,
+                status: status || undefined,
+                neighborhoodId: neighborhoodId || undefined,
+                states: selectedStates.length ? selectedStates : undefined,
+            });
+            if (rows.length === 0) {
+                toast.error("Không có hộ dân nào khớp bộ lọc để xuất");
+                return;
+            }
+            await exportRowsToExcel(
+                rows,
+                `ho-dan_${exportFileTimestamp()}.xlsx`,
+                "Hộ dân",
+                [
+                    { label: "Mã hộ", width: 16, value: h => h.code },
+                    {
+                        label: "Chủ hộ",
+                        width: 22,
+                        value: h => h.headOfHousehold,
+                    },
+                    { label: "Cụm dân cư", width: 18, value: h => h.cluster },
+                    { label: "Nhà số", width: 34, value: h => houseLabelOf(h) },
+                    {
+                        label: "Hình thức sở hữu",
+                        width: 18,
+                        value: h => LOAI_SO_HUU_LABEL[h.ownershipType],
+                    },
+                    {
+                        label: "Trạng thái",
+                        width: 16,
+                        value: h => VERIFICATION_STATUS_LABEL[h.status],
+                    },
+                    {
+                        label: "Trạng thái đặc biệt",
+                        width: 28,
+                        value: h =>
+                            HOUSEHOLD_STATE_LIST.filter(s => h[s.key])
+                                .map(s => s.label)
+                                .join(", "),
+                    },
+                ],
+            );
+            toast.success(`Đã xuất ${rows.length} hộ dân`);
+        } catch (err) {
+            toast.error((err as AppError).message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div>
             <PageHeader
@@ -181,6 +244,14 @@ const HouseholdListContent: React.FC = () => {
                 description="Xem danh sách các hộ dân đang sinh sống trên địa bàn."
                 action={
                     <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            loading={exporting}
+                            onClick={handleExportExcel}
+                        >
+                            <Download className="mr-1 h-4 w-4" />
+                            Xuất Excel
+                        </Button>
                         {canImport && (
                             <Button
                                 variant="outline"
