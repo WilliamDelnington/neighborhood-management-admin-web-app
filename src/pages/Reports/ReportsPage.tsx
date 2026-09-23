@@ -932,15 +932,27 @@ const ReportsContent: React.FC = () => {
                             {!loading && !error && !data && (
                                 <EmptyState label="Chưa có dữ liệu báo cáo" />
                             )}
-                            {!loading && !error && data && tab.key === "appointments"
+                            {!loading &&
+                            !error &&
+                            data &&
+                            tab.key === activeKey &&
+                            tab.key === "appointments"
                                 ? renderAppointmentReport(
                                       data as AppointmentReportSummary,
                                   )
                                 : null}
-                            {!loading && !error && data && tab.key !== "appointments"
+                            {!loading &&
+                            !error &&
+                            data &&
+                            tab.key === activeKey &&
+                            tab.key !== "appointments"
                                 ? renderCharts(tab)
                                 : null}
-                            {!loading && !error && data && tab.key !== "appointments"
+                            {!loading &&
+                            !error &&
+                            data &&
+                            tab.key === activeKey &&
+                            tab.key !== "appointments"
                                 ? renderValue(data)
                                 : null}
                         </div>
