@@ -88,6 +88,11 @@ const toFormValues = (c: Company): CompanyFormValues => {
             c.companyTypeId && typeof c.companyTypeId === "object"
                 ? c.companyTypeId._id
                 : c.companyTypeId || "",
+        numberOfEmployees:
+            c.numberOfEmployees === undefined || c.numberOfEmployees === null
+                ? ""
+                : String(c.numberOfEmployees),
+        legalStatus: c.legalStatus || "",
         phone: c.phone || "",
         active: c.active,
         note: c.note || "",
@@ -398,6 +403,21 @@ const CompanyDetailContent: React.FC = () => {
                                                 "object"
                                                 ? company.companyTypeId.name
                                                 : "Chưa chọn"
+                                        }
+                                    />
+                                    <Field
+                                        icon={<AlertCircle className="h-4 w-4" />}
+                                        label="Tình trạng pháp lý"
+                                        value={company.legalStatus || "Chưa cập nhật"}
+                                    />
+                                    <Field
+                                        icon={<Users className="h-4 w-4" />}
+                                        label="Số lượng nhân viên"
+                                        value={
+                                            company.numberOfEmployees === undefined ||
+                                            company.numberOfEmployees === null
+                                                ? "Chưa cập nhật"
+                                                : String(company.numberOfEmployees)
                                         }
                                     />
                                     <Field

@@ -683,6 +683,12 @@ export type Company = {
     // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
     // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
     companyTypeId?: { _id: string; name: string } | string | null;
+    // So luong nhan vien/lao dong hien co - ke khai, khong anh huong logic
+    // nghiep vu.
+    numberOfEmployees?: number;
+    // Tinh trang phap ly (vd "Dang hoat dong", "Tam ngung") - van ban tu do,
+    // khac companyTypeId (loai hinh doanh nghiep) va status (xac thuc).
+    legalStatus?: string;
     phone?: string;
     active: boolean;
     status: VerificationStatus;

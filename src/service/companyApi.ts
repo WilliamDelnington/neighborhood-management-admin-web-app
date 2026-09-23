@@ -31,6 +31,8 @@ export interface CompanyInput {
     // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
     // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
     companyTypeId?: string | null;
+    numberOfEmployees?: number | null;
+    legalStatus?: string;
     phone?: string;
     active?: boolean;
     note?: string;

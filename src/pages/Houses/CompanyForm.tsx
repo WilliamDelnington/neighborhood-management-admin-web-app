@@ -35,6 +35,8 @@ export interface CompanyFormValues {
     // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
     // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
     companyTypeId: string;
+    numberOfEmployees: string;
+    legalStatus: string;
     phone: string;
     active: boolean;
     note: string;
@@ -50,6 +52,8 @@ export const EMPTY_COMPANY_FORM: CompanyFormValues = {
     organizationLabel: "",
     businessTypeIds: [],
     companyTypeId: "",
+    numberOfEmployees: "",
+    legalStatus: "",
     phone: "",
     active: true,
     note: "",
@@ -68,6 +72,10 @@ export function toCompanyInput(
         organizationId: values.organizationId || null,
         businessTypeIds: values.businessTypeIds,
         companyTypeId: values.companyTypeId || null,
+        numberOfEmployees: values.numberOfEmployees.trim()
+            ? Number(values.numberOfEmployees)
+            : null,
+        legalStatus: values.legalStatus.trim() || undefined,
         phone: values.phone.trim() || undefined,
         active: values.active,
         note: values.note.trim() || undefined,
@@ -175,6 +183,24 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ values, onChange }) => {
                         ))}
                     </SelectContent>
                 </Select>
+            </div>
+            <div className="space-y-1.5">
+                <Label>Tình trạng pháp lý</Label>
+                <Input
+                    placeholder="VD: Đang hoạt động, Tạm ngừng, Giải thể..."
+                    value={values.legalStatus}
+                    onChange={e => set("legalStatus", e.target.value)}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label>Số lượng nhân viên</Label>
+                <Input
+                    type="number"
+                    min={0}
+                    placeholder="VD: 25"
+                    value={values.numberOfEmployees}
+                    onChange={e => set("numberOfEmployees", e.target.value)}
+                />
             </div>
             <div className="space-y-1.5">
                 <Label>Người đại diện</Label>
