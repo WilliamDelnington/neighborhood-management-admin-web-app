@@ -60,7 +60,16 @@ const DEFAULT_ZOOM = 14;
 // Bien phuong Duong Noi (tu wardBoundary) mo rong them mot bien do, dung lam
 // maxBounds cho ban do - "chỉ khoanh vùng trong phường thôi", tranh nguoi dung
 // keo/zoom ra qua xa khoi khu vuc quan ly.
-const WARD_BOUNDS_PADDING_DEG = 0.02;
+//
+// 0.08 (khong phai 0.02) - ranh gioi phuong la mot khoi CHEO DAI (~3.5km
+// ngang x ~4.6km doc), trong khi khung ban do tren Dashboard rat DET NGANG
+// (vd ~2.7:1). maxBounds luon uu tien khong cho lo ra ngoai CA HAI chieu, nen
+// zoom-ra-xa-nhat bi CHIEU NGANG khong che truoc (vi khung det ngang can
+// nhieu do-kinh-do hon do-vi-do o cung 1 muc zoom) - luc do chieu doc chi con
+// hien duoc mot phan nho cua bien, cat mat phan tren/duoi cac To (da xay ra
+// voi 0.02: chi hien ~30% chieu cao bien). Tang dem len 0.08 de khi zoom ra
+// het co theo maxBounds, chieu doc van con du cho hien TRON VEN bien phuong.
+const WARD_BOUNDS_PADDING_DEG = 0.08;
 
 // Chi lay 4 trang thai NGUOI DUNG TU BAT/TAT (auto=false) - "Có trẻ em/người
 // khuyết tật" la tu tinh (xem HOUSEHOLD_STATE_LIST trong constants/domain.ts),
@@ -631,13 +640,13 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
     const [poiLoading, setPoiLoading] = useState(false);
     const [poiError, setPoiError] = useState(false);
     // Marker "khan cap" (phan anh danh muc isUrgent, dang moi_tiep_nhan/dang_xu_ly)
-    // - mac dinh BAT (khac cac lop khac tren ban do nay phai tu bam moi hien),
-    // vi day la thong tin can duoc chu y ngay khi mo trang Ban do.
+    // - LUON hien khi co du lieu, khong co nut bat/tat rieng (da bo nut "Khẩn
+    // cấp" de do choi giao dien) vi day la thong tin can duoc chu y ngay khi
+    // mo trang Ban do.
     const [emergencyComplaints, setEmergencyComplaints] = useState<
         EmergencyComplaintGisPoint[]
     >([]);
     const [emergencyComplaintsError, setEmergencyComplaintsError] = useState(false);
-    const [showEmergencyComplaints, setShowEmergencyComplaints] = useState(true);
     // "Gắn hộ dân lên bản đồ" - bat che do chi tren "/map-boundary"
     // (showDrawTools=true), xem toggle button va cac effect lien quan ben duoi.
     const [pinModeOn, setPinModeOn] = useState(false);
@@ -1157,10 +1166,9 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         });
     }, [mapInstanceReady, poiResults, navigate]);
 
-    // Ve lai marker "khan cap" moi khi ban do san sang, du lieu tai xong, hoac
-    // bat/tat nut "Khẩn cấp" - cung quy uoc "clear roi ve lai" voi marker Ho
-    // dan/Poi o tren (marker khong bi mat khi doi nen ban do nen khong can phu
-    // thuoc mapStyleKey).
+    // Ve lai marker "khan cap" moi khi ban do san sang hoac du lieu tai xong -
+    // cung quy uoc "clear roi ve lai" voi marker Ho dan/Poi o tren (marker
+    // khong bi mat khi doi nen ban do nen khong can phu thuoc mapStyleKey).
     useEffect(() => {
         const map = mapRef.current;
         const goongjs = goongRef.current;
@@ -1169,7 +1177,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         emergencyMarkersRef.current.forEach(marker => marker.remove());
         emergencyMarkersRef.current = [];
 
-        if (!showEmergencyComplaints || emergencyComplaints.length === 0) return;
+        if (emergencyComplaints.length === 0) return;
         if (!emergencyPopupRef.current) {
             emergencyPopupRef.current = new goongjs.Popup({ offset: 8 });
         }
@@ -1204,7 +1212,7 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
             });
             emergencyMarkersRef.current.push(marker);
         });
-    }, [mapInstanceReady, emergencyComplaints, showEmergencyComplaints, navigate]);
+    }, [mapInstanceReady, emergencyComplaints, navigate]);
 
     // Dong bo pinModeOn/mapStyleKey vao ref de doc duoc gia tri moi nhat trong
     // handler click "zones-fill" (bind mot lan trong bindInteractions, xem o
@@ -1861,69 +1869,10 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
                                 )}
                             </div>
                         )}
-                        {canViewComplaints && (
-                            <div className="flex flex-wrap gap-2 rounded-lg border border-divider_01 bg-ui_bg p-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowEmergencyComplaints(prev => !prev)}
-                                    className={cn(
-                                        "flex min-w-[150px] flex-1 items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition",
-                                        showEmergencyComplaints
-                                            ? "border-transparent"
-                                            : "border-divider_01 bg-ui_bg hover:bg-ng_10",
-                                    )}
-                                    style={
-                                        showEmergencyComplaints
-                                            ? { background: EMERGENCY_MARKER_COLOR }
-                                            : undefined
-                                    }
-                                >
-                                    <span
-                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                                        style={{
-                                            background: showEmergencyComplaints
-                                                ? "rgba(255,255,255,0.2)"
-                                                : `${EMERGENCY_MARKER_COLOR}1A`,
-                                        }}
-                                    >
-                                        <Flame
-                                            className="h-[18px] w-[18px]"
-                                            style={{
-                                                color: showEmergencyComplaints
-                                                    ? "#fff"
-                                                    : EMERGENCY_MARKER_COLOR,
-                                            }}
-                                        />
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span
-                                            className={cn(
-                                                "block truncate text-sm font-semibold",
-                                                showEmergencyComplaints
-                                                    ? "text-white"
-                                                    : "text-text_1",
-                                            )}
-                                        >
-                                            Khẩn cấp
-                                        </span>
-                                        <span
-                                            className={cn(
-                                                "block text-xs",
-                                                showEmergencyComplaints
-                                                    ? "text-white/80"
-                                                    : "text-text_2",
-                                            )}
-                                        >
-                                            {emergencyComplaints.length} phản ánh
-                                        </span>
-                                    </span>
-                                </button>
-                                {emergencyComplaintsError && (
-                                    <p className="w-full text-xs text-red-500">
-                                        Không tải được phản ánh khẩn cấp
-                                    </p>
-                                )}
-                            </div>
+                        {canViewComplaints && emergencyComplaintsError && (
+                            <p className="text-xs text-red-500">
+                                Không tải được phản ánh khẩn cấp
+                            </p>
                         )}
                         {canViewPois && (
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2 rounded-lg border border-divider_01 bg-ui_bg p-2">

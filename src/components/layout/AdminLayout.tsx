@@ -29,6 +29,7 @@ import { logout as logoutApi } from "@service/authApi";
 import { cn } from "@lib/utils";
 import NotificationBell from "./NotificationBell";
 import UpcomingMeetingsBell from "./UpcomingMeetingsBell";
+import EmergencyComplaintsBell from "./EmergencyComplaintsBell";
 import GlobalSearch from "./GlobalSearch";
 import AppBrand from "./AppBrand";
 import ChangePasswordDialog from "./ChangePasswordDialog";
@@ -228,6 +229,10 @@ const AdminLayout: React.FC = () => {
     // Icon "Cuộc họp sắp tới" tren header - chi hien voi vai tro co quyen xem
     // lich hop (xem UpcomingMeetingsBell.tsx).
     const canReadMeetings = usePermission("meetings.read");
+
+    // Icon "Phản ánh khẩn cấp" tren header - chi hien voi vai tro co quyen xem
+    // phan anh (xem EmergencyComplaintsBell.tsx).
+    const canReadComplaints = usePermission("complaints.read");
 
     const descriptionOf = (m: ModuleItem) => descOverrides[m.key] ?? m.description;
 
@@ -462,6 +467,8 @@ const AdminLayout: React.FC = () => {
                         </button>
 
                         {canReadMeetings && <UpcomingMeetingsBell />}
+
+                        {canReadComplaints && <EmergencyComplaintsBell />}
 
                         <NotificationBell />
 
