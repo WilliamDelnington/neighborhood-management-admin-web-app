@@ -730,10 +730,20 @@ const NeighborhoodZonesMap: React.FC<NeighborhoodZonesMapProps> = ({
         const load = () => {
             fetchEmergencyComplaintGisOverview()
                 .then(res => {
-                    if (!cancelled) setEmergencyComplaints(res.points);
+                    if (cancelled) return;
+                    setEmergencyComplaints(res.points ?? []);
+                    setEmergencyComplaintsError(false);
                 })
-                .catch(() => {
-                    if (!cancelled) setEmergencyComplaintsError(true);
+                .catch((err: AppError) => {
+                    if (cancelled) return;
+                    // 404 = backend chua co endpoint nay -> coi nhu khong co
+                    // phan anh khan cap, khong bao loi. Chi bao loi that su.
+                    if (err?.status === 404) {
+                        setEmergencyComplaints([]);
+                        setEmergencyComplaintsError(false);
+                        return;
+                    }
+                    setEmergencyComplaintsError(true);
                 });
         };
         load();

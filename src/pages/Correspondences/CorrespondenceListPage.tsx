@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
-import { usePermission } from "@store/authStore";
+import { useAuthStore, usePermission } from "@store/authStore";
 import { Button } from "@components/ui/button";
 import { Badge, BadgeTone } from "@components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@components/ui/tabs";
@@ -19,7 +19,12 @@ import PageHeader from "@components/admin/PageHeader";
 import Pagination from "@components/admin/Pagination";
 import PageSizeSelect from "@components/admin/PageSizeSelect";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
-import { Correspondence, CorrespondenceType } from "@dts";
+import {
+    Correspondence,
+    CorrespondenceListItem,
+    CorrespondenceListView,
+    CorrespondenceType,
+} from "@dts";
 import { fetchCorrespondences } from "@service/correspondenceApi";
 
 const STATUS_LABEL: Record<Correspondence["status"], string> = {
@@ -33,7 +38,6 @@ const STATUS_TONE: Record<Correspondence["status"], BadgeTone> = {
 };
 
 type StatusFilter = "all" | Correspondence["status"];
-type ViewFilter = "received" | "sent";
 
 const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
     { key: "all", label: "Tất cả" },
@@ -41,9 +45,48 @@ const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
     { key: "da_gui", label: "Đã gửi" },
 ];
 
-const typeLabel = (doc: Correspondence): string => {
+const MAX_RECEIVERS_SHOWN = 2;
+
+const typeLabel = (doc: CorrespondenceListItem): string => {
     const type = doc.correspondenceTypeId;
     return typeof type === "string" ? "" : (type as CorrespondenceType).name;
+};
+
+const idOf = (ref: string | { _id: string } | null): string => {
+    if (!ref) return "";
+    return typeof ref === "string" ? ref : ref._id;
+};
+
+// Nguoi gui/nguoi nhan chi duoc populate o tab "Tất cả" (xem
+// correspondenceService.listCorrespondences) - cac tab khac khong hien 2 cot nay.
+const senderLabel = (doc: CorrespondenceListItem): string => {
+    const sender = doc.senderId;
+    if (!sender || typeof sender === "string") return "—";
+    return sender.displayName;
+};
+
+const receiverLabels = (doc: CorrespondenceListItem): string[] => {
+    const labels: string[] = [];
+    doc.targetNeighborhoodIds.forEach(n => {
+        if (typeof n !== "string") labels.push(n.name);
+    });
+    doc.targetUserIds.forEach(u => {
+        if (typeof u !== "string") labels.push(u.displayName);
+    });
+    return labels;
+};
+
+const ReceiverCell: React.FC<{ doc: CorrespondenceListItem }> = ({ doc }) => {
+    const labels = receiverLabels(doc);
+    if (labels.length === 0) return <>—</>;
+    const shown = labels.slice(0, MAX_RECEIVERS_SHOWN);
+    const rest = labels.length - shown.length;
+    return (
+        <span title={labels.join(", ")}>
+            {shown.join(", ")}
+            {rest > 0 && <span className="text-text_2"> +{rest}</span>}
+        </span>
+    );
 };
 
 const CorrespondenceListPage: React.FC = () => (
@@ -55,10 +98,17 @@ const CorrespondenceListPage: React.FC = () => (
 const CorrespondenceListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("correspondences.create");
+    const currentUserId = useAuthStore(state => state.user?.id);
 
-    const [view, setView] = useState<ViewFilter>("received");
+    // null = chua biet tab mac dinh - lan tai dau de backend tu chon ("all"
+    // cho user quan ly khong gioi han pham vi, "received" cho nguoi khac).
+    const [view, setView] = useState<CorrespondenceListView | null>(null);
+    const [canViewAll, setCanViewAll] = useState(false);
+    // Bo qua lan chay effect do chinh ket qua lan tai dau gan `view`, tranh
+    // tai lai lan thu hai y het.
+    const skipNextLoadRef = useRef(false);
     const [status, setStatus] = useState<StatusFilter>("all");
-    const [items, setItems] = useState<Correspondence[]>([]);
+    const [items, setItems] = useState<CorrespondenceListItem[]>([]);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -76,12 +126,17 @@ const CorrespondenceListContent: React.FC = () => {
         fetchCorrespondences(
             targetPage,
             size,
-            currentView,
-            currentView === "sent" && currentStatus !== "all"
+            currentView ?? undefined,
+            currentView !== "received" && currentStatus !== "all"
                 ? currentStatus
                 : undefined,
         )
             .then(res => {
+                setCanViewAll(res.canViewAll);
+                if (currentView === null) {
+                    skipNextLoadRef.current = true;
+                    setView(res.view);
+                }
                 setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
@@ -91,12 +146,18 @@ const CorrespondenceListContent: React.FC = () => {
     };
 
     useEffect(() => {
+        if (skipNextLoadRef.current) {
+            skipNextLoadRef.current = false;
+            return;
+        }
         load(1, view, status);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [view, status]);
 
-    const openCorrespondence = (doc: Correspondence) => {
-        if (view === "sent" && doc.status === "nhap") {
+    const openCorrespondence = (doc: CorrespondenceListItem) => {
+        // Chi nguoi gui moi sua duoc ban nhap - nguoi xem ban nhap cua nguoi
+        // khac (tab "Tất cả") mo trang chi tiet chi xem.
+        if (doc.status === "nhap" && idOf(doc.senderId) === currentUserId) {
             navigate(`/correspondences/${doc._id}/edit`);
         } else {
             navigate(`/correspondences/${doc._id}`);
@@ -120,10 +181,13 @@ const CorrespondenceListContent: React.FC = () => {
 
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <Tabs
-                    value={view}
-                    onValueChange={value => setView(value as ViewFilter)}
+                    value={view ?? ""}
+                    onValueChange={value => setView(value as CorrespondenceListView)}
                 >
                     <TabsList>
+                        {canViewAll && (
+                            <TabsTrigger value="all">Tất cả văn bản</TabsTrigger>
+                        )}
                         <TabsTrigger value="received">Đã nhận</TabsTrigger>
                         <TabsTrigger value="sent">Đã gửi</TabsTrigger>
                     </TabsList>
@@ -137,7 +201,7 @@ const CorrespondenceListContent: React.FC = () => {
                 />
             </div>
 
-            {view === "sent" && (
+            {(view === "sent" || view === "all") && (
                 <Tabs
                     className="mb-4"
                     value={status}
@@ -169,6 +233,12 @@ const CorrespondenceListContent: React.FC = () => {
                                 <TableHead>Loại</TableHead>
                                 <TableHead>Số/ký hiệu</TableHead>
                                 <TableHead>Tiêu đề</TableHead>
+                                {view === "all" && (
+                                    <>
+                                        <TableHead>Người gửi</TableHead>
+                                        <TableHead>Người nhận</TableHead>
+                                    </>
+                                )}
                                 <TableHead>Trạng thái</TableHead>
                                 {view === "received" && (
                                     <TableHead>Đọc</TableHead>
@@ -185,7 +255,7 @@ const CorrespondenceListContent: React.FC = () => {
                                     onClick={() => openCorrespondence(doc)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell
                                         className={
@@ -225,6 +295,14 @@ const CorrespondenceListContent: React.FC = () => {
                                             )}
                                         </div>
                                     </TableCell>
+                                    {view === "all" && (
+                                        <>
+                                            <TableCell>{senderLabel(doc)}</TableCell>
+                                            <TableCell>
+                                                <ReceiverCell doc={doc} />
+                                            </TableCell>
+                                        </>
+                                    )}
                                     <TableCell>
                                         <Badge tone={STATUS_TONE[doc.status]}>
                                             {STATUS_LABEL[doc.status]}

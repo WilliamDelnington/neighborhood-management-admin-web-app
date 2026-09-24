@@ -4,6 +4,7 @@ import {
     PaginatedData,
     Survey,
     SurveyIndividualResponse,
+    SurveyOverview,
     SurveyQuestion,
     SurveyResults,
 } from "@dts";
@@ -34,8 +35,8 @@ export const fetchSurveys = (
     openOnly = false,
     page = 1,
     limit = DEFAULT_PAGE_SIZE,
-): Promise<PaginatedData<Survey>> =>
-    request<PaginatedData<Survey>>("GET", API.SURVEYS, {
+): Promise<PaginatedData<Survey> & { canViewAll?: boolean }> =>
+    request<PaginatedData<Survey> & { canViewAll?: boolean }>("GET", API.SURVEYS, {
         openOnly: openOnly ? 1 : undefined,
         page,
         limit,
@@ -43,6 +44,9 @@ export const fetchSurveys = (
 
 export const fetchSurveyDetail = (id: string): Promise<Survey> =>
     request<Survey>("GET", `${API.SURVEYS}/${id}`);
+
+export const fetchSurveyOverview = (id: string): Promise<SurveyOverview> =>
+    request<SurveyOverview>("GET", `${API.SURVEYS}/${id}/overview`);
 
 export const fetchUnansweredSurveyCount = (): Promise<{ count: number }> =>
     request<{ count: number }>("GET", API.SURVEYS_UNANSWERED_COUNT);

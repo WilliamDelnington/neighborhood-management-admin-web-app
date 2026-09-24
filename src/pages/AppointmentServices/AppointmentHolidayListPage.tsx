@@ -292,15 +292,14 @@ const AppointmentHolidayListContent: React.FC = () => {
                         </TableHeader>
                         <TableBody>
                             {items.map((item, index) => (
-                                <TableRow key={item._id}>
+                                <TableRow
+                                    key={item._id}
+                                    className={canManage ? "cursor-pointer" : ""}
+                                    onClick={() => canManage && openEdit(item)}
+                                >
                                     <TableCell className="text-center text-text_2">{index + 1}</TableCell>
-                                    <TableCell>
-                                        <button
-                                            className="text-left font-medium text-main hover:underline"
-                                            onClick={() => canManage && openEdit(item)}
-                                        >
-                                            {item.date.slice(0, 10)}
-                                        </button>
+                                    <TableCell className="font-medium text-main">
+                                        {item.date.slice(0, 10)}
                                     </TableCell>
                                     <TableCell>{item.name}</TableCell>
                                     <TableCell>
@@ -314,7 +313,10 @@ const AppointmentHolidayListContent: React.FC = () => {
                                             : `Phường ${item.wardCode}`}
                                     </TableCell>
                                     {canManage && (
-                                        <TableCell className="text-right">
+                                        <TableCell
+                                            className="text-right"
+                                            onClick={e => e.stopPropagation()}
+                                        >
                                             <Button
                                                 size="icon"
                                                 variant="ghost"

@@ -659,11 +659,15 @@ const InspectionCampaignDetailContent: React.FC = () => {
                                     const house = houseOf(target);
                                     const assignee = target.assignedCollaboratorUserId;
                                     return (
-                                        <TableRow key={target._id}>
+                                        <TableRow
+                                            key={target._id}
+                                            className="cursor-pointer"
+                                            onClick={() => navigate(`/inspections/targets/${target._id}`)}
+                                        >
                                             <TableCell className="text-center text-text_2">
                                                 {(page - 1) * pageSize + index + 1}
                                             </TableCell>
-                                            {canAssign && <TableCell>
+                                            {canAssign && <TableCell onClick={e => e.stopPropagation()}>
                                                 <Checkbox
                                                     checked={selected.includes(target._id)}
                                                     onCheckedChange={checked => setSelected(current =>
@@ -686,7 +690,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                                                     {RESULT_STATUS[target.resultStatus].label}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell onClick={e => e.stopPropagation()}>
                                                 <div className="flex justify-end gap-2">
                                                     {canAssign && editable && campaign.allowSelfDeclaration && (
                                                         <Button

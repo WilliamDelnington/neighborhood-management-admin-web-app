@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import AdminGuard from "@components/auth/AdminGuard";
 import PageHeader from "@components/admin/PageHeader";
@@ -23,12 +22,17 @@ import {
     TRANG_THAI_KHAO_SAT_LABEL,
     TRANG_THAI_KHAO_SAT_TONE,
 } from "@constants/domain";
-import { AppError, Survey } from "@dts";
-import { closeSurvey, fetchSurveys, openSurvey } from "@service/surveyApi";
+import { Survey } from "@dts";
+import { fetchSurveys } from "@service/surveyApi";
 import SurveyRespondDialog from "./SurveyRespondDialog";
-
-const idOf = (ref?: string | { _id: string }): string | undefined =>
-    !ref ? undefined : typeof ref === "string" ? ref : ref._id;
+import {
+    SurveyStatusToggleButton,
+    SurveyTargetSummary,
+    idOf,
+    isSurveyCreatorOrCoEditor,
+    surveyCoEditorNames,
+    surveyCreatorName,
+} from "./surveyShared";
 
 const SurveyListPage: React.FC = () => (
     <AdminGuard permissions={["surveys.read"]}>
@@ -39,7 +43,6 @@ const SurveyListPage: React.FC = () => (
 const SurveyListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("surveys.create");
-    const hasUpdatePermission = usePermission("surveys.update");
     const canPublish = usePermission("surveys.publish");
     const canRespond = usePermission("surveys.respond");
     const currentUser = useAuthStore(state => state.user);
@@ -51,7 +54,9 @@ const SurveyListContent: React.FC = () => {
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
-    const [actingId, setActingId] = useState<string | null>(null);
+    // true neu nguoi dang nhap quan ly du lieu khong gioi han pham vi (backend
+    // tra ve) - hien them cot Người tạo/Đối tượng va nut Mở/Đóng cho moi khao sat.
+    const [canViewAll, setCanViewAll] = useState(false);
     const [respondingSurvey, setRespondingSurvey] = useState<Survey | null>(
         null,
     );
@@ -70,16 +75,23 @@ const SurveyListContent: React.FC = () => {
             u => idOf(u) === currentUser.id,
         );
     };
-    const canEditSurvey = (survey: Survey): boolean =>
-        hasUpdatePermission && isOwnerOrCoEditor(survey);
     const canPublishSurvey = (survey: Survey): boolean =>
-        canPublish && isOwnerOrCoEditor(survey);
+        canPublish && (isOwnerOrCoEditor(survey) || canViewAll);
+    // Chi nguoi thuoc doi tuong tra loi moi thay nut "Trả lời" - nguoi quan ly
+    // chi xem (vd admin khong nam trong doi tuong) khong tra loi duoc.
+    const canAnswerSurvey = (survey: Survey): boolean =>
+        canRespond &&
+        survey.status === "dang_mo" &&
+        !!survey.isEligible &&
+        !survey.hasResponded;
+    const showRespondedColumn = canRespond && items.some(s => s.isEligible);
 
     const load = (targetPage = 1, size = pageSize) => {
         setLoading(true);
         setError(false);
         fetchSurveys(false, targetPage, size)
             .then(res => {
+                setCanViewAll(!!res.canViewAll);
                 setItems(res.items);
                 setPage(res.page);
                 setTotalPages(res.totalPages);
@@ -89,25 +101,6 @@ const SurveyListContent: React.FC = () => {
     };
 
     useEffect(() => load(1), []);
-
-    const handleToggle = async (e: React.MouseEvent, survey: Survey) => {
-        e.stopPropagation();
-        try {
-            setActingId(survey._id);
-            if (survey.status === "dang_mo") {
-                await closeSurvey(survey._id);
-                toast.success("Đã đóng khảo sát");
-            } else {
-                await openSurvey(survey._id);
-                toast.success("Đã mở khảo sát");
-            }
-            load();
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setActingId(null);
-        }
-    };
 
     return (
         <div>
@@ -146,9 +139,15 @@ const SurveyListContent: React.FC = () => {
                             <TableRow>
                                 <TableHead className="w-12 text-center">STT</TableHead>
                                 <TableHead>Tên khảo sát</TableHead>
+                                {canViewAll && (
+                                    <>
+                                        <TableHead>Người tạo</TableHead>
+                                        <TableHead>Đối tượng</TableHead>
+                                    </>
+                                )}
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead>Số câu hỏi</TableHead>
-                                {canRespond && (
+                                {showRespondedColumn && (
                                     <TableHead>Bạn đã trả lời</TableHead>
                                 )}
                                 <TableHead aria-label="Thao tác" />
@@ -158,24 +157,34 @@ const SurveyListContent: React.FC = () => {
                             {items.map((s, index) => (
                                 <TableRow
                                     key={s._id}
-                                    className={
-                                        canEditSurvey(s) ? "cursor-pointer" : ""
-                                    }
-                                    onClick={
-                                        canEditSurvey(s)
-                                            ? () =>
-                                                  navigate(
-                                                      `/surveys/${s._id}/edit`,
-                                                  )
-                                            : undefined
-                                    }
+                                    className="cursor-pointer"
+                                    onClick={() => navigate(`/surveys/${s._id}`)}
                                 >
                                     <TableCell className="text-center text-text_2">
-                                        {index + 1}
+                                        {(page - 1) * pageSize + index + 1}
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         {s.title}
                                     </TableCell>
+                                    {canViewAll && (
+                                        <>
+                                            <TableCell>
+                                                <div>{surveyCreatorName(s)}</div>
+                                                {surveyCoEditorNames(s).length >
+                                                    0 && (
+                                                    <div className="text-xs text-text_2">
+                                                        Đồng chủ biên:{" "}
+                                                        {surveyCoEditorNames(
+                                                            s,
+                                                        ).join(", ")}
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <SurveyTargetSummary survey={s} />
+                                            </TableCell>
+                                        </>
+                                    )}
                                     <TableCell>
                                         <Badge
                                             tone={
@@ -192,9 +201,10 @@ const SurveyListContent: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{s.questions.length}</TableCell>
-                                    {canRespond && (
+                                    {showRespondedColumn && (
                                         <TableCell>
-                                            {s.status !== "dang_mo" ? (
+                                            {s.status !== "dang_mo" ||
+                                            !s.isEligible ? (
                                                 <span className="text-text_3">
                                                     —
                                                 </span>
@@ -226,9 +236,7 @@ const SurveyListContent: React.FC = () => {
                                                     Kết quả
                                                 </Button>
                                             )}
-                                            {canRespond &&
-                                                s.status === "dang_mo" &&
-                                                !s.hasResponded && (
+                                            {canAnswerSurvey(s) && (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
@@ -241,22 +249,16 @@ const SurveyListContent: React.FC = () => {
                                                         Trả lời
                                                     </Button>
                                                 )}
-                                            {canPublishSurvey(s) &&
-                                                s.status !== "da_dong" && (
-                                                    <Button
-                                                        size="sm"
-                                                        loading={
-                                                            actingId === s._id
-                                                        }
-                                                        onClick={e =>
-                                                            handleToggle(e, s)
-                                                        }
-                                                    >
-                                                        {s.status === "dang_mo"
-                                                            ? "Đóng"
-                                                            : "Mở"}
-                                                    </Button>
-                                                )}
+                                            {canPublishSurvey(s) && (
+                                                <SurveyStatusToggleButton
+                                                    survey={s}
+                                                    isCreatorOrCoEditor={isSurveyCreatorOrCoEditor(
+                                                        s,
+                                                        currentUser?.id,
+                                                    )}
+                                                    onChanged={() => load(page)}
+                                                />
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

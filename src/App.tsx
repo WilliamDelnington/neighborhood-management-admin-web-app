@@ -174,6 +174,9 @@ const SurveyListPage = React.lazy(
 const SurveyFormPage = React.lazy(
     () => import("@pages/Surveys/SurveyFormPage"),
 );
+const SurveyDetailPage = React.lazy(
+    () => import("@pages/Surveys/SurveyDetailPage"),
+);
 const SurveyResultsPage = React.lazy(
     () => import("@pages/Surveys/SurveyResultsPage"),
 );
@@ -500,6 +503,10 @@ const App: React.FC = () => {
                         <Route
                             path="/surveys/create"
                             element={<SurveyFormPage />}
+                        />
+                        <Route
+                            path="/surveys/:id"
+                            element={<SurveyDetailPage />}
                         />
                         <Route
                             path="/surveys/:id/edit"

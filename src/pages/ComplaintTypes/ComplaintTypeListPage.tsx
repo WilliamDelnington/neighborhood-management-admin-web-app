@@ -237,29 +237,22 @@ const ComplaintTypeListContent: React.FC = () => {
                         </TableHeader>
                         <TableBody>
                             {items.map((item, index) => (
-                                <TableRow key={item._id || item.key}>
+                                <TableRow
+                                    key={item._id || item.key}
+                                    className={canManage ? "cursor-pointer" : ""}
+                                    onClick={() => canManage && openEdit(item)}
+                                >
                                     <TableCell className="text-center text-text_2">{index + 1}</TableCell>
                                     <TableCell className="font-mono text-xs">{item.key}</TableCell>
                                     <TableCell>
-                                        {canManage ? (
-                                            <button
-                                                type="button"
-                                                className="text-left font-medium text-main hover:underline"
-                                                onClick={() => openEdit(item)}
-                                            >
-                                                {item.name}
-                                                {item.isUrgent && (
-                                                    <Badge tone="red">Khẩn cấp</Badge>
-                                                )}
-                                            </button>
-                                        ) : (
-                                            <span className="font-medium">
-                                                {item.name}
-                                                {item.isUrgent && (
-                                                    <Badge tone="red">Khẩn cấp</Badge>
-                                                )}
-                                            </span>
-                                        )}
+                                        <span
+                                            className={`font-medium ${canManage ? "text-main" : ""}`}
+                                        >
+                                            {item.name}
+                                            {item.isUrgent && (
+                                                <Badge tone="red">Khẩn cấp</Badge>
+                                            )}
+                                        </span>
                                     </TableCell>
                                     <TableCell className="text-sm text-text_2">
                                         {(item.allowedSenderRoles || [])
@@ -285,7 +278,10 @@ const ComplaintTypeListContent: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     {canManage && (
-                                        <TableCell className="text-right">
+                                        <TableCell
+                                            className="text-right"
+                                            onClick={e => e.stopPropagation()}
+                                        >
                                             {item.active !== false && (
                                                 <Button
                                                     size="icon"

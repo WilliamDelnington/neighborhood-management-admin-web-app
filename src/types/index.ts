@@ -1086,6 +1086,20 @@ export type Correspondence = {
     isUnread?: boolean;
 };
 
+// Dong o tab "Tất cả" (view=all, chi user quan ly khong gioi han pham vi) -
+// backend populate san nguoi gui/nguoi nhan; cac tab khac van la id chuoi.
+type CorrespondencePartyUser = { _id: string; displayName: string; phone?: string };
+export type CorrespondenceListItem = Omit<
+    Correspondence,
+    "senderId" | "targetUserIds" | "targetNeighborhoodIds"
+> & {
+    senderId: string | CorrespondencePartyUser | null;
+    targetUserIds: (string | CorrespondencePartyUser)[];
+    targetNeighborhoodIds: (string | { _id: string; name: string; code?: string })[];
+};
+
+export type CorrespondenceListView = "sent" | "received" | "all";
+
 export type CorrespondenceReply = {
     _id: string;
     correspondenceId: string;
@@ -1159,6 +1173,19 @@ export type Survey = {
     // surveyService.listSurveys) - dung de hien "Đã trả lời"/"Chưa trả lời"
     // trong SurveyListPage.tsx.
     hasResponded?: boolean;
+    // Nguoi dang dang nhap co thuoc doi tuong duoc tra loi khong - an nut
+    // "Trả lời" voi nguoi chi xem/quan ly (xem surveyService.listSurveys).
+    isEligible?: boolean;
+    // Ten vai tro cua eligibleRoles (backend tra san, cung thu tu).
+    eligibleRoleNames?: string[];
+};
+
+// GET /surveys/:id/overview - trang chi tiet (chi xem) khao sat.
+export type SurveyOverview = Survey & {
+    isCreatorOrCoEditor: boolean;
+    canEdit: boolean;
+    canManageStatus: boolean;
+    responseCount: number;
 };
 
 export type SurveyResults = {

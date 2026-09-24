@@ -331,16 +331,15 @@ const AppointmentServiceListContent: React.FC = () => {
                         </TableHeader>
                         <TableBody>
                             {items.map((item, index) => (
-                                <TableRow key={item._id}>
+                                <TableRow
+                                    key={item._id}
+                                    className={canManage ? "cursor-pointer" : ""}
+                                    onClick={() => canManage && openEdit(item)}
+                                >
                                     <TableCell className="text-center text-text_2">{index + 1}</TableCell>
                                     <TableCell className="font-mono text-xs">{item.key}</TableCell>
-                                    <TableCell>
-                                        <button
-                                            className="text-left font-medium text-main hover:underline"
-                                            onClick={() => canManage && openEdit(item)}
-                                        >
-                                            {item.name}
-                                        </button>
+                                    <TableCell className="font-medium text-main">
+                                        {item.name}
                                     </TableCell>
                                     <TableCell>
                                         {item.scope === "ward" ? "Toàn phường" : "Tổ dân phố"}
@@ -353,7 +352,10 @@ const AppointmentServiceListContent: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     {canManage && (
-                                        <TableCell className="text-right">
+                                        <TableCell
+                                            className="text-right"
+                                            onClick={e => e.stopPropagation()}
+                                        >
                                             {item.active && (
                                                 <Button
                                                     size="icon"

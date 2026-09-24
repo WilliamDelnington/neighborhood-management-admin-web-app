@@ -465,7 +465,7 @@ const NeighborhoodMembersPanel: React.FC<NeighborhoodMembersPanelProps> = ({
                     >
                         <button
                             type="button"
-                            className="text-left hover:underline"
+                            className="min-w-0 flex-1 text-left hover:underline"
                             onClick={() =>
                                 navigate(
                                     canManage
