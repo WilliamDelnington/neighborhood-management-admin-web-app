@@ -53,6 +53,7 @@ import {
 import HouseholdPicker from "@components/admin/HouseholdPicker";
 import RecordHistorySection from "@components/admin/RecordHistorySection";
 import AttachmentsPanel from "@components/admin/AttachmentsPanel";
+import { FilePreviewContent } from "@components/admin/FilePreviewDialog";
 import HouseOwnershipPanel from "@components/admin/HouseOwnershipPanel";
 import TransferNeighborhoodDialog from "@components/admin/TransferNeighborhoodDialog";
 import HouseGisPanel from "@components/admin/HouseGisPanel";
@@ -212,6 +213,9 @@ const HouseDetailContent: React.FC = () => {
     const [statusNote, setStatusNote] = useState("");
     const [transferDialogOpen, setTransferDialogOpen] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [pendingImageFile, setPendingImageFile] = useState<File | null>(
+        null,
+    );
     const imageInputRef = useRef<HTMLInputElement>(null);
 
     const [households, setHouseholds] = useState<Household[]>([]);
@@ -364,12 +368,18 @@ const HouseDetailContent: React.FC = () => {
     const handleImageSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         e.target.value = "";
-        if (!file || !houseId) return;
+        if (!file) return;
+        setPendingImageFile(file);
+    };
+
+    const handleConfirmImageUpload = () => {
+        if (!pendingImageFile || !houseId) return;
         setUploadingImage(true);
-        uploadHouseImage(houseId, file)
+        uploadHouseImage(houseId, pendingImageFile)
             .then(updated => {
                 setHouse(updated);
                 toast.success("Đã cập nhật ảnh nhà số");
+                setPendingImageFile(null);
             })
             .catch(err => toast.error((err as AppError).message))
             .finally(() => setUploadingImage(false));
@@ -745,6 +755,65 @@ const HouseDetailContent: React.FC = () => {
                                     className="hidden"
                                     onChange={handleImageSelected}
                                 />
+                                <Dialog
+                                    open={!!pendingImageFile}
+                                    onOpenChange={open => {
+                                        if (!open && !uploadingImage) {
+                                            setPendingImageFile(null);
+                                        }
+                                    }}
+                                >
+                                    <DialogContent className="max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>
+                                                Xem trước ảnh nhà số
+                                            </DialogTitle>
+                                        </DialogHeader>
+                                        {pendingImageFile && (
+                                            <FilePreviewContent
+                                                source={{
+                                                    kind: "file",
+                                                    name: pendingImageFile.name,
+                                                    file: pendingImageFile,
+                                                }}
+                                                className="h-64"
+                                            />
+                                        )}
+                                        <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                disabled={uploadingImage}
+                                                onClick={() =>
+                                                    imageInputRef.current?.click()
+                                                }
+                                            >
+                                                Chọn ảnh khác
+                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    disabled={uploadingImage}
+                                                    onClick={() =>
+                                                        setPendingImageFile(null)
+                                                    }
+                                                >
+                                                    Hủy
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    loading={uploadingImage}
+                                                    onClick={
+                                                        handleConfirmImageUpload
+                                                    }
+                                                >
+                                                    Tải lên
+                                                </Button>
+                                            </div>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                                 <div>
                                     <h2 className="text-xl font-semibold text-text_1">
                                         {house.code}

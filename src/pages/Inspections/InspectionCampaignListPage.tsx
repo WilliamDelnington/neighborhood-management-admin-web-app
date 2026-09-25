@@ -113,9 +113,20 @@ const InspectionCampaignListContent: React.FC = () => {
                     {items.map(item => {
                         const overdue = item.status === "ACTIVE" && new Date(item.dueAt) < new Date();
                         return (
-                            <article
+                            <div
                                 key={item._id}
-                                className="rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm"
+                                role="button"
+                                tabIndex={0}
+                                className="cursor-pointer rounded-lg border border-divider_01 bg-ui_bg p-5 shadow-sm transition-colors hover:border-primary/40 hover:bg-ng_10"
+                                onClick={() => navigate(`/inspections/${item._id}`)}
+                                onKeyDown={e => {
+                                    // Bo qua phim bam noi len tu nut ben trong the.
+                                    if (e.target !== e.currentTarget) return;
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        navigate(`/inspections/${item._id}`);
+                                    }
+                                }}
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex min-w-0 gap-3">
@@ -147,11 +158,14 @@ const InspectionCampaignListContent: React.FC = () => {
                                 </div>
                                 <Button
                                     className="mt-5 w-full sm:w-auto"
-                                    onClick={() => navigate(`/inspections/${item._id}`)}
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        navigate(`/inspections/${item._id}`);
+                                    }}
                                 >
                                     Xem và thực hiện
                                 </Button>
-                            </article>
+                            </div>
                         );
                     })}
                 </div>

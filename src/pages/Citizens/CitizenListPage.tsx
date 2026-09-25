@@ -7,13 +7,6 @@ import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Badge } from "@components/ui/badge";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "@components/ui/dialog";
-import {
     Sheet,
     SheetContent,
     SheetHeader,
@@ -46,10 +39,8 @@ import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { AppError, Citizen, Neighborhood } from "@dts";
 import {
     createCitizen,
-    deleteCitizen,
     fetchAllCitizens,
     fetchCitizens,
-    updateCitizen,
 } from "@service/citizenApi";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
 import { exportFileTimestamp, exportRowsToExcel } from "@lib/exportExcel";
@@ -76,46 +67,9 @@ const householdLabelOf = (householdId: Citizen["householdId"]): string => {
         : `${householdId.code} — ${householdId.address}`;
 };
 
-const householdIdOf = (householdId: Citizen["householdId"]): string =>
-    !householdId || typeof householdId === "string" ? "" : householdId._id;
-
-const citizenToForm = (c: Citizen): CitizenFormValues => ({
-    fullName: c.fullName,
-    phone: c.phone || "",
-    cccd: c.cccd || "",
-    birthDate: c.birthDate ? c.birthDate.slice(0, 10) : "",
-    gender: c.gender,
-    relationToHead: c.relationToHead || "",
-    occupation: c.occupation || "",
-    householdId: householdIdOf(c.householdId),
-    householdLabel: householdLabelOf(c.householdId),
-    residenceType: c.residenceType,
-    temporaryResidenceStartsAt: c.temporaryResidenceStartsAt
-        ? c.temporaryResidenceStartsAt.slice(0, 10)
-        : "",
-    temporaryResidenceExpiresAt: c.temporaryResidenceExpiresAt
-        ? c.temporaryResidenceExpiresAt.slice(0, 10)
-        : "",
-    isResidencyDeclared: c.isResidencyDeclared,
-    isUnemployed: c.isUnemployed,
-    isElderly: c.isElderly,
-    isChild: c.isChild,
-    isDisabledOrSupportNeeded: c.isDisabledOrSupportNeeded,
-    isDisabledChild: c.isDisabledChild,
-    isPartyMember: c.isPartyMember,
-    isUnionMember: c.isUnionMember,
-    isMartyr: c.isMartyr,
-    isMartyrFamily: c.isMartyrFamily,
-    isVeteran: c.isVeteran,
-    isOtherSpecial: c.isOtherSpecial,
-    otherSpecialLabel: c.otherSpecialLabel || "",
-});
-
 const CitizenListContent: React.FC = () => {
     const navigate = useNavigate();
     const canCreate = usePermission("citizens.create");
-    const canUpdate = usePermission("citizens.update");
-    const canDelete = usePermission("citizens.delete");
     // Rieng cho nut "Nhap tu Excel" - backend gate qua "imports.manage" (xem
     // /api/import/citizens), khac voi "citizens.create" - phai kiem tra rieng
     // giong HouseListPage.
@@ -136,16 +90,9 @@ const CitizenListContent: React.FC = () => {
     const [error, setError] = useState(false);
 
     const [sheetVisible, setSheetVisible] = useState(false);
-    const [editingCitizenId, setEditingCitizenId] = useState<string | null>(
-        null,
-    );
     const [form, setForm] = useState<CitizenFormValues>(EMPTY_CITIZEN_FORM);
     const [submitting, setSubmitting] = useState(false);
     const [importVisible, setImportVisible] = useState(false);
-    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(
-        null,
-    );
-    const [deleting, setDeleting] = useState(false);
     const [exporting, setExporting] = useState(false);
 
     const load = (targetPage = 1, keyword = search, size = pageSize) => {
@@ -179,15 +126,7 @@ const CitizenListContent: React.FC = () => {
     }, []);
 
     const openCreate = () => {
-        setEditingCitizenId(null);
         setForm(EMPTY_CITIZEN_FORM);
-        setSheetVisible(true);
-    };
-
-    const openEdit = (c: Citizen) => {
-        if (!canUpdate) return;
-        setEditingCitizenId(c._id);
-        setForm(citizenToForm(c));
         setSheetVisible(true);
     };
 
@@ -198,35 +137,14 @@ const CitizenListContent: React.FC = () => {
         }
         try {
             setSubmitting(true);
-            if (editingCitizenId) {
-                await updateCitizen(editingCitizenId, toCitizenInput(form));
-                toast.success("Đã cập nhật nhân khẩu");
-            } else {
-                await createCitizen(toCitizenInput(form));
-                toast.success("Đã thêm nhân khẩu mới");
-            }
+            await createCitizen(toCitizenInput(form));
+            toast.success("Đã thêm nhân khẩu mới");
             setSheetVisible(false);
             load(page, search);
         } catch (err) {
             toast.error((err as AppError).message);
         } finally {
             setSubmitting(false);
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!confirmDeleteId) return;
-        try {
-            setDeleting(true);
-            await deleteCitizen(confirmDeleteId);
-            toast.success("Đã xóa nhân khẩu");
-            setConfirmDeleteId(null);
-            setSheetVisible(false);
-            load(page, search);
-        } catch (err) {
-            toast.error((err as AppError).message);
-        } finally {
-            setDeleting(false);
         }
     };
 
@@ -385,8 +303,8 @@ const CitizenListContent: React.FC = () => {
                                 return (
                                     <TableRow
                                         key={c._id}
-                                        className={canUpdate ? "cursor-pointer" : undefined}
-                                        onClick={() => openEdit(c)}
+                                        className="cursor-pointer"
+                                        onClick={() => navigate(`/citizens/${c._id}`)}
                                     >
                                         <TableCell className="text-center text-text_2">
                                             {(page - 1) * pageSize + index + 1}
@@ -445,68 +363,26 @@ const CitizenListContent: React.FC = () => {
                 <SheetContent>
                     <SheetHeader>
                         <SheetTitle>
-                            {editingCitizenId ? "Sửa nhân khẩu" : "Thêm nhân khẩu"}
+                            Thêm nhân khẩu
                         </SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
                         <CitizenForm
-                            key={editingCitizenId || "new"}
                             values={form}
                             onChange={setForm}
                         />
                     </div>
                     <SheetFooter>
-                        {canDelete && editingCitizenId && (
-                            <Button
-                                variant="destructive"
-                                className="w-full"
-                                onClick={() =>
-                                    setConfirmDeleteId(editingCitizenId)
-                                }
-                            >
-                                Xóa nhân khẩu
-                            </Button>
-                        )}
                         <Button
                             className="w-full"
                             loading={submitting}
                             onClick={handleSubmit}
                         >
-                            {editingCitizenId ? "Lưu thay đổi" : "Thêm nhân khẩu"}
+                            Thêm nhân khẩu
                         </Button>
                     </SheetFooter>
                 </SheetContent>
             </Sheet>
-
-            <Dialog
-                open={!!confirmDeleteId}
-                onOpenChange={open => !open && setConfirmDeleteId(null)}
-            >
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Xóa nhân khẩu?</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-sm text-text_2">
-                        Bạn có chắc muốn xóa nhân khẩu này? Hành động này
-                        không thể hoàn tác.
-                    </p>
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => setConfirmDeleteId(null)}
-                        >
-                            Hủy
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            loading={deleting}
-                            onClick={handleDelete}
-                        >
-                            Xóa
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
             <CitizenImportSheet
                 open={importVisible}

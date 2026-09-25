@@ -361,6 +361,12 @@ const SurveyResultsContent: React.FC = () => {
                                                 (resp, idx) => (
                                                     <TableRow
                                                         key={resp.responseId}
+                                                        className="cursor-pointer"
+                                                        onClick={() =>
+                                                            setSelectedResponseIndex(
+                                                                idx,
+                                                            )
+                                                        }
                                                     >
                                                         <TableCell className="font-medium">
                                                             {resp.displayName}
@@ -373,7 +379,12 @@ const SurveyResultsContent: React.FC = () => {
                                                                 resp.submittedAt,
                                                             )}
                                                         </TableCell>
-                                                        <TableCell className="text-right">
+                                                        <TableCell
+                                                            className="text-right"
+                                                            onClick={e =>
+                                                                e.stopPropagation()
+                                                            }
+                                                        >
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"

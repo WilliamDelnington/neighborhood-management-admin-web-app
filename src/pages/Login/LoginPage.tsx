@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { KeyRound, Phone } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Phone } from "lucide-react";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { Label } from "@components/ui/label";
@@ -29,6 +29,7 @@ const LoginPage: React.FC = () => {
 
     const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     const [forgotOpen, setForgotOpen] = useState(false);
@@ -140,11 +141,28 @@ const LoginPage: React.FC = () => {
                             <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_3" />
                             <Input
                                 id="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
-                                className="h-11 pl-9"
+                                className="h-11 pl-9 pr-10"
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(v => !v)}
+                                aria-label={
+                                    showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                                }
+                                title={
+                                    showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                                }
+                                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-text_3 hover:text-text_1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-main"
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                ) : (
+                                    <Eye className="h-4 w-4" />
+                                )}
+                            </button>
                         </div>
                     </div>
 

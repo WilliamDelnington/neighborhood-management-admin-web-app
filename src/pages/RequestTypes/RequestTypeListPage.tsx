@@ -290,23 +290,19 @@ const RequestTypeListContent: React.FC = () => {
                         </TableHeader>
                         <TableBody>
                             {items.map((item, index) => (
-                                <TableRow key={item._id || item.key}>
+                                <TableRow
+                                    key={item._id || item.key}
+                                    className={canManage ? "cursor-pointer" : ""}
+                                    onClick={() => canManage && openEdit(item)}
+                                >
                                     <TableCell className="text-center text-text_2">{(page - 1) * pageSize + index + 1}</TableCell>
                                     <TableCell className="font-mono text-xs">{item.key}</TableCell>
                                     <TableCell>
-                                        {canManage ? (
-                                            <button
-                                                type="button"
-                                                className="text-left font-medium text-main hover:underline"
-                                                onClick={() => openEdit(item)}
-                                            >
-                                                {item.name}
-                                            </button>
-                                        ) : (
-                                            <span className="font-medium">
-                                                {item.name}
-                                            </span>
-                                        )}
+                                        <span
+                                            className={`font-medium ${canManage ? "text-main" : ""}`}
+                                        >
+                                            {item.name}
+                                        </span>
                                     </TableCell>
                                     <TableCell>
                                         {item.dataEntryMode === "recipient"
@@ -321,7 +317,10 @@ const RequestTypeListContent: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     {canManage && (
-                                        <TableCell className="text-right">
+                                        <TableCell
+                                            className="text-right"
+                                            onClick={e => e.stopPropagation()}
+                                        >
                                             {item.active !== false && (
                                                 <Button
                                                     size="icon"

@@ -683,6 +683,12 @@ export type Company = {
     // Loai hinh doanh nghiep (phap ly) - mot gia tri duy nhat, khac
     // businessTypeIds - xem ghi chu tren models/Company.ts o backend.
     companyTypeId?: { _id: string; name: string } | string | null;
+    // So luong nhan vien/lao dong hien co - ke khai, khong anh huong logic
+    // nghiep vu.
+    numberOfEmployees?: number;
+    // Tinh trang phap ly (vd "Dang hoat dong", "Tam ngung") - van ban tu do,
+    // khac companyTypeId (loai hinh doanh nghiep) va status (xac thuc).
+    legalStatus?: string;
     phone?: string;
     active: boolean;
     status: VerificationStatus;
@@ -1080,6 +1086,20 @@ export type Correspondence = {
     isUnread?: boolean;
 };
 
+// Dong o tab "Tất cả" (view=all, chi user quan ly khong gioi han pham vi) -
+// backend populate san nguoi gui/nguoi nhan; cac tab khac van la id chuoi.
+type CorrespondencePartyUser = { _id: string; displayName: string; phone?: string };
+export type CorrespondenceListItem = Omit<
+    Correspondence,
+    "senderId" | "targetUserIds" | "targetNeighborhoodIds"
+> & {
+    senderId: string | CorrespondencePartyUser | null;
+    targetUserIds: (string | CorrespondencePartyUser)[];
+    targetNeighborhoodIds: (string | { _id: string; name: string; code?: string })[];
+};
+
+export type CorrespondenceListView = "sent" | "received" | "all";
+
 export type CorrespondenceReply = {
     _id: string;
     correspondenceId: string;
@@ -1153,6 +1173,19 @@ export type Survey = {
     // surveyService.listSurveys) - dung de hien "Đã trả lời"/"Chưa trả lời"
     // trong SurveyListPage.tsx.
     hasResponded?: boolean;
+    // Nguoi dang dang nhap co thuoc doi tuong duoc tra loi khong - an nut
+    // "Trả lời" voi nguoi chi xem/quan ly (xem surveyService.listSurveys).
+    isEligible?: boolean;
+    // Ten vai tro cua eligibleRoles (backend tra san, cung thu tu).
+    eligibleRoleNames?: string[];
+};
+
+// GET /surveys/:id/overview - trang chi tiet (chi xem) khao sat.
+export type SurveyOverview = Survey & {
+    isCreatorOrCoEditor: boolean;
+    canEdit: boolean;
+    canManageStatus: boolean;
+    responseCount: number;
 };
 
 export type SurveyResults = {
@@ -1474,6 +1507,25 @@ export type AppointmentTimeSlot = {
     active: boolean;
 };
 
+export type AppointmentServiceExceptionType = "closed" | "custom_hours";
+
+// Ngay ngoai le RIENG cua dich vu (nghi, hoac lam viec theo khung gio rieng) -
+// uu tien hon ngay nghi/le chung (AppointmentHoliday) cua phuong/he thong.
+export type AppointmentServiceException = {
+    _id: string;
+    date: string; // ISO, UTC 00:00
+    endDate?: string;
+    type: AppointmentServiceExceptionType;
+    note?: string;
+    timeSlots: Array<{
+        _id: string;
+        startTime: string;
+        endTime: string;
+        maxCapacity: number;
+        active: boolean;
+    }>;
+};
+
 export type AppointmentHouseRequirement = "none" | "optional" | "required";
 export type AppointmentHouseStatusRequirement = "any" | "in_scope" | "verified";
 
@@ -1494,6 +1546,7 @@ export type AppointmentService = {
     active: boolean;
     assignedOfficerUserIds: Array<{ _id: string; displayName: string }>;
     timeSlots: AppointmentTimeSlot[];
+    exceptions?: AppointmentServiceException[];
     createdAt?: string;
     updatedAt?: string;
 };

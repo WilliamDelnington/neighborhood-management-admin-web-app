@@ -2,6 +2,8 @@ import { API, DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     AnnouncementAttachment,
     Correspondence,
+    CorrespondenceListItem,
+    CorrespondenceListView,
     CorrespondenceReply,
     PaginatedData,
 } from "@dts";
@@ -18,13 +20,20 @@ export interface CorrespondenceInput {
     targetUserIds?: string[];
 }
 
+// view bo trong -> backend tu chon: "all" cho user quan ly khong gioi han pham
+// vi, "received" cho nguoi con lai; `view` tra ve la tab thuc su da dung.
+export type CorrespondenceListResult = PaginatedData<CorrespondenceListItem> & {
+    view: CorrespondenceListView;
+    canViewAll: boolean;
+};
+
 export const fetchCorrespondences = (
     page = 1,
     limit = DEFAULT_PAGE_SIZE,
-    view: "sent" | "received" | undefined = undefined,
+    view: CorrespondenceListView | undefined = undefined,
     status: Correspondence["status"] | undefined = undefined,
-): Promise<PaginatedData<Correspondence>> =>
-    request<PaginatedData<Correspondence>>("GET", API.CORRESPONDENCES, {
+): Promise<CorrespondenceListResult> =>
+    request<CorrespondenceListResult>("GET", API.CORRESPONDENCES, {
         page,
         limit,
         view,

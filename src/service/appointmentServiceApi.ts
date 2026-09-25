@@ -3,6 +3,7 @@ import {
     AppointmentHouseRequirement,
     AppointmentHouseStatusRequirement,
     AppointmentService,
+    AppointmentServiceExceptionType,
     AppointmentTimeSlot,
     PaginatedData,
 } from "@dts";
@@ -10,6 +11,21 @@ import { request } from "./request";
 
 export type AppointmentTimeSlotInput = Omit<AppointmentTimeSlot, "_id"> & {
     _id?: string;
+};
+
+export type AppointmentServiceExceptionInput = {
+    _id?: string;
+    date: string; // YYYY-MM-DD
+    endDate?: string;
+    type: AppointmentServiceExceptionType;
+    note?: string;
+    timeSlots: Array<{
+        _id?: string;
+        startTime: string;
+        endTime: string;
+        maxCapacity: number;
+        active: boolean;
+    }>;
 };
 
 export type AppointmentServiceInput = {
@@ -26,6 +42,7 @@ export type AppointmentServiceInput = {
     active: boolean;
     assignedOfficerUserIds: string[];
     timeSlots: AppointmentTimeSlotInput[];
+    exceptions: AppointmentServiceExceptionInput[];
 };
 
 export const fetchAppointmentServices = (params?: {
