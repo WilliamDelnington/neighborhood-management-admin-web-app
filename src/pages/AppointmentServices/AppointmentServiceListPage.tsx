@@ -53,6 +53,12 @@ import {
 } from "@service/appointmentServiceApi";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import { fetchNeighborhoods } from "@service/neighborhoodApi";
+import ServiceExceptionsEditor, {
+    ExceptionDraft,
+    draftsToExceptionInput,
+    exceptionsToDrafts,
+    validateExceptionDrafts,
+} from "./ServiceExceptionsEditor";
 
 const DAY_OF_WEEK_LABEL: Record<number, string> = {
     1: "Thứ 2",
@@ -87,6 +93,7 @@ type FormState = {
     active: boolean;
     assignedOfficers: AssignableStaff[];
     timeSlots: TimeSlotDraft[];
+    exceptions: ExceptionDraft[];
 };
 
 const HOUSE_REQUIREMENT_LABEL: Record<AppointmentHouseRequirement, string> = {
@@ -126,6 +133,16 @@ const EMPTY_FORM: FormState = {
     active: true,
     assignedOfficers: [],
     timeSlots: [],
+    exceptions: [],
+};
+
+// So ngay ngoai le chua qua (tinh ca ngoai le dang dien ra) - hien canh so
+// khung gio o bang danh sach.
+const upcomingExceptionCount = (item: AppointmentService): number => {
+    const today = new Date().toISOString().slice(0, 10);
+    return (item.exceptions || []).filter(
+        e => (e.endDate || e.date).slice(0, 10) >= today,
+    ).length;
 };
 
 const AppointmentServiceListPage: React.FC = () => (
@@ -199,6 +216,7 @@ const AppointmentServiceListContent: React.FC = () => {
                 displayName: o.displayName,
             })),
             timeSlots: item.timeSlots.map(slot => ({ ...slot })),
+            exceptions: exceptionsToDrafts(item.exceptions),
         });
         setOpen(true);
     };
@@ -229,6 +247,11 @@ const AppointmentServiceListContent: React.FC = () => {
             );
             return;
         }
+        const exceptionError = validateExceptionDrafts(form.exceptions);
+        if (exceptionError) {
+            toast.error(exceptionError);
+            return;
+        }
         const payload: AppointmentServiceInput = {
             key: form.key.trim(),
             name: form.name.trim(),
@@ -251,6 +274,7 @@ const AppointmentServiceListContent: React.FC = () => {
                 maxCapacity: slot.maxCapacity,
                 active: slot.active,
             })),
+            exceptions: draftsToExceptionInput(form.exceptions),
         };
         try {
             setSaving(true);
@@ -345,7 +369,14 @@ const AppointmentServiceListContent: React.FC = () => {
                                         {item.scope === "ward" ? "Toàn phường" : "Tổ dân phố"}
                                     </TableCell>
                                     <TableCell>{item.autoApprove ? "Có" : "Không"}</TableCell>
-                                    <TableCell>{item.timeSlots.length}</TableCell>
+                                    <TableCell>
+                                        {item.timeSlots.length}
+                                        {upcomingExceptionCount(item) > 0 && (
+                                            <div className="text-xs text-text_2">
+                                                +{upcomingExceptionCount(item)} ngày ngoại lệ
+                                            </div>
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge tone={item.active ? "green" : "gray"}>
                                             {item.active ? "Hoạt động" : "Ngừng dùng"}
@@ -735,6 +766,12 @@ const AppointmentServiceListContent: React.FC = () => {
                                 ))}
                             </div>
                         </div>
+                        <ServiceExceptionsEditor
+                            value={form.exceptions}
+                            onChange={exceptions =>
+                                setForm(current => ({ ...current, exceptions }))
+                            }
+                        />
                     </div>
                     <SheetFooter>
                         <Button className="w-full" loading={saving} onClick={() => void handleSave()}>

@@ -1507,6 +1507,25 @@ export type AppointmentTimeSlot = {
     active: boolean;
 };
 
+export type AppointmentServiceExceptionType = "closed" | "custom_hours";
+
+// Ngay ngoai le RIENG cua dich vu (nghi, hoac lam viec theo khung gio rieng) -
+// uu tien hon ngay nghi/le chung (AppointmentHoliday) cua phuong/he thong.
+export type AppointmentServiceException = {
+    _id: string;
+    date: string; // ISO, UTC 00:00
+    endDate?: string;
+    type: AppointmentServiceExceptionType;
+    note?: string;
+    timeSlots: Array<{
+        _id: string;
+        startTime: string;
+        endTime: string;
+        maxCapacity: number;
+        active: boolean;
+    }>;
+};
+
 export type AppointmentHouseRequirement = "none" | "optional" | "required";
 export type AppointmentHouseStatusRequirement = "any" | "in_scope" | "verified";
 
@@ -1527,6 +1546,7 @@ export type AppointmentService = {
     active: boolean;
     assignedOfficerUserIds: Array<{ _id: string; displayName: string }>;
     timeSlots: AppointmentTimeSlot[];
+    exceptions?: AppointmentServiceException[];
     createdAt?: string;
     updatedAt?: string;
 };

@@ -441,6 +441,21 @@ const UserListContent: React.FC = () => {
                                         </>
                                     )
                                 )}
+                                {/* Vai tro cap Phuong (vd Bi thu/Can bo UBND/
+                                    Cong an khu vuc - admin gio tao duoc truc
+                                    tiep) chua co pham vi cho den khi duoc gan
+                                    Phuong/xa. */}
+                                {lastCreatedRole &&
+                                    roles.find(r => r.key === lastCreatedRole)
+                                        ?.scopeType === "WARD" && (
+                                        <>
+                                            {" "}
+                                            Vào trang Phường / xã để gán tài
+                                            khoản này làm{" "}
+                                            {roleLabel(lastCreatedRole)} của một
+                                            phường cụ thể.
+                                        </>
+                                    )}
                             </div>
                         )}
                         {creatableRoles.length > 1 && (

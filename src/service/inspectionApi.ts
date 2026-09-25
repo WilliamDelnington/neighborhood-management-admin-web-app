@@ -70,7 +70,7 @@ export const updateInspectionCampaignChecklist = (
 
 export const updateInspectionCampaignDetails = (
     id: string,
-    input: { name: string; purpose: string },
+    input: { name: string; purpose: string; startAt?: string; dueAt?: string },
 ) => request<InspectionCampaign>(
     "PATCH",
     `${v1}/inspection-campaigns/${id}/details`,

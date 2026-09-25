@@ -93,6 +93,17 @@ const emptyChecklistItem = (): InspectionChecklistItem => ({
     required: true,
 });
 
+// ISO -> gia tri input datetime-local theo gio dia phuong (giong
+// InspectionCampaignFormPage.toLocalDateTime).
+const toLocalDateTimeInput = (iso: string): string => {
+    const date = new Date(iso);
+    const offset = date.getTimezoneOffset() * 60_000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+
+const formatDateTime = (iso: string): string =>
+    new Date(iso).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+
 const houseOf = (target: InspectionTarget) =>
     typeof target.houseId === "string" ? null : target.houseId;
 
@@ -126,6 +137,9 @@ const InspectionCampaignDetailContent: React.FC = () => {
     const [savingChecklist, setSavingChecklist] = useState(false);
     const [name, setName] = useState("");
     const [purpose, setPurpose] = useState("");
+    // Gia tri cho input datetime-local (gio dia phuong, "YYYY-MM-DDTHH:mm").
+    const [startAt, setStartAt] = useState("");
+    const [dueAt, setDueAt] = useState("");
     const [savingDetails, setSavingDetails] = useState(false);
 
     const load = async (targetPage = 1, size = pageSize) => {
@@ -146,6 +160,8 @@ const InspectionCampaignDetailContent: React.FC = () => {
             setChecklist(campaignData.checklistTemplate);
             setName(campaignData.name);
             setPurpose(campaignData.purpose);
+            setStartAt(toLocalDateTimeInput(campaignData.startAt));
+            setDueAt(toLocalDateTimeInput(campaignData.dueAt));
             if (campaignData.availableNeighborhoods?.length === 1) {
                 setSubmissionNeighborhoodId(campaignData.availableNeighborhoods[0]._id);
             }
@@ -208,13 +224,19 @@ const InspectionCampaignDetailContent: React.FC = () => {
             toast.error("Vui lòng nhập mục tiêu chiến dịch");
             return;
         }
+        if (!startAt || !dueAt || new Date(dueAt) <= new Date(startAt)) {
+            toast.error("Thời hạn phải sau thời điểm bắt đầu");
+            return;
+        }
         try {
             setSavingDetails(true);
             await updateInspectionCampaignDetails(id, {
                 name: name.trim(),
                 purpose: purpose.trim(),
+                startAt: new Date(startAt).toISOString(),
+                dueAt: new Date(dueAt).toISOString(),
             });
-            toast.success("Đã lưu tên và mục tiêu chiến dịch");
+            toast.success("Đã lưu thông tin chiến dịch");
             await load(page);
         } catch (err) {
             toast.error((err as AppError).message);
@@ -287,16 +309,40 @@ const InspectionCampaignDetailContent: React.FC = () => {
                                     value={purpose}
                                     onChange={event => setPurpose(event.target.value)}
                                 />
+                                <div className="grid max-w-xl gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <Label htmlFor="campaign-detail-start">Bắt đầu</Label>
+                                        <Input
+                                            id="campaign-detail-start"
+                                            type="datetime-local"
+                                            className="mt-1"
+                                            value={startAt}
+                                            onChange={event => setStartAt(event.target.value)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="campaign-detail-due">Thời hạn</Label>
+                                        <Input
+                                            id="campaign-detail-due"
+                                            type="datetime-local"
+                                            className="mt-1"
+                                            value={dueAt}
+                                            onChange={event => setDueAt(event.target.value)}
+                                        />
+                                    </div>
+                                </div>
                                 <Button
                                     size="sm"
                                     loading={savingDetails}
                                     onClick={handleSaveDetails}
                                     disabled={
                                         name.trim() === campaign.name &&
-                                        purpose.trim() === campaign.purpose
+                                        purpose.trim() === campaign.purpose &&
+                                        startAt === toLocalDateTimeInput(campaign.startAt) &&
+                                        dueAt === toLocalDateTimeInput(campaign.dueAt)
                                     }
                                 >
-                                    <Save className="h-4 w-4" /> Lưu tên và mục tiêu
+                                    <Save className="h-4 w-4" /> Lưu thông tin chiến dịch
                                 </Button>
                             </div>
                         ) : (
@@ -309,7 +355,7 @@ const InspectionCampaignDetailContent: React.FC = () => {
                             </>
                         )}
                         <p className="mt-2 text-sm text-text_2">
-                            Hạn: {new Date(campaign.dueAt).toLocaleDateString("vi-VN")}
+                            {formatDateTime(campaign.startAt)} – Hạn: {formatDateTime(campaign.dueAt)}
                             {campaign.requiredEvidence ? " · Bắt buộc minh chứng" : ""}
                             {campaign.allowSelfDeclaration ? " · Cho phép Nhà số tự khai" : ""}
                         </p>
