@@ -38,6 +38,12 @@ export type IdentityVerificationStatus =
     | "failed"
     | "revoked";
 
+export type MissingScopeAssignment = {
+    roleKey: string;
+    roleLabel: string;
+    scopeType: "WARD" | "NEIGHBORHOOD";
+};
+
 export type User = {
     id: string;
     zaloUserId?: string;
@@ -53,6 +59,12 @@ export type User = {
     primaryRole: Role;
     permissions: string[];
     roleLabels: Record<string, string>;
+    /**
+     * Vai tro cap Phuong/Xa hoac To dan pho ma tai khoan dang giu nhung chua
+     * duoc gan pham vi - chi co tren response cua chinh nguoi dang nhap
+     * (/auth/me, login...). Khac rong = bi chan khoi trang quan tri.
+     */
+    missingScopeAssignments?: MissingScopeAssignment[];
     status: UserStatus;
     identityProvider: IdentityProvider;
     identityVerificationStatus: IdentityVerificationStatus;
@@ -367,9 +379,22 @@ export type House = {
     gisCapturedAt?: string | null;
     location?: { type: "Point"; coordinates: [number, number] };
     imageUrl?: string;
+    // Chi co khi lay tu danh sach nha so (GET /api/houses) - cac quan he so
+    // huu/quan ly DANG ACTIVE, chu so huu chinh dung dau (xem
+    // houseOwnershipService.getActiveOwnershipSummariesForHouses o backend).
+    ownerships?: HouseOwnershipSummary[];
     createdAt: string;
     updatedAt: string;
 };
+
+export type HouseOwnershipSummary = Pick<
+    HouseOwnership,
+    | "ownerType"
+    | "ownerId"
+    | "relationshipType"
+    | "ownerDisplayName"
+    | "ownerPhone"
+>;
 
 export type HouseOwnershipRelationshipType =
     | "primary_owner"

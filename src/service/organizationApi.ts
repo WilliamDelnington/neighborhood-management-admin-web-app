@@ -31,6 +31,9 @@ export interface CreateOrganizationInput {
     // de them/chuyen nguoi dai dien SAU khi to chuc da ton tai.
     representativeUserId?: string;
     representativeTitle?: string;
+    // Tao tu Company co san - backend tu lien ket Company.organizationId toi
+    // to chuc moi, taxCode phai trung (bo trong thi lay tu cong ty).
+    sourceCompanyId?: string;
     phone?: string;
     email?: string;
     address?: string;
@@ -49,7 +52,10 @@ export const createOrganization = (
 export type UpdateOrganizationInput = Partial<
     Omit<
         CreateOrganizationInput,
-        "taxCode" | "representativeUserId" | "representativeTitle"
+        | "taxCode"
+        | "representativeUserId"
+        | "representativeTitle"
+        | "sourceCompanyId"
     >
 >;
 

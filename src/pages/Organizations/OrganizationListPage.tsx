@@ -42,8 +42,15 @@ import PageSizeSelect from "@components/admin/PageSizeSelect";
 import FilterBar from "@components/admin/FilterBar";
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import HeadOfHouseholdUserPicker from "@components/admin/HeadOfHouseholdUserPicker";
+import CompanyPicker from "@components/admin/CompanyPicker";
 import OrganizationRepresentativePanel from "@components/admin/OrganizationRepresentativePanel";
-import { AppError, Organization, ORGANIZATION_TYPE_LABEL, OrganizationType } from "@dts";
+import {
+    AppError,
+    Company,
+    Organization,
+    ORGANIZATION_TYPE_LABEL,
+    OrganizationType,
+} from "@dts";
 import {
     createOrganization,
     fetchOrganizations,
@@ -56,6 +63,10 @@ const ORGANIZATION_TYPES = Object.keys(
 ) as OrganizationType[];
 
 type FormState = {
+    // Chi dung khi TAO moi - tao to chuc tu mot Company co san (backend tu
+    // lien ket Company.organizationId, xem organizationService.createOrganization).
+    sourceCompanyId: string;
+    sourceCompanyLabel: string;
     name: string;
     taxCode: string;
     organizationType: OrganizationType;
@@ -72,6 +83,8 @@ type FormState = {
 };
 
 const EMPTY_FORM: FormState = {
+    sourceCompanyId: "",
+    sourceCompanyLabel: "",
     name: "",
     taxCode: "",
     organizationType: "khac",
@@ -96,6 +109,7 @@ const OrganizationListContent: React.FC = () => {
     // Chi admin moi duoc chon nguoi dai dien khac minh - house_owner tu tao to
     // chuc luon bi ep ve chinh minh o backend (xem organizationService.createOrganization).
     const canPickRepresentative = usePermission("users.read");
+    const canPickCompany = usePermission("companies.read");
 
     const [search, setSearch] = useState("");
     const [active, setActive] = useState<"" | "true" | "false">("");
@@ -160,6 +174,36 @@ const OrganizationListContent: React.FC = () => {
         setSheetOpen(true);
     };
 
+    // Dien san thong tin tu cong ty - van sua duoc, tru ma so thue (bat buoc
+    // trung voi cong ty, backend kiem tra lai). Nguoi dai dien KHONG dien san:
+    // dai dien cong ty (company_representative) va dai dien to chuc chu so
+    // huu (house_owner) la hai dieu kien vai tro khac nhau.
+    const applySourceCompany = (companyId: string | null, company?: Company) => {
+        if (!companyId || !company) {
+            setForm(prev => ({
+                ...prev,
+                sourceCompanyId: "",
+                sourceCompanyLabel: "",
+                taxCode: "",
+            }));
+            return;
+        }
+        const house =
+            company.houseId && typeof company.houseId === "object"
+                ? company.houseId
+                : null;
+        setForm(prev => ({
+            ...prev,
+            sourceCompanyId: companyId,
+            sourceCompanyLabel: company.name,
+            name: company.name,
+            taxCode: company.taxCode,
+            organizationType: "cong_ty",
+            phone: company.phone || prev.phone,
+            address: house?.address || prev.address,
+        }));
+    };
+
     const handleSave = async () => {
         if (!form.name.trim()) {
             toast.error("Vui lòng nhập tên tổ chức");
@@ -182,6 +226,7 @@ const OrganizationListContent: React.FC = () => {
                     name: form.name.trim(),
                     taxCode: form.taxCode.trim() || undefined,
                     organizationType: form.organizationType,
+                    sourceCompanyId: form.sourceCompanyId || undefined,
                     representativeUserId: form.representativeUserId || undefined,
                     representativeTitle:
                         form.representativeTitle.trim() || undefined,
@@ -331,6 +376,22 @@ const OrganizationListContent: React.FC = () => {
                     </SheetHeader>
                     <div className="flex-1 overflow-y-auto py-4">
                         <div className="flex flex-col gap-4">
+                            {!editing && canPickCompany && (
+                                <div>
+                                    <CompanyPicker
+                                        label="Tạo từ công ty có sẵn (nếu có)"
+                                        placeholder="Không - nhập thông tin mới"
+                                        value={form.sourceCompanyId}
+                                        valueLabel={form.sourceCompanyLabel}
+                                        onChange={applySourceCompany}
+                                    />
+                                    <p className="mt-1 text-xs text-text_2">
+                                        Thông tin được điền sẵn từ công ty, và
+                                        công ty sẽ được liên kết với tổ chức
+                                        mới sau khi tạo.
+                                    </p>
+                                </div>
+                            )}
                             <div className="space-y-1.5">
                                 <Label>Tên tổ chức</Label>
                                 <Input
@@ -349,7 +410,9 @@ const OrganizationListContent: React.FC = () => {
                                 <Input
                                     placeholder="VD: 0123456789 (nếu có)"
                                     value={form.taxCode}
-                                    disabled={!!editing}
+                                    disabled={
+                                        !!editing || !!form.sourceCompanyId
+                                    }
                                     onChange={e =>
                                         setForm(prev => ({
                                             ...prev,
@@ -383,6 +446,8 @@ const OrganizationListContent: React.FC = () => {
                             </div>
                             {!editing && canPickRepresentative && (
                                 <HeadOfHouseholdUserPicker
+                                    label="Liên kết tài khoản quản lý (nếu có)"
+                                    dialogTitle="Chọn tài khoản quản lý"
                                     value={form.representativeUserId}
                                     valueLabel={form.representativeUserLabel}
                                     onChange={(userId, user) =>

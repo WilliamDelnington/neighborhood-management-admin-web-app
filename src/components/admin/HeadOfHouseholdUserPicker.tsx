@@ -17,6 +17,10 @@ export interface HeadOfHouseholdUserPickerProps {
     valueLabel?: string;
     onChange: (userId: string | null, user?: User) => void;
     disabled?: boolean;
+    // Mac dinh theo ngu canh chu ho - noi khac (vd nguoi dai dien/quan ly cua
+    // to chuc chu so huu) truyen nhan rieng.
+    label?: string;
+    dialogTitle?: string;
 }
 
 /**
@@ -31,6 +35,8 @@ const HeadOfHouseholdUserPicker: React.FC<HeadOfHouseholdUserPickerProps> = ({
     valueLabel,
     onChange,
     disabled,
+    label = "Liên kết tài khoản chủ hộ (nếu có)",
+    dialogTitle = "Chọn tài khoản chủ hộ",
 }) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -61,7 +67,7 @@ const HeadOfHouseholdUserPicker: React.FC<HeadOfHouseholdUserPickerProps> = ({
 
     return (
         <div>
-            <Label>Liên kết tài khoản chủ hộ (nếu có)</Label>
+            <Label>{label}</Label>
             <div className="mt-1 flex items-center gap-2">
                 <button
                     type="button"
@@ -87,7 +93,7 @@ const HeadOfHouseholdUserPicker: React.FC<HeadOfHouseholdUserPickerProps> = ({
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Chọn tài khoản chủ hộ</DialogTitle>
+                        <DialogTitle>{dialogTitle}</DialogTitle>
                     </DialogHeader>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text_3" />

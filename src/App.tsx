@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@store/authStore";
 import { fetchMe } from "@service/authApi";
 import AdminGuard from "@components/auth/AdminGuard";
-import RequireNeighborhoodAssignment from "@components/auth/RequireNeighborhoodAssignment";
+import RequireScopeAssignment from "@components/auth/RequireScopeAssignment";
 import AdminLayout from "@components/layout/AdminLayout";
 import DocumentMeta from "@components/layout/DocumentMeta";
 import LoginPage from "@pages/Login/LoginPage";
@@ -278,9 +278,9 @@ const App: React.FC = () => {
                     <Route
                         element={
                             <AdminGuard permissions={["dashboard.read"]}>
-                                <RequireNeighborhoodAssignment>
+                                <RequireScopeAssignment>
                                     <AdminLayout />
-                                </RequireNeighborhoodAssignment>
+                                </RequireScopeAssignment>
                             </AdminGuard>
                         }
                     >

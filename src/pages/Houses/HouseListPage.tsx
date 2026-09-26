@@ -51,6 +51,7 @@ import {
 import { DEFAULT_PAGE_SIZE } from "@constants/common";
 import {
     formatFullAddress,
+    HOUSE_OWNERSHIP_RELATIONSHIP_TYPE_LABEL,
     HOUSE_STATUS_LABEL,
     HOUSE_STATUS_TONE,
 } from "@constants/domain";
@@ -434,7 +435,7 @@ const HouseListContent: React.FC = () => {
                     />
                     <Input
                         className="flex-1"
-                        placeholder="Tìm theo mã nhà, địa chỉ..."
+                        placeholder="Tìm theo mã nhà, địa chỉ, chủ sở hữu/người quản lý..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
@@ -613,6 +614,7 @@ const HouseListContent: React.FC = () => {
                                 <TableHead>Mã nhà</TableHead>
                                 <TableHead>Địa chỉ</TableHead>
                                 <TableHead>Tổ dân phố</TableHead>
+                                <TableHead>Chủ sở hữu / quản lý</TableHead>
                                 <TableHead>GIS</TableHead>
                                 <TableHead>Trạng thái</TableHead>
                                 <TableHead className="text-right">Thao tác</TableHead>
@@ -649,6 +651,39 @@ const HouseListContent: React.FC = () => {
                                         typeof h.neighborhoodId !== "string"
                                             ? h.neighborhoodId.name
                                             : "Chưa gán"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {h.ownerships?.length ? (
+                                            <div className="space-y-0.5">
+                                                {h.ownerships.map(o => (
+                                                    <div
+                                                        key={`${o.relationshipType}-${o.ownerId}`}
+                                                    >
+                                                        <span className="font-medium">
+                                                            {o.ownerDisplayName ||
+                                                                "Không rõ"}
+                                                        </span>
+                                                        {o.ownerType ===
+                                                            "organization" &&
+                                                            " (Tổ chức)"}
+                                                        <div className="text-xs text-text_2">
+                                                            {
+                                                                HOUSE_OWNERSHIP_RELATIONSHIP_TYPE_LABEL[
+                                                                    o
+                                                                        .relationshipType
+                                                                ]
+                                                            }
+                                                            {o.ownerPhone &&
+                                                                ` · ${o.ownerPhone}`}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-text_2">
+                                                Chưa có
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Badge
