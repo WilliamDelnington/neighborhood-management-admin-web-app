@@ -114,6 +114,17 @@ const slugifyKey = (value: string) =>
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_+|_+$/g, "");
 
+// Chuan hoa de tim kiem khong phan biet dau/hoa thuong (VD "xoa" khop "Xóa").
+const normalizeSearch = (value: string) =>
+    value
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .replace(/đ/gi, "d")
+        .toLowerCase()
+        .trim();
+
+type PermissionStatusFilter = "all" | "granted" | "not_granted";
+
 const EMPTY_FORM: FormState = {
     key: "",
     name: "",
@@ -144,6 +155,11 @@ const RoleListContent: React.FC = () => {
     const [editingRole, setEditingRole] = useState<RoleRecord | null>(null);
     const [form, setForm] = useState<FormState>(EMPTY_FORM);
     const [saving, setSaving] = useState(false);
+    // Bo loc danh sach quyen trong sheet - loc thuan phia client tren
+    // registry da tai san, khong goi API.
+    const [permissionSearch, setPermissionSearch] = useState("");
+    const [permissionStatusFilter, setPermissionStatusFilter] =
+        useState<PermissionStatusFilter>("all");
 
     const [roleToDelete, setRoleToDelete] = useState<RoleRecord | null>(null);
     const [deleting, setDeleting] = useState(false);
@@ -169,14 +185,21 @@ const RoleListContent: React.FC = () => {
         load(1);
     }, []);
 
+    const resetPermissionFilter = () => {
+        setPermissionSearch("");
+        setPermissionStatusFilter("all");
+    };
+
     const openCreateSheet = () => {
         setEditingRole(null);
         setForm(EMPTY_FORM);
+        resetPermissionFilter();
         setSheetOpen(true);
     };
 
     const openEditSheet = (role: RoleRecord) => {
         setEditingRole(role);
+        resetPermissionFilter();
         setForm({
             key: role.key,
             name: role.name,
@@ -249,6 +272,8 @@ const RoleListContent: React.FC = () => {
         }));
     };
 
+    // Nhan group da loc: khi dang loc, checkbox cua module chi bat/tat cac
+    // quyen dang hien thi (khong dong vao quyen bi an).
     const toggleModule = (group: ModulePermissionGroup) => {
         const moduleKeys = group.permissions.map(p => p.key);
         const allChecked = moduleKeys.every(k => form.permissions.includes(k));
@@ -333,6 +358,40 @@ const RoleListContent: React.FC = () => {
     const canEditCurrentRole = editingRole ? canUpdate : canCreate;
     const canEditCurrentPermissions =
         canEditCurrentRole && canManagePermissions;
+
+    // Tim theo ten module -> hien toan bo quyen cua module do; nguoc lai chi
+    // giu cac quyen co ten/key khop. Bo loc trang thai ap dung sau cung.
+    const normalizedPermissionSearch = normalizeSearch(permissionSearch);
+    const filteredRegistry = registry
+        .map(group => {
+            const groupMatches =
+                !normalizedPermissionSearch ||
+                normalizeSearch(group.label).includes(
+                    normalizedPermissionSearch,
+                );
+            const permissions = group.permissions.filter(perm => {
+                const textMatches =
+                    groupMatches ||
+                    normalizeSearch(perm.label).includes(
+                        normalizedPermissionSearch,
+                    ) ||
+                    perm.key.toLowerCase().includes(normalizedPermissionSearch);
+                if (!textMatches) return false;
+                const granted = form.permissions.includes(perm.key);
+                if (permissionStatusFilter === "granted") return granted;
+                if (permissionStatusFilter === "not_granted") return !granted;
+                return true;
+            });
+            return { ...group, permissions };
+        })
+        .filter(group => group.permissions.length > 0);
+    const totalPermissionCount = registry.reduce(
+        (sum, group) => sum + group.permissions.length,
+        0,
+    );
+    const isPermissionFilterActive =
+        !!normalizedPermissionSearch || permissionStatusFilter !== "all";
+
     let sheetTitle = "Tạo vai trò";
     if (editingRole) {
         sheetTitle = canUpdate ? "Cập nhật vai trò" : "Chi tiết vai trò";
@@ -582,11 +641,64 @@ const RoleListContent: React.FC = () => {
                         </div>
 
                         <div className="mt-5 border-t border-divider_01 pt-4">
-                            <h3 className="mb-3 text-sm font-semibold">
-                                Phân quyền theo chức năng
-                            </h3>
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                <h3 className="text-sm font-semibold">
+                                    Phân quyền theo chức năng
+                                </h3>
+                                <span className="text-xs text-text_2">
+                                    Đã cấp {form.permissions.length}/
+                                    {totalPermissionCount} quyền
+                                </span>
+                            </div>
+                            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                <Input
+                                    className="sm:max-w-sm"
+                                    placeholder="Tìm theo chức năng hoặc tên quyền..."
+                                    value={permissionSearch}
+                                    onChange={e =>
+                                        setPermissionSearch(e.target.value)
+                                    }
+                                />
+                                <Select
+                                    value={permissionStatusFilter}
+                                    onValueChange={value =>
+                                        setPermissionStatusFilter(
+                                            value as PermissionStatusFilter,
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger className="sm:w-44">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">
+                                            Tất cả quyền
+                                        </SelectItem>
+                                        <SelectItem value="granted">
+                                            Đã cấp
+                                        </SelectItem>
+                                        <SelectItem value="not_granted">
+                                            Chưa cấp
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {isPermissionFilterActive && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={resetPermissionFilter}
+                                    >
+                                        Xóa bộ lọc
+                                    </Button>
+                                )}
+                            </div>
+                            {filteredRegistry.length === 0 && (
+                                <p className="rounded-lg border border-divider_01 p-4 text-center text-sm text-text_2">
+                                    Không có quyền nào khớp bộ lọc
+                                </p>
+                            )}
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                {registry.map(group => {
+                                {filteredRegistry.map(group => {
                                     const moduleKeys = group.permissions.map(
                                         p => p.key,
                                     );
